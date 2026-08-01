@@ -75,6 +75,7 @@ export class SaveManager {
                     timePeriodIndex: adventureScene.timePeriodIndex || 0,
                     globalWaveCount: adventureScene.globalWaveCount || 1,
                     party: adventureScene.party || ['001'],
+                    inRestMode: adventureScene.inRestMode || false,
                     hexStates: hexStates
                 };
             } else if (existing && existing.adventureState) {
@@ -88,6 +89,7 @@ export class SaveManager {
                     adventureData.party = Array.from(currentPartySet);
                 }
             }
+
 
             const saveData = {
                 timestamp: Date.now(),

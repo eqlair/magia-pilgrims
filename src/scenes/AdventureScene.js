@@ -314,8 +314,15 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
 
-        // 現在の状態を自動保存
-        SaveManager.saveGame(this);
+        // 休息モード中であればRestSceneへ直接接続して再開（時間の踏み倒し裏技防止）
+        if (this.inRestMode) {
+            this.scene.pause();
+            this.scene.launch('RestScene', { party: this.party, timeOfDay: this.timeOfDay });
+        } else {
+            // 現在の状態を自動保存
+            SaveManager.saveGame(this);
+        }
+
         
         // アイドル時間計測用
         this.idleTime = 0;
@@ -326,6 +333,11 @@ export default class AdventureScene extends Phaser.Scene {
         // 他のシーン（EventSceneなど）から復帰したときの処理
         this.events.on('resume', (scene, data) => {
             this._isAdvancingTime = false; // シーン復帰時に時間経過ロックを必ず解除
+            if (data && data.fromRest) {
+                this.inRestMode = false;
+                SaveManager.saveGame(this);
+            }
+
             
         // 撤退または全滅からの復帰
 
@@ -590,10 +602,13 @@ export default class AdventureScene extends Phaser.Scene {
         this.restBtn.on('pointerdown', () => {
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) {
+                this.inRestMode = true;
+                SaveManager.saveGame(this);
                 this.scene.pause();
                 this.scene.launch('RestScene', { party: this.party, timeOfDay: this.timeOfDay });
             }
         });
+
 
         // --- UI: ステータスボタン（下部中央） ---
         this.statusBtn = this.add.text(width / 2, height - 20, 'ステータス', {
@@ -2193,7 +2208,9 @@ export default class AdventureScene extends Phaser.Scene {
         if (adv.timeOfDay !== undefined) this.timeOfDay = adv.timeOfDay;
         if (adv.timePeriodIndex !== undefined) this.timePeriodIndex = adv.timePeriodIndex;
         if (adv.globalWaveCount !== undefined) this.globalWaveCount = adv.globalWaveCount;
+        if (adv.inRestMode !== undefined) this.inRestMode = adv.inRestMode;
         if (adv.party) this.party = adv.party;
+
 
         // ヘックスの訪問・レベル情報を復元
         if (adv.hexStates && Array.isArray(adv.hexStates) && this.hexes) {
