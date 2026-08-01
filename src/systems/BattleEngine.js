@@ -257,6 +257,9 @@ export class BattleEngine {
 
     applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null) {
         if (defender.isDead || defender.isDying || defender.hp <= 0) return false;
+        // 実体化前（スポーン演出中）は無敵
+        if (defender.spawnDropTimer > 0 || defender.spawnAnimTimer > 0) return false;
+
         
         let finalDamage = amount;
         let damageType = type;
@@ -593,8 +596,9 @@ export class BattleEngine {
                             z = 10.0 + Math.random() * 2.0; // 画面中段付近
                         } else {
                             x = (Math.random() - 0.5) * 10.0;
-                            z = 20.0 + Math.random() * 2.0; // z=20.0 ~ 22.0
+                            z = 20.0 + Math.random() * 4.0; // z=20.0 ~ 24.0 (最奥Z=24まで拡大)
                         }
+
                         const spawnedList = this.spawnEnemyGroup(x, z, null, isDropSpawn);
                         this.spawnedInWave += spawnedList.length;
                     }

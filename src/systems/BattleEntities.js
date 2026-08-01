@@ -745,6 +745,8 @@ export class EnemyCharacter extends BattleEntity {
         if (this.spawnDropTimer > 0) {
             this.spawnDropTimer -= dt;
             if (this.spawnDropTimer < 0) this.spawnDropTimer = 0;
+            // 実体化前（1秒間）は移動・攻撃などの行動を行わない
+            return;
         }
 
         if (this.spawnAnimTimer > 0) {
@@ -756,6 +758,7 @@ export class EnemyCharacter extends BattleEntity {
 
         super.update(dt);
     }
+
 }
 
 export class BossCharacter extends BattleEntity {
