@@ -77,7 +77,19 @@ export class BattleEngine {
 
 
 
+        // DPS計測モード (rule=3 または isDpsTest)
+        if (this.rule === 3 || this.config.isDpsTest) {
+            this.rule = 3;
+            this.enemyCountPerWave = 3;
+            this.totalWaves = 1;
+            this.majoLevel = 0;
+            this.spawnedInWave = 3; // スポーン済み扱いにして追加スポーンを防止
+            this.waveState = 'playing';
+            this.waveTimer = 0;
+        }
+
         // パーティ情報を取得
+
         const party = this.config.party || ['001'];
         this.players = [];
 
@@ -617,8 +629,12 @@ export class BattleEngine {
                         }
                     }
                 }
+            } else if (this.rule === 3) {
+                // ── DPS計測モード (rule=3) ──
+                // サンドバッグ3匹のみ。追加スポーンや魔女出現、ウェーブ切替は一切行わない
             } else {
                 // ── 通常・殲滅モード (rule=0 / 1) ──
+
                 if (this.spawnedInWave < this.enemyCountPerWave) {
                     this.spawnTimer -= dt;
                     if (this.spawnTimer <= 0) {
