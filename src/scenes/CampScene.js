@@ -58,18 +58,9 @@ export default class CampScene extends Phaser.Scene {
             this.globalState.debugForceGemDrop = !this.globalState.debugForceGemDrop;
             const text = this.add.text(width / 2, 50, `[DEBUG] 宝石確定ドロップ: ${this.globalState.debugForceGemDrop ? 'ON' : 'OFF'}`, {
                 fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
-        const { width, height } = this.scale;
-
-        // 背景描画
-        const bg = this.add.image(width / 2, height / 2, this.bgKey);
-        const scaleX = width / bg.width;
-        const scaleY = height / bg.height;
-        const scale = Math.max(scaleX, scaleY);
-        bg.setScale(scale);
-
-        if (this.isNight) {
-            this.add.rectangle(width / 2, height / 2, width, height, 0x000033, 0.4);
-        }
+            }).setOrigin(0.5).setDepth(9999);
+            this.time.delayedCall(2000, () => text.destroy());
+        });
 
         // メインビュー用コンテナ（キャラ一覧）
         this.mainViewContainer = this.add.container(0, 0);
@@ -77,6 +68,7 @@ export default class CampScene extends Phaser.Scene {
         // 詳細ビュー用コンテナ（単一キャラ詳細）
         this.detailViewContainer = this.add.container(0, 0);
         this.detailViewContainer.setVisible(false);
+
 
         // メインビューを描画
         this.drawMainView(width, height);
