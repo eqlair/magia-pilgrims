@@ -22,14 +22,19 @@ export default class RestScene extends Phaser.Scene {
         const height = this.cameras.main.height;
         
         const bgKey = (this.timeOfDay === '夜') ? 'ev_camp' : 'ev_daycamp';
+        // 背景レイヤー (depth 0)
+        this.bgContainer = this.add.container(0, 0).setDepth(0);
         if (this.textures.exists(bgKey)) {
             const bg = this.add.image(width / 2, height / 2, bgKey);
             const scaleY = height / bg.height;
             bg.setScale(scaleY);
+            this.bgContainer.add(bg);
         } else {
-            this.add.rectangle(width / 2, height / 2, width, height, 0x111122);
+            const defaultBg = this.add.rectangle(width / 2, height / 2, width, height, 0x111122);
+            this.bgContainer.add(defaultBg);
         }
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.4);
+        const darkOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.4);
+        this.bgContainer.add(darkOverlay);
 
         this.sound.stopAll();
         if (this.cache.audio.exists('bgm_camp')) {
@@ -45,12 +50,11 @@ export default class RestScene extends Phaser.Scene {
         const state = GlobalState.getInstance();
         this.globalState = state;
 
-
-
         // UIコンテナ
         this.mainViewContainer = this.add.container(0, 0).setDepth(10);
-        this.detailViewContainer = this.add.container(0, 0).setDepth(20);
+        this.detailViewContainer = this.add.container(0, 0).setDepth(100);
         this.detailViewContainer.setVisible(false);
+
 
 
         // --- 共通の戻るボタン機能 ---

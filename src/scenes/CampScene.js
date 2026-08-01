@@ -21,27 +21,22 @@ export default class CampScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // 背景画像の表示
+        // 背景レイヤー (depth 0)
+        this.bgContainer = this.add.container(0, 0).setDepth(0);
         if (this.textures.exists(this.bgKey)) {
             const bgImg = this.add.image(width / 2, height / 2, this.bgKey);
-            // 画面全体をカバーするようにスケール
             const scaleX = width / bgImg.width;
             const scaleY = height / bgImg.height;
             const baseScale = Math.max(scaleX, scaleY);
-            // マップでの見え方(縦0.8倍)に合わせるため、横幅を1.25倍に拡大して比率を合わせる
             bgImg.setScale(baseScale * 1.25, baseScale).setOrigin(0.5, 0.5);
+            this.bgContainer.add(bgImg);
             
-            // 暗くするオーバーレイ
-            if (this.isNight) {
-                // 夜はより暗くする(60%)
-                this.add.rectangle(0, 0, width, height, 0x000000, 0.6).setOrigin(0, 0);
-            } else {
-                // 昼間でもステータス画面として見やすいように少し暗くする(30%)
-                this.add.rectangle(0, 0, width, height, 0x000000, 0.3).setOrigin(0, 0);
-            }
+            const overlayAlpha = this.isNight ? 0.6 : 0.3;
+            const darkOverlay = this.add.rectangle(0, 0, width, height, 0x000000, overlayAlpha).setOrigin(0, 0);
+            this.bgContainer.add(darkOverlay);
         } else {
-            // デフォルトの黒半透明
-            this.add.rectangle(0, 0, width, height, 0x111111, 0.9).setOrigin(0, 0);
+            const defaultBg = this.add.rectangle(0, 0, width, height, 0x111111, 0.9).setOrigin(0, 0);
+            this.bgContainer.add(defaultBg);
         }
 
         // キャンプBGM再生
@@ -62,16 +57,17 @@ export default class CampScene extends Phaser.Scene {
             this.time.delayedCall(2000, () => text.destroy());
         });
 
-        // メインビュー用コンテナ（キャラ一覧）
+        // メインビュー用コンテナ（キャラ一覧） depth: 10
         this.mainViewContainer = this.add.container(0, 0).setDepth(10);
 
-        // 詳細ビュー用コンテナ（単一キャラ詳細）
-        this.detailViewContainer = this.add.container(0, 0).setDepth(20);
+        // 詳細ビュー用コンテナ（単一キャラ詳細） depth: 100
+        this.detailViewContainer = this.add.container(0, 0).setDepth(100);
         this.detailViewContainer.setVisible(false);
 
         // メインビューを描画
         this.drawMainView(width, height);
     }
+
 
     getRankColor(rank) {
         return CharacterDetailHelper.getRankColor(rank);

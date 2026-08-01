@@ -38,8 +38,9 @@ export class CharacterDetailHelper {
     static showDetailView(scene, charId, parentSceneName, targetContainer, onBack) {
         if (!targetContainer) return;
         targetContainer.removeAll(true);
+        targetContainer.setPosition(0, 0);
+        targetContainer.setDepth(100);
         targetContainer.setVisible(true);
-        targetContainer.setDepth(999);
         if (scene.children && scene.children.bringToTop) {
             scene.children.bringToTop(targetContainer);
         }
@@ -48,8 +49,9 @@ export class CharacterDetailHelper {
         const height = scene.scale ? scene.scale.height : (scene.cameras ? scene.cameras.main.height : 600);
 
         // 詳細画面用の暗いバックドロップ（立ち絵や文字を見やすく覆う）
-        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.9).setOrigin(0, 0).setInteractive();
+        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
         targetContainer.add(bgBackdrop);
+
 
         const globalState = GlobalState.getInstance();
         const party = scene.party || ['001'];
@@ -315,9 +317,12 @@ export class CharacterDetailHelper {
      * 属性・耐性情報画面 (2ページ目) を表示
      */
     static showElementResistanceView(scene, charId, parentSceneName, targetContainer, onBack) {
+        if (!targetContainer) return;
         targetContainer.removeAll(true);
-        targetContainer.setVisible(true);
+        targetContainer.setPosition(0, 0);
         targetContainer.setDepth(100);
+        targetContainer.setVisible(true);
+
 
         const { width, height } = scene.scale;
         const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
@@ -419,9 +424,12 @@ export class CharacterDetailHelper {
      * 友好度表示画面を表示
      */
     static showFriendshipView(scene, charId, parentSceneName, targetContainer, onBack) {
+        if (!targetContainer) return;
         targetContainer.removeAll(true);
-        targetContainer.setVisible(true);
+        targetContainer.setPosition(0, 0);
         targetContainer.setDepth(100);
+        targetContainer.setVisible(true);
+
 
         const { width, height } = scene.scale;
         const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
