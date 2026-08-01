@@ -1464,38 +1464,27 @@ export class BattleEngine {
                     // 待機中
                     e.moveTimer -= dt;
                     if (e.moveTimer <= 0) {
-                        // 画面上端より少し外（z > 12.5 くらい）にいる場合、1/5の確率で降ってくるルートへ（スタック対策）
-                        if (e.z > 12.5 && Math.random() < 0.2) {
-                            const posIdx = Math.floor(Math.random() * 3); // 0, 1, 2
-                            e.x = (posIdx - 1) * 3.5 + (Math.random() - 0.5) * 6.0; // ±3mのランダム
-                            e.z = 12.0;
-                            e.isDropSpawn = true;
-                            e.spawnDropTimer = 1.0;
-                            e.isMoving = false; // 降下中は動かない
-                            e.moveTimer = 1.0;  // 降下時間
-                            e.vx = 0; e.vz = 0;
+                        e.isMoving = true;
+                        e.moveTimer = e.moveDist / e.speed;
+                        
+                        let angle = 0;
+                        if (target && Math.sqrt(minDist) <= 10.0) {
+                            // 10m以内にいる場合、そちらへ向かう
+                            const dx = target.x - e.x;
+                            const dz = target.z - e.z;
+                            angle = Math.atan2(dz, dx);
                         } else {
-                            e.isMoving = true;
-                            e.moveTimer = e.moveDist / e.speed;
-                            
-                            let angle = 0;
-                            if (target && Math.sqrt(minDist) <= 10.0) {
-                                // 10m以内にいる場合、そちらへ向かう
-                                const dx = target.x - e.x;
-                                const dz = target.z - e.z;
-                                angle = Math.atan2(dz, dx);
-                            } else {
-                                // 下方向（手前: -z方向）±10度
-                                const baseAngle = -Math.PI / 2; // -z方向 (画面下＝手前)
-                                const spread = (Math.random() - 0.5) * 20 * (Math.PI / 180);
-                                angle = baseAngle + spread;
-                            }
-                            
-                            e.vx = Math.cos(angle) * e.speed;
-                            e.vz = Math.sin(angle) * e.speed;
+                            // 下方向（手前: -z方向）±10度
+                            const baseAngle = -Math.PI / 2; // -z方向 (画面下＝手前)
+                            const spread = (Math.random() - 0.5) * 20 * (Math.PI / 180);
+                            angle = baseAngle + spread;
                         }
+                        
+                        e.vx = Math.cos(angle) * e.speed;
+                        e.vz = Math.sin(angle) * e.speed;
                     }
                 }
+
             }
             
             if (e.x < -5) e.x = -5;
