@@ -2021,11 +2021,17 @@ export default class AdventureScene extends Phaser.Scene {
         const gs = GlobalState.getInstance();
         if (this.currentMonth === 12 && this.currentDay === 21 && this.timePeriodIndex === 2 && !gs.event1221WildhuntPlayed) {
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
-            const genericNames = ['平地', '密林', '水域', '山地', '荒野', '崩壊都市', '緑地', '森林', '野外', ''];
+            const GAME_NAMED_SPOTS = [
+                'スカイツリー', '品川', '京橋', '新宿', '東京城', '大手門', '東京',
+                '新大久保', '丸の内', '中野', '桜田筋', '中央筋', '青山筋', '上野',
+                '秋葉原', '水道橋', '池袋', '東京タワー', '舞浜', '山谷', 'リトル沖縄',
+                '葛西臨海公園', 'ティスティニーランド', '神田明神', '路面電車', '平和島',
+                'ニュートラム', 'ビッグサイト', 'シルバードーム'
+            ];
             const rawName = (currentHex && currentHex.cellData && currentHex.cellData.name) ? currentHex.cellData.name.replace(/\n/g, '').trim() : '';
             
-            // 固有地名（東京・横浜・拠点など）に滞在しているか判定
-            const isNamedSpot = (currentHex && currentHex.cellData && currentHex.cellData.isSpot) || (!genericNames.includes(rawName) && rawName.length > 0);
+            // 全29個の固有地名（東京・品川・新宿など）に滞在しているか判定
+            const isNamedSpot = (currentHex && currentHex.cellData && currentHex.cellData.isSpot) || GAME_NAMED_SPOTS.includes(rawName);
 
             // 地名付きの土地に滞在していない（野外にいる）場合
             if (!isNamedSpot) {
@@ -2043,6 +2049,7 @@ export default class AdventureScene extends Phaser.Scene {
         }
         return false;
     }
+
 
 
 
@@ -2129,14 +2136,24 @@ export default class AdventureScene extends Phaser.Scene {
         }
         if (this.currentDay === 21 && this.timePeriodIndex === 2) {
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
-            const hasName = currentHex && currentHex.cellData && currentHex.cellData.name && currentHex.cellData.name.trim() !== '' && currentHex.cellData.name !== '水域' && currentHex.cellData.name !== '密林';
-            if (!hasName) {
+            const GAME_NAMED_SPOTS = [
+                'スカイツリー', '品川', '京橋', '新宿', '東京城', '大手門', '東京',
+                '新大久保', '丸の内', '中野', '桜田筋', '中央筋', '青山筋', '上野',
+                '秋葉原', '水道橋', '池袋', '東京タワー', '舞浜', '山谷', 'リトル沖縄',
+                '葛西臨海公園', 'ティスティニーランド', '神田明神', '路面電車', '平和島',
+                'ニュートラム', 'ビッグサイト', 'シルバードーム'
+            ];
+            const rawName = (currentHex && currentHex.cellData && currentHex.cellData.name) ? currentHex.cellData.name.replace(/\n/g, '').trim() : '';
+            const isNamedSpot = (currentHex && currentHex.cellData && currentHex.cellData.isSpot) || GAME_NAMED_SPOTS.includes(rawName);
+
+            if (!isNamedSpot) {
                 this.start1221Breakthrough();
                 return true;
             }
         }
         return false;
     }
+
 
 
 
