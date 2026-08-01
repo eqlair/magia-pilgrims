@@ -230,30 +230,32 @@ export class BattleEngine {
 
     spawnEnemyGroup(typeIndex = null, forceDropSpawn = null) {
         let typeDef;
-        if (typeIndex !== null && ENEMY_TYPES[typeIndex]) {
+        // サンドバッグ(id:10)を除外した通常敵タイプ一覧(id: 1~9)
+        const normalTypes = ENEMY_TYPES.filter(t => t.id !== 10);
+        if (typeIndex !== null && ENEMY_TYPES.find(t => t.id === typeIndex)) {
+            typeDef = ENEMY_TYPES.find(t => t.id === typeIndex);
+        } else if (typeIndex !== null && ENEMY_TYPES[typeIndex]) {
             typeDef = ENEMY_TYPES[typeIndex];
         } else {
-            const idx = Math.floor(Math.random() * ENEMY_TYPES.length);
-            typeDef = ENEMY_TYPES[idx];
+            const idx = Math.floor(Math.random() * normalTypes.length);
+            typeDef = normalTypes[idx];
         }
 
         const count = typeDef.spawnCount || 1;
         const spawnedEnemies = [];
 
         for (let i = 0; i < count; i++) {
-            // 各個体ごとにスポーン判定を個別に行う
-            const isDropSpawn = forceDropSpawn !== null ? forceDropSpawn : (Math.random() < 0.2); // 1/5の確率で画面内に降下
+            // 各個体ごとに 1/5 (20%) の確率で降下型 (isDropSpawn = true) にする
+            const isDropSpawn = (typeof forceDropSpawn === 'boolean') ? forceDropSpawn : (Math.random() < 0.2);
             let x, z;
             if (isDropSpawn) {
                 const posIdx = Math.floor(Math.random() * 3);
                 x = (posIdx - 1) * 3.5 + (Math.random() - 0.5) * 6.0;
-                z = 10.0 + Math.random() * 2.0; // 画面中段付近
+                z = 10.0 + Math.random() * 2.0; // 画面中段付近 (Z=10.0 ~ 12.0)
             } else {
                 x = (Math.random() - 0.5) * 10.0;
-                z = 20.0 + Math.random() * 4.0; // z=20.0 ~ 24.0 (最奥Z=24まで拡大)
+                z = 20.0 + Math.random() * 4.0; // 画面最奥 (Z=20.0 ~ 24.0)
             }
-
-
 
             const enemyData = {
                 name: typeDef.name,
@@ -278,16 +280,20 @@ export class BattleEngine {
             enemy.spawnDropTimer = isDropSpawn ? 1.0 : 0; // 1/5の降下敵のみ降下タイマーを付与
             this.enemies.push(enemy);
             spawnedEnemies.push(enemy);
-
         }
 
         return spawnedEnemies;
     }
 
     spawnEnemy(x, z, typeIndex = null) {
-        const group = this.spawnEnemyGroup(x, z, typeIndex);
+        const group = this.spawnEnemyGroup(typeIndex);
+        if (group[0]) {
+            group[0].x = x;
+            group[0].z = z;
+        }
         return group[0];
     }
+
 
 
     spawnBoss(x, z) {
@@ -639,19 +645,9 @@ export class BattleEngine {
                     this.spawnTimer -= dt;
                     if (this.spawnTimer <= 0) {
                         this.spawnTimer = 1.0; // 1秒間隔
-                        const isDropSpawn = Math.random() < 0.2; // 1/5の確率で画面内に降下
-                        let x, z;
-                        if (isDropSpawn) {
-                            const posIdx = Math.floor(Math.random() * 3);
-                            x = (posIdx - 1) * 3.5 + (Math.random() - 0.5) * 6.0;
-                            z = 10.0 + Math.random() * 2.0; // 画面中段付近
-                        } else {
-                            x = (Math.random() - 0.5) * 10.0;
-                            z = 20.0 + Math.random() * 4.0; // z=20.0 ~ 24.0 (最奥Z=24まで拡大)
-                        }
-
-                        const spawnedList = this.spawnEnemyGroup(x, z, null, isDropSpawn);
+                        const spawnedList = this.spawnEnemyGroup();
                         this.spawnedInWave += spawnedList.length;
+
                     }
                 }
 
