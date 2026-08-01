@@ -446,6 +446,7 @@ export default class EquipmentScene extends Phaser.Scene {
             if (oldItem) items.push(oldItem);
         }
         
+        SaveManager.saveGame();
         this.selectedItem = null;
         this.drawUI();
     }
@@ -464,9 +465,11 @@ export default class EquipmentScene extends Phaser.Scene {
             if (oldItem) items.push(oldItem);
         }
         
+        SaveManager.saveGame();
         this.selectedItem = null;
         this.drawUI();
     }
+
 
     startEnhanceMode(item) {
         this.enhanceMode = true;

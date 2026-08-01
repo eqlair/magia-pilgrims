@@ -68,7 +68,17 @@ export default class CampScene extends Phaser.Scene {
 
         // メインビューを描画
         this.drawMainView(width, height);
+
+        // レリクス・宝石装備画面から復帰した場合の再描画リスナー
+        this.events.on('resume', () => {
+            if (this.currentDetailCharId && this.detailViewContainer && this.detailViewContainer.visible) {
+                this.showDetailView(this.currentDetailCharId, width, height);
+            } else {
+                this.drawMainView(width, height);
+            }
+        });
     }
+
 
 
     getRankColor(rank) {

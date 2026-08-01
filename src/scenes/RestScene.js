@@ -64,10 +64,13 @@ export default class RestScene extends Phaser.Scene {
         
         // シーン復帰時の再描画
         this.events.on('resume', () => {
-            if (this.currentDetailCharId) {
+            if (this.currentDetailCharId && this.detailViewContainer && this.detailViewContainer.visible) {
                 this.showDetailView(this.currentDetailCharId, width, height);
+            } else {
+                this.drawMainView(width, height);
             }
         });
+
         
         this.drawMainView(width, height);
     }

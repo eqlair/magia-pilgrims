@@ -181,21 +181,36 @@ export class GlobalState {
         let expBonusMod = 0; // 追加: 経験値取得量UPボーナス(%)
         let elemMods = { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
 
-        const allEquips = [...(char.equipRelics || []), char.equipGem].filter(e => e !== null && e !== undefined);
+        // 装備品の集計 (ロック中のスロットおよび未装着を除外)
+        const validEquips = [];
+        if (char.equipRelics && Array.isArray(char.equipRelics)) {
+            char.equipRelics.forEach((relic, slotIdx) => {
+                if (!relic) return;
+                const reqLevel = 1 + slotIdx * 4;
+                if ((char.level || 1) < reqLevel) return; // ロック中スロットのレリクスは無効
+                validEquips.push(relic);
+            });
+        }
+        if (char.equipGem) {
+            validEquips.push(char.equipGem);
+        }
 
-        allEquips.forEach(equip => {
+        validEquips.forEach(equip => {
             // 特性リスト（traits）または個別プロパティの判定
             const traits = equip.traits || (equip.trait ? [equip.trait] : []);
             traits.forEach(trait => {
+                if (!trait) return;
+                const tLevel = Number(trait.level || trait.val || 0);
+                if (tLevel <= 0) return; // 未開花特性(level === 0)は加算しない！
+
                 const tName = (trait.name || trait.type || '').toString().trim();
-                const tLevel = Number(trait.level || trait.val || 1);
-                if (tLevel <= 0 && !tName) return;
+                if (!tName) return;
 
                 if (tName.includes('生命力') || tName.includes('HPUP')) {
                     hpMod += tLevel * 0.05;
                 } else if (tName.includes('精神力') || tName.includes('SPUP')) {
                     spMod += tLevel * 0.05;
-                } else if (tName.includes('攻撃力UP')) {
+                } else if (tName.includes('攻撃力UP') || tName.includes('ATKUP')) {
                     atkMod += tLevel * 0.05;
                 } else if (tName.includes('リロード')) {
                     reloadMod += tLevel * 0.02;
@@ -207,12 +222,12 @@ export class GlobalState {
                     critRateMod += tLevel * 0.05;
                 } else if (tName.includes('CH倍率') || tName.includes('クリティカル倍率')) {
                     critMultMod += tLevel * 0.10;
+                } else if (tName.includes('全攻撃') || tName.includes('全攻撃LV') || tName.includes('全攻撃Lv')) {
+                    meleeLevelBonus += tLevel;
+                    rangedLevelBonus += tLevel;
                 } else if (tName.includes('近接')) {
                     meleeLevelBonus += tLevel;
                 } else if (tName.includes('遠距離') || tName.includes('遠隔')) {
-                    rangedLevelBonus += tLevel;
-                } else if (tName.includes('全攻撃') || tName.includes('攻撃LV') || tName.includes('攻撃Lv')) {
-                    meleeLevelBonus += tLevel;
                     rangedLevelBonus += tLevel;
                 } else if (tName.includes('経験値') || tName.includes('EXP') || tName.includes('獲得EXP')) {
                     expBonusMod += tLevel * 10;
@@ -229,11 +244,14 @@ export class GlobalState {
                 }
             });
 
-            // 宝石単体に直接近接/遠隔プロパティが設定されている場合のフォロー
+            // 宝石単体に直接近接/遠隔/EXPプロパティが設定されている場合のフォロー
             if (equip.meleeBonus) meleeLevelBonus += Number(equip.meleeBonus);
             if (equip.rangedBonus) rangedLevelBonus += Number(equip.rangedBonus);
             if (equip.expBonus) expBonusMod += Number(equip.expBonus);
+            if (equip.meleeLevel) meleeLevelBonus += Number(equip.meleeLevel);
+            if (equip.rangedLevel) rangedLevelBonus += Number(equip.rangedLevel);
         });
+
 
         
         // --- タロット効果のパッシブ適用 (No.1〜10) ---
