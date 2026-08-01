@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GlobalState } from '../systems/GlobalState';
+import { SaveManager } from '../systems/SaveManager';
+
 import { fontSize, FONT_MAIN } from '../config/GameFont';
 
 export default class CampScene extends Phaser.Scene {
@@ -464,10 +466,12 @@ export default class CampScene extends Phaser.Scene {
         levelUpBtn.on('pointerdown', () => {
             if (canLevelUp) {
                 if (this.globalState.levelUp(charId)) {
+                    SaveManager.saveGame();
                     this.showDetailView(charId, width, height); // 再描画
                 }
             }
         });
+
         this.detailViewContainer.add(levelUpBtn);
         ry += lineSpacing * 0.9;
 

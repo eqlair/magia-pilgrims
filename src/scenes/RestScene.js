@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GlobalState } from '../systems/GlobalState';
+import { SaveManager } from '../systems/SaveManager';
+
 import { TimeReporter } from '../systems/TimeReporter';
 import { fontSize, FONT_MAIN } from '../config/GameFont';
 
@@ -566,6 +568,7 @@ export default class RestScene extends Phaser.Scene {
         const healAmount = useSp * 30;
         charData.currentHp = Math.min(maxHp, charData.currentHp + healAmount);
         charData.currentSp = Math.max(0, charData.currentSp - useSp);
+        SaveManager.saveGame();
         this.drawMainView(this.cameras.main.width, this.cameras.main.height);
     }
 
@@ -578,9 +581,11 @@ export default class RestScene extends Phaser.Scene {
         this.showDialog(`精神力の回復にSP ${spToUse} 点が必要です。\n回復しますか？`, () => {
             this.globalState.stockSp -= spToUse;
             charData.currentSp += spToUse;
+            SaveManager.saveGame();
             this.drawMainView(this.cameras.main.width, this.cameras.main.height);
         });
     }
+
 
     confirmFinishRest() {
         this.showDialog('休息を終えると時間が進みます。\nよろしいですか？', () => this.finishRest());

@@ -45,6 +45,7 @@ export class SaveManager {
             };
 
             // AdventureScene のマップ状況をシリアライズ
+            const existing = SaveManager.loadGameData();
             let adventureData = null;
             if (adventureScene) {
                 const hexStates = [];
@@ -76,21 +77,17 @@ export class SaveManager {
                     party: adventureScene.party || ['001'],
                     hexStates: hexStates
                 };
-            } else {
-                const existing = SaveManager.loadGameData();
-                if (existing && existing.adventureState) {
-                    adventureData = existing.adventureState;
-                    if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
-                        const formationChars = Object.keys(gs.savedFormation);
-                        const currentPartySet = new Set(adventureData.party || []);
-                        for (const charId of formationChars) {
-                            currentPartySet.add(charId);
-                        }
-                        adventureData.party = Array.from(currentPartySet);
+            } else if (existing && existing.adventureState) {
+                adventureData = existing.adventureState;
+                if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+                    const formationChars = Object.keys(gs.savedFormation);
+                    const currentPartySet = new Set(adventureData.party || []);
+                    for (const charId of formationChars) {
+                        currentPartySet.add(charId);
                     }
+                    adventureData.party = Array.from(currentPartySet);
                 }
             }
-
 
             const saveData = {
                 timestamp: Date.now(),
@@ -99,8 +96,9 @@ export class SaveManager {
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 }),
                 globalState: globalData,
-                adventureState: adventureData
+                adventureState: adventureData || (existing ? existing.adventureState : null)
             };
+
 
             localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
             console.log('[SaveManager] Game saved successfully!');
