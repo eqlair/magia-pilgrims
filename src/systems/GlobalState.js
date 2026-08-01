@@ -58,12 +58,13 @@ export class GlobalState {
         // デバッグ機能: タロットカードをすべて表向きでドローする
         this.tarotAllFaceUp = false;
         
-        // デバッグ機能: 敵のステータス倍率
-        this.debugEnemyHpMultiplier = 1.0;     // XX
-        this.debugEnemyMoveMultiplier = 2.0;   // YY
-        this.debugEnemyRangeMultiplier = 3.0;  // ZZ
-        this.debugEnemySizeMultiplier = 1.0;   // WW
-        this.debugEnemyHpGrowthRate = 1.0;     // VV
+        // デバッグ機能: 敵のステータス倍率（デフォルト1.0）
+        this.debugEnemyHpMultiplier = 1.0;     // 1.0
+        this.debugEnemyMoveMultiplier = 1.0;   // 1.0
+        this.debugEnemyRangeMultiplier = 1.0;  // 1.0
+        this.debugEnemySizeMultiplier = 1.0;   // 1.0
+        this.debugEnemyHpGrowthRate = 1.0;     // 1.0
+
         
         // 全キャラクターの永続データ
         this.characters = {
