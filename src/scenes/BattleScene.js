@@ -283,8 +283,17 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     showRetreatConfirm() {
+        if (this.battleConfig && (this.battleConfig.canRetreat === false || this.battleConfig.is1221NightBattle)) {
+            const msg = this.add.text(this.scale.width / 2, this.scale.height / 2, '撤退のできない戦闘です', {
+                fontSize: '28px', color: '#ff4444', backgroundColor: '#000000', padding: { x: 20, y: 10 },
+                stroke: '#ffffff', strokeThickness: 2
+            }).setOrigin(0.5).setDepth(3000);
+            this.time.delayedCall(2000, () => msg.destroy());
+            return;
+        }
         this.confirmContainer.setVisible(true);
     }
+
 
     update(time, delta) {
         if (this.isPaused) return;
@@ -437,8 +446,10 @@ export default class BattleScene extends Phaser.Scene {
                 isGameOver: this.engine.waveState === 'gameover',
                 isRetreated: this.engine.waveState === 'retreated',
                 isNightExploration: this.battleConfig.isNightExploration,
+                is1221NightBattle: this.battleConfig.is1221NightBattle || false,
                 fromBattle: true
             };
+
             const targetScene = this.battleConfig.returnScene || 'AdventureScene';
             this.time.delayedCall(this.engine.waveState === 'gameover' ? 4000 : 1500, () => {
                 if (this.scene.isPaused(targetScene)) {

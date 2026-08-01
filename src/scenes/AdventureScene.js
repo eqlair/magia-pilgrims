@@ -320,11 +320,26 @@ export default class AdventureScene extends Phaser.Scene {
         this.events.on('resume', (scene, data) => {
         // 撤退または全滅からの復帰
         if (data && (data.isGameOver || data.isRetreated)) {
+            // 12/21の全滅時はリスポーンイベントへ突入
+            if (data.isGameOver && (data.is1221NightBattle || this.currentDay === 21)) {
+                const respData = this.cache.json.get('event_resp');
+                if (respData) {
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: respData,
+                        returnScene: 'AdventureScene',
+                        fromRespEvent: true
+                    });
+                    return;
+                }
+            }
+
             TransitionManager.fadeIn(this);
             if (this._preBattleSnapshot) {
                 this.restoreSnapshot(this._preBattleSnapshot);
                 this._preBattleSnapshot = null;
             }
+
             const msg = data.isGameOver ? '部隊は全滅した…' : '戦闘から撤退した。';
             // 簡単なメッセージ表示
             const txt = this.add.text(this.scale.width/2, this.scale.height/2, msg, {
@@ -536,6 +551,7 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '28px', color: '#aaffaa', backgroundColor: '#224422'
         }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
         this.exploreBtn.on('pointerdown', () => {
+            if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) this._startExploration();
         });
 
@@ -544,6 +560,7 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '28px', color: '#aaccff', backgroundColor: '#222244'
         }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
         this.restBtn.on('pointerdown', () => {
+            if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) {
                 this.scene.pause();
                 this.scene.launch('RestScene', { party: this.party, timeOfDay: this.timeOfDay });
@@ -555,11 +572,13 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: '#333333'
         }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
         this.statusBtn.on('pointerdown', () => {
+            if (this.check1221NightForcedBreakthrough()) return;
             this.scene.pause();
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
             const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_woods.jpg';
             this.scene.launch('CampScene', { party: this.party, bgKey: bgKey, isNight: this.timeOfDay === '夜' });
         });
+
 
         // UI: 食料表示（左下）
         this.foodText = this.add.text(20, height - 20, '', {
@@ -958,9 +977,13 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     moveToHex(hex, animate = true) {
+        if (animate && this.check1221NightForcedBreakthrough()) {
+            return;
+        }
         const isUnexplored = (hex.cellData.visited !== 1 && hex.cellData.name !== '水域' && hex.cellData.name !== '密林');
         
         hex.cellData.visited = 1;
+
         
         // 背景のクロスフェード
         this.updateBackground(hex, animate);
@@ -1254,10 +1277,27 @@ export default class AdventureScene extends Phaser.Scene {
             this.timePeriodIndex = 0;
             this.currentDay++;
         }
-        this.timeOfDay = this.timePeriods[this.timePeriodIndex];
-        
+        // 12月21日の難易度補正（午前・午後）
+        const gsInst = GlobalState.getInstance();
+        if (this.currentDay === 21) {
+            if (this.timePeriodIndex === 0 && !this._dec21MorningApplied) {
+                this._dec21MorningApplied = true;
+                this.globalEnemyLevel += 1;
+                this.globalEnemyCount += 50;
+                this.globalWaveCount = (this.globalWaveCount || 1) + 1;
+                gsInst.debugEnemySizeMultiplier = 1.2;
+            } else if (this.timePeriodIndex === 1 && !this._dec21AfternoonApplied) {
+                this._dec21AfternoonApplied = true;
+                this.globalEnemyLevel += 1;
+                this.globalEnemyCount += 50;
+                this.globalWaveCount = (this.globalWaveCount || 1) + 1;
+                gsInst.debugEnemySizeMultiplier = 1.2;
+            }
+        }
+
         // 敵の量コントロール
         // 時間が進む -> 数量が1～5増える
+
         this.globalEnemyCount += Math.floor(Math.random() * 5) + 1;
         
         // 毎日夜になるたびに
@@ -1378,8 +1418,9 @@ export default class AdventureScene extends Phaser.Scene {
         
         this._preBattleSnapshot = this.createSnapshot();
 
-        // 夜の場合は会話イベントを挟んでから戦闘に突入
-        if (this.timeOfDay === '夜') {
+        // 夜または12月21日の場合は会話イベントを挟んでから戦闘に突入
+        if (this.timeOfDay === '夜' || this.currentDay === 21) {
+
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
             this._isExploring = false; // 探索状態はリセットしておく
             
@@ -1965,6 +2006,59 @@ export default class AdventureScene extends Phaser.Scene {
         this.updateVisibility();
         this._updateFoodDisplay();
     }
+
+    /** 12/21夜：野外（地名無しヘクス）での強制突破戦スタート */
+    start1221Breakthrough() {
+        const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+        let maxLevel = currentHex?.cellData?.enemyLevel || 1;
+        const isOdd = (this.playerRow % 2 !== 0);
+        const neighbors = [
+            [0, -1], [0, 1], [-1, 0], [1, 0],
+            isOdd ? [1, -1] : [-1, -1],
+            isOdd ? [1, 1] : [-1, 1]
+        ];
+        for (const n of neighbors) {
+            const nc = this.playerCol + n[0];
+            const nr = this.playerRow + n[1];
+            if (nr >= 0 && nr < this.grid.length && nc >= 0 && nc < this.grid[nr].length) {
+                const adjHex = this.grid[nr][nc];
+                const lvl = adjHex?.cellData?.enemyLevel || 0;
+                if (lvl > maxLevel) maxLevel = lvl;
+            }
+        }
+
+        const config = {
+            rule: 2, // 突破戦
+            attribute: 'red',
+            enemyCount: 200,
+            breakthroughTarget: 12010,
+            spawnInterval: 0.5,
+            enemyLevel: maxLevel,
+            majoLevel: 0,
+            isOverlay: false,
+            returnScene: 'AdventureScene',
+            party: this.party,
+            canRetreat: false,
+            is1221NightBattle: true
+        };
+
+        this.scene.pause();
+        this.scene.launch('BattleScene', config);
+    }
+
+    /** 12/21夜の地名なしヘクスでの行動チェック */
+    check1221NightForcedBreakthrough() {
+        if (this.currentDay === 21 && this.timePeriodIndex === 2) {
+            const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+            const hasName = currentHex && currentHex.cellData && currentHex.cellData.name && currentHex.cellData.name.trim() !== '';
+            if (!hasName) {
+                this.start1221Breakthrough();
+                return true;
+            }
+        }
+        return false;
+    }
+
 
 
 
