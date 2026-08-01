@@ -381,9 +381,9 @@ export class CharacterDetailHelper {
         };
 
         let ry = height * 0.2;
-        targetContainer.add(scene.add.text(width * 0.1, ry, '【属性別防御力】', { stroke: '#000000', strokeThickness: 2, fontSize: '24px', color: '#aaffaa' }));
+        targetContainer.add(scene.add.text(width * 0.15, ry, '【属性別防御力】', { stroke: '#000000', strokeThickness: 2, fontSize: '24px', color: '#aaffaa' }));
         let dry = height * 0.2;
-        targetContainer.add(scene.add.text(width * 0.4, dry, '【属性別デバフ抵抗力】', { stroke: '#000000', strokeThickness: 2, fontSize: '24px', color: '#ffaaaa' }));
+        targetContainer.add(scene.add.text(width * 0.55, dry, '【属性別デバフ抵抗力】', { stroke: '#000000', strokeThickness: 2, fontSize: '24px', color: '#ffaaaa' }));
 
         ry += 40;
         dry += 40;
@@ -392,16 +392,16 @@ export class CharacterDetailHelper {
             const modVal = elemMods[e.id] || 0;
             const isDefBoosted = (defVal !== 100) || (modVal !== 0);
 
-            // 属性別防御力
-            targetContainer.add(scene.add.image(width * 0.1, ry + 12, e.icon).setScale(0.15));
-            targetContainer.add(scene.add.text(width * 0.15, ry, `${e.name}: ${defVal}%`, {
+            // 属性別防御力 (1/5右へ移動)
+            targetContainer.add(scene.add.image(width * 0.15, ry + 12, e.icon).setScale(0.15));
+            targetContainer.add(scene.add.text(width * 0.20, ry, `${e.name}: ${defVal}%`, {
                 stroke: '#000000', strokeThickness: 3, fontSize: '22px',
                 color: isDefBoosted ? '#ff9900' : '#ffffff'
             }));
             
-            // 属性別デバフ抵抗力
-            targetContainer.add(scene.add.image(width * 0.4, dry + 12, e.icon).setScale(0.15));
-            targetContainer.add(scene.add.text(width * 0.45, dry, `${e.name}: ${defVal}%`, {
+            // 属性別デバフ抵抗力 (1/5右へ移動)
+            targetContainer.add(scene.add.image(width * 0.55, dry + 12, e.icon).setScale(0.15));
+            targetContainer.add(scene.add.text(width * 0.60, dry, `${e.name}: ${defVal}%`, {
                 stroke: '#000000', strokeThickness: 3, fontSize: '22px',
                 color: isDefBoosted ? '#ff9900' : '#ffffff'
             }));
@@ -410,18 +410,25 @@ export class CharacterDetailHelper {
             dry += 35;
         });
 
+        // ※受けるダメージやデバフ効果を上記の値に増減する。\n100％以上の表記は弱点 の注記テキスト
+        const noteText = '※受けるダメージやデバフ効果を上記の値に増減する。\n100％以上の表記は弱点';
+        targetContainer.add(scene.add.text(width * 0.5, height * 0.56, noteText, {
+            stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffaa', align: 'center'
+        }).setOrigin(0.5, 0));
+
         // Center bottom image and text
-        const embImage = scene.add.image(width * 0.2, height * 0.75, 'emb_0');
-        const scale = (height * 0.3) / embImage.height;
+        const embImage = scene.add.image(width * 0.2, height * 0.8, 'emb_0');
+        const scale = (height * 0.26) / embImage.height;
         embImage.setScale(scale);
         targetContainer.add(embImage);
 
         const relText = '情熱は混沌に強く統制に弱い。\n混沌は調和に強く情熱に弱い。\n調和は犠牲に強く混沌に弱い。\n犠牲は統制に強く調和に弱い。\n統制は情熱に強く犠牲に弱い。';
-        const relObj = scene.add.text(width * 0.35, height * 0.75, relText, {
-            stroke: '#000000', strokeThickness: 3, fontSize: '22px', lineSpacing: 10
+        const relObj = scene.add.text(width * 0.35, height * 0.8, relText, {
+            stroke: '#000000', strokeThickness: 3, fontSize: '20px', lineSpacing: 6
         }).setOrigin(0, 0.5);
         targetContainer.add(relObj);
     }
+
 
     /**
      * 友好度表示画面を表示
