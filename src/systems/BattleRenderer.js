@@ -949,14 +949,21 @@ export class BattleRenderer {
 
     _updateBattleInfo() {
         if (!this.battleInfoText) {
-            this.battleInfoText = this.scene.add.text(this.scene.scale.width / 2, 10, '', {
+            this.battleInfoText = this.scene.add.text(this.scene.scale.width / 2, 12, '', {
                 fontFamily: 'sans-serif',
                 fontSize: '20px',
+                fontStyle: 'bold',
                 color: '#ffffff',
                 stroke: '#000000',
-                strokeThickness: 3,
+                strokeThickness: 4,
                 align: 'center'
-            }).setOrigin(0.5, 0).setDepth(4000);
+            }).setOrigin(0.5, 0).setDepth(9999);
+        }
+
+        // 突破モード(rule === 2)の場合は突破HUDがあるため非表示
+        if (this.scene.battleConfig && this.scene.battleConfig.rule === 2) {
+            this.battleInfoText.setText('');
+            return;
         }
 
         const aliveEnemies = this.engine.enemies.filter(e => !e.isDead && !e.isDying).length;
@@ -989,6 +996,7 @@ export class BattleRenderer {
             this.battleInfoText.setText(`Enemy ${enemiesRemaining}/${totalEnemies}  Wave ${currentWave}/${totalWaves}  Time ${min}:${sec}`);
         }
     }
+
 
     // クリーンアップ
     destroy() {
