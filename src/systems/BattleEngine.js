@@ -450,15 +450,32 @@ export class BattleEngine {
                 this.damageHistory.push({ time: this.time, damage: finalDamage });
             }
             
-            // プレイヤーがダメージを受けた時：10ダメージごとにSP-1（食料0時は-2）
-            if (defender.owner === 'player' && defender.accumulatedDamage !== undefined) {
-                defender.accumulatedDamage += finalDamage;
-                const spDrainPerDmg = defender.isFoodEmpty ? 2 : 1;
-                while (defender.accumulatedDamage >= 10) {
-                    defender.accumulatedDamage -= 10;
-                    defender.sp = Math.max(0, defender.sp - spDrainPerDmg);
+            // プレイヤーがダメージを受けた時：
+            if (defender.owner === 'player') {
+                // 敵の攻撃を受けるとダメージ量に関わらず1発につき1秒、必殺技リロード時間を短縮（1秒に1回制限）
+                if (defender.hitUltBoostCooldown <= 0) {
+                    defender.hitUltBoostCooldown = 1.0; // 1秒間インターバル設定
+                    if (defender.ultimateCooldown > 0) {
+                        defender.ultimateCooldown = Math.max(0, defender.ultimateCooldown - 1.0);
+                        this.floatingTexts.push({
+                            id: Math.random(),
+                            x: defender.x, yOffset: 0.8, z: defender.z,
+                            amount: "ULT -1s", type: "skill", lifeTime: 1.0, maxLife: 1.0
+                        });
+                    }
+                }
+
+                // 10ダメージごとにSP-1（食料0時は-2）
+                if (defender.accumulatedDamage !== undefined) {
+                    defender.accumulatedDamage += finalDamage;
+                    const spDrainPerDmg = defender.isFoodEmpty ? 2 : 1;
+                    while (defender.accumulatedDamage >= 10) {
+                        defender.accumulatedDamage -= 10;
+                        defender.sp = Math.max(0, defender.sp - spDrainPerDmg);
+                    }
                 }
             }
+
             
             this.floatingTexts.push({
                 id: ++this.floatingTextIdCounter,

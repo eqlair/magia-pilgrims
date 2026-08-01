@@ -51,10 +51,16 @@ export class BattleEntity {
             }
         }
         if (this.ultimateCooldown > 0) {
-
             this.ultimateCooldown -= dt;
             if (this.ultimateCooldown < 0) this.ultimateCooldown = 0;
         }
+
+        // 被弾による必殺技短縮のインターバル(1秒に1回制限)
+        if (this.hitUltBoostCooldown > 0) {
+            this.hitUltBoostCooldown -= dt;
+            if (this.hitUltBoostCooldown < 0) this.hitUltBoostCooldown = 0;
+        }
+
 
         if (this.stunTimer > 0) {
             this.stunTimer -= dt;
@@ -157,6 +163,8 @@ export class PlayerCharacter extends BattleEntity {
         // 食料がない場合、必殺技リロードは0でスタート
         this.isFoodEmpty = data.isFoodEmpty || false;
         this.ultimateCooldown = this.isFoodEmpty ? 0 : 0;
+        this.hitUltBoostCooldown = 0; // 被弾による必殺技短縮インターバル(1秒制限)
+
 
         // SP drainタイマー（10秒ごとに消費）
         this.spDrainTimer = 10.0;
