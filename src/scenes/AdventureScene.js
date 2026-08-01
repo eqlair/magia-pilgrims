@@ -416,13 +416,15 @@ export default class AdventureScene extends Phaser.Scene {
 
             let advancedTimeThisResume = false;
 
-            if (data && (data.fromEvent || data.fromExploration || data.fromRest || data.fromBattle) && !data.fromTarot && !data.isNotification) {
+            // 探索・休息・戦闘完了時のみ時間を1コマ進める（イベント自体では進めない）
+            if (data && (data.fromExploration || data.fromRest || data.fromBattle) && !data.fromTarot && !data.isNotification) {
                 if (!advancedTimeThisResume) {
                     this.advanceTime();
                     this.checkScheduledEvents();
                     advancedTimeThisResume = true;
                 }
             }
+
 
             if (data && data.fromBattle) {
                 console.log(`[AdventureScene] fromBattle returned. globalWaveCount=${this.globalWaveCount}`);
