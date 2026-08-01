@@ -1,6 +1,7 @@
 {
-  "appId": "com.antigravity.game",
-  "appName": "TokyoWitchGame",
+  "appId": "com.antigravity.magiapilgrims",
+  "appName": "Magia_Pilgrims",
   "webDir": "dist",
   "bundledWebRuntime": false
 }
+

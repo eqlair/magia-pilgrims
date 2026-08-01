@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Magia_Pilgrims</string>
+    <string name="title_activity_main">Magia_Pilgrims</string>
+    <string name="package_name">com.antigravity.magiapilgrims</string>
+    <string name="custom_url_scheme">com.antigravity.magiapilgrims</string>
+
+</resources>
