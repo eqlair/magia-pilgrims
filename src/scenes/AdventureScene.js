@@ -1274,15 +1274,17 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     advanceTime() {
-        if (this._isAdvancingTime) return;
-        this._isAdvancingTime = true;
-        this.time.delayedCall(1000, () => { this._isAdvancingTime = false; });
-
         this.timePeriodIndex++;
         if (this.timePeriodIndex >= this.timePeriods.length) {
             this.timePeriodIndex = 0;
             this.currentDay++;
         }
+        this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+
+        if (this.dateTimeText) {
+            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        }
+
         // 12月21日の難易度補正（午前・午後）
         const gsInst = GlobalState.getInstance();
         if (this.currentDay === 21) {
@@ -1300,6 +1302,7 @@ export default class AdventureScene extends Phaser.Scene {
                 gsInst.debugEnemySizeMultiplier = 1.2;
             }
         }
+
 
         // 敵の量コントロール
         // 時間が進む -> 数量が1～5増える
