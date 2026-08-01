@@ -11,16 +11,15 @@ const ATTR_DEF = {
 };
 
 export const ENEMY_TYPES = [
-
-    { id: 1, name: 'スウォーム', spawnCount: 9, hp: 30, speed: 100, moveDist: 2.0, moveInterval: 2.0, atkRange: 1.0, atkFreq: 0.5, atkPower: 1, weight: 5, debuffResist: 0, size: 1.0, textureKey: 'en003', frame: 0 },
-    { id: 2, name: 'フライ', spawnCount: 4, hp: 60, speed: 75, moveDist: 1.5, moveInterval: 1.8, atkRange: 2.0, atkFreq: 0.5, atkPower: 1, weight: 10, debuffResist: 0, size: 1.5, textureKey: 'en003', frame: 1 },
-    { id: 3, name: 'スピリット', spawnCount: 8, hp: 100, speed: 55, moveDist: 2.0, moveInterval: 1.6, atkRange: 2.0, atkFreq: 0.5, atkPower: 1, weight: 45, debuffResist: 50, size: 2.0, textureKey: 'en003', frame: 2 },
-    { id: 4, name: 'マノウォー', spawnCount: 3, hp: 60, speed: 60, moveDist: 2.0, moveInterval: 1.2, atkRange: 10.0, atkFreq: 1.0, atkPower: 1, weight: 15, debuffResist: 50, size: 2.0, textureKey: 'en003', frame: 3 },
-    { id: 5, name: 'ゴブリン', spawnCount: 8, hp: 200, speed: 50, moveDist: 1.0, moveInterval: 1.0, atkRange: 2.0, atkFreq: 1.0, atkPower: 1, weight: 35, debuffResist: 0, size: 1.0, textureKey: 'en001', frame: 2 },
-    { id: 6, name: 'コボルド', spawnCount: 6, hp: 350, speed: 40, moveDist: 1.5, moveInterval: 1.4, atkRange: 2.0, atkFreq: 1.0, atkPower: 1, weight: 55, debuffResist: 50, size: 1.5, textureKey: 'en002', frame: 3 },
-    { id: 7, name: 'オーク', spawnCount: 6, hp: 350, speed: 30, moveDist: 1.3, moveInterval: 2.0, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 75, debuffResist: 0, size: 1.5, textureKey: 'en001', frame: 0 },
-    { id: 8, name: 'オーガ', spawnCount: 3, hp: 500, speed: 25, moveDist: 1.2, moveInterval: 1.4, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 2.0, textureKey: 'en002', frame: 2 },
-    { id: 9, name: 'ゴーレム', spawnCount: 1, hp: 1000, speed: 25, moveDist: 1.2, moveInterval: 2.4, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 2.5, textureKey: 'en002', frame: 1 }
+    { id: 1, name: 'スウォーム', spawnCount: 9, hp: 15, speed: 100, moveDist: 2.0, moveInterval: 2.0, atkRange: 1.0, atkFreq: 0.5, atkPower: 1, weight: 5, debuffResist: 0, size: 0.5, textureKey: 'en003', frame: 0 },
+    { id: 2, name: 'フライ', spawnCount: 4, hp: 30, speed: 75, moveDist: 1.5, moveInterval: 1.8, atkRange: 2.0, atkFreq: 0.5, atkPower: 1, weight: 10, debuffResist: 0, size: 0.75, textureKey: 'en003', frame: 1 },
+    { id: 3, name: 'スピリット', spawnCount: 8, hp: 50, speed: 55, moveDist: 2.0, moveInterval: 1.6, atkRange: 2.0, atkFreq: 0.5, atkPower: 1, weight: 45, debuffResist: 50, size: 1.0, textureKey: 'en003', frame: 2 },
+    { id: 4, name: 'マノウォー', spawnCount: 3, hp: 30, speed: 60, moveDist: 2.0, moveInterval: 1.2, atkRange: 10.0, atkFreq: 1.0, atkPower: 1, weight: 15, debuffResist: 50, size: 1.0, textureKey: 'en003', frame: 3 },
+    { id: 5, name: 'ゴブリン', spawnCount: 8, hp: 100, speed: 50, moveDist: 1.0, moveInterval: 1.0, atkRange: 2.0, atkFreq: 1.0, atkPower: 1, weight: 35, debuffResist: 0, size: 0.5, textureKey: 'en001', frame: 2 },
+    { id: 6, name: 'コボルド', spawnCount: 6, hp: 175, speed: 40, moveDist: 1.5, moveInterval: 1.4, atkRange: 2.0, atkFreq: 1.0, atkPower: 1, weight: 55, debuffResist: 50, size: 0.75, textureKey: 'en002', frame: 3 },
+    { id: 7, name: 'オーク', spawnCount: 6, hp: 175, speed: 30, moveDist: 1.3, moveInterval: 2.0, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 75, debuffResist: 0, size: 0.75, textureKey: 'en001', frame: 0 },
+    { id: 8, name: 'オーガ', spawnCount: 3, hp: 250, speed: 25, moveDist: 1.2, moveInterval: 1.4, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 1.0, textureKey: 'en002', frame: 2 },
+    { id: 9, name: 'ゴーレム', spawnCount: 1, hp: 500, speed: 25, moveDist: 1.2, moveInterval: 2.4, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 1.25, textureKey: 'en002', frame: 1 }
 ];
 
 export class BattleEngine {
