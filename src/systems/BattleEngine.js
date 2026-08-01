@@ -229,9 +229,10 @@ export class BattleEngine {
 
             const enemy = new EnemyCharacter(x, z, enemyData);
             enemy.isDropSpawn = isDropSpawn;
-            enemy.spawnDropTimer = 1.0;
+            enemy.spawnDropTimer = isDropSpawn ? 1.0 : 0; // 1/5の降下敵のみ降下タイマーを付与
             this.enemies.push(enemy);
             spawnedEnemies.push(enemy);
+
         }
 
         return spawnedEnemies;
