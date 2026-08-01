@@ -111,11 +111,17 @@ export default class CampScene extends Phaser.Scene {
             const reqExp = this.globalState.getRequiredExp(charData.level);
             const cy = startY + index * rowHeight;
 
+            // 行全体のタップ領域（顔や名前、バー周辺どこをタップしても詳細が開く）
+            const rowHitZone = this.add.rectangle(width * 0.5, cy, width * 0.9, rowHeight * 0.9, 0x000000, 0.001).setInteractive({ useHandCursor: true });
+            this.mainViewContainer.add(rowHitZone);
+            rowHitZone.on('pointerdown', () => {
+                this.showDetailView(charId, width, height);
+            });
+
             // 顔アイコン
             const faceKey = `face_${charId}`;
             const face = this.add.image(width * 0.15, cy, faceKey).setDisplaySize(rowHeight * 0.8, rowHeight * 0.8).setInteractive({ useHandCursor: true });
             this.mainViewContainer.add(face);
-
             face.on('pointerdown', () => {
                 this.showDetailView(charId, width, height);
             });
@@ -124,9 +130,14 @@ export default class CampScene extends Phaser.Scene {
             const barWidth = width * 0.7;
 
             // 名前 & Lv
-            this.mainViewContainer.add(this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
+            const nameText = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
                 stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
-            }).setOrigin(0, 0.5));
+            }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+            this.mainViewContainer.add(nameText);
+            nameText.on('pointerdown', () => {
+                this.showDetailView(charId, width, height);
+            });
+
 
             // HPバーとテキスト
             const hpY = cy - rowHeight * 0.05;
@@ -174,13 +185,16 @@ export default class CampScene extends Phaser.Scene {
 
 
     showDetailView(charId, width, height) {
+        const w = width || this.scale.width;
+        const h = height || this.scale.height;
         this.currentDetailCharId = charId;
         this.mainViewContainer.setVisible(false);
         CharacterDetailHelper.showDetailView(this, charId, 'CampScene', this.detailViewContainer, () => {
-            this.drawMainView(width, height);
+            this.drawMainView(w, h);
             this.mainViewContainer.setVisible(true);
         });
     }
+
 
     showFriendshipView(charId, width, height) {
         CharacterDetailHelper.showFriendshipView(this, charId, 'CampScene', this.detailViewContainer, () => {

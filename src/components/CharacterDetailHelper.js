@@ -36,20 +36,28 @@ export class CharacterDetailHelper {
      * @param {Function} onBack - 戻るボタン押下時のコールバック
      */
     static showDetailView(scene, charId, parentSceneName, targetContainer, onBack) {
+        if (!targetContainer) return;
         targetContainer.removeAll(true);
         targetContainer.setVisible(true);
-        targetContainer.setDepth(100);
+        targetContainer.setDepth(999);
+        if (scene.children && scene.children.bringToTop) {
+            scene.children.bringToTop(targetContainer);
+        }
 
-        const { width, height } = scene.scale;
+        const width = scene.scale ? scene.scale.width : (scene.cameras ? scene.cameras.main.width : 800);
+        const height = scene.scale ? scene.scale.height : (scene.cameras ? scene.cameras.main.height : 600);
 
         // 詳細画面用の暗いバックドロップ（立ち絵や文字を見やすく覆う）
-        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
+        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.9).setOrigin(0, 0).setInteractive();
         targetContainer.add(bgBackdrop);
 
         const globalState = GlobalState.getInstance();
         const party = scene.party || ['001'];
         const charData = globalState.characters[charId];
-        if (!charData) return;
+        if (!charData) {
+            console.warn(`[CharacterDetailHelper] Character not found: ${charId}`);
+            return;
+        }
 
         const stats = globalState.calcStats(charId, party);
         const baseStats = globalState.calcBaseStats(charId);
@@ -65,11 +73,20 @@ export class CharacterDetailHelper {
         });
         targetContainer.add(backBtn);
 
-        // 左半分：立ち絵
-        const portrait = scene.add.image(width * 0.25, height * 0.6, `portrait_${charId}`);
-        const scale = (height * 0.8) / portrait.height;
-        portrait.setScale(scale);
-        targetContainer.add(portrait);
+        // 左半分：立ち絵（テクスチャ存在チェック）
+        const portraitKey = `portrait_${charId}`;
+        if (scene.textures.exists(portraitKey)) {
+            const portrait = scene.add.image(width * 0.25, height * 0.6, portraitKey);
+            const scale = (height * 0.8) / portrait.height;
+            portrait.setScale(scale);
+            targetContainer.add(portrait);
+        } else {
+            // テクスチャが無い場合のフォールバック枠
+            const dummyBox = scene.add.rectangle(width * 0.25, height * 0.5, width * 0.35, height * 0.7, 0x333333, 0.5);
+            targetContainer.add(dummyBox);
+            targetContainer.add(scene.add.text(width * 0.25, height * 0.5, `${charData.name}`, { fontSize: '28px', color: '#ffffff' }).setOrigin(0.5));
+        }
+
 
         // 右半分：詳細データ表示基準位置
         const rx = width * 0.5;

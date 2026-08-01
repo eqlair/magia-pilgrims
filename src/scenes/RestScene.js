@@ -128,22 +128,32 @@ export default class RestScene extends Phaser.Scene {
             const reqExp = this.globalState.getRequiredExp(charData.level);
             const cy = startY + index * rowHeight;
 
+            // 行全体のタップ領域（回復ボタン以外をタップすると詳細が開く）
+            const rowHitZone = this.add.rectangle(textX, cy, width * 0.35, rowHeight * 0.8, 0x000000, 0.001).setInteractive({ useHandCursor: true });
+            this.mainViewContainer.add(rowHitZone);
+            rowHitZone.on('pointerdown', () => {
+                this.showDetailView(charId, width, height);
+            });
+
             // 顔アイコン
             const faceKey = `face_${charId}`;
             const face = this.add.image(width * 0.15, cy, faceKey).setDisplaySize(rowHeight * 0.8, rowHeight * 0.8).setInteractive({ useHandCursor: true });
             this.mainViewContainer.add(face);
-
             face.on('pointerdown', () => {
                 this.showDetailView(charId, width, height);
             });
 
-            const textX = width * 0.35;
             const barWidth = width * 0.44;
 
             // 名前 & Lv
-            this.mainViewContainer.add(this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
+            const nameText = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
                 fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
-            }).setOrigin(0, 0.5));
+            }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+            this.mainViewContainer.add(nameText);
+            nameText.on('pointerdown', () => {
+                this.showDetailView(charId, width, height);
+            });
+
 
             // HPバーとテキスト
             const hpY = cy - rowHeight * 0.05;
@@ -209,13 +219,16 @@ export default class RestScene extends Phaser.Scene {
     }
 
     showDetailView(charId, width, height) {
+        const w = width || this.scale.width;
+        const h = height || this.scale.height;
         this.currentDetailCharId = charId;
         this.mainViewContainer.setVisible(false);
         CharacterDetailHelper.showDetailView(this, charId, 'RestScene', this.detailViewContainer, () => {
-            this.drawMainView(width, height);
+            this.drawMainView(w, h);
             this.mainViewContainer.setVisible(true);
         });
     }
+
 
     showFriendshipView(charId, width, height) {
         CharacterDetailHelper.showFriendshipView(this, charId, 'RestScene', this.detailViewContainer, () => {
