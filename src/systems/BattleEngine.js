@@ -320,8 +320,11 @@ export class BattleEngine {
                 return false; // 攻撃失敗
             }
             
-            // 攻撃力補正適用
-            finalDamage += levelDmgBonusAmount;
+            // 攻撃力補正適用（プレイヤー攻撃時のみレベル差加算を適用）
+            if (attacker.owner === 'player') {
+                finalDamage += levelDmgBonusAmount;
+            }
+
             
             // クリティカル判定
             let critChance = 0.05 + (attacker.critRateBonus || 0);
