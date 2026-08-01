@@ -199,9 +199,15 @@ export default class CampScene extends Phaser.Scene {
             // EXPバーとテキスト
             const expY = cy + rowHeight * 0.35;
             const expRatio = charData.exp / reqExp;
+            const expBonus = stats.expBonus || 0;
+            const expBonusStr = expBonus > 0 ? ` (+${expBonus}%)` : '';
             this.mainViewContainer.add(this.add.rectangle(textX, expY, barWidth, 18, 0x555500).setOrigin(0, 0.5));
             this.mainViewContainer.add(this.add.rectangle(textX, expY, barWidth * Math.min(1, expRatio), 18, 0xffff55).setOrigin(0, 0.5));
-            this.mainViewContainer.add(this.add.text(textX + 5, expY, `EXP ${charData.exp}/${reqExp}`, { stroke: '#000000', strokeThickness: 3, fontSize: '16px', color: '#aaaaaa' }).setOrigin(0, 0.5));
+            this.mainViewContainer.add(this.add.text(textX + 5, expY, `EXP ${charData.exp}/${reqExp}${expBonusStr}`, {
+                stroke: '#000000', strokeThickness: 3, fontSize: '16px',
+                color: expBonus > 0 ? '#ff9900' : '#aaaaaa'
+            }).setOrigin(0, 0.5));
+
         });
         
         // ストック経験値を右下に配置
@@ -345,17 +351,28 @@ export default class CampScene extends Phaser.Scene {
         dry += 40;
         elements.forEach(e => {
             const defVal = getDef(e.id);
+            const modVal = elemMods[e.id] || 0;
+            // 標準相性100%からの変化、または装備・宝石等の効果(modVal)がある場合はオレンジ色(#ff9900)
+            const isDefBoosted = (defVal !== 100) || (modVal !== 0);
+
             // 属性別防御力
             this.elementResistContainer.add(this.add.image(width * 0.1, ry + 12, e.icon).setScale(0.15));
-            this.elementResistContainer.add(this.add.text(width * 0.15, ry, `${e.name}: ${defVal}%`, { fontSize: '22px' }));
+            this.elementResistContainer.add(this.add.text(width * 0.15, ry, `${e.name}: ${defVal}%`, {
+                stroke: '#000000', strokeThickness: 3, fontSize: '22px',
+                color: isDefBoosted ? '#ff9900' : '#ffffff'
+            }));
             
             // 属性別デバフ抵抗力
             this.elementResistContainer.add(this.add.image(width * 0.4, dry + 12, e.icon).setScale(0.15));
-            this.elementResistContainer.add(this.add.text(width * 0.45, dry, `${e.name}: ${defVal}%`, { fontSize: '22px' }));
+            this.elementResistContainer.add(this.add.text(width * 0.45, dry, `${e.name}: ${defVal}%`, {
+                stroke: '#000000', strokeThickness: 3, fontSize: '22px',
+                color: isDefBoosted ? '#ff9900' : '#ffffff'
+            }));
             
             ry += 35;
             dry += 35;
         });
+
 
         // Center bottom image and text
         const embImage = this.add.image(width * 0.2, height * 0.75, 'emb_0');
@@ -426,8 +443,15 @@ export default class CampScene extends Phaser.Scene {
         ry += lineSpacing * 0.8;
 
         // 2行目: 経験値
-        this.detailViewContainer.add(this.add.text(rx, ry, `EXP: ${charData.exp}/${reqExp}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        const expBonus = stats.expBonus || 0;
+        const expBonusStr = expBonus > 0 ? ` (+${expBonus}%)` : '';
+        this.detailViewContainer.add(this.add.text(rx, ry, `EXP: ${charData.exp}/${reqExp}${expBonusStr}`, {
+            stroke: '#000000', strokeThickness: 3, fontSize: '18px',
+            color: expBonus > 0 ? '#ff9900' : '#ffffff',
+            padding: { top: 4, bottom: 4 }
+        }));
         ry += lineSpacing * 0.8;
+
 
         // 4行目: レベルを上げるボタン
         const canLevelUp = (charData.exp + this.globalState.stockExp) >= reqExp;
@@ -502,9 +526,23 @@ export default class CampScene extends Phaser.Scene {
         ry += lineSpacing * 0.7;
 
         // 7行目: 各種ステータス3 (近接 / 遠隔)
-        this.detailViewContainer.add(this.add.text(rx, ry, `近接: Lv${charData.meleeLevel}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
-        this.detailViewContainer.add(this.add.text(rx + 130, ry, `遠隔: Lv${charData.rangedLevel}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        const effMelee = stats.meleeLevel || charData.meleeLevel;
+        const effRanged = stats.rangedLevel || charData.rangedLevel;
+        const isMeleeBoosted = effMelee > charData.meleeLevel;
+        const isRangedBoosted = effRanged > charData.rangedLevel;
+
+        this.detailViewContainer.add(this.add.text(rx, ry, `近接: Lv${effMelee}`, {
+            stroke: '#000000', strokeThickness: 3, fontSize: '18px',
+            color: isMeleeBoosted ? '#ff9900' : '#ffffff',
+            padding: { top: 4, bottom: 4 }
+        }));
+        this.detailViewContainer.add(this.add.text(rx + 130, ry, `遠隔: Lv${effRanged}`, {
+            stroke: '#000000', strokeThickness: 3, fontSize: '18px',
+            color: isRangedBoosted ? '#ff9900' : '#ffffff',
+            padding: { top: 4, bottom: 4 }
+        }));
         ry += lineSpacing * 1.0;
+
 
         // 8行目: 宝石
         this.detailViewContainer.add(this.add.text(rx, ry, '装備中の宝石', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));

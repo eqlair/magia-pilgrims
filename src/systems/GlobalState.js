@@ -176,6 +176,9 @@ export class GlobalState {
         let evadeRateMod = 0; // 追加: 回避率補正
         let critRateMod = 0; // 追加: クリティカル率
         let critMultMod = 0; // 追加: クリティカル倍率
+        let meleeLevelBonus = 0; // 追加: 近接攻撃LVボーナス
+        let rangedLevelBonus = 0; // 追加: 遠距離攻撃LVボーナス
+        let expBonusMod = 0; // 追加: 経験値取得量UPボーナス(%)
         let elemMods = { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
 
         const allEquips = [...(char.equipRelics || []), char.equipGem].filter(e => e !== null && e !== undefined);
@@ -201,6 +204,15 @@ export class GlobalState {
                     critRateMod += trait.level * 0.05;
                 } else if (trait.name === 'CH倍率(%)') {
                     critMultMod += trait.level * 0.10;
+                } else if (trait.name === '近接攻撃LV+' || trait.name === '近接LV+' || trait.name === '近接攻撃Lv+') {
+                    meleeLevelBonus += trait.level;
+                } else if (trait.name === '遠距離攻撃LV+' || trait.name === '遠距離LV+' || trait.name === '遠隔LV+' || trait.name === '遠距離攻撃Lv+') {
+                    rangedLevelBonus += trait.level;
+                } else if (trait.name === '攻撃LV+' || trait.name === '全攻撃LV+') {
+                    meleeLevelBonus += trait.level;
+                    rangedLevelBonus += trait.level;
+                } else if (trait.name === '経験値UP(%)' || trait.name === 'EXP UP(%)' || trait.name === '獲得EXP UP' || trait.name === '経験値(%)') {
+                    expBonusMod += trait.level * 10;
                 } else if (trait.name === '赤属性UP(%)') {
                     elemMods.red += trait.level * 5;
                 } else if (trait.name === '青属性UP(%)') {
@@ -319,7 +331,9 @@ export class GlobalState {
         }
 
         // 攻撃レベル上昇回数による基本攻撃力ボーナス
-        const totalAttackLevelUps = (char.meleeLevel - 1) + (char.rangedLevel - 1);
+        const effectiveMeleeLevel = char.meleeLevel + meleeLevelBonus;
+        const effectiveRangedLevel = char.rangedLevel + rangedLevelBonus;
+        const totalAttackLevelUps = (effectiveMeleeLevel - 1) + (effectiveRangedLevel - 1);
         atkMod += totalAttackLevelUps * 0.10;
         const reloadLevelBonus = totalAttackLevelUps * 3;
 
@@ -338,6 +352,8 @@ export class GlobalState {
             maxHp = Math.floor(maxHp * 0.75);
         }
 
+        const totalExpBonus = expBonusMod + (this.expMultiplier > 1.0 ? Math.floor((this.expMultiplier - 1.0) * 100) : 0);
+
         return {
             affection: affectionTotal,
             maxHp,
@@ -348,11 +364,15 @@ export class GlobalState {
             evadeRateBonus: evadeRateMod,
             critRateBonus: critRateMod,
             critMultBonus: critMultMod,
-            elemMods
+            elemMods,
+            meleeLevel: effectiveMeleeLevel,
+            rangedLevel: effectiveRangedLevel,
+            expBonus: totalExpBonus
         };
     }
 
     // タロットカード取得時の即時効果適用
+
     applyImmediateTarotEffect(tarotId, isUpright) {
         const party = Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : ['001'];
         
