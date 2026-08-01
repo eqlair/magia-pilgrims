@@ -184,48 +184,57 @@ export class GlobalState {
         const allEquips = [...(char.equipRelics || []), char.equipGem].filter(e => e !== null && e !== undefined);
 
         allEquips.forEach(equip => {
-            if (!equip.traits) return;
-            equip.traits.forEach(trait => {
-                if (trait.level === 0) return;
-                
-                if (trait.name === '生命力UP(%)') {
-                    hpMod += trait.level * 0.05;
-                } else if (trait.name === '精神力UP(%)') {
-                    spMod += trait.level * 0.05;
-                } else if (trait.name === '攻撃力UP(%)') {
-                    atkMod += trait.level * 0.05;
-                } else if (trait.name === 'リロード短縮(%)') {
-                    reloadMod += trait.level * 0.02;
-                } else if (trait.name === '命中率UP(%)') {
-                    hitRateMod += trait.level * 0.05;
-                } else if (trait.name === '回避率(%)') {
-                    evadeRateMod += trait.level * 0.05;
-                } else if (trait.name === 'CH率(%)') {
-                    critRateMod += trait.level * 0.05;
-                } else if (trait.name === 'CH倍率(%)') {
-                    critMultMod += trait.level * 0.10;
-                } else if (trait.name === '近接攻撃LV+' || trait.name === '近接LV+' || trait.name === '近接攻撃Lv+') {
-                    meleeLevelBonus += trait.level;
-                } else if (trait.name === '遠距離攻撃LV+' || trait.name === '遠距離LV+' || trait.name === '遠隔LV+' || trait.name === '遠距離攻撃Lv+') {
-                    rangedLevelBonus += trait.level;
-                } else if (trait.name === '攻撃LV+' || trait.name === '全攻撃LV+') {
-                    meleeLevelBonus += trait.level;
-                    rangedLevelBonus += trait.level;
-                } else if (trait.name === '経験値UP(%)' || trait.name === 'EXP UP(%)' || trait.name === '獲得EXP UP' || trait.name === '経験値(%)') {
-                    expBonusMod += trait.level * 10;
-                } else if (trait.name === '赤属性UP(%)') {
-                    elemMods.red += trait.level * 5;
-                } else if (trait.name === '青属性UP(%)') {
-                    elemMods.blue += trait.level * 5;
-                } else if (trait.name === '緑属性UP(%)') {
-                    elemMods.green += trait.level * 5;
-                } else if (trait.name === '黄属性UP(%)') {
-                    elemMods.yellow += trait.level * 5;
-                } else if (trait.name === '紫属性UP(%)') {
-                    elemMods.purple += trait.level * 5;
+            // 特性リスト（traits）または個別プロパティの判定
+            const traits = equip.traits || (equip.trait ? [equip.trait] : []);
+            traits.forEach(trait => {
+                const tName = (trait.name || trait.type || '').toString().trim();
+                const tLevel = Number(trait.level || trait.val || 1);
+                if (tLevel <= 0 && !tName) return;
+
+                if (tName.includes('生命力') || tName.includes('HPUP')) {
+                    hpMod += tLevel * 0.05;
+                } else if (tName.includes('精神力') || tName.includes('SPUP')) {
+                    spMod += tLevel * 0.05;
+                } else if (tName.includes('攻撃力UP')) {
+                    atkMod += tLevel * 0.05;
+                } else if (tName.includes('リロード')) {
+                    reloadMod += tLevel * 0.02;
+                } else if (tName.includes('命中')) {
+                    hitRateMod += tLevel * 0.05;
+                } else if (tName.includes('回避')) {
+                    evadeRateMod += tLevel * 0.05;
+                } else if (tName.includes('CH率') || tName.includes('クリティカル率')) {
+                    critRateMod += tLevel * 0.05;
+                } else if (tName.includes('CH倍率') || tName.includes('クリティカル倍率')) {
+                    critMultMod += tLevel * 0.10;
+                } else if (tName.includes('近接')) {
+                    meleeLevelBonus += tLevel;
+                } else if (tName.includes('遠距離') || tName.includes('遠隔')) {
+                    rangedLevelBonus += tLevel;
+                } else if (tName.includes('全攻撃') || tName.includes('攻撃LV') || tName.includes('攻撃Lv')) {
+                    meleeLevelBonus += tLevel;
+                    rangedLevelBonus += tLevel;
+                } else if (tName.includes('経験値') || tName.includes('EXP') || tName.includes('獲得EXP')) {
+                    expBonusMod += tLevel * 10;
+                } else if (tName.includes('赤属性') || tName.includes('情熱')) {
+                    elemMods.red += tLevel * 5;
+                } else if (tName.includes('青属性') || tName.includes('統制')) {
+                    elemMods.blue += tLevel * 5;
+                } else if (tName.includes('緑属性') || tName.includes('調和')) {
+                    elemMods.green += tLevel * 5;
+                } else if (tName.includes('黄属性') || tName.includes('犠牲')) {
+                    elemMods.yellow += tLevel * 5;
+                } else if (tName.includes('紫属性') || tName.includes('混沌')) {
+                    elemMods.purple += tLevel * 5;
                 }
             });
+
+            // 宝石単体に直接近接/遠隔プロパティが設定されている場合のフォロー
+            if (equip.meleeBonus) meleeLevelBonus += Number(equip.meleeBonus);
+            if (equip.rangedBonus) rangedLevelBonus += Number(equip.rangedBonus);
+            if (equip.expBonus) expBonusMod += Number(equip.expBonus);
         });
+
         
         // --- タロット効果のパッシブ適用 (No.1〜10) ---
         let tarotAtkMod = 0;

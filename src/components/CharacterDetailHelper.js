@@ -204,22 +204,25 @@ export class CharacterDetailHelper {
         ry += lineSpacing * 0.7;
 
         // 7行目: 各種ステータス3 (近接 / 遠隔)
-        const effMelee = stats.meleeLevel || charData.meleeLevel;
-        const effRanged = stats.rangedLevel || charData.rangedLevel;
-        const isMeleeBoosted = effMelee > charData.meleeLevel;
-        const isRangedBoosted = effRanged > charData.rangedLevel;
+        const baseMelee = charData.meleeLevel || 1;
+        const baseRanged = charData.rangedLevel || 1;
+        const effMelee = stats.meleeLevel || baseMelee;
+        const effRanged = stats.rangedLevel || baseRanged;
+        const isMeleeBoosted = effMelee > baseMelee;
+        const isRangedBoosted = effRanged > baseRanged;
 
-        targetContainer.add(scene.add.text(rx, ry, `近接: Lv${effMelee}`, {
+        targetContainer.add(scene.add.text(rx, ry, `近接: Lv.${effMelee}`, {
             stroke: '#000000', strokeThickness: 3, fontSize: '18px',
             color: isMeleeBoosted ? '#ff9900' : '#ffffff',
             padding: { top: 4, bottom: 4 }
         }));
-        targetContainer.add(scene.add.text(rx + 130, ry, `遠隔: Lv${effRanged}`, {
+        targetContainer.add(scene.add.text(rx + 130, ry, `遠隔: Lv.${effRanged}`, {
             stroke: '#000000', strokeThickness: 3, fontSize: '18px',
             color: isRangedBoosted ? '#ff9900' : '#ffffff',
             padding: { top: 4, bottom: 4 }
         }));
         ry += lineSpacing * 1.0;
+
 
         // 8行目: 宝石
         targetContainer.add(scene.add.text(rx, ry, '装備中の宝石', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
