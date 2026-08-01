@@ -744,8 +744,10 @@ export class BattleEngine {
             let minDist = 9999;
             let minDistCenter = 9999;
             for (const e of this.enemies) {
-                if (e.isDead || e.isDying) continue;
+                // 死亡中、または実体化演出中（spawnDropTimer/spawnAnimTimer > 0）の敵はターゲットにしない
+                if (e.isDead || e.isDying || e.spawnDropTimer > 0 || e.spawnAnimTimer > 0) continue;
                 const dx = e.x - p.x;
+
                 const dz = e.z - p.z;
                 const distCenter = Math.sqrt(dx*dx + dz*dz);
                 const surfaceDist = Math.max(0, distCenter - (e.size / 2));
