@@ -65,7 +65,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('ev_daycamp', 'files/event/ev_daycamp.jpg');
         this.load.image('ev_camp', 'files/event/ev_camp.jpg');
         
-        // 12/7, 12/14, 12/21イベント画像とBGM
+        // 12/7, 12/14, 12/21, 周回イベント画像とBGM
         this.load.json('event_1207', 'src/data/event_1207.json');
         this.load.image('bg_1207a', 'files/event/1207a.jpg');
         this.load.image('bg_1207b', 'files/event/1207b.jpg');
@@ -76,9 +76,13 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_1221a', 'files/event/1221a.jpg');
         this.load.image('bg_1221b', 'files/event/1221b.jpg');
         this.load.image('bg_1221c', 'files/event/1221c.jpg');
+        this.load.json('event_resp', 'src/data/event_resp.json');
+        this.load.image('bg_resp', 'files/event/resp.jpg');
+        this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
         this.load.audio('bgm_star', 'files/BGM/star.mp3');
         this.load.audio('bgm_bad', 'files/BGM/bad.mp3');
         this.load.audio('bgm_op', 'files/BGM/001_OP001.mp3');
+
         
         // BGM
         this.load.audio('bgm_tarot', 'files/BGM/006_TAROT.mp3');

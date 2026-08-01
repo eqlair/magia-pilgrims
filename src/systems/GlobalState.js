@@ -633,5 +633,74 @@ export class GlobalState {
             console.error('[GlobalState] Save error:', e);
         }
     }
+
+    /** 周回（ループ）用リセット処理 */
+    resetForNewLoop() {
+        // 全キャラクターのステータス・装備リセット（友好度は維持）
+        for (const id in this.characters) {
+            const char = this.characters[id];
+            if (!char) continue;
+
+            // 装備を外し、インベントリへ送る
+            if (char.equipGem) {
+                if (!this.inventory.gems) this.inventory.gems = [];
+                this.inventory.gems.push(char.equipGem);
+                char.equipGem = null;
+            }
+            if (char.equipRelics && Array.isArray(char.equipRelics)) {
+                if (!this.inventory.relics) this.inventory.relics = [];
+                for (let i = 0; i < char.equipRelics.length; i++) {
+                    if (char.equipRelics[i]) {
+                        this.inventory.relics.push(char.equipRelics[i]);
+                        char.equipRelics[i] = null;
+                    }
+                }
+            }
+
+            // レベルアップに消費した必要経験値と現在の経験値をストック経験値に回収
+            let expToReturn = char.exp || 0;
+            for (let lvl = 1; lvl < (char.level || 1); lvl++) {
+                expToReturn += this.getRequiredExp(lvl);
+            }
+            this.stockExp += expToReturn;
+
+            // レベル・能力値・攻撃レベルを初期値に戻す
+            const initial = this.createInitialCharData(id, char.name, 1);
+            char.level = 1;
+            char.exp = 0;
+            char.meleeLevel = 1;
+            char.rangedLevel = 1;
+            char.gachaFails = 0;
+            char.baseHp = initial.baseHp;
+            char.baseSp = initial.baseSp;
+            char.baseAtk = initial.baseAtk;
+            char.baseReload = initial.baseReload;
+            char.currentHp = initial.baseHp;
+            char.currentSp = initial.baseSp;
+            // 友好度（friendships, friendshipPoints, metCharacters, affection）は保持
+        }
+
+        // イベントフラグのリセット
+        this.event1207Played = false;
+        this.event1214Played = false;
+        this.event1221Played = false;
+
+        // タロット関係のリセット
+        this.activeTarots = [];
+        this.tarot13_targetHp = null;
+        this.tarot13_targetAtk = null;
+
+        // マップ・難易度補正のリセット
+        this.extraEnemyLevel = 0;
+        this.extraWitchLevel = 0;
+        this.extraWaves = 0;
+        this.enemySpeedHalf = false;
+        this.expMultiplier = 1.0;
+        this.spMultiplier = 1.0;
+
+        // リソースのリセット
+        this.food = 100;
+    }
 }
+
 

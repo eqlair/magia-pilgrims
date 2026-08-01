@@ -486,7 +486,41 @@ export default class AdventureScene extends Phaser.Scene {
                     this.scene.pause();
                     this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
                 }
+
+                // 12/21イベント完了時 -> 周回イベント(event_resp)の連続起動
+                if (data && data.from1221Event) {
+                    const respData = this.cache.json.get('event_resp');
+                    if (respData) {
+                        this.scene.pause();
+                        this.scene.launch('EventScene', {
+                            events: respData,
+                            returnScene: 'AdventureScene',
+                            fromRespEvent: true
+                        });
+                        return;
+                    }
+                }
+
+                // 周回イベント(event_resp)完了時 -> 周回リセット実行と12月1日東京駅リスタート
+                if (data && data.fromRespEvent) {
+                    const gs = GlobalState.getInstance();
+                    gs.resetForNewLoop();
+
+                    this.currentMonth = 12;
+                    this.currentDay = 1;
+                    this.timePeriodIndex = 0;
+                    this.timeOfDay = this.timePeriods[0];
+                    if (this.dateTimeText) {
+                        this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+                    }
+
+                    this.resetMapForNewLoop();
+                    SaveManager.saveGame(this);
+                    TransitionManager.fadeIn(this);
+                    return;
+                }
             }
+
         });
 
 
@@ -1904,6 +1938,34 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
     }
+
+    /** 周回開始時のマップ踏破・視界リセット処理 */
+    resetMapForNewLoop() {
+        this.playerCol = 3;
+        this.playerRow = 6;
+
+        if (this.grid) {
+            for (let r = 0; r < this.grid.length; r++) {
+                if (!this.grid[r]) continue;
+                for (let c = 0; c < this.grid[r].length; c++) {
+                    const hex = this.grid[r][c];
+                    if (hex) {
+                        hex.isVisited = false;
+                        hex.isCleared = false;
+                    }
+                }
+            }
+        }
+
+        const startHex = this.grid[this.playerRow]?.[this.playerCol];
+        if (startHex) {
+            this.moveToHex(startHex, false);
+            this.cameras.main.centerOn(this.player.x, this.player.y);
+        }
+        this.updateVisibility();
+        this._updateFoodDisplay();
+    }
+
 
 
     applySaveData(saveData) {
