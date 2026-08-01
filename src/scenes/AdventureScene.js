@@ -1424,11 +1424,12 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     showTimeSignal(onComplete = null) {
-        // TimeReporterを使って時報を表示。時報終了後にタロット起動チェック
+        // TimeReporterを使って時報を表示。時報終了後にイベント起動およびタロット起動チェック
         TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
             if (typeof onComplete === 'function') {
                 onComplete();
             }
+            this.checkScheduledEvents();
             if (this._pendingTarot) {
                 this._pendingTarot = false;
                 this.scene.pause();
@@ -1436,6 +1437,7 @@ export default class AdventureScene extends Phaser.Scene {
             }
         });
     }
+
 
 
     _updateFoodDisplay() {
@@ -2019,10 +2021,14 @@ export default class AdventureScene extends Phaser.Scene {
         const gs = GlobalState.getInstance();
         if (this.currentMonth === 12 && this.currentDay === 21 && this.timePeriodIndex === 2 && !gs.event1221WildhuntPlayed) {
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
-            const isNamedHex = currentHex && currentHex.cellData && currentHex.cellData.name && currentHex.cellData.name !== '水域' && currentHex.cellData.name !== '密林';
+            const genericNames = ['平地', '密林', '水域', '山地', '荒野', '崩壊都市', '緑地', '森林', '野外', ''];
+            const rawName = (currentHex && currentHex.cellData && currentHex.cellData.name) ? currentHex.cellData.name.replace(/\n/g, '').trim() : '';
+            
+            // 固有地名（東京・横浜・拠点など）に滞在しているか判定
+            const isNamedSpot = (currentHex && currentHex.cellData && currentHex.cellData.isSpot) || (!genericNames.includes(rawName) && rawName.length > 0);
 
-            // 地名付きの土地に滞在していない場合
-            if (!isNamedHex) {
+            // 地名付きの土地に滞在していない（野外にいる）場合
+            if (!isNamedSpot) {
                 gs.event1221WildhuntPlayed = true;
 
                 const commands = build1221WildhuntCommands(this.party);
@@ -2037,6 +2043,7 @@ export default class AdventureScene extends Phaser.Scene {
         }
         return false;
     }
+
 
 
     /** 周回開始時のマップ踏破・視界リセット処理 */
