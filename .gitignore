@@ -110,3 +110,5 @@ Thumbs.db
 *.bak
 *.bak2
 scratch/
+~$*.xlsx
+
