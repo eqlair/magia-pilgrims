@@ -38,8 +38,14 @@ export class CharacterDetailHelper {
     static showDetailView(scene, charId, parentSceneName, targetContainer, onBack) {
         targetContainer.removeAll(true);
         targetContainer.setVisible(true);
+        targetContainer.setDepth(100);
 
         const { width, height } = scene.scale;
+
+        // 詳細画面用の暗いバックドロップ（立ち絵や文字を見やすく覆う）
+        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
+        targetContainer.add(bgBackdrop);
+
         const globalState = GlobalState.getInstance();
         const party = scene.party || ['001'];
         const charData = globalState.characters[charId];
@@ -294,8 +300,12 @@ export class CharacterDetailHelper {
     static showElementResistanceView(scene, charId, parentSceneName, targetContainer, onBack) {
         targetContainer.removeAll(true);
         targetContainer.setVisible(true);
+        targetContainer.setDepth(100);
 
         const { width, height } = scene.scale;
+        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
+        targetContainer.add(bgBackdrop);
+
         const globalState = GlobalState.getInstance();
         const party = scene.party || ['001'];
         const charData = globalState.characters[charId];
@@ -394,8 +404,12 @@ export class CharacterDetailHelper {
     static showFriendshipView(scene, charId, parentSceneName, targetContainer, onBack) {
         targetContainer.removeAll(true);
         targetContainer.setVisible(true);
+        targetContainer.setDepth(100);
 
         const { width, height } = scene.scale;
+        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
+        targetContainer.add(bgBackdrop);
+
         const globalState = GlobalState.getInstance();
         const charData = globalState.characters[charId];
         if (!charData) return;

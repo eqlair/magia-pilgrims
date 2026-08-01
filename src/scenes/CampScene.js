@@ -63,24 +63,14 @@ export default class CampScene extends Phaser.Scene {
         });
 
         // メインビュー用コンテナ（キャラ一覧）
-        this.mainViewContainer = this.add.container(0, 0);
+        this.mainViewContainer = this.add.container(0, 0).setDepth(10);
 
         // 詳細ビュー用コンテナ（単一キャラ詳細）
-        this.detailViewContainer = this.add.container(0, 0);
+        this.detailViewContainer = this.add.container(0, 0).setDepth(20);
         this.detailViewContainer.setVisible(false);
-
 
         // メインビューを描画
         this.drawMainView(width, height);
-
-        // レリクス装備画面から復帰した場合の再描画リスナー
-        this.events.on('resume', () => {
-            if (this.currentDetailCharId && this.detailViewContainer.visible) {
-                this.showDetailView(this.currentDetailCharId, width, height);
-            } else {
-                this.drawMainView(width, height);
-            }
-        });
     }
 
     getRankColor(rank) {
@@ -96,7 +86,7 @@ export default class CampScene extends Phaser.Scene {
 
         // 戻るボタン
         const backBtn = this.add.text(width * 0.05, height * 0.02, '◀ 戻る', {
-            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffaaaa', backgroundColor: '#333333'
+            stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#ffaaaa', backgroundColor: '#333333'
         }).setInteractive().setPadding(10);
         backBtn.on('pointerdown', () => {
             this.scene.stop('CampScene');
@@ -106,7 +96,7 @@ export default class CampScene extends Phaser.Scene {
 
         // タイトル
         this.mainViewContainer.add(this.add.text(width * 0.5, height * 0.05, 'ステータス', {
-            fontFamily: 'sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold'
+            stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold'
         }).setOrigin(0.5, 0.5));
 
         const charIds = this.party;
@@ -131,22 +121,40 @@ export default class CampScene extends Phaser.Scene {
             });
 
             const textX = width * 0.25;
-            const barWidth = width * 0.6;
+            const barWidth = width * 0.7;
 
             // 名前 & Lv
-            this.mainViewContainer.add(this.add.text(textX, cy - rowHeight * 0.3, `${charData.name} Lv.${charData.level}`, {
-                fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff', fontStyle: 'bold'
+            this.mainViewContainer.add(this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
+                stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
             }).setOrigin(0, 0.5));
 
-            // HPバー
+            // HPバーとテキスト
+            const hpY = cy - rowHeight * 0.05;
             const hpRatio = charData.currentHp / stats.maxHp;
-            this.mainViewContainer.add(this.add.rectangle(textX, cy - rowHeight * 0.1, barWidth, 12, 0x550000).setOrigin(0, 0.5));
-            this.mainViewContainer.add(this.add.rectangle(textX, cy - rowHeight * 0.1, barWidth * hpRatio, 12, 0xff5555).setOrigin(0, 0.5));
+            const hpWidth = Math.max(0, Math.min(barWidth, barWidth * hpRatio));
+            this.mainViewContainer.add(this.add.rectangle(textX, hpY, barWidth, 18, 0x550000).setOrigin(0, 0.5));
+            this.mainViewContainer.add(this.add.rectangle(textX, hpY, hpWidth, 18, 0xff5555).setOrigin(0, 0.5));
+            this.mainViewContainer.add(this.add.text(textX + 5, hpY, `生命力 ${Math.floor(charData.currentHp)}/${stats.maxHp}`, { stroke: '#000000', strokeThickness: 3, fontSize: '16px' }).setOrigin(0, 0.5));
 
-            // EXPバー
+            // SPバーとテキスト (精神力・青バー)
+            const spY = cy + rowHeight * 0.15;
+            const spRatio = charData.currentSp / stats.maxSp;
+            const spWidth = Math.max(0, Math.min(barWidth, barWidth * spRatio));
+            this.mainViewContainer.add(this.add.rectangle(textX, spY, barWidth, 18, 0x000055).setOrigin(0, 0.5));
+            this.mainViewContainer.add(this.add.rectangle(textX, spY, spWidth, 18, 0x5555ff).setOrigin(0, 0.5));
+            this.mainViewContainer.add(this.add.text(textX + 5, spY, `精神力 ${Math.floor(charData.currentSp)}/${stats.maxSp}`, { stroke: '#000000', strokeThickness: 3, fontSize: '16px' }).setOrigin(0, 0.5));
+
+            // EXPバーとテキスト
+            const expY = cy + rowHeight * 0.35;
             const expRatio = charData.exp / reqExp;
-            this.mainViewContainer.add(this.add.rectangle(textX, cy + rowHeight * 0.1, barWidth, 12, 0x555500).setOrigin(0, 0.5));
-            this.mainViewContainer.add(this.add.rectangle(textX, cy + rowHeight * 0.1, barWidth * Math.min(1, expRatio), 12, 0xffff55).setOrigin(0, 0.5));
+            const expBonus = stats.expBonus || 0;
+            const expBonusStr = expBonus > 0 ? ` (+${expBonus}%)` : '';
+            this.mainViewContainer.add(this.add.rectangle(textX, expY, barWidth, 18, 0x555500).setOrigin(0, 0.5));
+            this.mainViewContainer.add(this.add.rectangle(textX, expY, barWidth * Math.min(1, expRatio), 18, 0xffff55).setOrigin(0, 0.5));
+            this.mainViewContainer.add(this.add.text(textX + 5, expY, `EXP ${charData.exp}/${reqExp}${expBonusStr}`, {
+                stroke: '#000000', strokeThickness: 3, fontSize: '16px',
+                color: expBonus > 0 ? '#ff9900' : '#aaaaaa'
+            }).setOrigin(0, 0.5));
         });
 
         // ストック経験値を右下に配置
@@ -163,6 +171,7 @@ export default class CampScene extends Phaser.Scene {
         });
         this.mainViewContainer.add(effectBtn);
     }
+
 
     showDetailView(charId, width, height) {
         this.currentDetailCharId = charId;

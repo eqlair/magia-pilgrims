@@ -48,12 +48,10 @@ export default class RestScene extends Phaser.Scene {
 
 
         // UIコンテナ
-        this.mainViewContainer = this.add.container(0, 0);
-        this.detailViewContainer = this.add.container(0, 0);
+        this.mainViewContainer = this.add.container(0, 0).setDepth(10);
+        this.detailViewContainer = this.add.container(0, 0).setDepth(20);
         this.detailViewContainer.setVisible(false);
-        this.elementResistContainer = this.add.container(0, 0);
-        this.elementResistContainer.setVisible(false);
-        this.elementResistContainer.setDepth(50); // Make sure it is above detail view
+
 
         // --- 共通の戻るボタン機能 ---
         // 画面の左上に配置する
