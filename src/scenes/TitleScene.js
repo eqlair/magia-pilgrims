@@ -85,14 +85,79 @@ export default class TitleScene extends Phaser.Scene {
             fontSize: '14px', color: '#666666'
         }).setOrigin(1, 1);
 
+        // ── 左上 歯車ボタン (これまでの設定/システムメニューへ) ──
+        const gearBtnBg = this.add.circle(40, 40, 24, 0x000000, 0.6).setInteractive({ useHandCursor: true });
+        const gearIcon = this.add.text(40, 40, '⚙', {
+            fontSize: '28px', color: '#ffffff'
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        const openMenu = (pointer) => {
+            if (pointer) pointer.event.stopPropagation();
+            this._goToMenu();
+        };
+
+        gearBtnBg.on('pointerdown', openMenu);
+        gearIcon.on('pointerdown', openMenu);
+
+        // ⚙ ボタンのホバー演出
+        gearBtnBg.on('pointerover', () => gearBtnBg.setFillStyle(0x333333, 0.8));
+        gearBtnBg.on('pointerout', () => gearBtnBg.setFillStyle(0x000000, 0.6));
+
         // ── 明転フェードイン ─────────────────────
         TransitionManager.fadeIn(this);
 
-        // ── タップ待ち ──────────────────────────
-        this.input.once('pointerdown', () => this._goToMenu());
+        // ── 画面通常タップ（ゲーム開始/続きから）待ち ─────────────────
+        this.input.on('pointerdown', (pointer) => {
+            // 左上歯車ボタンのタップは除外
+            if (pointer.x <= 80 && pointer.y <= 80) return;
+            this._startDirectGame();
+        });
 
         // リサイズ追従
         this.scale.on('resize', this._fitVideo, this);
+    }
+
+    /**
+     * 通常タップ時：
+     * セーブデータがあればその続きから再開、なければ紫苑一人で新規スタート
+     */
+    _startDirectGame() {
+        this.input.enabled = false;
+
+        // BGMフェードアウト
+        if (this._bgm && this._bgm.isPlaying) {
+            this.tweens.add({ targets: this._bgm, volume: 0, duration: 500 });
+        }
+
+        // 動画フェードアウト（CSSトランジション）
+        if (this._video) {
+            this._video.style.transition = 'opacity 0.5s';
+            this._video.style.opacity = '0';
+        }
+
+        const hasSave = SaveManager.hasSaveData();
+        if (hasSave) {
+            // セーブデータがあれば続きから復帰
+            const saveData = SaveManager.loadGameData();
+            SaveManager.restoreGlobalState(saveData);
+            TransitionManager.transitionTo(this, 'AdventureScene', { fromSave: true });
+        } else {
+            // データがなければ紫苑一人で新規スタート
+            const globalState = SaveManager.getGlobalState ? SaveManager.getGlobalState() : (window.globalStateInstance || null);
+            if (globalState && globalState.characters) {
+                globalState.savedFormation = { '001': { isFront: true, index: 0 } };
+            }
+            TransitionManager.transitionTo(this, 'AdventureScene', { party: ['001'], fromTitleNewGame: true });
+        }
+
+        // 遷移後に動画を隠す
+        this.time.delayedCall(600, () => {
+            if (this._video) {
+                this._video.style.display = 'none';
+                this._video.style.opacity = '1';
+                this._video.style.transition = '';
+            }
+        });
     }
 
     _goToMenu() {
@@ -109,7 +174,7 @@ export default class TitleScene extends Phaser.Scene {
             this._video.style.opacity = '0';
         }
 
-        // 明転してDemoSceneへ
+        // 明転してDemoSceneへ (これまでのテストメニュー)
         TransitionManager.transitionTo(this, 'DemoScene');
 
         // 遷移後に動画を隠す
@@ -121,6 +186,7 @@ export default class TitleScene extends Phaser.Scene {
             }
         });
     }
+
 
     /** 動画をcanvasにぴったり重ねるサイズ・位置に調整 */
     _showVideo() {

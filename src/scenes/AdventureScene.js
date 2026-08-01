@@ -259,22 +259,27 @@ export default class AdventureScene extends Phaser.Scene {
         this.isJumping = false;
         
         // パーティ編成の読み込みと復元 (savedFormation や セーブデータから優先復元)
+        const gs = GlobalState.getInstance();
         let initialParty = this._initData.party;
-        if (!initialParty || initialParty.length === 0) {
+        if (this._initData.fromTitleNewGame) {
+            initialParty = ['001'];
+            gs.savedFormation = { '001': { isFront: true, index: 0 } };
+        } else if (!initialParty || initialParty.length === 0) {
             const savedData = SaveManager.loadGameData();
             if (savedData && savedData.adventureState && savedData.adventureState.party) {
                 initialParty = savedData.adventureState.party;
             }
         }
-        const gs = GlobalState.getInstance();
+        
         const partySet = new Set(initialParty || ['001']);
-        if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+        if (!this._initData.fromTitleNewGame && gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
             for (const cid of Object.keys(gs.savedFormation)) {
                 partySet.add(cid);
             }
         }
         this.party = Array.from(partySet);
         console.log('[AdventureScene] Restored party:', this.party);
+
 
 
         // タロット初期フラグ (最初は引けない。戦闘・探索・休息後に条件を満たせば引ける)
