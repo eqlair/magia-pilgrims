@@ -131,6 +131,8 @@ export default class RestScene extends Phaser.Scene {
             const stats = this.globalState.calcStats(charId, this.party);
             const reqExp = this.globalState.getRequiredExp(charData.level);
             const cy = startY + index * rowHeight;
+            const textX = width * 0.35;
+            const barWidth = width * 0.44;
 
             // 行全体のタップ領域（回復ボタン以外をタップすると詳細が開く）
             const rowHitZone = this.add.rectangle(textX, cy, width * 0.35, rowHeight * 0.8, 0x000000, 0.001).setInteractive({ useHandCursor: true });
@@ -147,8 +149,6 @@ export default class RestScene extends Phaser.Scene {
                 this.showDetailView(charId, width, height);
             });
 
-            const barWidth = width * 0.44;
-
             // 名前 & Lv
             const nameText = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
                 fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
@@ -157,6 +157,7 @@ export default class RestScene extends Phaser.Scene {
             nameText.on('pointerdown', () => {
                 this.showDetailView(charId, width, height);
             });
+
 
 
             // HPバーとテキスト
