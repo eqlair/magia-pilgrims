@@ -10,6 +10,19 @@ const ATTR_DEF = {
     'blue':   { 'red': 75,  'purple': 100, 'green': 100, 'yellow': 125, 'blue': 100 }
 };
 
+export const ENEMY_TYPES = [
+
+    { id: 1, name: 'スウォーム', spawnCount: 9, hp: 30, speed: 100, moveDist: 2.0, moveInterval: 2.0, atkRange: 1.0, atkFreq: 0.5, atkPower: 1, weight: 5, debuffResist: 0, size: 1.0, textureKey: 'en003', frame: 0 },
+    { id: 2, name: 'フライ', spawnCount: 4, hp: 60, speed: 75, moveDist: 1.5, moveInterval: 1.8, atkRange: 2.0, atkFreq: 0.5, atkPower: 1, weight: 10, debuffResist: 0, size: 1.5, textureKey: 'en003', frame: 1 },
+    { id: 3, name: 'スピリット', spawnCount: 8, hp: 100, speed: 55, moveDist: 2.0, moveInterval: 1.6, atkRange: 2.0, atkFreq: 0.5, atkPower: 1, weight: 45, debuffResist: 50, size: 2.0, textureKey: 'en003', frame: 2 },
+    { id: 4, name: 'マノウォー', spawnCount: 3, hp: 60, speed: 60, moveDist: 2.0, moveInterval: 1.2, atkRange: 10.0, atkFreq: 1.0, atkPower: 1, weight: 15, debuffResist: 50, size: 2.0, textureKey: 'en003', frame: 3 },
+    { id: 5, name: 'ゴブリン', spawnCount: 8, hp: 200, speed: 50, moveDist: 1.0, moveInterval: 1.0, atkRange: 2.0, atkFreq: 1.0, atkPower: 1, weight: 35, debuffResist: 0, size: 1.0, textureKey: 'en001', frame: 2 },
+    { id: 6, name: 'コボルド', spawnCount: 6, hp: 350, speed: 40, moveDist: 1.5, moveInterval: 1.4, atkRange: 2.0, atkFreq: 1.0, atkPower: 1, weight: 55, debuffResist: 50, size: 1.5, textureKey: 'en002', frame: 3 },
+    { id: 7, name: 'オーク', spawnCount: 6, hp: 350, speed: 30, moveDist: 1.3, moveInterval: 2.0, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 75, debuffResist: 0, size: 1.5, textureKey: 'en001', frame: 0 },
+    { id: 8, name: 'オーガ', spawnCount: 3, hp: 500, speed: 25, moveDist: 1.2, moveInterval: 1.4, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 2.0, textureKey: 'en002', frame: 2 },
+    { id: 9, name: 'ゴーレム', spawnCount: 1, hp: 1000, speed: 25, moveDist: 1.2, moveInterval: 2.4, atkRange: 10.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 2.5, textureKey: 'en002', frame: 1 }
+];
+
 export class BattleEngine {
     constructor() {
         this.players = [];
@@ -170,45 +183,59 @@ export class BattleEngine {
         this.eventQueue.push('RETREATING...');
     }
 
-    spawnEnemy(x, z, level, isSubBoss = false) {
-        const typeIndex = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
-        const textureKey = `en00${typeIndex}`;
-        const frame = Math.floor(Math.random() * 4); // 0, 1, 2, 3
-        
-        let hp = 30;
-        let speed = 100;
-        let size = 1.0;
-        let isHeavy = false;
-        if (frame === 1) { hp = 15; speed = 200; }
-        else if (frame === 2) { hp = 60; speed = 50; size = 1.5; isHeavy = true; }
-        else if (frame === 3) { hp = 40; speed = 100; }
 
-        if (!isHeavy && Math.random() < 0.2) {
-            size = 1.4;
-            isHeavy = true;
+
+    spawnEnemyGroup(centerX, centerZ, typeIndex = null, isDropSpawn = false) {
+        let typeDef;
+        if (typeIndex !== null && ENEMY_TYPES[typeIndex]) {
+            typeDef = ENEMY_TYPES[typeIndex];
+        } else {
+            const idx = Math.floor(Math.random() * ENEMY_TYPES.length);
+            typeDef = ENEMY_TYPES[idx];
         }
-        
-        const swarmData = { 
-            name: `スウォーム Type-${frame}`,
-            hp: hp, 
-            speed: speed,
-            weight: isHeavy ? 10 : 5,
-            atkRange: 1.0,
-            atkFreq: 0.5,
-            atkPower: 1,
-            size: size,
-            isHeavy: isHeavy,
-            moveDist: 2.0,      // エクセル準拠の移動距離
-            moveInterval: 1.0,  // エクセル準拠の待機時間
-            textureKey: textureKey,
-            frame: frame,
-            attribute: this.enemyAttribute,
-            level: this.enemyLevel
-        };
-        const enemy = new EnemyCharacter(x, z, swarmData);
-        this.enemies.push(enemy);
-        return enemy;
+
+        const count = typeDef.spawnCount || 1;
+        const spawnedEnemies = [];
+
+        for (let i = 0; i < count; i++) {
+            const offsetX = (Math.random() - 0.5) * (count > 1 ? 2.5 : 0.5);
+            const offsetZ = (Math.random() - 0.5) * (count > 1 ? 1.5 : 0.5);
+            const x = centerX + offsetX;
+            const z = centerZ + offsetZ;
+
+            const enemyData = {
+                name: typeDef.name,
+                hp: typeDef.hp,
+                speed: typeDef.speed,
+                weight: typeDef.weight,
+                atkRange: typeDef.atkRange,
+                atkFreq: typeDef.atkFreq,
+                atkPower: typeDef.atkPower,
+                size: typeDef.size,
+                moveDist: typeDef.moveDist,
+                moveInterval: typeDef.moveInterval,
+                debuffResist: typeDef.debuffResist,
+                textureKey: typeDef.textureKey,
+                frame: typeDef.frame,
+                attribute: this.enemyAttribute,
+                level: this.enemyLevel
+            };
+
+            const enemy = new EnemyCharacter(x, z, enemyData);
+            enemy.isDropSpawn = isDropSpawn;
+            enemy.spawnDropTimer = 1.0;
+            this.enemies.push(enemy);
+            spawnedEnemies.push(enemy);
+        }
+
+        return spawnedEnemies;
     }
+
+    spawnEnemy(x, z, typeIndex = null) {
+        const group = this.spawnEnemyGroup(x, z, typeIndex);
+        return group[0];
+    }
+
 
     spawnBoss(x, z) {
         const textureIndex = Math.floor(Math.random() * 4) + 1;
@@ -515,10 +542,10 @@ export class BattleEngine {
                         this.spawnTimer = this.spawnInterval || 1.0;
                         const x = (Math.random() - 0.5) * 10.0;
                         const z = 20.0 + Math.random() * 2.0;
-                        const e = this.spawnEnemy(x, z);
-                        e.spawnDropTimer = 1.0;
+                        this.spawnEnemyGroup(x, z);
                     }
                 }
+
 
 
                 // 前衛キャラと重い敵の正面衝突判定 → 後衛に押し戻される
@@ -549,28 +576,21 @@ export class BattleEngine {
                     this.spawnTimer -= dt;
                     if (this.spawnTimer <= 0) {
                         this.spawnTimer = 1.0; // 1秒間隔
-                        const requiredPerSec = Math.max(1, Math.ceil(this.enemyCountPerWave / 15));
-                        const spawnAmount = Math.min(requiredPerSec, this.enemyCountPerWave - this.spawnedInWave); 
-                        for (let i = 0; i < spawnAmount; i++) {
-                            const isDropSpawn = Math.random() < 0.2; // 1/5の確率で画面内に降下
-                            let x, z;
-                            if (isDropSpawn) {
-                                const posIdx = Math.floor(Math.random() * 3);
-                                x = (posIdx - 1) * 3.5 + (Math.random() - 0.5) * 6.0;
-                                z = 10.0 + Math.random() * 2.0; // 画面中段付近
-                            } else {
-                                // 従来歩いてきていた敵は、画面最上部端にじわっと出現させる
-                                x = (Math.random() - 0.5) * 10.0;
-                                z = 20.0 + Math.random() * 2.0; // z=20.0 ~ 22.0 (ユーザー指定の位置)
-                            }
-                            const e = this.spawnEnemy(x, z);
-                            e.isDropSpawn = isDropSpawn;
-                            e.spawnDropTimer = 1.0; // 全員1秒かけて出現
-
-                            this.spawnedInWave++;
+                        const isDropSpawn = Math.random() < 0.2; // 1/5の確率で画面内に降下
+                        let x, z;
+                        if (isDropSpawn) {
+                            const posIdx = Math.floor(Math.random() * 3);
+                            x = (posIdx - 1) * 3.5 + (Math.random() - 0.5) * 6.0;
+                            z = 10.0 + Math.random() * 2.0; // 画面中段付近
+                        } else {
+                            x = (Math.random() - 0.5) * 10.0;
+                            z = 20.0 + Math.random() * 2.0; // z=20.0 ~ 22.0
                         }
+                        const spawnedList = this.spawnEnemyGroup(x, z, null, isDropSpawn);
+                        this.spawnedInWave += spawnedList.length;
                     }
                 }
+
                 // スポーン済みか否かに関わらず、全敵死亡 → ウェーブクリア
                 if (this.spawnedInWave >= this.enemyCountPerWave && aliveEnemies.length === 0) {
                     console.log(`[BattleEngine] Wave ${this.currentWave} cleared! total=${this.totalWaves}`);
