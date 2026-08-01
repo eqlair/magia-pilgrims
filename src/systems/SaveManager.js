@@ -34,6 +34,8 @@ export class SaveManager {
                 activeTarots: gs.activeTarots,
                 event1207Played: gs.event1207Played,
                 event1214Played: gs.event1214Played,
+                event1221Played: gs.event1221Played,
+
                 extraEnemyLevel: gs.extraEnemyLevel,
                 extraWitchLevel: gs.extraWitchLevel,
                 extraWaves: gs.extraWaves,
@@ -141,6 +143,8 @@ export class SaveManager {
         if (d.activeTarots) gs.activeTarots = d.activeTarots;
         if (d.event1207Played !== undefined) gs.event1207Played = d.event1207Played;
         if (d.event1214Played !== undefined) gs.event1214Played = d.event1214Played;
+        if (d.event1221Played !== undefined) gs.event1221Played = d.event1221Played;
+
         if (d.extraEnemyLevel !== undefined) gs.extraEnemyLevel = d.extraEnemyLevel;
         if (d.extraWitchLevel !== undefined) gs.extraWitchLevel = d.extraWitchLevel;
         if (d.extraWaves !== undefined) gs.extraWaves = d.extraWaves;

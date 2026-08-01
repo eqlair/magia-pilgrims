@@ -1846,6 +1846,7 @@ export default class AdventureScene extends Phaser.Scene {
     checkScheduledEvents() {
         this.check1207Event();
         this.check1214Event();
+        this.check1221Event();
     }
 
     check1207Event() {
@@ -1886,6 +1887,24 @@ export default class AdventureScene extends Phaser.Scene {
             });
         }
     }
+
+    check1221Event() {
+        const gs = GlobalState.getInstance();
+        if (this.currentDay === 22 && this.timePeriodIndex === 0 && !gs.event1221Played) {
+            gs.event1221Played = true;
+
+            const eventData = this.cache.json.get('event_1221');
+            if (eventData) {
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: eventData,
+                    returnScene: 'AdventureScene',
+                    from1221Event: true
+                });
+            }
+        }
+    }
+
 
     applySaveData(saveData) {
         if (!saveData) return;

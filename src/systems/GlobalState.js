@@ -39,9 +39,11 @@ export class GlobalState {
         // デバッグ機能: 戦闘後に宝石確定ドロップ
         this.debugForceGemDrop = false;
         
-        // 12/7, 12/14イベントフラグ
+        // 12/7, 12/14, 12/21イベントフラグ
         this.event1207Played = false;
         this.event1214Played = false;
+        this.event1221Played = false;
+
 
         // --- タロット用の一時・永続フラグ ---
         this.extraEnemyLevel = 0; // マップ上の雑魚敵レベル補正
@@ -564,6 +566,8 @@ export class GlobalState {
             tarot13_targetAtk: this.tarot13_targetAtk,
             event1207Played: this.event1207Played,
             event1214Played: this.event1214Played,
+            event1221Played: this.event1221Played,
+
             characters: JSON.parse(JSON.stringify(this.characters))
         };
     }

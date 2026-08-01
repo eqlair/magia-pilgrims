@@ -32,6 +32,8 @@ export default class EventScene extends Phaser.Scene {
         this.isNotification = data.isNotification || false;
         this.from1207Event = data.from1207Event || false;
         this.from1214Event = data.from1214Event || false;
+        this.from1221Event = data.from1221Event || false;
+
         this.isNightExploration = data.isNightExploration || false;
     }
 
@@ -184,11 +186,13 @@ export default class EventScene extends Phaser.Scene {
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.from1207Event && !this.from1214Event,
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.from1207Event && !this.from1214Event && !this.from1221Event,
                         fromExploration: this.fromExploration,
                         isNotification: this.isNotification,
                         from1207Event: this.from1207Event,
                         from1214Event: this.from1214Event,
+                        from1221Event: this.from1221Event,
+
                         joinCharacterId: this.joinCharacterId 
                     });
                 }
