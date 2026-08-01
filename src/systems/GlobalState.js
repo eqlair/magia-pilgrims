@@ -1,5 +1,7 @@
 import charDataJson from '../data/characters.json';
+import gemEffectsJson from '../data/gem_effects.json';
 import { SaveManager } from './SaveManager';
+
 
 
 export class GlobalState {
@@ -178,6 +180,7 @@ export class GlobalState {
         let critMultMod = 0; // 追加: クリティカル倍率
         let meleeLevelBonus = 0; // 追加: 近接攻撃LVボーナス
         let rangedLevelBonus = 0; // 追加: 遠距離攻撃LVボーナス
+        let charLevelBonus = 0; // 追加: キャラクター一時レベルボーナス
         let expBonusMod = 0; // 追加: 経験値取得量UPボーナス(%)
         let elemMods = { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
 
@@ -196,7 +199,7 @@ export class GlobalState {
         }
 
         validEquips.forEach(equip => {
-            // 特性リスト（traits）または個別プロパティの判定
+            // 1. 特性リスト（traits）または個別プロパティの判定
             const traits = equip.traits || (equip.trait ? [equip.trait] : []);
             traits.forEach(trait => {
                 if (!trait) return;
@@ -229,6 +232,8 @@ export class GlobalState {
                     meleeLevelBonus += tLevel;
                 } else if (tName.includes('遠距離') || tName.includes('遠隔')) {
                     rangedLevelBonus += tLevel;
+                } else if (tName.includes('レベルUP') || tName.includes('レベル+') || tName.includes('キャラLV+')) {
+                    charLevelBonus += tLevel;
                 } else if (tName.includes('経験値') || tName.includes('EXP') || tName.includes('獲得EXP')) {
                     expBonusMod += tLevel * 10;
                 } else if (tName.includes('赤属性') || tName.includes('情熱')) {
@@ -244,13 +249,57 @@ export class GlobalState {
                 }
             });
 
-            // 宝石単体に直接近接/遠隔/EXPプロパティが設定されている場合のフォロー
+            // 2. 宝石(Gem)の固有テキスト効果(gem_effects.json)のパース
+            if (equip.type === 'gem' || char.equipGem === equip) {
+                const gemName = equip.name;
+                const gemRank = (equip.rank || 1).toString();
+                if (gemName && gemEffectsJson && gemEffectsJson[gemName]) {
+                    const effectText = gemEffectsJson[gemName].effects ? gemEffectsJson[gemName].effects[gemRank] : null;
+                    if (effectText && effectText !== 'なし') {
+                        // 固有効果テキストのカンマ分割パース
+                        const parts = effectText.split(/[､,]/);
+                        parts.forEach(part => {
+                            const p = part.trim();
+                            // WLV遠近+X
+                            let m = p.match(/WLV遠近([+-]\d+)/);
+                            if (m) {
+                                const val = parseInt(m[1], 10);
+                                meleeLevelBonus += val;
+                                rangedLevelBonus += val;
+                                return;
+                            }
+                            // WLV近+X / WLV近-X
+                            m = p.match(/WLV近([+-]\d+)/);
+                            if (m) {
+                                meleeLevelBonus += parseInt(m[1], 10);
+                                return;
+                            }
+                            // WLV遠+X / WLV遠-X
+                            m = p.match(/WLV遠([+-]\d+)/);
+                            if (m) {
+                                rangedLevelBonus += parseInt(m[1], 10);
+                                return;
+                            }
+                            // 取得経験値X％増
+                            m = p.match(/取得経験値(\d+)％増/);
+                            if (m) {
+                                expBonusMod += parseInt(m[1], 10);
+                                return;
+                            }
+                        });
+                    }
+                }
+            }
+
+            // 3. 宝石単体に直接近接/遠隔/EXPプロパティが設定されている場合のフォロー
             if (equip.meleeBonus) meleeLevelBonus += Number(equip.meleeBonus);
             if (equip.rangedBonus) rangedLevelBonus += Number(equip.rangedBonus);
             if (equip.expBonus) expBonusMod += Number(equip.expBonus);
             if (equip.meleeLevel) meleeLevelBonus += Number(equip.meleeLevel);
             if (equip.rangedLevel) rangedLevelBonus += Number(equip.rangedLevel);
+            if (equip.levelBonus) charLevelBonus += Number(equip.levelBonus);
         });
+
 
 
         
@@ -394,9 +443,11 @@ export class GlobalState {
             elemMods,
             meleeLevel: effectiveMeleeLevel,
             rangedLevel: effectiveRangedLevel,
+            charLevelBonus,
             expBonus: totalExpBonus
         };
     }
+
 
     // タロットカード取得時の即時効果適用
 

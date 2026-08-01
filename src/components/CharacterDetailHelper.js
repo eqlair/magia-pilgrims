@@ -115,8 +115,16 @@ export class CharacterDetailHelper {
         });
 
         targetContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
-        targetContainer.add(scene.add.text(rx + 150, ry + 6, `Lv.${charData.level}`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#aaffaa' }));
+        
+        const lvlBonus = stats.charLevelBonus || 0;
+        const levelTxt = scene.add.text(rx + 150, ry + 6, `Lv.${charData.level}`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#aaffaa' });
+        targetContainer.add(levelTxt);
+        if (lvlBonus > 0) {
+            const bonusTxt = scene.add.text(levelTxt.x + levelTxt.width + 4, ry + 6, `(+${lvlBonus})`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#ff9900' });
+            targetContainer.add(bonusTxt);
+        }
         ry += lineSpacing * 0.8;
+
 
         // 2行目: 経験値
         const expBonus = stats.expBonus || 0;
@@ -390,21 +398,23 @@ export class CharacterDetailHelper {
         elements.forEach(e => {
             const defVal = getDef(e.id);
             const modVal = elemMods[e.id] || 0;
-            const isDefBoosted = (defVal !== 100) || (modVal !== 0);
+            // キャラ属性由来の素の数値(75%, 125%)は白文字。装備等(modVal !== 0)の追加補正がある時のみオレンジ色(#ff9900)
+            const isDefBoosted = (modVal !== 0);
 
-            // 属性別防御力 (1/5右へ移動)
+            // 属性別防御力
             targetContainer.add(scene.add.image(width * 0.15, ry + 12, e.icon).setScale(0.15));
             targetContainer.add(scene.add.text(width * 0.20, ry, `${e.name}: ${defVal}%`, {
                 stroke: '#000000', strokeThickness: 3, fontSize: '22px',
                 color: isDefBoosted ? '#ff9900' : '#ffffff'
             }));
             
-            // 属性別デバフ抵抗力 (1/5右へ移動)
+            // 属性別デバフ抵抗力
             targetContainer.add(scene.add.image(width * 0.55, dry + 12, e.icon).setScale(0.15));
             targetContainer.add(scene.add.text(width * 0.60, dry, `${e.name}: ${defVal}%`, {
                 stroke: '#000000', strokeThickness: 3, fontSize: '22px',
                 color: isDefBoosted ? '#ff9900' : '#ffffff'
             }));
+
             
             ry += 35;
             dry += 35;
