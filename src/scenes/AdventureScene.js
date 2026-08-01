@@ -100,6 +100,9 @@ export default class AdventureScene extends Phaser.Scene {
                 cellData.visited = cellData.visited || 0;
                 cellData.revealed = cellData.revealed || 0; // 一度でも隣接した水域・密林用
                 cellData.isAdjacent = false; // 現在隣接しているか
+                if (cellData.initialEnemyLevel === undefined) {
+                    cellData.initialEnemyLevel = cellData.enemyLevel || 0;
+                }
                 // 敵の属性(1~5)をランダムに設定（MapDataにあるenemyLevelは上書きしない）
                 cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
                 
@@ -124,7 +127,9 @@ export default class AdventureScene extends Phaser.Scene {
         const witchHexes = landHexes.slice(0, 21);
         for (const wh of witchHexes) {
             wh.cellData.witchLevel = wh.cellData.enemyLevel;
+            wh.cellData.initialWitchLevel = wh.cellData.enemyLevel;
         }
+
 
         // ヘックスごとの描画セットアップ
         for (const h of this.hexes) {
@@ -983,11 +988,13 @@ export default class AdventureScene extends Phaser.Scene {
             
             // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする）
             if (cell.enemyLevel > 0 && !(cell.witchLevel > 0)) {
-                h.enemyText.setText(`Wasp LV.${cell.enemyLevel}`);
+                const actualEnemyLevel = Math.max(1, cell.enemyLevel + (this.globalEnemyLevel - 1));
+                h.enemyText.setText(`Wasp LV.${actualEnemyLevel}`);
                 h.enemyText.setVisible(true);
             } else {
                 if (h.enemyText) h.enemyText.setVisible(false);
             }
+
         }
     }
 
@@ -2008,8 +2015,15 @@ export default class AdventureScene extends Phaser.Scene {
                 if (!this.grid[r]) continue;
                 for (let c = 0; c < this.grid[r].length; c++) {
                     const hex = this.grid[r][c];
-                    if (hex) {
-                        hex.isVisited = false;
+                    if (hex && hex.cellData) {
+                        // 踏破フラグ (visited/isVisited) はクリアせず維持！
+                        // 敵レベル・魔女レベルを初期値へ復元
+                        if (hex.cellData.initialEnemyLevel !== undefined) {
+                            hex.cellData.enemyLevel = hex.cellData.initialEnemyLevel;
+                        }
+                        if (hex.cellData.initialWitchLevel !== undefined) {
+                            hex.cellData.witchLevel = hex.cellData.initialWitchLevel;
+                        }
                         hex.isCleared = false;
                     }
                 }
@@ -2024,6 +2038,7 @@ export default class AdventureScene extends Phaser.Scene {
         this.updateVisibility();
         this._updateFoodDisplay();
     }
+
 
     /** 12/21夜：野外（地名無しヘクス）での強制突破戦スタート */
     start1221Breakthrough() {
