@@ -824,7 +824,25 @@ export default class AdventureScene extends Phaser.Scene {
         });
 
         this.uiContainer.add([breakTestBtn]);
+
+        // ── DPS計測ボタン (サンドバッグ3匹と戦闘) ──
+        const dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc00', fontStyle: 'bold',
+            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+        dpsTestBtn.on('pointerdown', () => {
+            TransitionManager.transitionTo(this, 'BattleScene', {
+                rule: 3, // DPS計測モード
+                isDpsTest: true,
+                party: this.party || ['001', '002', '003', '004', '005'],
+                returnScene: 'AdventureScene'
+            });
+        });
+
+        this.uiContainer.add([dpsTestBtn]);
     }
+
 
 
 

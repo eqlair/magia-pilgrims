@@ -19,8 +19,10 @@ export const ENEMY_TYPES = [
     { id: 6, name: 'コボルド', spawnCount: 6, hp: 90, speed: 40, moveDist: 4.5, moveInterval: 0.35, atkRange: 4.0, atkFreq: 1.0, atkPower: 1, weight: 55, debuffResist: 50, size: 0.75, textureKey: 'en002', frame: 3 },
     { id: 7, name: 'オーク', spawnCount: 6, hp: 90, speed: 30, moveDist: 3.9, moveInterval: 0.5, atkRange: 8.0, atkFreq: 2.0, atkPower: 1, weight: 75, debuffResist: 0, size: 0.75, textureKey: 'en001', frame: 0 },
     { id: 8, name: 'オーガ', spawnCount: 3, hp: 125, speed: 25, moveDist: 3.6, moveInterval: 0.35, atkRange: 8.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 1.0, textureKey: 'en002', frame: 2 },
-    { id: 9, name: 'ゴーレム', spawnCount: 1, hp: 250, speed: 25, moveDist: 3.6, moveInterval: 0.6, atkRange: 8.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 1.25, textureKey: 'en002', frame: 1 }
+    { id: 9, name: 'ゴーレム', spawnCount: 1, hp: 250, speed: 25, moveDist: 3.6, moveInterval: 0.6, atkRange: 8.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 1.25, textureKey: 'en002', frame: 1 },
+    { id: 10, name: 'サンドバッグ', spawnCount: 3, hp: 99999, speed: 0, moveDist: 0, moveInterval: 99, atkRange: 0, atkFreq: 99, atkPower: 0, weight: 100, debuffResist: 100, size: 1.0, textureKey: 'en001', frame: 1 }
 ];
+
 
 export class BattleEngine {
     constructor() {
@@ -175,12 +177,44 @@ export class BattleEngine {
                 }
             }
         }
+
+        // --- DPS計測モード (rule=3 または isDpsTest) ---
+        if (this.rule === 3 || this.config.isDpsTest) {
+            this.spawnSandbags();
+        }
+    }
+
+    spawnSandbags() {
+        const sandbagData = ENEMY_TYPES.find(t => t.id === 10) || ENEMY_TYPES[9];
+
+
+        const positions = [
+            { x: 0.0, z: 9.0 },
+            { x: -0.5, z: 9.5 },
+            { x: 0.5, z: 9.5 }
+        ];
+
+        positions.forEach(pos => {
+            const enemyData = {
+                name: 'サンドバッグ',
+                hp: 99999, speed: 0, weight: 100, atkRange: 0, atkFreq: 99, atkPower: 0,
+                size: 1.0, moveDist: 0, moveInterval: 99, debuffResist: 100,
+                textureKey: 'en001', frame: 1, attribute: 'red', level: 1
+            };
+            const enemy = new EnemyCharacter(pos.x, pos.z, enemyData);
+            enemy.isSandbag = true;
+            enemy.baseX = pos.x;
+            enemy.baseZ = pos.z;
+            enemy.spawnDropTimer = 0;
+            this.enemies.push(enemy);
+        });
     }
 
     retreat() {
         this.waveState = 'retreated';
         this.eventQueue.push('RETREATING...');
     }
+
 
     spawnEnemyGroup(typeIndex = null, forceDropSpawn = null) {
         let typeDef;
@@ -1076,7 +1110,24 @@ export class BattleEngine {
             e.update(dt);
             if (e.stunTimer > 0) continue; // スタン中は行動しない
 
+            // サンドバッグ敵の元の位置復元処理
+            if (e.isSandbag && e.baseX !== undefined && e.baseZ !== undefined) {
+                const dx = e.baseX - e.x;
+                const dz = e.baseZ - e.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                if (dist > 0.01) {
+                    const step = Math.min(dist, dt * 2.0); // 2m/sの速度で元の位置へ戻る
+                    e.x += (dx / dist) * step;
+                    e.z += (dz / dist) * step;
+                } else {
+                    e.x = e.baseX;
+                    e.z = e.baseZ;
+                }
+                continue; // サンドバッグは独自の攻撃・移動を行わない
+            }
+
             if (e.isBoss) {
+
                 // 魔女の行動（移動と攻撃）
                 
                 // --- 移動ロジック ---
