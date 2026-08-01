@@ -681,6 +681,11 @@ export class GlobalState {
             // 友好度（friendships, friendshipPoints, metCharacters, affection）は保持
         }
 
+        // 編成のリセット（紫苑のみを残してみんな離脱）
+        this.savedFormation = {
+            '001': { lane: 0, isFront: true }
+        };
+
         // イベントフラグのリセット
         this.event1207Played = false;
         this.event1214Played = false;
@@ -698,10 +703,16 @@ export class GlobalState {
         this.enemySpeedHalf = false;
         this.expMultiplier = 1.0;
         this.spMultiplier = 1.0;
+        this.debugEnemySizeMultiplier = 1.0;
+        this.debugEnemyHpMultiplier = 1.0;
+        this.debugEnemyMoveMultiplier = 1.0;
+        this.debugEnemyRangeMultiplier = 1.0;
+        this.debugEnemyHpGrowthRate = 1.0;
 
         // リソースのリセット
         this.food = 100;
     }
+
 }
 
 

@@ -527,10 +527,18 @@ export default class AdventureScene extends Phaser.Scene {
                     const gs = GlobalState.getInstance();
                     gs.resetForNewLoop();
 
+                    this.party = ['001']; // 紫苑を残してみんなお別れ（初期メンバーのみ）
                     this.currentMonth = 12;
                     this.currentDay = 1;
                     this.timePeriodIndex = 0;
                     this.timeOfDay = this.timePeriods[0];
+                    this._dec21MorningApplied = false;
+                    this._dec21AfternoonApplied = false;
+
+                    this.globalEnemyLevel = 1;
+                    this.globalEnemyCount = 10;
+                    this.globalWaveCount = 1;
+
                     if (this.dateTimeText) {
                         this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
                     }
@@ -540,6 +548,7 @@ export default class AdventureScene extends Phaser.Scene {
                     TransitionManager.fadeIn(this);
                     return;
                 }
+
             }
 
         });
