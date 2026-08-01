@@ -204,8 +204,9 @@ export class BattleEngine {
                 z = 10.0 + Math.random() * 2.0; // 画面中段付近
             } else {
                 x = (Math.random() - 0.5) * 10.0;
-                z = 20.0 + Math.random() * 2.0; // z=20.0 ~ 22.0
+                z = 20.0 + Math.random() * 4.0; // z=20.0 ~ 24.0 (最奥Z=24まで拡大)
             }
+
 
 
             const enemyData = {
