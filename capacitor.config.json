@@ -1,0 +1,6 @@
+{
+  "appId": "com.antigravity.game",
+  "appName": "TokyoWitchGame",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
