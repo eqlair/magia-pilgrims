@@ -690,9 +690,9 @@ export class EnemyCharacter extends BattleEntity {
         
         const gs = GlobalState.getInstance();
         this.level = data.level || 1;
-        const levelGrowth = 1.0 + Math.max(0, this.level - 1) * (gs.debugEnemyHpGrowthRate || 1.0);
+        const levelHpMult = Math.pow(1.2, Math.max(0, this.level - 1));
         
-        this.hp = (data.hp || 30) * levelGrowth * (gs.debugEnemyHpMultiplier || 1.0);
+        this.hp = (data.hp || 30) * levelHpMult * (gs.debugEnemyHpMultiplier || 1.0);
         this.maxHp = this.hp;
         // 敵は精神力なし
         this.sp = 0;
@@ -708,7 +708,9 @@ export class EnemyCharacter extends BattleEntity {
         this.speed = baseSpeed * 0.03; // m/sに変換
 
         this.weight = data.weight || 5;
-        this.size = (data.size || 1.0) * (gs.debugEnemySizeMultiplier || 1.0);
+        const baseSize = (data.size || 1.0) + Math.max(0, this.level - 1) * 0.1;
+        this.size = baseSize * (gs.debugEnemySizeMultiplier || 1.0);
+
         
         this.isDropSpawn = false;
         this.spawnDropTimer = 0;
