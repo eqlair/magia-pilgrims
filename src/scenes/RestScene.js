@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
+import { CharacterDetailHelper } from '../components/CharacterDetailHelper';
 
 import { TimeReporter } from '../systems/TimeReporter';
+
 import { fontSize, FONT_MAIN } from '../config/GameFont';
 
 export default class RestScene extends Phaser.Scene {
