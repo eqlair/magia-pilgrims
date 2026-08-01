@@ -318,7 +318,10 @@ export default class AdventureScene extends Phaser.Scene {
         
         // 他のシーン（EventSceneなど）から復帰したときの処理
         this.events.on('resume', (scene, data) => {
+            this._isAdvancingTime = false; // シーン復帰時に時間経過ロックを必ず解除
+            
         // 撤退または全滅からの復帰
+
         if (data && (data.isGameOver || data.isRetreated)) {
             // 12/21の全滅時はリスポーンイベントへ突入
             if (data.isGameOver && (data.is1221NightBattle || this.currentDay === 21)) {
@@ -411,18 +414,19 @@ export default class AdventureScene extends Phaser.Scene {
 
 
 
-            if (data && (data.fromEvent || data.fromExploration || data.fromRest) && !data.fromTarot && !data.isNotification) {
-                // イベント・探索・休息終了後に時間を1コマ進める
-                this.advanceTime();
-                this.checkScheduledEvents();
+            let advancedTimeThisResume = false;
+
+            if (data && (data.fromEvent || data.fromExploration || data.fromRest || data.fromBattle) && !data.fromTarot && !data.isNotification) {
+                if (!advancedTimeThisResume) {
+                    this.advanceTime();
+                    this.checkScheduledEvents();
+                    advancedTimeThisResume = true;
+                }
             }
 
             if (data && data.fromBattle) {
-                // バトル完了後に時間を進め、タロット条件を満たすかチェック
-                console.log(`[AdventureScene] fromBattle. globalWaveCount=${this.globalWaveCount}`);
-                this.advanceTime();
-                this.checkScheduledEvents();
-                console.log(`[AdventureScene] after advanceTime. globalWaveCount=${this.globalWaveCount}`);
+                console.log(`[AdventureScene] fromBattle returned. globalWaveCount=${this.globalWaveCount}`);
+
 
                 // 現在のヘクスを制圧済みに（敵レベル・魔女レベルを0にして敵なしヘクスにする）
                 const currentHex = this.grid[this.playerRow]?.[this.playerCol];
