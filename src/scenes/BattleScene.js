@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { MapProjector } from '../systems/MapProjector';
 import { BattleEngine } from '../systems/BattleEngine';
+import { BattleEntities, EnemyCharacter } from '../systems/BattleEntities';
 import { BattleRenderer } from '../systems/BattleRenderer';
+
 import { FogEffect } from '../systems/FogEffect';
 import { GlobalState } from '../systems/GlobalState';
 
@@ -204,12 +206,45 @@ export default class BattleScene extends Phaser.Scene {
         this.dpsText = this.add.text(10, this.scale.height - 10, '', {
             fontFamily: 'monospace',
             fontSize: '13px',
-
             color: '#00ffaa',
             stroke: '#000000',
             strokeThickness: 3,
         }).setOrigin(0, 1).setDepth(1500);
+
+        // --- Z座標操作・検証デバッグ機能 (qawsedキー操作) ---
+        if (this.engine) {
+            this.debugTestEnemy = new EnemyCharacter(0, 20.0, {
+
+                name: '【検証テスト敵】',
+                hp: 9999, speed: 0, weight: 999, atkRange: 0, atkFreq: 99, size: 1.0, moveDist: 0,
+                moveInterval: 99, debuffResist: 100, textureKey: 'en003', frame: 2, attribute: 'yellow', level: 1
+            });
+            this.debugTestEnemy.isDebugTest = true;
+            this.engine.enemies.push(this.debugTestEnemy);
+
+            this.debugTestText = this.add.text(this.scale.width - 10, this.scale.height - 10, '', {
+                fontFamily: 'monospace',
+                fontSize: '13px',
+                color: '#ffff00',
+                stroke: '#000000',
+                strokeThickness: 3,
+                align: 'right'
+            }).setOrigin(1, 1).setDepth(9999);
+
+            // キー設定 (Q/A: X軸, W/S: Z軸, E/D: Z軸高速)
+            this.input.keyboard.on('keydown', (event) => {
+                if (!this.debugTestEnemy) return;
+                const k = event.key.toLowerCase();
+                if (k === 'q') this.debugTestEnemy.x -= 0.5;
+                if (k === 'a') this.debugTestEnemy.x += 0.5;
+                if (k === 'w') this.debugTestEnemy.z += 0.5;
+                if (k === 's') this.debugTestEnemy.z -= 0.5;
+                if (k === 'e') this.debugTestEnemy.z += 2.0;
+                if (k === 'd') this.debugTestEnemy.z -= 2.0;
+            });
+        }
     }
+
 
     onPointerDown(pointer) {
         const now = this.time.now;
@@ -307,6 +342,18 @@ export default class BattleScene extends Phaser.Scene {
 
         // 論理更新
         this.engine.update(dt);
+
+        // デバッグ検証用テスト敵の座標と画面投影位置の更新表示
+        if (this.debugTestEnemy && this.debugTestText && this.projector) {
+            const p = this.projector.project(this.debugTestEnemy.x, this.debugTestEnemy.z);
+            this.debugTestText.setText(
+                `【検証用テスト敵】\n` +
+                `World: X=${this.debugTestEnemy.x.toFixed(1)}m, Z=${this.debugTestEnemy.z.toFixed(1)}m\n` +
+                `ScreenY: ${p.y.toFixed(1)}px (vis:${p.visible})\n` +
+                `操作: Q/A(X), W/S(Z±0.5), E/D(Z±2.0)`
+            );
+        }
+
         
         // 突破モード時の疑似3D傾斜スライス床のスクロールとUI更新
         if (this.battleConfig.rule === 2 && this.engine) {
