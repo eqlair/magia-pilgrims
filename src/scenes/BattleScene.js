@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { MapProjector } from '../systems/MapProjector';
 import { BattleEngine } from '../systems/BattleEngine';
-import { BattleEntities, EnemyCharacter } from '../systems/BattleEntities';
+import { EnemyCharacter } from '../systems/BattleEntities';
+
 import { BattleRenderer } from '../systems/BattleRenderer';
 
 import { FogEffect } from '../systems/FogEffect';
