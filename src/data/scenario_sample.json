@@ -1,0 +1,18 @@
+[
+  { "cmd": "bg",    "key": "bg_forest" },
+
+  { "cmd": "chara", "key": "hero",   "pos": "right" },
+  { "cmd": "text",  "name": "主人公", "body": "やっと森を抜けてきたみたい。\n空気が違う気がするね。\n\nここからが本番やな…気を引き締めていこ。" },
+
+  { "cmd": "chara", "key": "partner", "pos": "left" },
+  { "cmd": "text",  "name": "相棒", "body": "うん。でも焦ったらアカンよ？\n\n周りをよく観察してから次の一手を決めよ。" },
+
+  { "cmd": "image", "key": "illust_forest_light" },
+  { "cmd": "text",  "name": "", "body": "木々の間から差し込む光が、\nまるで道を示しているようだった。" },
+
+  { "cmd": "clearText" },
+  { "cmd": "chara", "key": null, "pos": "right" },
+  { "cmd": "chara", "key": null, "pos": "left"  },
+
+  { "cmd": "end" }
+]

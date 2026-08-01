@@ -1,0 +1,360 @@
+import Phaser from 'phaser';
+import { TransitionManager } from '../systems/TransitionManager';
+import { FONT_MAIN, fontSize } from '../config/GameFont';
+import { GlobalState } from '../systems/GlobalState';
+
+export default class TarotScene extends Phaser.Scene {
+    constructor() {
+        super('TarotScene');
+    }
+
+    init(data) {
+        this.returnScene = data.returnScene || 'AdventureScene';
+        this.party = data.party || [];
+    }
+
+    create() {
+        this.cameras.main.setBackgroundColor('#052210');
+        TransitionManager.fadeIn(this);
+
+        this.bgm = this.sound.add('bgm_tarot', { loop: true, volume: 0.5 });
+        this.bgm.play();
+
+        this.width = this.scale.width;
+        this.height = this.scale.height;
+
+        this.tarotData = this.cache.json.get('tarot_data');
+
+        // Create UI layer
+        this.uiContainer = this.add.container(0, 0).setDepth(100);
+
+        this.promptText = this.add.text(this.width / 2, 80, '', {
+            fontFamily: FONT_MAIN, fontSize: '32px', color: '#ffffff', stroke: '#000000', strokeThickness: 4
+        }).setOrigin(0.5).setAlpha(0);
+        this.uiContainer.add(this.promptText);
+
+        // Deck remaining count
+        this.tarotDeck = this.registry.get('tarotDeck');
+        if (!this.tarotDeck || this.tarotDeck.length === 0) {
+            // Generate a new deck if not provided
+            this.tarotDeck = [];
+            for (let i = 1; i <= 22; i++) {
+                this.tarotDeck.push(i);
+            }
+            Phaser.Utils.Array.Shuffle(this.tarotDeck);
+        }
+
+        // Iキーで3枚配りなおす（インチキ機能）
+        this.input.keyboard.on('keydown-I', () => {
+            if (!this.canSelect) return;
+            
+            console.log('Redrawing Tarot Cards...');
+            // 引いたカードをデッキに戻してシャッフル
+            if (this.drawnCardIds && this.drawnCardIds.length > 0) {
+                this.drawnCardIds.forEach(id => this.tarotDeck.push(id));
+                this.drawnCardIds = [];
+            }
+            Phaser.Utils.Array.Shuffle(this.tarotDeck);
+            
+            // BGMが重複しないように止める
+            if (this.bgm) {
+                this.bgm.stop();
+                this.bgm.destroy();
+            }
+            
+            // シーンをリスタート
+            this.scene.restart();
+        });
+
+        this.startCardFlowAnimation();
+    }
+
+    startCardFlowAnimation() {
+        // Animation of cards passing from right to left
+        const flowCount = Math.min(10, this.tarotDeck.length);
+        const spacing = 150;
+        
+        let completedCards = 0;
+
+        for (let i = 0; i < flowCount; i++) {
+            const cardObj = this.add.image(this.width + 100 + i * spacing, this.height / 2, 'tarot_0')
+                .setOrigin(0.5);
+                
+            // Set passing cards to be slightly smaller than 3/10
+            cardObj.displayWidth = this.width * 0.2;
+            cardObj.scaleY = cardObj.scaleX;
+
+            // Add some random Y offset and rotation for organic feel
+            cardObj.y += (Math.random() - 0.5) * 100;
+            cardObj.rotation = (Math.random() - 0.5) * 0.5;
+
+            this.tweens.add({
+                targets: cardObj,
+                x: -200,
+                duration: 1500 + Math.random() * 500,
+                delay: i * 100,
+                ease: 'Linear',
+                onComplete: () => {
+                    cardObj.destroy();
+                    completedCards++;
+                    if (completedCards === flowCount) {
+                        this.showThreeCards();
+                    }
+                }
+            });
+        }
+
+        if (flowCount === 0) {
+            this.showThreeCards();
+        }
+    }
+
+    showThreeCards() {
+        this.cards = [];
+        this.canSelect = false;
+
+        // Position 3 cards evenly across the screen (1/6, 1/2, 5/6)
+        const positionsX = [this.width / 6, this.width / 2, this.width * 5 / 6];
+        const targetWidth = this.width * 0.3; // 画面の3/10
+
+        // Draw 3 cards from the deck (or fewer if deck is almost empty)
+        // 山札が3枚未満になったら、引いていないカードを補充してシャッフル
+        if (this.tarotDeck.length < 3) {
+            const usedIds = new Set(this.drawnCardIds || []);
+            const missing = [];
+            for (let i = 1; i <= 22; i++) {
+                if (!usedIds.has(i) && !this.tarotDeck.includes(i)) {
+                    missing.push(i);
+                }
+            }
+            this.tarotDeck.push(...missing);
+            Phaser.Utils.Array.Shuffle(this.tarotDeck);
+        }
+        const drawCount = Math.min(3, this.tarotDeck.length);
+        if (drawCount === 0) {
+            // No cards left to draw!
+            this.endScene();
+            return;
+        }
+
+        this.drawnCardIds = [];
+        for (let i = 0; i < drawCount; i++) {
+            this.drawnCardIds.push(this.tarotDeck.shift());
+        }
+
+        let completedTweens = 0;
+
+        const gs = GlobalState.getInstance();
+
+        // Oキーでデバッグフラグトグル
+        this.input.keyboard.on('keydown-O', () => {
+            gs.tarotAllFaceUp = !gs.tarotAllFaceUp;
+            console.log('Tarot All Face Up:', gs.tarotAllFaceUp);
+            if (gs.tarotAllFaceUp && this.cards && this.cards.length > 0) {
+                this.cards.forEach((card, idx) => {
+                    card.setTexture(`tarot_${this.drawnCardIds[idx]}`);
+                });
+            } else if (!gs.tarotAllFaceUp && this.cards && this.cards.length > 0) {
+                this.cards.forEach(card => card.setTexture('tarot_0'));
+            }
+        });
+
+        for (let i = 0; i < drawCount; i++) {
+            // Cards flow from left this time
+            const textureKey = gs.tarotAllFaceUp ? `tarot_${this.drawnCardIds[i]}` : 'tarot_0';
+            const card = this.add.image(-200, this.height / 2, textureKey)
+                .setOrigin(0.5)
+                .setInteractive();
+                
+            card.displayWidth = targetWidth;
+            card.scaleY = card.scaleX;
+
+            this.cards.push(card);
+
+            this.tweens.add({
+                targets: card,
+                x: positionsX[i],
+                rotation: 0,
+                duration: 800,
+                delay: i * 200,
+                ease: 'Power2',
+                onComplete: () => {
+                    completedTweens++;
+                    if (completedTweens === drawCount) {
+                        this.promptText.setText('どれか一枚を選んでください');
+                        this.tweens.add({ targets: this.promptText, alpha: 1, duration: 500 });
+                        this.canSelect = true;
+                    }
+                }
+            });
+
+            card.on('pointerdown', () => this.selectCard(i));
+        }
+    }
+
+    selectCard(index) {
+        if (!this.canSelect) return;
+        this.canSelect = false;
+
+        const gs = GlobalState.getInstance();
+        if (gs.tarotAllFaceUp) {
+            gs.tarotAllFaceUp = false; // 引くとフラグは消える
+        }
+
+        this.promptText.setAlpha(0);
+
+        const selectedCard = this.cards[index];
+        const cardId = this.drawnCardIds[index];
+        const cardData = this.tarotData[cardId];
+
+        // 50% chance of Upright vs Reversed
+        const isUpright = Math.random() >= 0.5;
+
+        // Animate out the non-selected cards
+        this.cards.forEach((c, i) => {
+            if (i !== index) {
+                this.tweens.add({
+                    targets: c,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 400,
+                    onComplete: () => c.destroy()
+                });
+            }
+        });
+
+        const startScale = selectedCard.scaleX;
+        const targetScale = startScale * 1.5; // Enlarge 1.5x from selection size
+
+        // Move selected card to center and enlarge, flipping over
+        this.tweens.add({
+            targets: selectedCard,
+            x: this.width / 2,
+            y: this.height / 2 - 50,
+            scaleX: 0, // 3D flip effect (halfway)
+            scaleY: targetScale, 
+            duration: 400,
+            onComplete: () => {
+                // Change texture to the actual card
+                selectedCard.setTexture(`tarot_${cardId}`);
+                if (!isUpright) {
+                    selectedCard.setRotation(Math.PI); // 180 degrees reversed
+                }
+
+                // Finish flip
+                this.tweens.add({
+                    targets: selectedCard,
+                    scaleX: targetScale, 
+                    duration: 400,
+                    ease: 'Back.easeOut',
+                    onComplete: () => {
+                        this.showCardEffect(cardData, isUpright);
+                    }
+                });
+            }
+        });
+    }
+
+    showCardEffect(cardData, isUpright) {
+        const effectText = isUpright ? cardData.upright : cardData.reversed;
+        const positionText = isUpright ? '正位置' : '逆位置';
+
+        const infoBox = this.add.rectangle(this.width / 2, this.height - 180, this.width - 100, 240, 0x000000, 0.7)
+            .setAlpha(0);
+
+        const titleText = this.add.text(this.width / 2, this.height - 260, `${cardData.name} 【${positionText}】`, {
+            fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#ffddaa'
+        }).setOrigin(0.5).setAlpha(0);
+
+        const charaText = this.add.text(this.width / 2, this.height - 210, `暗示: ${cardData.character}`, {
+            fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#aaaaaa'
+        }).setOrigin(0.5).setAlpha(0);
+
+        const descText = this.add.text(this.width / 2, this.height - 180, effectText, {
+            fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#ffffff',
+            wordWrap: { width: this.width - 140, useAdvancedWrap: true },
+            lineSpacing: 8
+        }).setOrigin(0.5, 0).setAlpha(0);
+
+        const tapNextText = this.add.text(this.width - 60, this.height - 60, 'tap to next', {
+            fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#888888'
+        }).setOrigin(1).setAlpha(0);
+
+        this.tweens.add({
+            targets: [infoBox, titleText, charaText, descText],
+            alpha: 1,
+            duration: 500,
+            onComplete: () => {
+                this.tweens.add({
+                    targets: tapNextText,
+                    alpha: 0.5,
+                    yoyo: true,
+                    repeat: -1,
+                    duration: 600
+                });
+
+                // Wait for tap
+                this.time.delayedCall(500, () => {
+                    this.input.once('pointerdown', () => {
+                        this.endScene(cardData.id, isUpright);
+                    });
+                });
+            }
+        });
+    }
+
+    endScene(drawnCardId, isUpright = true) {
+        const { width, height } = this.scale;
+        const whiteScreen = this.add.rectangle(width / 2, height / 2, width, height, 0xffffff)
+            .setAlpha(0).setDepth(9999);
+            
+        this.tweens.add({
+            targets: whiteScreen,
+            alpha: 1,
+            duration: 1000,
+            onComplete: () => {
+                // Save updated deck
+                this.registry.set('tarotDeck', this.tarotDeck);
+
+                // 発動中のタロット効果として登録
+                GlobalState.getInstance().activeTarots.push({ id: drawnCardId, isUpright: isUpright });
+                GlobalState.getInstance().applyImmediateTarotEffect(drawnCardId, isUpright);
+                
+                if (this.bgm) {
+                    this.bgm.stop();
+                    this.bgm.destroy();
+                }
+
+                // Check for join events
+                const joinEvents = this.cache.json.get('join_events');
+                const joinCharId = this.getCharacterId(drawnCardId);
+                const alreadyInParty = joinCharId && this.party.includes(joinCharId);
+                
+                if (joinEvents && joinEvents[drawnCardId] && !alreadyInParty) {
+                    this.scene.stop();
+                    const script = joinEvents[drawnCardId];
+                    this.scene.start('EventScene', { 
+                        returnScene: this.returnScene,
+                        events: script,
+                        joinCharacterId: joinCharId,
+                        fromTarot: true
+                    });
+                } else {
+                    this.scene.stop();
+                    this.scene.resume(this.returnScene, { fromTarot: true });
+                }
+
+            }
+        });
+    }
+
+    getCharacterId(tarotId) {
+        const map = {
+            4: '004',   // 黄蘭
+            9: '003',   // 紅華
+            12: '002',  // 蒼樹
+            15: '005'   // 李乃果
+        };
+        return map[tarotId] || null;
+    }
+}

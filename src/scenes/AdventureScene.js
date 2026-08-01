@@ -1,0 +1,1946 @@
+import Phaser from 'phaser';
+import { TransitionManager } from '../systems/TransitionManager';
+import { MapData } from '../data/MapData';
+import { MapFileList } from '../data/MapFileList';
+import { TimeReporter } from '../systems/TimeReporter';
+import { GlobalState } from '../systems/GlobalState';
+import { RelicGenerator } from '../systems/RelicGenerator';
+import { SaveManager } from '../systems/SaveManager';
+import { fontSize, FONT_MAIN } from '../config/GameFont';
+
+
+export default class AdventureScene extends Phaser.Scene {
+    constructor() {
+        super('AdventureScene');
+    }
+
+    init(data) {
+        this._initData = data || {};
+    }
+
+    preload() {
+        // MAP_HEX六角カット画像（ヘクスタイル用）
+        for (const file of MapFileList) {
+            if (file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.JPG') || file.endsWith('.PNG')) {
+                const baseName = file.replace(/\.[^/.]+$/, "");
+                this.load.image(`map_img_${file}`, `files/MAP_HEX/${baseName}.png`);
+            }
+        }
+        // MAP元画像（背景用、カット前）
+        for (const file of MapFileList) {
+            if (file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.JPG') || file.endsWith('.PNG')) {
+                this.load.image(`bg_img_${file}`, `files/MAP/${file}`);
+            }
+        }
+        
+        // 画面下半分の最背面背景
+        this.load.image('bg_map_base', 'files/MAP/BG_map.jpg');
+        
+        // ミニキャラ（全キャラ分）
+        this.load.spritesheet('mini_001', 'files/CHR/001sion002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('mini_002', 'files/CHR/002002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('mini_003', 'files/CHR/003002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('mini_004', 'files/CHR/004002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('mini_005', 'files/CHR/005002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('sion', 'files/CHR/001sion002.png', { frameWidth: 728, frameHeight: 720 });
+    }
+
+    create() {
+        TransitionManager.fadeIn(this);
+        const { width, height } = this.scale;
+
+        // 日数と時間帯の設定 (12月1日 午前スタート)
+        this.currentMonth = 12;
+        this.currentDay = 1;
+        this.timePeriods = ['午前', '午後', '夜'];
+        this.timePeriodIndex = 0;
+        this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+        
+        // 敵の量コントロール
+        this.globalEnemyCount = 10;
+        this.globalWaveCount = 3.0;
+        this.globalEnemyLevel = 1;
+        this.previousPartySize = 1;
+
+        // ── BGM制御 ──
+        this.sound.stopAll();
+        if (this.cache.audio.exists('bgm_hexen')) {
+            const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
+            mapBgm.play();
+            this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
+        }
+
+        // ヘックスのパラメータ設定
+        this.hexRadius = 60;
+        this.hexWidth = this.hexRadius * Math.sqrt(3);
+        this.hexHeight = this.hexRadius * 2;
+        this.hexVertSpacing = this.hexHeight * 0.75;
+
+        // ヘックスの頂点座標 (pointy-topped)
+        const points = [
+            { x: 0, y: -this.hexRadius },
+            { x: this.hexWidth/2, y: -this.hexRadius/2 },
+            { x: this.hexWidth/2, y: this.hexRadius/2 },
+            { x: 0, y: this.hexRadius },
+            { x: -this.hexWidth/2, y: this.hexRadius/2 },
+            { x: -this.hexWidth/2, y: -this.hexRadius/2 }
+        ];
+
+        // マップグループ作成
+        this.mapContainer = this.add.container(0, 0);
+
+        // マップデータの初期化・状態付与
+        this.hexes = [];
+        this.grid = []; // 2次元配列でのアクセス用
+        for (let row = 0; row < MapData.length; row++) {
+            this.grid[row] = [];
+            for (let col = 0; col < MapData[row].length; col++) {
+                const cellData = MapData[row][col];
+                // 初期状態の付与
+                cellData.visited = cellData.visited || 0;
+                cellData.revealed = cellData.revealed || 0; // 一度でも隣接した水域・密林用
+                cellData.isAdjacent = false; // 現在隣接しているか
+                // 敵の属性(1~5)をランダムに設定（MapDataにあるenemyLevelは上書きしない）
+                cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
+                
+                const xOffset = (row % 2 === 1) ? (this.hexWidth / 2) : 0;
+                const px = col * this.hexWidth + xOffset;
+                this.mapTiltY = 0.65; // 鳥瞰図用Y圧縮率
+                const py = row * this.hexVertSpacing * this.mapTiltY;
+
+                const hexData = { col, row, px, py, cellData };
+                this.hexes.push(hexData);
+                this.grid[row][col] = hexData;
+            }
+        }
+
+
+        // 21箇所のヘクスに魔女をランダム配置
+        const landHexes = this.hexes.filter(h => h.cellData.enemyLevel > 0);
+        for (let i = landHexes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [landHexes[i], landHexes[j]] = [landHexes[j], landHexes[i]];
+        }
+        const witchHexes = landHexes.slice(0, 21);
+        for (const wh of witchHexes) {
+            wh.cellData.witchLevel = wh.cellData.enemyLevel;
+        }
+
+        // ヘックスごとの描画セットアップ
+        for (const h of this.hexes) {
+            h.container = this.add.container(h.px, h.py);
+            
+            // 背景画像用Sprite
+            h.bgSprite = this.add.sprite(0, 0, 'map_img_woods.jpg');
+            h.bgSprite.setScale(1, this.mapTiltY);
+            
+            // 敵エフェクト用Sprite
+            h.effSprite = this.add.sprite(0, 0, 'map_img_map_eff1.jpg');
+            h.effSprite.setScale(1, this.mapTiltY);
+            h.effSprite.setAlpha(0);
+            h.effSprite.setBlendMode(Phaser.BlendModes.ADD);
+
+            // アニメーション (0~50%で明滅)
+            this.tweens.add({
+                targets: h.effSprite,
+                alpha: 0.5,
+                yoyo: true,
+                repeat: -1,
+                duration: 1500 + Math.random() * 500,
+                ease: 'Sine.easeInOut'
+            });
+
+            // インタラクティブ領域
+            h.bgSprite.setInteractive();
+            h.bgSprite.on('pointerdown', () => {
+                this.onHexTap(h);
+            });
+
+            // 枠線
+            h.outline = this.add.graphics();
+            h.outline.lineStyle(2, 0xaaaaaa, 0.8);
+            h.outline.strokePoints(points, true);
+            h.outline.setScale(1, this.mapTiltY);
+
+            // テキスト
+            let displayName = h.cellData.name.replace('\n', '');
+            h.text = this.add.text(0, 0, displayName, {
+                fontFamily: 'sans-serif',
+                fontSize: '14px',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3,
+                align: 'center'
+            }).setOrigin(0.5, 0.5);
+
+            h.container.add([h.bgSprite, h.effSprite, h.outline, h.text]);
+
+            h.witchSprite = this.add.sprite(0, 0, 'map_witch');
+            h.witchSprite.setScale(0.12);
+            h.witchSprite.setOrigin(0.5, 1);
+            h.witchSprite.setVisible(false);
+            h.container.add(h.witchSprite);
+            
+            const attrColors = {
+                1: '#ff4444', 2: '#aa44ff', 3: '#44ff44', 4: '#ffff44', 5: '#44aaff'
+            };
+            const textColor = attrColors[h.cellData.enemyAttr] || '#ffaa44';
+
+            h.witchText = this.add.text(0, 5, `Witch LV.${h.cellData.witchLevel}`, {
+                fontFamily: 'sans-serif', fontSize: '12px', color: textColor,
+                stroke: '#000000', strokeThickness: 3, fontStyle: 'bold'
+            }).setOrigin(0.5, 0).setVisible(false);
+            h.container.add(h.witchText);
+            
+            h.enemyText = this.add.text(0, -5, `Wasp LV.${h.cellData.enemyLevel}`, {
+                fontFamily: 'sans-serif', fontSize: '12px', color: textColor,
+                stroke: '#000000', strokeThickness: 3, fontStyle: 'bold'
+            }).setOrigin(0.5, 1).setVisible(false);
+            h.container.add(h.enemyText);
+
+            this.mapContainer.add(h.container);
+        }
+
+
+
+        // プレイヤーキャラクタ
+        this.currentCharKey = 'sion';
+        this.player = this.add.sprite(0, 0, this.currentCharKey);
+        
+        // スケールとオフセットの定数
+        this.PSCALE_X = 0.15;
+        this.PSCALE_Y = 0.15;
+        this.CHAR_OFFSET_Y = 52; // キャラを絵の1/4ほど上にずらす(25 + 27)
+
+        // ヘクスの上にちょこんと乗るようにスケール
+        this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
+        this.player.setDepth(10); // キャラクタを手前に表示
+        this.mapContainer.add(this.player);
+
+        // 呼吸アニメーション (Idle時)
+        this.breatheTween = this.tweens.add({
+            targets: this.player,
+            scaleY: this.PSCALE_Y * 0.96,
+            scaleX: this.PSCALE_X * 1.02,
+            yoyo: true,
+            repeat: -1,
+            duration: 1200,
+            ease: 'Sine.easeInOut'
+        });
+
+        // 現在地ヘクスのタップで喜ぶアクションを実行するよう変更（onHexTap内で処理）
+
+        // 無操作10秒で喜ぶアクション
+        this.resetIdleTimer();
+
+        // カメラの自由な移動を保証するため、広めのBoundsを設定
+        this.cameras.main.setBounds(-2000, -2000, 4000, 4000);
+        
+        // デバッグ用: Pキーで宝石ドロップフラグをトグル
+        const globalState = GlobalState.getInstance();
+        this.input.keyboard.on('keydown-P', () => {
+            globalState.debugForceGemDrop = !globalState.debugForceGemDrop;
+            const text = this.add.text(this.scale.width / 2, 50, `[DEBUG] 宝石確定ドロップ: ${globalState.debugForceGemDrop ? 'ON' : 'OFF'}`, {
+                fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
+            }).setOrigin(0.5).setDepth(9999);
+            this.time.delayedCall(2000, () => text.destroy());
+        });
+
+        // 初期位置: (D, 7) の東京 (col=3, row=6)
+        this.playerCol = 3;
+        this.playerRow = 6;
+        this.isJumping = false;
+        
+        // パーティ編成の読み込みと復元 (savedFormation や セーブデータから優先復元)
+        let initialParty = this._initData.party;
+        if (!initialParty || initialParty.length === 0) {
+            const savedData = SaveManager.loadGameData();
+            if (savedData && savedData.adventureState && savedData.adventureState.party) {
+                initialParty = savedData.adventureState.party;
+            }
+        }
+        const gs = GlobalState.getInstance();
+        const partySet = new Set(initialParty || ['001']);
+        if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+            for (const cid of Object.keys(gs.savedFormation)) {
+                partySet.add(cid);
+            }
+        }
+        this.party = Array.from(partySet);
+        console.log('[AdventureScene] Restored party:', this.party);
+
+
+        // タロット初期フラグ (最初は引けない。戦闘・探索・休息後に条件を満たせば引ける)
+        this._pendingTarot = false;
+
+        // -- UI用カメラ (ズームの影響を受けない固定UI層) --
+        this.uiCamera = this.cameras.add(0, 0, width, height);
+        this.uiCamera.setName('UICamera');
+        // UIコンテナはメインカメラから無視される。mapContainerはUIカメラから無視される
+        this.uiContainer = this.add.container(0, 0).setDepth(200);
+        this.cameras.main.ignore(this.uiContainer);
+        this.uiCamera.ignore(this.mapContainer);
+
+        // -- 背景スプライトのセットアップ (ズームの影響なし) --
+        this.setupBackground();
+
+        // 最初のヘックスを踏破済みにする
+        this.moveToHex(this.grid[this.playerRow][this.playerCol], false);
+        
+        // -- カメラ設定 --
+        this.normalZoom = 1.4;
+        this.wideZoom = 0.8;
+        this.normalOffsetY = 0; // 中央に戻す (50%)
+        this.cameras.main.setZoom(this.normalZoom);
+        this.cameras.main.centerOn(this.player.x, this.player.y);
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1, 0, this.normalOffsetY);
+
+        
+        // -- 画面上部のテロップ (Tips) --
+        this.setupTicker();
+
+        // セーブデータからの復元チェック
+        if (this._initData && (this._initData.fromSave || this._initData.loadSave)) {
+            const saveData = SaveManager.loadGameData();
+            if (saveData) {
+                this.applySaveData(saveData);
+            }
+        }
+
+        // 現在の状態を自動保存
+        SaveManager.saveGame(this);
+        
+        // アイドル時間計測用
+        this.idleTime = 0;
+        this.input.on('pointerdown', () => this.resetIdleTime());
+        this.input.on('pointermove', () => this.resetIdleTime());
+
+        
+        // 他のシーン（EventSceneなど）から復帰したときの処理
+        this.events.on('resume', (scene, data) => {
+        // 撤退または全滅からの復帰
+        if (data && (data.isGameOver || data.isRetreated)) {
+            TransitionManager.fadeIn(this);
+            if (this._preBattleSnapshot) {
+                this.restoreSnapshot(this._preBattleSnapshot);
+                this._preBattleSnapshot = null;
+            }
+            const msg = data.isGameOver ? '部隊は全滅した…' : '戦闘から撤退した。';
+            // 簡単なメッセージ表示
+            const txt = this.add.text(this.scale.width/2, this.scale.height/2, msg, {
+                fontSize: '32px', color: '#ff4444', backgroundColor: '#000', padding: {x:20, y:20}
+            }).setOrigin(0.5).setDepth(3000);
+            this.time.delayedCall(3000, () => txt.destroy());
+            
+            // BGM再開
+            this.sound.stopAll();
+            if (this.cache.audio.exists('bgm_hexen')) {
+                const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
+                mapBgm.play();
+                this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
+            }
+            return;
+        }
+
+        // 夜探索からの勝利復帰
+        if (data && data.isNightExploration && data.fromBattle) {
+            const gs = GlobalState.getInstance();
+            gs.food = 140; // 食料回復
+            this._updateFoodDisplay();
+            
+            // レリクス・宝石ドロップ生成
+            const drops = RelicGenerator.generateBattleDrops();
+            if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+            drops.forEach(drop => {
+                if (drop.type === 'gem') gs.inventory.gems.push(drop);
+                else gs.inventory.relics.push(drop);
+            });
+            
+            this.scene.pause();
+            this.scene.launch('EventScene', {
+                events: [
+                    { cmd: 'bg', key: 'ev_expr' },
+                    { cmd: 'text', name: '', body: '夜の危険な探索を乗り越え、\n充分な量の食料を手に入れた！' }
+                ],
+                returnScene: 'AdventureScene',
+                fromExploration: true,
+                explorationDrops: drops
+            });
+            return;
+        }
+
+            if (this.player) this.player.setVisible(true);
+            if (data && data.joinCharacterId) {
+                if (!this.party.includes(data.joinCharacterId)) {
+                    this.party.push(data.joinCharacterId);
+                    const gs = GlobalState.getInstance();
+                    if (!gs.savedFormation) gs.savedFormation = {};
+                    if (!gs.savedFormation[data.joinCharacterId]) {
+                        gs.savedFormation[data.joinCharacterId] = { lane: 0, isFront: true };
+                    }
+                    console.log('Joined party & updated savedFormation:', data.joinCharacterId);
+                    SaveManager.saveGame(this);
+                }
+            }
+
+            // GlobalState.savedFormation に存在するキャラクターを this.party に同期
+            const gs = GlobalState.getInstance();
+            if (gs.savedFormation) {
+                for (const charId of Object.keys(gs.savedFormation)) {
+                    if (!this.party.includes(charId)) {
+                        this.party.push(charId);
+                        console.log('[AdventureScene] Synced missing character to party:', charId);
+                    }
+                }
+            }
+
+
+
+            if (data && (data.fromEvent || data.fromExploration || data.fromRest) && !data.fromTarot && !data.isNotification) {
+                // イベント・探索・休息終了後に時間を1コマ進める
+                this.advanceTime();
+                this.checkScheduledEvents();
+            }
+
+            if (data && data.fromBattle) {
+                // バトル完了後に時間を進め、タロット条件を満たすかチェック
+                console.log(`[AdventureScene] fromBattle. globalWaveCount=${this.globalWaveCount}`);
+                this.advanceTime();
+                this.checkScheduledEvents();
+                console.log(`[AdventureScene] after advanceTime. globalWaveCount=${this.globalWaveCount}`);
+
+                // 現在のヘクスを制圧済みに（敵レベル・魔女レベルを0にして敵なしヘクスにする）
+                const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+                if (currentHex && currentHex.cellData) {
+                    currentHex.cellData.enemyLevel = 0;
+                    currentHex.cellData.witchLevel = 0;
+                    console.log(`[AdventureScene] Hex (${this.playerCol}, ${this.playerRow}) cleared - enemies removed`);
+                    this.updateVisibility(); // マップ上の敵エフェクト表示を即時更新
+                }
+
+                // マップBGMを再開
+                this.sound.stopAll();
+                if (this.cache.audio.exists('bgm_hexen')) {
+                    const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
+                    mapBgm.play();
+                    this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
+                }
+            }
+
+            // タロットからの徒明の後もマップBGMを再開
+            if (!data || (!data.fromBattle && !data.startBattle)) {
+                // 存在しないかしてない場合はマップBGM確認
+                const existing = this.sound.get('bgm_hexen');
+                if (!existing || !existing.isPlaying) {
+                    this.sound.stopAll();
+                    if (this.cache.audio.exists('bgm_hexen')) {
+                        const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
+                        mapBgm.play();
+                        this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
+                    }
+                }
+            }
+
+            if (data && data.startBattle) {
+                console.log('Battle Started!', data);
+                
+                const attrMap = { 1: 'red', 2: 'purple', 3: 'green', 4: 'yellow', 5: 'blue' };
+                const attrStr = attrMap[data.enemyAttr] || 'red';
+
+                const isNightBattle = data.isNightBattle || data.isNightExploration || (this.timeOfDay === '夜');
+                const config = {
+                    rule: 0,
+                    attribute: attrStr,
+                    enemyCount: this.globalEnemyCount,
+                    waveCount: Math.ceil(this.globalWaveCount),
+                    enemyLevel: this.globalEnemyLevel + (data.enemyLevel || 1) - 1,
+                    majoLevel: data.majoLevel || 0,
+                    isOverlay: true,
+                    returnScene: 'AdventureScene',
+                    party: this.party,
+                    isNightExploration: data.isNightExploration || false,
+                    isNightBattle: isNightBattle
+                };
+
+                this.scene.pause();
+                this.scene.launch('BattleScene', config);
+            } else {
+                if (this.persistentFadeRect) {
+                    this.tweens.add({
+                        targets: this.persistentFadeRect,
+                        alpha: 0,
+                        duration: 800,
+                        onComplete: () => {
+                            if (this.persistentFadeRect) {
+                                this.persistentFadeRect.destroy();
+                                this.persistentFadeRect = null;
+                            }
+                        }
+                    });
+                } else {
+                    TransitionManager.fadeIn(this);
+                }
+
+                if (this._pendingTarot) {
+                    this._pendingTarot = false;
+                    this.scene.pause();
+                    this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
+                }
+            }
+        });
+
+
+        // --- UI: 日付と時間帯表示（ステータス・探索などのさらに上） ---
+        this.dateTimeText = this.add.text(width / 2, height - 150, `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`, {
+            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.5)', padding: { x: 10, y: 5 }
+        }).setOrigin(0.5, 1).setDepth(500).setScrollFactor(0);
+
+
+
+        // --- UI: 探索ボタン（ステータスの上、少し大きめ） ---
+        this.exploreBtn = this.add.text(width / 2 - 100, height - 80, '探索', {
+            fontFamily: 'sans-serif', fontSize: '28px', color: '#aaffaa', backgroundColor: '#224422'
+        }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
+        this.exploreBtn.on('pointerdown', () => {
+            if (!this.isJumping) this._startExploration();
+        });
+
+        // --- UI: 休息ボタン（ステータスの上、少し大きめ） ---
+        this.restBtn = this.add.text(width / 2 + 100, height - 80, '休息', {
+            fontFamily: 'sans-serif', fontSize: '28px', color: '#aaccff', backgroundColor: '#222244'
+        }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
+        this.restBtn.on('pointerdown', () => {
+            if (!this.isJumping) {
+                this.scene.pause();
+                this.scene.launch('RestScene', { party: this.party, timeOfDay: this.timeOfDay });
+            }
+        });
+
+        // --- UI: ステータスボタン（下部中央） ---
+        this.statusBtn = this.add.text(width / 2, height - 20, 'ステータス', {
+            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: '#333333'
+        }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
+        this.statusBtn.on('pointerdown', () => {
+            this.scene.pause();
+            const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+            const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_woods.jpg';
+            this.scene.launch('CampScene', { party: this.party, bgKey: bgKey, isNight: this.timeOfDay === '夜' });
+        });
+
+        // UI: 食料表示（左下）
+        this.foodText = this.add.text(20, height - 20, '', {
+            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffdd88', backgroundColor: 'rgba(0,0,0,0.5)'
+        }).setOrigin(0, 1).setScrollFactor(0).setDepth(500).setPadding(8, 4);
+        this._updateFoodDisplay();
+
+        // UI: 広域マップボタン
+        this.isWideMap = false;
+        const wideBtn = this.add.text(20, 20, '広域表示にする', {
+            fontFamily: 'sans-serif', fontSize: '24px', color: '#aaffaa', backgroundColor: '#333333'
+        }).setOrigin(0, 0).setInteractive().setPadding(10);
+        wideBtn.on('pointerdown', () => {
+            if (this.isTransitioningMode) return;
+            this.isTransitioningMode = true;
+            
+            this.isWideMap = !this.isWideMap;
+            wideBtn.setText(this.isWideMap ? '通常表示に戻す' : '広域表示にする');
+            
+            // 広域化時は先に表示を更新（見えなかったヘクスを描画させる）
+            if (this.isWideMap) {
+                this.updateVisibility();
+            }
+
+            const targetZoom = this.isWideMap ? this.wideZoom : this.normalZoom;
+            const targetTilt = this.isWideMap ? 1.0 : 0.65;
+            const targetOffsetY = this.isWideMap ? 0 : this.normalOffsetY;
+            
+            const tweenObj = { 
+                tilt: this.mapTiltY, 
+                zoom: this.cameras.main.zoom,
+                offsetY: this.cameras.main.followOffset.y
+            };
+            
+            this.tweens.add({
+                targets: tweenObj,
+                tilt: targetTilt,
+                zoom: targetZoom,
+                offsetY: targetOffsetY,
+                duration: 600,
+                ease: 'Cubic.easeInOut',
+                onUpdate: () => {
+                    this.cameras.main.setZoom(tweenObj.zoom);
+                    this.cameras.main.setFollowOffset(0, tweenObj.offsetY);
+                    this.mapTiltY = tweenObj.tilt;
+                    
+                    for (const h of this.hexes) {
+                        h.py = h.row * this.hexVertSpacing * this.mapTiltY;
+                        h.container.setY(h.py);
+                        
+                        // bgSpriteのスケール比率維持
+                        const tw = h.bgSprite.width;
+                        if (tw > 0) {
+                            h.bgSprite.setScale(this.hexWidth / tw, (this.hexWidth / tw) * this.mapTiltY);
+                        }
+                        
+                        h.effSprite.scaleY = h.effSprite.scaleX * this.mapTiltY;
+                        h.outline.scaleY = this.mapTiltY;
+                    }
+                    
+                    this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
+                    
+                    const currentHex = this.grid[this.playerRow][this.playerCol];
+                    this.player.setY(currentHex.py - this.CHAR_OFFSET_Y);
+                },
+                onComplete: () => {
+                    this.isTransitioningMode = false;
+                    // 通常表示に戻った時は移行完了後に視界を狭める
+                    if (!this.isWideMap) {
+                        this.updateVisibility();
+                    }
+                }
+            });
+        });
+
+        this.uiContainer.add([
+            wideBtn,
+            this.dateTimeText,
+            this.exploreBtn,
+            this.restBtn,
+            this.statusBtn,
+            this.foodText,
+        ]);
+
+        // ── デバッグメニュー ──────────────────────────────────────────────
+        const dbgBtn = this.add.text(20, height / 2, '🛠️DEBUG', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffff00',
+            backgroundColor: '#333333', padding: { x: 8, y: 5 }
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+        // デバッグパネル（コンテナ）
+        const dbgPanel = this.add.container(0, 0).setScrollFactor(0).setDepth(2100).setVisible(false);
+
+        const panelBg = this.add.rectangle(130, height / 2, 240, 300, 0x111122, 0.95)
+            .setOrigin(0, 0.5).setStrokeStyle(1, 0x8888ff);
+        dbgPanel.add(panelBg);
+
+        // タイトル
+        const panelTitle = this.add.text(250, height / 2 - 135, 'デバッグメニュー', {
+            fontFamily: 'sans-serif', fontSize: '14px', color: '#aaaaff', fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+        dbgPanel.add(panelTitle);
+
+        // ── 日付セクション ──
+        const dayLabel = this.add.text(145, height / 2 - 108, '日付:', {
+            fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff'
+        }).setOrigin(0, 0);
+        dbgPanel.add(dayLabel);
+
+        const dayMinus = this.add.text(200, height / 2 - 108, '◀', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffdd88', backgroundColor: '#444444', padding: { x: 5, y: 2 }
+        }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        dbgPanel.add(dayMinus);
+
+        const dayDisp = this.add.text(228, height / 2 - 108, `${this.currentDay}日`, {
+            fontFamily: 'sans-serif', fontSize: '14px', color: '#ffdd88'
+        }).setOrigin(0, 0);
+        dbgPanel.add(dayDisp);
+
+        const dayPlus = this.add.text(265, height / 2 - 108, '▶', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffdd88', backgroundColor: '#444444', padding: { x: 5, y: 2 }
+        }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        dbgPanel.add(dayPlus);
+
+        dayMinus.on('pointerdown', () => {
+            this.currentDay = this.currentDay <= 1 ? 31 : this.currentDay - 1;
+            dayDisp.setText(`${this.currentDay}日`);
+            if (this.dateTimeText) this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        });
+        dayPlus.on('pointerdown', () => {
+            this.currentDay = this.currentDay >= 31 ? 1 : this.currentDay + 1;
+            dayDisp.setText(`${this.currentDay}日`);
+            if (this.dateTimeText) this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        });
+
+        // ── 時間帯セクション ──
+        const timeLabel = this.add.text(145, height / 2 - 68, '時間帯:', {
+            fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff'
+        }).setOrigin(0, 0);
+        dbgPanel.add(timeLabel);
+
+        const timePeriods = ['午前', '午後', '夜'];
+        const timeBtns = timePeriods.map((tp, idx) => {
+            const isActive = tp === this.timeOfDay;
+            const btn = this.add.text(145 + idx * 65, height / 2 - 44, tp, {
+                fontFamily: 'sans-serif', fontSize: '14px',
+                color: isActive ? '#000000' : '#aaaaaa',
+                backgroundColor: isActive ? '#ffdd88' : '#444444',
+                padding: { x: 8, y: 4 }
+            }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+            dbgPanel.add(btn);
+            btn.on('pointerdown', () => {
+                this.timeOfDay = tp;
+                this.timePeriodIndex = timePeriods.indexOf(tp);
+                // ボタンの見た目を更新
+                timeBtns.forEach((b, i) => {
+                    const active = timePeriods[i] === this.timeOfDay;
+                    b.setStyle({ color: active ? '#000000' : '#aaaaaa', backgroundColor: active ? '#ffdd88' : '#444444' });
+                });
+                this.nightOverlay?.setVisible(this.timeOfDay === '夜');
+                if (this.dateTimeText) this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+            });
+            return btn;
+        });
+
+        // ── 区切り線 ──
+        const divLine = this.add.rectangle(250, height / 2 + 5, 220, 1, 0x555577).setOrigin(0.5, 0);
+        dbgPanel.add(divLine);
+
+        // ── 食料補充ボタン ──
+        const foodFillBtn = this.add.text(250, height / 2 + 20, '🍖 食料を140に補充', {
+            fontFamily: 'sans-serif', fontSize: '14px', color: '#aaffaa',
+            backgroundColor: '#224422', padding: { x: 10, y: 6 }
+        }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+        dbgPanel.add(foodFillBtn);
+        foodFillBtn.on('pointerdown', () => {
+            GlobalState.getInstance().food = 140;
+            this._updateFoodDisplay();
+            const flash = this.add.text(250, height / 2 + 55, '食料 → 140 ✓', {
+                fontFamily: 'sans-serif', fontSize: '13px', color: '#00ff88'
+            }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(2200);
+            dbgPanel.add(flash);
+            this.time.delayedCall(1200, () => flash.destroy());
+        });
+
+        // ── 閉じるボタン ──
+        const closeBtn = this.add.text(350, height / 2 - 140, '✕', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ff8888',
+            backgroundColor: '#442222', padding: { x: 6, y: 3 }
+        }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        dbgPanel.add(closeBtn);
+        closeBtn.on('pointerdown', () => dbgPanel.setVisible(false));
+
+        // デバッグボタンのトグル
+        dbgBtn.on('pointerdown', () => dbgPanel.setVisible(!dbgPanel.visible));
+
+        this.uiContainer.add([dbgBtn, dbgPanel]);
+
+        // ── 突破テストボタン (時間経過無しでいつでも突破モードへ直接チャレンジ) ──
+        const breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
+            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+        breakTestBtn.on('pointerdown', () => {
+            TransitionManager.transitionTo(this, 'BattleScene', {
+                rule: 2,
+                party: this.party || ['001', '002', '003', '004', '005'],
+                enemyCount: 30,
+                enemyLevel: 1,
+                spawnInterval: 0.2,
+                breakthroughTarget: 42195,
+                returnScene: 'AdventureScene'
+            });
+        });
+
+        this.uiContainer.add([breakTestBtn]);
+    }
+
+
+
+    findImageFile(col, row, cellData) {
+        const colLetter = String.fromCharCode(97 + col);
+        const rowNum = row + 1;
+        
+        const regexSpecific = new RegExp(`^m\\(${colLetter},${rowNum}\\)(r)?\\.(jpg|png)$`, 'i');
+        const regexGeneric = new RegExp(`^m\\(${cellData.name}\\)(r)?\\.(jpg|png)$`, 'i');
+        
+        let foundSpecific = null;
+        let foundGeneric = null;
+
+        for (const file of MapFileList) {
+            if (regexSpecific.test(file)) foundSpecific = file;
+            if (regexGeneric.test(file)) foundGeneric = file;
+        }
+
+        if (foundSpecific) return `map_img_${foundSpecific}`;
+        if (cellData.name === '水域') {
+            return (this.timeOfDay === '夜') ? 'map_img_sea_night.png' : 'map_img_sea_day.png';
+        }
+        if (cellData.name === '密林') {
+            return 'map_img_woods.jpg';
+        }
+        if (foundGeneric) return `map_img_${foundGeneric}`;
+        
+        return 'map_img_woods.jpg';
+    }
+
+    // 背景用: カット前の元画像キーを返す（bg_img_ プレフィックス）
+    findBgImageFile(col, row, cellData) {
+        const colLetter = String.fromCharCode(97 + col);
+        const rowNum = row + 1;
+        
+        const regexSpecific = new RegExp(`^m\\(${colLetter},${rowNum}\\)(r)?\\.(jpg|png)$`, 'i');
+        const regexGeneric = new RegExp(`^m\\(${cellData.name}\\)(r)?\\.(jpg|png)$`, 'i');
+        
+        let foundSpecific = null;
+        let foundGeneric = null;
+
+        for (const file of MapFileList) {
+            if (regexSpecific.test(file)) foundSpecific = file;
+            if (regexGeneric.test(file)) foundGeneric = file;
+        }
+
+        if (foundSpecific) return `bg_img_${foundSpecific}`;
+        if (cellData.name === '水域') {
+            return (this.timeOfDay === '夜') ? 'map_img_sea_night.png' : 'map_img_sea_day.png';
+        }
+        if (cellData.name === '密林') {
+            return 'bg_img_woods.jpg';
+        }
+        if (foundGeneric) return `bg_img_${foundGeneric}`;
+        
+        return 'bg_img_woods.jpg';
+    }
+
+    getHexDistance(col1, row1, col2, row2) {
+        // Odd-r からキューブ座標への変換
+        const q1 = col1 - (row1 - (row1 & 1)) / 2;
+        const r1 = row1;
+        const q2 = col2 - (row2 - (row2 & 1)) / 2;
+        const r2 = row2;
+        
+        return (Math.abs(q1 - q2) + Math.abs(q1 + r1 - q2 - r2) + Math.abs(r1 - r2)) / 2;
+    }
+
+    updateVisibility() {
+        // 全セルの隣接状態をリセット
+        for (const h of this.hexes) {
+            h.cellData.isAdjacent = false;
+        }
+
+        // 隣接判定
+        const isOdd = (this.playerRow % 2 !== 0);
+        const neighbors = [
+            [0, -1], [0, 1], [-1, 0], [1, 0],
+            isOdd ? [1, -1] : [-1, -1],
+            isOdd ? [1, 1] : [-1, 1]
+        ];
+
+        for (const n of neighbors) {
+            const nc = this.playerCol + n[0];
+            const nr = this.playerRow + n[1];
+            if (nr >= 0 && nr < this.grid.length && nc >= 0 && nc < this.grid[nr].length) {
+                const adjHex = this.grid[nr][nc];
+                adjHex.cellData.isAdjacent = true;
+                
+                // 水域・密林なら、隣接したことで永久にrevealedになる
+                if (adjHex.cellData.name === '水域' || adjHex.cellData.name === '密林') {
+                    adjHex.cellData.revealed = 1;
+                }
+            }
+        }
+
+        // 表示の更新
+        for (const h of this.hexes) {
+            const cell = h.cellData;
+            
+            const dist = this.getHexDistance(this.playerCol, this.playerRow, h.col, h.row);
+            // 通常表示かつ2ヘクスより先は非表示にしてスキップ
+            if (!this.isWideMap && dist > 2) {
+                h.container.setVisible(false);
+                continue;
+            }
+            
+            let imgKey = 'map_img_m(unexplored).jpg';
+            let showEffect = (cell.enemyLevel > 0);
+            let showText = false;
+
+            if (cell.visited === 1) {
+                imgKey = this.findImageFile(h.col, h.row, cell);
+                showText = !(cell.name === '水域' || cell.name === '密林' || cell.name.startsWith('x'));
+            } else if (cell.revealed === 1) {
+                imgKey = this.findImageFile(h.col, h.row, cell);
+                showText = false;
+            } else if (cell.isAdjacent) {
+                imgKey = 'map_img_m(adjacent).jpg';
+                showText = false;
+            } else {
+                imgKey = 'map_img_m(unexplored).jpg';
+            }
+
+            // 未踏破は25%の不透明度、それ以外は100%
+            if (cell.visited !== 1 && cell.revealed !== 1 && !cell.isAdjacent) {
+                h.container.setAlpha(0.25);
+            } else {
+                h.container.setAlpha(1);
+            }
+            h.bgSprite.clearTint();
+
+            h.container.setVisible(true);
+
+            if (this.textures.exists(imgKey)) {
+                h.bgSprite.setTexture(imgKey);
+                
+                // Spriteのプロパティから元の画像サイズを取得してスケールを適用
+                const tw = h.bgSprite.width;
+                if (tw > 0) {
+                    h.bgSprite.setScale(this.hexWidth / tw, (this.hexWidth / tw) * this.mapTiltY);
+                }
+            }
+
+            if (showEffect && this.textures.exists(`map_img_map_eff${cell.enemyAttr}.jpg`)) {
+                h.effSprite.setTexture(`map_img_map_eff${cell.enemyAttr}.jpg`);
+                h.effSprite.setVisible(true);
+                
+                const ew = h.effSprite.width;
+                if (ew > 0) {
+                    h.effSprite.setScale(this.hexWidth / ew);
+                }
+            } else {
+                h.effSprite.setVisible(false);
+            }
+            
+            
+            h.text.setVisible(showText);
+            
+            // 魔女の表示更新
+            if (cell.witchLevel > 0) {
+                h.witchSprite.setVisible(true);
+                h.witchText.setText(`Witch LV.${cell.witchLevel}`);
+                h.witchText.setVisible(true); 
+            } else {
+                if (h.witchSprite) h.witchSprite.setVisible(false);
+                if (h.witchText) h.witchText.setVisible(false);
+            }
+            
+            // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする）
+            if (cell.enemyLevel > 0 && !(cell.witchLevel > 0)) {
+                h.enemyText.setText(`Wasp LV.${cell.enemyLevel}`);
+                h.enemyText.setVisible(true);
+            } else {
+                if (h.enemyText) h.enemyText.setVisible(false);
+            }
+        }
+    }
+
+    moveToHex(hex, animate = true) {
+        const isUnexplored = (hex.cellData.visited !== 1 && hex.cellData.name !== '水域' && hex.cellData.name !== '密林');
+        
+        hex.cellData.visited = 1;
+        
+        // 背景のクロスフェード
+        this.updateBackground(hex, animate);
+        
+        const dx = hex.px - this.player.x;
+        const dy = hex.py - (this.player.y + 25); // 現在の着地位置(オフセット込み)との差分
+
+        this.playerCol = hex.col;
+        this.playerRow = hex.row;
+
+        this.resetIdleTimer();
+
+        // 向きの変更 (0:正面, 1:右向き画像, 2:左向き画像, 3:上)
+        let dirFrame = 0;
+        if (dx > 10) dirFrame = 1;       // 右へ移動
+        else if (dx < -10) dirFrame = 2; // 左へ移動
+        else if (dy < -10) dirFrame = 3; // 上へ移動
+        
+        // playHappyActionで反転しているかもしれないのでスケールをリセット
+        this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
+
+        if (this.player.frame.name !== 4) {
+            this.player.setFrame(dirFrame);
+        }
+
+        if (animate) {
+            this.isJumping = true;
+            if (this.breatheTween) this.breatheTween.pause();
+            
+            this.tweens.add({
+                targets: this.player,
+                x: hex.px,
+                duration: 400,
+                ease: 'Sine.easeInOut'
+            });
+
+            this.tweens.add({
+                targets: this.player,
+                y: hex.py - this.CHAR_OFFSET_Y,
+                duration: 400,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    this.player.setFrame(0); // 移動完了で正面に戻す
+                    if (this.breatheTween) this.breatheTween.resume();
+                    
+                    this.updateVisibility();
+                    
+                    if (isUnexplored && animate) {
+                        // 未踏破への移動なら1秒待ってイベントシーンへ
+                        this.time.delayedCall(1000, () => {
+                            this._startEventSequence(hex);
+                        });
+                    } else if (!isUnexplored && hex.cellData.enemyLevel > 0 && animate) {
+                        // 踏破済みでも敵が（再）出現しているならイベントシーンへ
+                        this.time.delayedCall(1000, () => {
+                            this._startEventSequence(hex);
+                        });
+                    } else {
+                        // 踏破済み＆敵なし → 何も起こさず即移動完了（時間も進まない）
+                        this.isJumping = false;
+                        SaveManager.saveGame(this);
+                    }
+                }
+            });
+
+            
+            // 可愛いジャンプアニメーション（Z軸ジャンプと回転・スケール）
+            const jumpObj = { z: 0, angle: 0, scale: 0.15 };
+            this.tweens.add({
+                targets: jumpObj,
+                z: -30,
+                angle: (dirFrame === 1) ? 15 : (dirFrame === 2) ? -15 : 0, // 右=右傾き, 左=左傾き
+                scale: 0.18, // 少し膨らむ
+                yoyo: true,
+                duration: 200,
+                ease: 'Sine.easeOut',
+                onUpdate: () => {
+                    this.player.displayOriginY = this.player.height / 2 - jumpObj.z / this.player.scaleY;
+                    this.player.setAngle(jumpObj.angle);
+                    this.player.setScale(jumpObj.scale);
+                },
+                onComplete: () => {
+                    this.player.displayOriginY = this.player.height / 2;
+                    this.player.setAngle(0);
+                    this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
+                }
+            });
+
+        } else {
+                this.player.setPosition(hex.px, hex.py - this.CHAR_OFFSET_Y);
+                this.player.setFrame(0);
+                this.updateVisibility();
+            }
+    }
+
+    _startEventSequence(hex) {
+        // イベント配列を構築
+        const events = [];
+        
+        // 1. 背景表示（ヘクスの種類に対応したbg_img_キーを使う）
+        const bgKey = this.findBgImageFile(hex.col, hex.row, hex.cellData);
+        events.push({ cmd: 'bg', key: bgKey });
+
+        // 2. 地名表示 (x1などは表示しない)
+        let displayName = hex.cellData.name;
+        if (displayName.startsWith('x')) {
+            displayName = '';
+        }
+        events.push({ cmd: 'location', name: displayName });
+
+        // 3. 1人目登場 & トーク
+        const char1 = this.party[Math.floor(Math.random() * this.party.length)];
+        events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
+        
+        // トーク内容の取得（見つからなければデフォルトテキスト）
+        const talkData1 = this.cache.json.get(`talk_${char1}`);
+        let locationText = '……。';
+        if (talkData1) {
+            // "現在の地名"のセリフを探す
+            const lines = talkData1[hex.cellData.name];
+            if (lines && lines.length > 0) {
+                locationText = lines[Math.floor(Math.random() * lines.length)];
+            } else {
+                // デフォルト（今回は汎用のものを適当に選ぶ想定だが、なければ沈黙）
+                const keys = Object.keys(talkData1).filter(k => k.startsWith('x'));
+                if (keys.length > 0) {
+                    const rk = keys[Math.floor(Math.random() * keys.length)];
+                    const rlines = talkData1[rk];
+                    locationText = rlines[Math.floor(Math.random() * rlines.length)];
+                }
+            }
+        }
+        
+        // トーク名（データから取得して表示用の名前に整形する）
+        const charData = GlobalState.getInstance().characters[char1];
+        let char1Name = charData ? charData.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ';
+        events.push({ cmd: 'text', name: char1Name, body: locationText });
+
+        // 4. 敵がいる場合
+        if (hex.cellData.enemyLevel > 0) {
+            events.push({ cmd: 'clearText' });
+            events.push({ cmd: 'call', func: 'showFog' }); // イベントシーン側でもやを表示
+            events.push({ cmd: 'call', func: 'playBattleBgm' }); // BGMを戦闘用フェードイン
+
+            // 1人目の戦闘突入トーク
+            let battleText1 = '……来たね……！';
+            if (talkData1 && talkData1['戦闘突入']) {
+                const bLines = talkData1['戦闘突入'];
+                battleText1 = bLines[Math.floor(Math.random() * bLines.length)];
+            }
+
+            if (this.party.length === 1) {
+                events.push({ cmd: 'text', name: char1Name, body: battleText1 });
+            } else {
+                // 2人目登場
+                const availableChar2 = this.party.filter(c => c !== char1);
+                const char2 = availableChar2.length > 0 ? availableChar2[Math.floor(Math.random() * availableChar2.length)] : char1;
+                events.push({ cmd: 'chara', key: `portrait_${char2}`, pos: 'left' });
+                
+                const talkData2 = this.cache.json.get(`talk_${char2}`);
+                let battleText2 = '……！';
+                if (talkData2 && talkData2['戦闘突入']) {
+                    const bLines = talkData2['戦闘突入'];
+                    battleText2 = bLines[Math.floor(Math.random() * bLines.length)];
+                }
+                const charData2 = GlobalState.getInstance().characters[char2];
+                let char2Name = charData2 ? charData2.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ2';
+                
+                events.push({ cmd: 'text', name: char2Name, body: battleText2 });
+
+                // 1人目の戦闘突入反応トーク
+                let responseText1 = '……片付ける！';
+                if (talkData1 && talkData1['戦闘突入反応']) {
+                    const rLines = talkData1['戦闘突入反応'];
+                    responseText1 = rLines[Math.floor(Math.random() * rLines.length)];
+                }
+                events.push({ cmd: 'text', name: char1Name, body: responseText1 });
+            }
+        }
+
+        events.push({ cmd: 'end' });
+
+        // カメラフラッシュ（明転）してから遷移
+        const isNightMove = (this.timeOfDay === '夜');
+        const moveEnemyLevel = hex.cellData.enemyLevel + (isNightMove ? 3 : 0);
+        this.cameras.main.flash(1000, 255, 255, 255);
+        this.time.delayedCall(1000, () => {
+            this.scene.pause();
+            this.scene.launch('EventScene', {
+                events: events,
+                returnScene: 'AdventureScene',
+                enemyLevel: moveEnemyLevel,
+                enemyAttr: hex.cellData.enemyAttr,
+                majoLevel: hex.cellData.witchLevel || 0,
+                isNightBattle: isNightMove
+            });
+            // 遷移後にジャンプロックを解除しておく（戻ってきたときのため）
+            this.isJumping = false;
+        });
+    }
+
+    onHexTap(hex) {
+        if (this.isJumping || this.isHappyJumping) return;
+        
+        // 現在地をタップした場合は喜ぶアクション
+        if (hex.col === this.playerCol && hex.row === this.playerRow) {
+            this.playHappyAction();
+            return;
+        }
+        
+        // 隣接しているヘクスのみ移動可能
+        if (!hex.cellData.isAdjacent) return;
+        
+        // 水域・密林には移動不可
+        if (hex.cellData.name === '水域' || hex.cellData.name === '密林') return;
+        this._preBattleSnapshot = this.createSnapshot();
+        this.moveToHex(hex, true);
+    }
+
+    createSnapshot() {
+        return {
+            playerCol: this.playerCol,
+            playerRow: this.playerRow,
+            party: JSON.parse(JSON.stringify(this.party)),
+            timePeriodIndex: this.timePeriodIndex,
+            currentDay: this.currentDay,
+            timeOfDay: this.timeOfDay,
+            globalEnemyLevel: this.globalEnemyLevel,
+            globalEnemyCount: this.globalEnemyCount,
+            globalWaveCount: this.globalWaveCount,
+            previousPartySize: this.previousPartySize,
+            gridData: this.grid.map(row => row.map(hex => ({
+                isExplored: hex.cellData.isExplored,
+                hasBase: hex.cellData.hasBase,
+                enemyLevel: hex.cellData.enemyLevel,
+                witchLevel: hex.cellData.witchLevel,
+                isEvent: hex.cellData.isEvent,
+                isSubBoss: hex.cellData.isSubBoss,
+                enemyAttr: hex.cellData.enemyAttr
+            }))),
+            globalStateSnapshot: GlobalState.getInstance().createSnapshot()
+        };
+    }
+
+    restoreSnapshot(data) {
+        if (!data) return;
+        this.playerCol = data.playerCol;
+        this.playerRow = data.playerRow;
+        this.party = JSON.parse(JSON.stringify(data.party));
+        this.timePeriodIndex = data.timePeriodIndex;
+        this.currentDay = data.currentDay;
+        this.timeOfDay = data.timeOfDay;
+        this.globalEnemyLevel = data.globalEnemyLevel;
+        this.globalEnemyCount = data.globalEnemyCount;
+        this.globalWaveCount = data.globalWaveCount;
+        this.previousPartySize = data.previousPartySize;
+        
+        for (let r = 0; r < this.grid.length; r++) {
+            for (let c = 0; c < this.grid[r].length; c++) {
+                const src = data.gridData[r][c];
+                const dst = this.grid[r][c].cellData;
+                dst.isExplored = src.isExplored;
+                dst.hasBase = src.hasBase;
+                dst.enemyLevel = src.enemyLevel;
+                dst.witchLevel = src.witchLevel;
+                dst.isEvent = src.isEvent;
+                dst.isSubBoss = src.isSubBoss;
+                dst.enemyAttr = src.enemyAttr;
+            }
+        }
+        
+        GlobalState.getInstance().restoreSnapshot(data.globalStateSnapshot);
+        
+        // UI等の更新
+        this.updateVisibility();
+        this._updateFoodDisplay();
+        this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        
+        // プレイヤーのスプライト位置を戻す
+        const hex = this.grid[this.playerRow][this.playerCol];
+        this.player.setPosition(hex.px, hex.py - this.CHAR_OFFSET_Y);
+    }
+
+    advanceTime() {
+        if (this._isAdvancingTime) return;
+        this._isAdvancingTime = true;
+        this.time.delayedCall(1000, () => { this._isAdvancingTime = false; });
+
+        this.timePeriodIndex++;
+        if (this.timePeriodIndex >= this.timePeriods.length) {
+            this.timePeriodIndex = 0;
+            this.currentDay++;
+        }
+        this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+        
+        // 敵の量コントロール
+        // 時間が進む -> 数量が1～5増える
+        this.globalEnemyCount += Math.floor(Math.random() * 5) + 1;
+        
+        // 毎日夜になるたびに
+        if (this.timePeriodIndex === 2) {
+            // 7日ごとの夜に敵のレベル+1
+            if (this.currentDay > 0 && this.currentDay % 7 === 0) {
+                this.globalEnemyLevel += 1;
+            
+            // マップ上の残存する敵のレベルも更新する
+            for (const row of this.grid) {
+                for (const hex of row) {
+                    if (hex && hex.cellData && hex.cellData.enemyLevel > 0) {
+                        hex.cellData.enemyLevel += 1;
+                    }
+                }
+            }
+            }
+            this.updateVisibility();
+        }
+
+        // 前回より仲間が増えているかチェック
+        if (this.party.length > this.previousPartySize) {
+            this.globalEnemyCount = Math.floor(this.globalEnemyCount * 1.4);
+            this.globalEnemyLevel += 1;
+            
+            // マップ上の残存する敵のレベルも更新する
+            for (const row of this.grid) {
+                for (const hex of row) {
+                    if (hex && hex.cellData && hex.cellData.enemyLevel > 0) {
+                        hex.cellData.enemyLevel += 1;
+                    }
+                }
+            }
+            this.updateVisibility();
+            
+            this.previousPartySize = this.party.length;
+        }
+        
+        // 午前(0)から午後(1)になったタイミングでタロットを引く
+        if (this.timePeriodIndex === 1) {
+            this._pendingTarot = true;
+        }
+        
+        // 食料減少（5〜40ランダム）
+        const foodDrain = Math.floor(Math.random() * 36) + 5;
+        const gs = GlobalState.getInstance();
+        const wasZero = gs.food <= 0;
+        gs.food = Math.max(0, gs.food - foodDrain);
+        this._updateFoodDisplay();
+        let timeSignalCb = null;
+        if (gs.food <= 0 && !wasZero && this.party.length > 0) {
+            timeSignalCb = () => {
+                const charId1 = this.party[0];
+                const charName1 = gs.characters[charId1]?.name || charId1;
+                const talkData1 = this.cache.json.get(`talk_${charId1}`);
+                const lines1 = talkData1 ? talkData1['食料ゼロ'] : null;
+                const body1 = lines1 ? lines1[Math.floor(Math.random() * lines1.length)] : '食べ物がなくなってしまった……';
+                
+                const events = [
+                    { cmd: 'chara', key: `portrait_${charId1}`, pos: 'right' },
+                    { cmd: 'text', name: charName1, body: body1 }
+                ];
+
+                if (this.party.length > 1) {
+                    const charId2 = this.party[1];
+                    const charName2 = gs.characters[charId2]?.name || charId2;
+                    const talkData2 = this.cache.json.get(`talk_${charId2}`);
+                    const lines2 = talkData2 ? talkData2['食料ゼロ反応'] : null;
+                    if (lines2) {
+                        const body2 = lines2[Math.floor(Math.random() * lines2.length)];
+                        events.push({ cmd: 'chara', key: `portrait_${charId2}`, pos: 'left' });
+                        events.push({ cmd: 'text', name: charName2, body: body2 });
+                    }
+                }
+
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: events,
+                    returnScene: 'AdventureScene',
+                    isNotification: true
+                });
+            };
+        }
+
+        this.showTimeSignal(timeSignalCb);
+        this.updateNightOverlay();
+        
+        if (this.dateTimeText) {
+            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        }
+    }
+
+    showTimeSignal(onComplete = null) {
+        // TimeReporterを使って時報を表示。時報終了後にタロット起動チェック
+        TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
+            if (typeof onComplete === 'function') {
+                onComplete();
+            }
+            if (this._pendingTarot) {
+                this._pendingTarot = false;
+                this.scene.pause();
+                this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
+            }
+        });
+    }
+
+
+    _updateFoodDisplay() {
+        if (!this.foodText) return;
+        const gs = GlobalState.getInstance();
+        this.foodText.setText(`残り食料：${Math.floor(gs.food)}`);
+        this.foodText.setColor(gs.food <= 0 ? '#ff4444' : '#ffdd88');
+    }
+
+    _startExploration() {
+        if (this._isExploring) return;
+        this._isExploring = true;
+        
+        this._preBattleSnapshot = this.createSnapshot();
+
+        // 夜の場合は会話イベントを挟んでから戦闘に突入
+        if (this.timeOfDay === '夜') {
+            const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+            this._isExploring = false; // 探索状態はリセットしておく
+            
+            // 周囲のヘクス（自分＋隣接6方向）で一番高い敵レベルを探し、それに +3 する
+            let maxLevel = currentHex?.cellData?.enemyLevel || 0;
+            const isOdd = (this.playerRow % 2 !== 0);
+            const neighbors = [
+                [0, -1], [0, 1], [-1, 0], [1, 0],
+                isOdd ? [1, -1] : [-1, -1],
+                isOdd ? [1, 1] : [-1, 1]
+            ];
+            for (const n of neighbors) {
+                const nc = this.playerCol + n[0];
+                const nr = this.playerRow + n[1];
+                if (nr >= 0 && nr < this.grid.length && nc >= 0 && nc < this.grid[nr].length) {
+                    const adjHex = this.grid[nr][nc];
+                    const lvl = adjHex?.cellData?.enemyLevel || 0;
+                    if (lvl > maxLevel) {
+                        maxLevel = lvl;
+                    }
+                }
+            }
+            let eLvl = maxLevel + 3;
+
+            const bgKey = this.findBgImageFile(
+                currentHex ? currentHex.col : 0, 
+                currentHex ? currentHex.row : 0, 
+                currentHex ? currentHex.cellData : null
+            );
+            const events = [];
+
+            // 1. 現在いるヘクスの背景 + 70%ブラックオーバーレイ
+            events.push({ cmd: 'bg', key: bgKey, darkOverlay: 0.7 });
+
+            // 敵遭遇演出用BGM / もや演出
+            events.push({ cmd: 'call', func: 'showFog' });
+            events.push({ cmd: 'call', func: 'playBattleBgm' });
+
+            // 2. メンバーの選出と会話
+            const char1 = this.party[Math.floor(Math.random() * this.party.length)];
+            events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
+
+            const talkData1 = this.cache.json.get(`talk_${char1}`);
+            const charData1 = GlobalState.getInstance().characters[char1];
+            let char1Name = charData1 ? charData1.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ';
+
+            // 「夜間の探索」セリフ取得
+            let nightExploreText = '……夜の探索は気を引き締めないと……';
+            if (talkData1 && talkData1['夜間の探索'] && talkData1['夜間の探索'].length > 0) {
+                const lines = talkData1['夜間の探索'];
+                nightExploreText = lines[Math.floor(Math.random() * lines.length)];
+            }
+            events.push({ cmd: 'text', name: char1Name, body: nightExploreText });
+
+            if (this.party.length === 1) {
+                // メンバーが1人の場合、夜間の探索セリフ -> 戦闘突入セリフをつぶやく
+                let battleText1 = '……来たね……！';
+                if (talkData1 && talkData1['戦闘突入'] && talkData1['戦闘突入'].length > 0) {
+                    const bLines = talkData1['戦闘突入'];
+                    battleText1 = bLines[Math.floor(Math.random() * bLines.length)];
+                }
+                events.push({ cmd: 'text', name: char1Name, body: battleText1 });
+            } else {
+                // メンバーが2人以上の場合
+                const availableChar2 = this.party.filter(c => c !== char1);
+                const char2 = availableChar2.length > 0 ? availableChar2[Math.floor(Math.random() * availableChar2.length)] : char1;
+                events.push({ cmd: 'chara', key: `portrait_${char2}`, pos: 'left' });
+
+                const talkData2 = this.cache.json.get(`talk_${char2}`);
+                const charData2 = GlobalState.getInstance().characters[char2];
+                let char2Name = charData2 ? charData2.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ2';
+
+                let battleText2 = '……！';
+                if (talkData2 && talkData2['戦闘突入'] && talkData2['戦闘突入'].length > 0) {
+                    const bLines = talkData2['戦闘突入'];
+                    battleText2 = bLines[Math.floor(Math.random() * bLines.length)];
+                }
+                events.push({ cmd: 'text', name: char2Name, body: battleText2 });
+
+                // はじめの一人が戦闘突入反応で返答する
+                let responseText1 = '……片付ける！';
+                if (talkData1 && talkData1['戦闘突入反応'] && talkData1['戦闘突入反応'].length > 0) {
+                    const rLines = talkData1['戦闘突入反応'];
+                    responseText1 = rLines[Math.floor(Math.random() * rLines.length)];
+                }
+                events.push({ cmd: 'text', name: char1Name, body: responseText1 });
+            }
+
+            events.push({ cmd: 'end' });
+
+            // カメラフラッシュ（明転）してからEventSceneを起動
+            this.cameras.main.flash(1000, 255, 255, 255);
+            this.time.delayedCall(1000, () => {
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: events,
+                    returnScene: 'AdventureScene',
+                    enemyLevel: eLvl,
+                    enemyAttr: currentHex ? (currentHex.cellData ? currentHex.cellData.enemyAttr : 1) : 1,
+                    majoLevel: 0,
+                    isNightExploration: true,
+                    isNightBattle: true
+                });
+            });
+            return;
+        }
+
+        if (this._exploreContainer) {
+            this._exploreContainer.destroy();
+        }
+
+        if (this.player) this.player.setVisible(false);
+
+        const { width, height } = this.scale;
+        this._exploreContainer = this.add.container(0, 0).setDepth(2000);
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.ignore(this._exploreContainer);
+        }
+
+        // クリック防止用の全画面ブロッカー
+        const blocker = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3).setInteractive();
+        this._exploreContainer.add(blocker);
+
+        // 探索中テキスト枠
+        const exploreLabel = this.add.text(width / 2, height / 2 - 120, '探索中…', {
+            fontFamily: 'sans-serif', fontSize: '36px', color: '#ffffaa',
+            backgroundColor: 'rgba(0,0,0,0.7)', padding: { x: 25, y: 12 }
+        }).setOrigin(0.5);
+
+        this._exploreContainer.add(exploreLabel);
+
+        // ユニークなパーティメンバー一覧を取得
+        const uniqueParty = [...new Set(this.party)];
+        const runners = [];
+        const activeTweens = [];
+
+        uniqueParty.forEach((charId, i) => {
+            const spriteKey = this.textures.exists(`mini_${charId}`) ? `mini_${charId}` : 'sion';
+            const startX = width * 0.2 + Math.random() * (width * 0.6);
+            const startY = height * 0.3 + Math.random() * (height * 0.4);
+
+            const runner = this.add.image(startX, startY, spriteKey)
+                .setScale(0.13);
+
+            this._exploreContainer.add(runner);
+            runners.push(runner);
+
+            // 個別のスピード倍率とランダム待機時間で独立して走り回らせる
+            const speedFactor = 180 + Math.random() * 120; // 180〜300 px/sec
+
+            const runToRandomPoint = () => {
+                if (!this._isExploring || !runner.active) return;
+                const targetX = 60 + Math.random() * (width - 120);
+                const targetY = 150 + Math.random() * (height - 300);
+                const dx = targetX - runner.x;
+                const dy = targetY - runner.y;
+                const dist = Math.hypot(dx, dy);
+                const duration = Math.max(250, (dist / speedFactor) * 1000);
+
+                runner.setFlipX(dx < 0);
+
+                const tw = this.tweens.add({
+                    targets: runner,
+                    x: targetX,
+                    y: targetY,
+                    duration: duration,
+                    ease: 'Linear',
+                    onComplete: () => {
+                        if (this._isExploring && runner.active) {
+                            this.time.delayedCall(Math.random() * 150, () => {
+                                if (this._isExploring && runner.active) runToRandomPoint();
+                            });
+                        }
+                    }
+                });
+                activeTweens.push(tw);
+            };
+
+            runToRandomPoint();
+        });
+
+        // 5秒後に探索完了
+        this.time.delayedCall(5000, () => {
+            activeTweens.forEach(t => { if (t && t.isPlaying) t.stop(); });
+            if (this._exploreContainer) {
+                this._exploreContainer.destroy();
+                this._exploreContainer = null;
+            }
+            this._isExploring = false;
+
+            // 食料を 140 に設定（探索完了直後に1コマ時間が進んで減っても100以上残るようにする）
+            const gs = GlobalState.getInstance();
+            gs.food = 140;
+            this._updateFoodDisplay();
+
+            // レリクス・宝石ドロップ生成（戦闘後と全く同じ処理）
+            const drops = RelicGenerator.generateBattleDrops();
+            if (!gs.inventory) {
+                gs.inventory = { relics: [], gems: [] };
+            }
+            drops.forEach(drop => {
+                if (drop.type === 'gem') gs.inventory.gems.push(drop);
+                else gs.inventory.relics.push(drop);
+            });
+
+            // EventSceneで結果表示
+            this.scene.pause();
+            this.scene.launch('EventScene', {
+                events: [
+                    { cmd: 'bg', key: 'ev_expr' },
+                    { cmd: 'text', name: '', body: '充分な量の食料を手に入れた。' }
+                ],
+                returnScene: 'AdventureScene',
+                fromExploration: true,
+                explorationDrops: drops
+            });
+        });
+    }
+
+    setupBackground() {
+        const { width, height } = this.scale;
+        
+        // 最背面ベース背景 (画面下半分用)
+        // bgCurrentと同じY座標(height/2)に配置し、下方向へ描画させることで隙間を防ぐ
+        this.baseBg = this.add.image(width / 2, height / 2, 'bg_map_base')
+            .setScrollFactor(0)
+            .setDepth(-200)
+            .setOrigin(0.5, 0);
+        
+        // 現在地の背景（最底面）
+        this.bgCurrent = this.add.image(width / 2, height / 2, 'map_img_woods.jpg')
+            .setScrollFactor(0)
+            .setDepth(-100)
+            .setDisplaySize(width, height)
+            .setVisible(false);
+        
+        // 移動先の背景（フェードイン用）
+        this.bgNext = this.add.image(width / 2, height / 2, 'map_img_woods.jpg')
+            .setScrollFactor(0)
+            .setDepth(-99)
+            .setDisplaySize(width, height)
+            .setAlpha(0)
+            .setVisible(false);
+        
+        // 背景はメインカメラに描画（深度-100でマップの背後）
+        // UIカメラから無視する
+        this.nightOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6)
+            .setScrollFactor(0)
+            .setDepth(-98)
+            .setOrigin(0, 0)
+            .setVisible(false);
+            
+        this.uiCamera.ignore([this.bgCurrent, this.bgNext, this.baseBg, this.nightOverlay]);
+        
+        // サイズと位置は update() でズームに合わせて動的に計算し、
+        // 常に「横幅いっぱい」「下端が画面中心」になるようにする
+        this.bgCurrent.setOrigin(0.5, 1);
+        this.bgNext.setOrigin(0.5, 1);
+        
+        // 初期背景: 現在いるヘクスの画像を設定
+        const currentHex = this.grid[this.playerRow][this.playerCol];
+        const bgKey = this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData);
+        if (this.textures.exists(bgKey)) {
+            this.bgCurrent.setTexture(bgKey).setVisible(true).setAlpha(1);
+        }
+        this.updateNightOverlay();
+    }
+    
+    updateNightOverlay() {
+        if (this.nightOverlay) {
+            this.nightOverlay.setVisible(this.timeOfDay === '夜');
+        }
+    }
+
+    updateBackground(hex, animate) {
+        if (!this.bgCurrent || !this.bgCurrent.sys || !this.bgNext || !this.bgNext.sys) return;
+        if (!hex) return;
+        
+        // 背景用は元画像（カット前）を使用
+        const bgKey = this.findBgImageFile(hex.col, hex.row, hex.cellData);
+        const { width, height } = this.scale;
+        
+        if (!this.textures.exists(bgKey)) return;
+
+        
+        if (!animate) {
+            this.bgCurrent.setTexture(bgKey).setVisible(true).setAlpha(1);
+            return;
+        }
+        
+        // フェードイン: 移動先画像を上に重ねて透明度0からフェードイン
+        this.bgNext.setTexture(bgKey).setAlpha(0).setVisible(true);
+        
+        this.tweens.add({
+            targets: this.bgNext,
+            alpha: 1,
+            duration: 400,
+            ease: 'Linear',
+            onComplete: () => {
+                this.bgCurrent.setTexture(bgKey).setAlpha(1).setVisible(true);
+                this.bgNext.setVisible(false).setAlpha(0);
+            }
+        });
+    }
+
+    resetIdleTimer() {
+        if (this.idleTimer) {
+            this.idleTimer.remove();
+        }
+        this.idleTimer = this.time.addEvent({
+            delay: 10000,
+            callback: this.playHappyAction,
+            callbackScope: this
+        });
+    }
+
+    playHappyAction() {
+        if (this.isJumping || this.isHappyJumping) return;
+        this.isHappyJumping = true;
+        
+        if (this.breatheTween) this.breatheTween.pause();
+        
+        // カメラの追従を一時停止（マップが上下に揺れるのを防ぐ）
+        this.cameras.main.stopFollow();
+        
+        // 1/10の確率で8枚目(インデックス7)、それ以外は5枚目(インデックス4)
+        const frameIndex = (Math.random() < 0.1) ? 7 : 4;
+        this.player.setFrame(frameIndex);
+        
+        // 左右をランダムに反転させる
+        if (Math.random() > 0.5) {
+            this.player.setScale(-this.PSCALE_X, this.PSCALE_Y);
+        } else {
+            this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
+        }
+        this.player.setAngle(0);
+
+        const currentY = this.player.y;
+        this.tweens.add({
+            targets: this.player,
+            y: currentY - 15,
+            yoyo: true,
+            repeat: 1, // 2回跳ねる
+            duration: 200,
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+                this.player.setFrame(0); // 正面に戻す
+                this.player.setY(currentY); // 念のためY座標を元に戻す
+                if (this.breatheTween) this.breatheTween.resume();
+                this.resetIdleTimer(); // タイマー再スタート
+                
+                // カメラの追従を再開
+                const offsetY = this.isWideMap ? 0 : this.normalOffsetY;
+                this.cameras.main.startFollow(this.player, true, 0.1, 0.1, 0, offsetY);
+                this.isHappyJumping = false;
+            }
+        });
+    }
+
+    update(time, delta) {
+        if (this.isTransitioning) return;
+        
+        // 背景のサイズと位置をズームに反比例させて画面に対して固定する
+        const zoom = this.cameras.main.zoom;
+        const { width, height } = this.scale;
+        
+        // bgCurrent と bgNext を横幅いっぱいに拡大し、下端を画面中心(Y = height/2)に合わせる
+        [this.bgCurrent, this.bgNext].forEach(bg => {
+            if (bg && bg.texture && bg.texture.key !== '__DEFAULT') {
+                const baseScale = width / bg.width;
+                bg.setScale(baseScale / zoom);
+                bg.setPosition(width / 2, height / 2);
+            }
+        });
+        
+        // baseBg は画面下半分の配置（上端を画面中心に合わせる）
+        if (this.baseBg && this.baseBg.texture) {
+            const baseScale = width / this.baseBg.width;
+            this.baseBg.setScale(baseScale / zoom);
+            this.baseBg.setPosition(width / 2, height / 2);
+        }
+
+        // アイドル時間（無操作）のチェック
+        this.idleTime += delta;
+        if (this.idleTime >= 10000 && !this.isTickerActive) {
+            this.startTicker();
+        } else if (this.idleTime < 10000 && this.isTickerActive) {
+            this.stopTicker();
+        }
+    }
+
+    resetIdleTime() {
+        this.idleTime = 0;
+    }
+
+    setupTicker() {
+        const { width, height } = this.scale;
+        
+        // ティーカ用の背景（半透明な黒い帯を画面上部に、10%ほど下げて 0.16 に）
+        this.tickerBg = this.add.rectangle(width / 2, height * 0.16, width, 30, 0x000000, 0.6).setOrigin(0.5, 0.5);
+        this.tickerBg.setVisible(false);
+        this.uiContainer.add(this.tickerBg);
+
+        this.tickerText = this.add.text(width, height * 0.16, '', {
+            fontFamily: FONT_MAIN, fontSize: fontSize.body(width), color: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+        this.tickerText.setVisible(false);
+        this.uiContainer.add(this.tickerText);
+
+        const tipsData = this.cache.json.get('tips');
+        this.tipsList = tipsData ? tipsData.tips : ['ヒントが見つかりません。'];
+        this.isTickerActive = false;
+        this.currentTickerTween = null;
+        this.tickerDelay = null;
+    }
+
+    startTicker() {
+        this.isTickerActive = true;
+        this.tickerBg.setVisible(true);
+        this.tickerText.setVisible(true);
+        this.startNextTicker();
+    }
+
+    stopTicker() {
+        this.isTickerActive = false;
+        this.tickerBg.setVisible(false);
+        this.tickerText.setVisible(false);
+        if (this.currentTickerTween) {
+            this.currentTickerTween.stop();
+            this.currentTickerTween = null;
+        }
+        if (this.tickerDelay) {
+            this.tickerDelay.remove();
+            this.tickerDelay = null;
+        }
+    }
+
+    startNextTicker() {
+        if (!this.tipsList || this.tipsList.length === 0 || !this.isTickerActive) return;
+        
+        let tip = Phaser.Math.RND.pick(this.tipsList);
+        // 改行コードなどを取り除く
+        this.tickerText.setText(tip.trim());
+
+        const { width } = this.scale;
+        const textWidth = this.tickerText.width;
+
+        // 初期位置は画面右端の外側
+        const startX = width + textWidth / 2;
+        const centerX = width / 2;
+        const endX = -textWidth / 2;
+        
+        this.tickerText.x = startX;
+
+        // 速度 (1秒間に約80px進むくらいのゆっくりな速度)
+        const speed = 80;
+        const dur1 = (Math.abs(startX - centerX) / speed) * 1000;
+        const dur2 = (Math.abs(centerX - endX) / speed) * 1000;
+
+        // 画面中央まで移動
+        this.currentTickerTween = this.tweens.add({
+            targets: this.tickerText,
+            x: centerX,
+            duration: dur1,
+            ease: 'Linear',
+            onComplete: () => {
+                if (!this.isTickerActive) {
+                    this.currentTickerTween = null;
+                    return;
+                }
+                
+                // 中央で1秒待機
+                this.tickerDelay = this.time.delayedCall(1000, () => {
+                    this.tickerDelay = null;
+                    if (!this.isTickerActive) return;
+                    
+                    // 左端まで移動して消える
+                    this.currentTickerTween = this.tweens.add({
+                        targets: this.tickerText,
+                        x: endX,
+                        duration: dur2,
+                        ease: 'Linear',
+                        onComplete: () => {
+                            this.currentTickerTween = null;
+                            if (!this.isTickerActive) return;
+                            // 次のテロップを待機
+                            this.tickerDelay = this.time.delayedCall(1000, () => {
+                                this.tickerDelay = null;
+                                if (this.isTickerActive) this.startNextTicker();
+                            });
+                        }
+                    });
+                });
+            }
+        });
+    }
+
+    checkScheduledEvents() {
+        this.check1207Event();
+        this.check1214Event();
+    }
+
+    check1207Event() {
+        const gs = GlobalState.getInstance();
+        // 12月7日の午後の終わり（夜に切り替わった直後: timePeriodIndex === 2）
+        if (this.currentDay === 7 && this.timePeriodIndex === 2 && !gs.event1207Played) {
+            gs.event1207Played = true;
+            SaveManager.saveGame(this);
+
+            const eventData = this.cache.json.get('event_1207');
+            if (eventData) {
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: eventData,
+                    returnScene: 'AdventureScene',
+                    from1207Event: true
+                });
+            }
+        }
+    }
+
+    check1214Event() {
+        const gs = GlobalState.getInstance();
+        if (this.currentDay === 15 && this.timePeriodIndex === 0 && !gs.event1214Played) {
+            gs.event1214Played = true;
+
+            const newGem = RelicGenerator.generateGem(1);
+            if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+            gs.inventory.gems.push(newGem);
+
+            const eventData = this.cache.json.get('event_1214');
+            this.scene.pause();
+            this.scene.launch('EventScene', {
+                events: eventData,
+                returnScene: 'AdventureScene',
+                from1214Event: true,
+                explorationDrops: [newGem]
+            });
+        }
+    }
+
+    applySaveData(saveData) {
+        if (!saveData) return;
+        SaveManager.restoreGlobalState(saveData);
+
+        const adv = saveData.adventureState;
+        if (!adv) return;
+
+        if (adv.playerCol !== undefined && adv.playerRow !== undefined) {
+            this.playerCol = adv.playerCol;
+            this.playerRow = adv.playerRow;
+        }
+        if (adv.currentMonth !== undefined) this.currentMonth = adv.currentMonth;
+        if (adv.currentDay !== undefined) this.currentDay = adv.currentDay;
+        if (adv.timeOfDay !== undefined) this.timeOfDay = adv.timeOfDay;
+        if (adv.timePeriodIndex !== undefined) this.timePeriodIndex = adv.timePeriodIndex;
+        if (adv.globalWaveCount !== undefined) this.globalWaveCount = adv.globalWaveCount;
+        if (adv.party) this.party = adv.party;
+
+        // ヘックスの訪問・レベル情報を復元
+        if (adv.hexStates && Array.isArray(adv.hexStates) && this.hexes) {
+            for (const state of adv.hexStates) {
+                const hex = this.hexes.find(h => h.col === state.col && h.row === state.row);
+                if (hex && hex.cellData) {
+                    if (state.visited !== undefined) hex.cellData.visited = state.visited;
+                    else if (state.isExplored) hex.cellData.visited = 1;
+
+                    if (state.revealed !== undefined) hex.cellData.revealed = state.revealed;
+                    hex.isExplored = !!(state.isExplored || hex.cellData.visited > 0);
+
+                    if (state.enemyLevel !== undefined) hex.cellData.enemyLevel = state.enemyLevel;
+                    if (state.witchLevel !== undefined) hex.cellData.witchLevel = state.witchLevel;
+                    if (state.enemyAttr !== undefined) hex.cellData.enemyAttr = state.enemyAttr;
+                    if (state.cleared !== undefined) hex.cellData.cleared = state.cleared;
+                }
+            }
+        }
+
+        // プレイヤー位置とカメラの更新
+        const targetHex = this.hexes ? this.hexes.find(h => h.col === this.playerCol && h.row === this.playerRow) : null;
+        if (targetHex && this.player) {
+            this.player.setPosition(targetHex.px, targetHex.py - (this.CHAR_OFFSET_Y || 52));
+            if (this.cameras && this.cameras.main) {
+                this.cameras.main.centerOn(this.player.x, this.player.y);
+            }
+        }
+
+        this.updateVisibility();
+        if (this.dateTimeText) {
+            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        }
+        if (this.nightOverlay) {
+            this.nightOverlay.setVisible(this.timeOfDay === '夜');
+        }
+        console.log('[AdventureScene] Restored state from save data!');
+    }
+}
+

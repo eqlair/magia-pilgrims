@@ -1,0 +1,198 @@
+import Phaser from 'phaser';
+import { EventEngine } from '../systems/EventEngine';
+import { TransitionManager } from '../systems/TransitionManager';
+import { FogEffect } from '../systems/FogEffect';
+
+/**
+ * 汎用イベント再生用シーン
+ * AdventureScene等から遷移してきて、EventEngineを実行する。
+ * 終了後、指定されたアクション（シーン遷移など）を行う。
+ */
+export default class EventScene extends Phaser.Scene {
+    constructor() {
+        super('EventScene');
+    }
+
+    init(data) {
+        // data.events: EventEngineに渡すJSON配列
+        // data.onComplete: 完了時のコールバック名または処理フラグ
+        // data.returnScene: イベント終了後に戻るシーン
+        this.eventData = data.events || [];
+        this.returnScene = data.returnScene || 'AdventureScene';
+        this.callbacks = data.callbacks || {};
+        this.enemyLevel = data.enemyLevel || 0;
+        this.enemyAttr = data.enemyAttr || 1;
+        this.majoLevel = data.majoLevel || 0;
+        this.joinCharacterId = data.joinCharacterId || null;
+        this.isNightExploration = data.isNightExploration || false;
+        this.isNightBattle = data.isNightBattle || false;
+        this.fromTarot = data.fromTarot || false;
+        this.fromExploration = data.fromExploration || false;
+        this.explorationDrops = data.explorationDrops || null;
+        this.isNotification = data.isNotification || false;
+        this.from1207Event = data.from1207Event || false;
+        this.from1214Event = data.from1214Event || false;
+        this.isNightExploration = data.isNightExploration || false;
+    }
+
+    create() {
+        TransitionManager.fadeIn(this);
+
+        this.engine = new EventEngine(this, this.eventData, () => {
+            this._onEventComplete();
+        });
+
+        // カスタムコールバックの設定
+        this.engine.callbacks = {
+            ...this.callbacks,
+            showFog: (cb) => this._showFog(cb),
+            playBattleBgm: (cb) => this._playBattleBgm(cb)
+        };
+
+        this.engine.start();
+    }
+
+    _playBattleBgm(cb) {
+        // 現在のBGMをフェードアウト
+        this.sound.sounds.forEach(s => {
+            if (s.isPlaying) {
+                this.tweens.add({ targets: s, volume: 0, duration: 1000, onComplete: () => s.stop() });
+            }
+        });
+
+        // ランダムな戦闘BGMを選ぶ (1~4)
+        const bgmIndex = Math.floor(Math.random() * 4) + 1;
+        const battleBgm = this.sound.add(`bgm_battle${bgmIndex}`, { loop: true, volume: 0 });
+        battleBgm.play();
+        this.tweens.add({ targets: battleBgm, volume: 0.5, duration: 1000 });
+
+        if (cb) cb();
+    }
+
+    _showFog(cb) {
+        if (this.enemyLevel > 0) {
+            this.fogEffect = new FogEffect(this, this.enemyAttr, 150); // キャラクターの手前(150)に表示
+            
+            // 少しずつフェードインさせるため、FogEffect側で管理する変数を上書き
+            this.fogEffect.bgEffect.setAlpha(0);
+            this.fogEffect.fadeInMultiplier = 0; // フェードイン用の独自変数
+            
+            this.tweens.add({
+                targets: this.fogEffect,
+                fadeInMultiplier: 1,
+                duration: 2000
+            });
+        }
+        if (cb) cb();
+    }
+
+    update(time, delta) {
+        if (this.fogEffect) {
+            this.fogEffect.update(delta / 1000); // FogEffectは秒(dt)を要求
+        }
+    }
+
+    _onEventComplete() {
+        if (this.explorationDrops && this.explorationDrops.length > 0) {
+            this._showExplorationDrops();
+        } else {
+            this._finishScene();
+        }
+    }
+
+    _showExplorationDrops() {
+        const { width, height } = this.scale;
+        const drops = this.explorationDrops;
+
+        // 暗転背景
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75).setDepth(200);
+
+        let startY = height / 2 - (drops.length * 20);
+
+        for (let i = 0; i < drops.length; i++) {
+            const drop = drops[i];
+            let color = '#ffffff';
+            if (drop.type === 'gem') color = '#ffdd44';
+            else if (drop.rank === 2) color = '#aaffaa';
+            else if (drop.rank === 3) color = '#aaaaff';
+
+            const nameText = drop.type === 'gem' ? `[宝石] ${drop.name}` : `Rank${drop.rank}: ${drop.name}`;
+
+            const txt = this.add.text(width / 2, startY + (i * 38), nameText, {
+                fontFamily: 'sans-serif', fontSize: '22px', color: color
+            }).setOrigin(0.5).setDepth(201).setAlpha(0);
+
+            this.tweens.add({
+                targets: txt,
+                alpha: 1,
+                y: startY + (i * 38) - 10,
+                duration: 400,
+                delay: i * 150
+            });
+        }
+
+        const totalDelay = drops.length * 150 + 400;
+
+        this.time.delayedCall(totalDelay, () => {
+            this.add.text(width / 2, startY + (drops.length * 38) + 15, `${drops.length}個のレリクスを見つけた！`, {
+                fontFamily: 'sans-serif', fontSize: '26px', color: '#ffcc00', fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(201);
+
+            const continueText = this.add.text(width / 2, height - 90, 'tap to continue', {
+                fontFamily: 'sans-serif', fontSize: '28px', color: '#aaaaaa'
+            }).setOrigin(0.5).setAlpha(0).setDepth(201);
+
+            this.tweens.add({
+                targets: continueText,
+                alpha: 1,
+                duration: 800,
+                yoyo: true,
+                repeat: -1
+            });
+
+            const clickHandler = () => {
+                this.input.off('pointerdown', clickHandler);
+                this._finishScene();
+            };
+            this.input.on('pointerdown', clickHandler);
+        });
+    }
+
+    _finishScene() {
+        const { width, height } = this.scale;
+        const whiteScreen = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
+            .setAlpha(0).setDepth(9999).setScrollFactor(0);
+            
+        this.tweens.add({
+            targets: whiteScreen,
+            alpha: 1,
+            duration: 800,
+            onComplete: () => {
+                if (this.enemyLevel > 0) {
+                    console.log('Transition to Battle!');
+                    this.scene.resume(this.returnScene, { 
+                        startBattle: true,
+                        enemyLevel: this.enemyLevel,
+                        enemyAttr: this.enemyAttr,
+                        majoLevel: this.majoLevel,
+                        isNightExploration: this.isNightExploration,
+                        isNightBattle: this.isNightBattle || this.isNightExploration
+                    });
+                    this.time.delayedCall(100, () => {
+                        this.scene.stop();
+                    });
+                } else {
+                    this.scene.stop();
+                    this.scene.resume(this.returnScene, { 
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.from1207Event && !this.from1214Event,
+                        fromExploration: this.fromExploration,
+                        isNotification: this.isNotification,
+                        from1207Event: this.from1207Event,
+                        from1214Event: this.from1214Event,
+                        joinCharacterId: this.joinCharacterId 
+                    });
+                }
+            }
+        });
+    }
+}

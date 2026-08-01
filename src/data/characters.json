@@ -1,0 +1,2211 @@
+{
+  "characters": {
+    "001": {
+      "name": "10紫苑",
+      "baseHp": 900,
+      "baseSp": 1100,
+      "baseAtk": 100,
+      "weight": 48,
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 15,
+              "reload": 0.3,
+              "count": 3,
+              "speed": 40,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 5
+            },
+            {
+              "name": "手りゅう弾",
+              "type": "grenade",
+              "power": 50,
+              "reload": 1,
+              "count": 1,
+              "speed": 20,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 200,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 5
+            }
+          ],
+          "2": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 15,
+              "reload": 0.25,
+              "count": 4,
+              "speed": 40,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 5
+            },
+            {
+              "name": "手りゅう弾",
+              "type": "grenade",
+              "power": 50,
+              "reload": 1,
+              "count": 1,
+              "speed": 20,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 200,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 5
+            }
+          ],
+          "3": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 20,
+              "reload": 0.25,
+              "count": 4,
+              "speed": 40,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 5
+            },
+            {
+              "name": "手りゅう弾",
+              "type": "grenade",
+              "power": 50,
+              "reload": 1,
+              "count": 1,
+              "speed": 20,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 200,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 5
+            }
+          ],
+          "4": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 20,
+              "reload": 0.2,
+              "count": 5,
+              "speed": 40,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 20,
+              "isPiercing": true,
+              "deviation": 5
+            },
+            {
+              "name": "手りゅう弾",
+              "type": "grenade",
+              "power": 50,
+              "reload": 1,
+              "count": 1,
+              "speed": 20,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 200,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 5
+            }
+          ],
+          "5": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 22,
+              "reload": 0.2,
+              "count": 5,
+              "speed": 40,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 20,
+              "isPiercing": true,
+              "deviation": 3
+            },
+            {
+              "name": "手りゅう弾",
+              "type": "grenade",
+              "power": 50,
+              "reload": 1,
+              "count": 1,
+              "speed": 20,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 200,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 3
+            }
+          ],
+          "6": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 25,
+              "reload": 0.2,
+              "count": 5,
+              "speed": 40,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 20,
+              "isPiercing": true,
+              "deviation": 3
+            },
+            {
+              "name": "手りゅう弾",
+              "type": "grenade",
+              "power": 50,
+              "reload": 1,
+              "count": 1,
+              "speed": 20,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 200,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 3
+            }
+          ],
+          "7": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 23,
+              "reload": 0.15,
+              "count": 6,
+              "speed": 40,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 20,
+              "isPiercing": true,
+              "deviation": 3
+            },
+            {
+              "name": "手りゅう弾",
+              "type": "grenade",
+              "power": 100,
+              "reload": 1,
+              "count": 1,
+              "speed": 20,
+              "range": 20,
+              "stepDist": 0,
+              "knockback": 300,
+              "weaponRange": 20,
+              "isPiercing": false,
+              "deviation": 3
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 15,
+              "reload": 0.15,
+              "count": 6,
+              "speed": 40,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 2,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "deviation": 10
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false,
+              "deviation": 10
+            }
+          ],
+          "2": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 19,
+              "reload": 0.15,
+              "count": 6,
+              "speed": 40,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 2,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "deviation": 10
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 19,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false,
+              "deviation": 10
+            }
+          ],
+          "3": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 23,
+              "reload": 0.15,
+              "count": 6,
+              "speed": 40,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 2,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "deviation": 10
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 23,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false,
+              "deviation": 10
+            }
+          ],
+          "4": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 18,
+              "reload": 0.1,
+              "count": 6,
+              "speed": 40,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 2,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 26,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false,
+              "deviation": 10
+            }
+          ],
+          "5": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 20,
+              "reload": 0.1,
+              "count": 6,
+              "speed": 40,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 2,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 30,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false,
+              "deviation": 10
+            }
+          ],
+          "6": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 23,
+              "reload": 0.1,
+              "count": 6,
+              "speed": 40,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 2,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 35,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false,
+              "deviation": 10
+            }
+          ],
+          "7": [
+            {
+              "name": "弾丸",
+              "type": "bullet",
+              "power": 15,
+              "reload": 0.06,
+              "count": 10,
+              "speed": 40,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 4,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 40,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false,
+              "deviation": 10
+            }
+          ]
+        }
+      }
+    },
+    "002": {
+      "name": "12蒼樹",
+      "baseHp": 1350,
+      "baseSp": 650,
+      "baseAtk": 100,
+      "weight": 55,
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "剣投げ",
+              "type": "weapon_002",
+              "power": 50,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 30,
+              "range": 9,
+              "stepDist": 0,
+              "knockback": 30,
+              "weaponRange": 9,
+              "isPiercing": false
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "剣投げ",
+              "type": "weapon_002",
+              "power": 60,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 30,
+              "range": 9,
+              "stepDist": 0,
+              "knockback": 30,
+              "weaponRange": 9,
+              "isPiercing": false
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "剣投げ",
+              "type": "weapon_002",
+              "power": 70,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 30,
+              "range": 9,
+              "stepDist": 0,
+              "knockback": 30,
+              "weaponRange": 9,
+              "isPiercing": false
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "剣投げ",
+              "type": "weapon_002",
+              "power": 55,
+              "reload": 0.2,
+              "count": 3,
+              "speed": 30,
+              "range": 10,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 10,
+              "isPiercing": false
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "剣投げ",
+              "type": "weapon_002",
+              "power": 65,
+              "reload": 0.2,
+              "count": 3,
+              "speed": 30,
+              "range": 10,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 10,
+              "isPiercing": false
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "剣投げ",
+              "type": "weapon_002",
+              "power": 75,
+              "reload": 0.2,
+              "count": 3,
+              "speed": 30,
+              "range": 10,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 10,
+              "isPiercing": false
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "剣投げ",
+              "type": "weapon_002",
+              "power": 60,
+              "reload": 0.2,
+              "count": 2,
+              "speed": 30,
+              "range": 11,
+              "stepDist": 0,
+              "knockback": 15,
+              "weaponRange": 11,
+              "isPiercing": false
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 100,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 100,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 3,
+              "stepDist": 1,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣投げorリロード",
+              "type": "weapon_002",
+              "power": 100,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 30,
+              "range": 3.5,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 3,
+              "isPiercing": true
+            }
+          ],
+          "2": [
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 120,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 120,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 3,
+              "stepDist": 1,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣投げorリロード",
+              "type": "weapon_002",
+              "power": 110,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 30,
+              "range": 3.5,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 3,
+              "isPiercing": true
+            }
+          ],
+          "3": [
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 140,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 140,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 3,
+              "stepDist": 1,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣投げorリロード",
+              "type": "weapon_002",
+              "power": 120,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 30,
+              "range": 3.5,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 3,
+              "isPiercing": true
+            }
+          ],
+          "4": [
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 100,
+              "reload": 0.2,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 100,
+              "reload": 0.2,
+              "count": 2,
+              "speed": 0,
+              "range": 3,
+              "stepDist": 0.5,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣投げorリロード",
+              "type": "weapon_002",
+              "power": 130,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 30,
+              "range": 3.5,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 3,
+              "isPiercing": true
+            }
+          ],
+          "5": [
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 115,
+              "reload": 0.2,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 115,
+              "reload": 0.2,
+              "count": 2,
+              "speed": 0,
+              "range": 3,
+              "stepDist": 0.5,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣投げorリロード",
+              "type": "weapon_002",
+              "power": 140,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 30,
+              "range": 3.5,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 3,
+              "isPiercing": true
+            }
+          ],
+          "6": [
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 130,
+              "reload": 0.2,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 130,
+              "reload": 0.2,
+              "count": 3,
+              "speed": 0,
+              "range": 3,
+              "stepDist": 0.5,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣投げorリロード",
+              "type": "weapon_002",
+              "power": 150,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 30,
+              "range": 3.5,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 3,
+              "isPiercing": true
+            }
+          ],
+          "7": [
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 110,
+              "reload": 0.15,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣振り",
+              "type": "swing_002",
+              "power": 110,
+              "reload": 0.15,
+              "count": 4,
+              "speed": 0,
+              "range": 3,
+              "stepDist": 0.5,
+              "knockback": 5,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "剣投げorリロード",
+              "type": "weapon_002",
+              "power": 160,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 30,
+              "range": 3.5,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 3,
+              "isPiercing": true
+            }
+          ]
+        }
+      }
+    },
+    "003": {
+      "name": "9紅華",
+      "baseHp": 1200,
+      "baseSp": 800,
+      "baseAtk": 100,
+      "weight": 59,
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "槍投げ",
+              "type": "weapon_003",
+              "power": 80,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 28,
+              "range": 10,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 10,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.7,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "槍投げ",
+              "type": "weapon_003",
+              "power": 100,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 28,
+              "range": 10,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 10,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.7,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "槍投げ",
+              "type": "weapon_003",
+              "power": 120,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 28,
+              "range": 10,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 10,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.7,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "槍投げ",
+              "type": "weapon_003",
+              "power": 140,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 28,
+              "range": 11,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 11,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "槍投げ",
+              "type": "weapon_003",
+              "power": 160,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 28,
+              "range": 11,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 11,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "槍投げ",
+              "type": "weapon_003",
+              "power": 180,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 28,
+              "range": 11,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 11,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "槍投げ",
+              "type": "weapon_003",
+              "power": 200,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 28,
+              "range": 12,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 12,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "槍回し",
+              "type": "swing_003",
+              "power": 100,
+              "reload": 1.2,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 3,
+              "isPiercing": false
+            },
+            {
+              "name": "槍突きorリロード",
+              "type": "weapon_003",
+              "power": 90,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 28,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 8,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "槍回し",
+              "type": "swing_003",
+              "power": 120,
+              "reload": 1.2,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 3,
+              "isPiercing": false
+            },
+            {
+              "name": "槍突きorリロード",
+              "type": "weapon_003",
+              "power": 100,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 28,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 8,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "槍回し",
+              "type": "swing_003",
+              "power": 140,
+              "reload": 1.2,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 3,
+              "isPiercing": false
+            },
+            {
+              "name": "槍突きorリロード",
+              "type": "weapon_003",
+              "power": 110,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 28,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 8,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "槍回し",
+              "type": "swing_003",
+              "power": 160,
+              "reload": 1.2,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 3,
+              "isPiercing": false
+            },
+            {
+              "name": "槍突きorリロード",
+              "type": "weapon_003",
+              "power": 120,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 28,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 8,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "槍回し",
+              "type": "swing_003",
+              "power": 180,
+              "reload": 1.2,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 3,
+              "isPiercing": false
+            },
+            {
+              "name": "槍突きorリロード",
+              "type": "weapon_003",
+              "power": 130,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 28,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 8,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "槍回し",
+              "type": "swing_003",
+              "power": 200,
+              "reload": 1.2,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 3,
+              "isPiercing": false
+            },
+            {
+              "name": "槍突きorリロード",
+              "type": "weapon_003",
+              "power": 140,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 28,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 8,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "槍回し",
+              "type": "swing_003",
+              "power": 220,
+              "reload": 1.2,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2,
+              "knockback": 5,
+              "weaponRange": 3,
+              "isPiercing": false
+            },
+            {
+              "name": "槍突きorリロード",
+              "type": "weapon_003",
+              "power": 150,
+              "reload": 0.6,
+              "count": 1,
+              "speed": 28,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 200,
+              "weaponRange": 8,
+              "isPiercing": false
+            }
+          ]
+        }
+      }
+    },
+    "004": {
+      "name": "4黄蘭",
+      "baseHp": 950,
+      "baseSp": 1050,
+      "baseAtk": 100,
+      "weight": 62,
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 10,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "shotCount": 4,
+              "spread": 15,
+              "deviation": 5,
+              "stunChance": 0.75
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.9,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 12,
+              "reload": 0.48,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "shotCount": 4,
+              "spread": 15,
+              "deviation": 5,
+              "stunChance": 0.75
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.88,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 14,
+              "reload": 0.46,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "shotCount": 4,
+              "spread": 15,
+              "deviation": 5,
+              "stunChance": 0.75
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.86,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 15,
+              "reload": 0.44,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "shotCount": 4,
+              "spread": 15,
+              "deviation": 5,
+              "stunChance": 0.8
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.84,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 17,
+              "reload": 0.42,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "shotCount": 5,
+              "spread": 20,
+              "deviation": 5,
+              "stunChance": 0.8
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.82,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 18,
+              "reload": 0.4,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "shotCount": 5,
+              "spread": 20,
+              "deviation": 5,
+              "stunChance": 0.8
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.8,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 15,
+              "reload": 0.3,
+              "count": 3,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "shotCount": 5,
+              "spread": 20,
+              "deviation": 5,
+              "stunChance": 0.9
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.8,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "リボン",
+              "type": "swing_004",
+              "power": 50,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4,
+              "stepDist": 2.5,
+              "knockback": 10,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 10,
+              "reload": 1,
+              "count": 1,
+              "speed": 32,
+              "range": 8,
+              "stepDist": 0.5,
+              "knockback": 1,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "shotCount": 4,
+              "spread": 30,
+              "deviation": 0,
+              "stunChance": 0.75
+            }
+          ],
+          "2": [
+            {
+              "name": "リボン",
+              "type": "swing_004",
+              "power": 50,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4.15,
+              "stepDist": 2.5,
+              "knockback": 10,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 12,
+              "reload": 0.48,
+              "count": 1,
+              "speed": 32,
+              "range": 18,
+              "stepDist": 0.5,
+              "knockback": 1,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "shotCount": 4,
+              "spread": 30,
+              "deviation": 0,
+              "stunChance": 0.75
+            }
+          ],
+          "3": [
+            {
+              "name": "リボン",
+              "type": "swing_004",
+              "power": 50,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4.3,
+              "stepDist": 2.5,
+              "knockback": 10,
+              "weaponRange": 2,
+              "isPiercing": false
+            },
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 14,
+              "reload": 0.46,
+              "count": 1,
+              "speed": 32,
+              "range": 18,
+              "stepDist": 0.5,
+              "knockback": 1,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "shotCount": 4,
+              "spread": 30,
+              "deviation": 0,
+              "stunChance": 0.75
+            }
+          ],
+          "4": [
+            {
+              "name": "リボン",
+              "type": "swing_004",
+              "power": 50,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4.45,
+              "stepDist": 2.5,
+              "knockback": 10,
+              "weaponRange": 2.5,
+              "isPiercing": false
+            },
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 15,
+              "reload": 0.44,
+              "count": 1,
+              "speed": 32,
+              "range": 18,
+              "stepDist": 0.5,
+              "knockback": 1,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "shotCount": 5,
+              "spread": 35,
+              "deviation": 0,
+              "stunChance": 0.75
+            }
+          ],
+          "5": [
+            {
+              "name": "リボン",
+              "type": "swing_004",
+              "power": 50,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4.6,
+              "stepDist": 2.5,
+              "knockback": 10,
+              "weaponRange": 2.5,
+              "isPiercing": false
+            },
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 17,
+              "reload": 0.42,
+              "count": 1,
+              "speed": 32,
+              "range": 18,
+              "stepDist": 0.5,
+              "knockback": 1,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "shotCount": 5,
+              "spread": 35,
+              "deviation": 0,
+              "stunChance": 0.75
+            }
+          ],
+          "6": [
+            {
+              "name": "リボン",
+              "type": "swing_004",
+              "power": 50,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 4.8,
+              "stepDist": 2.5,
+              "knockback": 10,
+              "weaponRange": 2.5,
+              "isPiercing": false
+            },
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 18,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 32,
+              "range": 18,
+              "stepDist": 0.5,
+              "knockback": 1,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "shotCount": 5,
+              "spread": 35,
+              "deviation": 0,
+              "stunChance": 0.75
+            }
+          ],
+          "7": [
+            {
+              "name": "リボン",
+              "type": "swing_004",
+              "power": 50,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 0,
+              "range": 5,
+              "stepDist": 2.5,
+              "knockback": 10,
+              "weaponRange": 2.5,
+              "isPiercing": false
+            },
+            {
+              "name": "ショットガン",
+              "type": "weapon_004",
+              "power": 15,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 32,
+              "range": 18,
+              "stepDist": 0.5,
+              "knockback": 1,
+              "weaponRange": 8,
+              "isPiercing": false,
+              "shotCount": 5,
+              "spread": 35,
+              "deviation": 0,
+              "stunChance": 0.75
+            }
+          ]
+        }
+      }
+    },
+    "005": {
+      "name": "15李乃果data",
+      "baseHp": 750,
+      "baseSp": 1250,
+      "baseAtk": 100,
+      "weight": 42,
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 40,
+              "reload": 0.45,
+              "count": 2,
+              "speed": 36,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 16,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 16,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 50,
+              "reload": 0.45,
+              "count": 2,
+              "speed": 36,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 16,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 16,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 60,
+              "reload": 0.45,
+              "count": 2,
+              "speed": 36,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 16,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 16,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 70,
+              "reload": 0.45,
+              "count": 2,
+              "speed": 36,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 16,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 16,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 80,
+              "reload": 0.45,
+              "count": 2,
+              "speed": 36,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 16,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 16,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 90,
+              "reload": 0.45,
+              "count": 2,
+              "speed": 36,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 16,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 16,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 100,
+              "reload": 0.45,
+              "count": 3,
+              "speed": 36,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 16,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 16,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 16,
+              "isPiercing": false
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 30,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 36,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": false
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 38,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 36,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": false
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 19,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 46,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 36,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": false
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 23,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 36,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 36,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": false
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 26,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 40,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 36,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": false
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 30,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 50,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 36,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": false
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 35,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 50,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "光の矢",
+              "type": "weapon_005",
+              "power": 60,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 36,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": false
+            },
+            {
+              "name": "キックしながらのリロード",
+              "type": "kick",
+              "power": 40,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 1.5,
+              "stepDist": 0,
+              "knockback": 100,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

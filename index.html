@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>TD RPG</title>
+    <!-- Noto Serif JP: 400(Regular), 700(Bold) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body, html {
+        width: 100%; height: 100%;
+        background-color: #000;
+        overflow: hidden;
+      }
+
+      /*
+       * ゲーム全体のコンテナ
+       * position: fixed + inset: 0 で画面全体に固定し、
+       * flexbox で canvas を確実に中央配置する。
+       * width: 100% ではスクロールバー幅の影響でズレることがあるため
+       * この方式が最も確実。
+       */
+      #game-container {
+        position: fixed;
+        inset: 0; /* top:0; left:0; right:0; bottom:0 の短縮形 */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #000;
+      }
+
+      /* タイトル動画レイヤー（canvas背面） */
+      #title-video {
+        display: none;
+        position: absolute;
+        z-index: 0;
+        object-fit: cover;
+        pointer-events: none;
+      }
+
+      /* Phaser canvas（前面） */
+      canvas {
+        position: relative;
+        z-index: 1;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <video id="title-video" muted loop playsinline preload="auto">
+        <source src="/files/OP/OP001.mp4" type="video/mp4">
+      </video>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
