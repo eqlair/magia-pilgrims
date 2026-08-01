@@ -690,6 +690,8 @@ export class GlobalState {
         this.event1207Played = false;
         this.event1214Played = false;
         this.event1221Played = false;
+        this.event1221WildhuntPlayed = false;
+
 
         // タロット関係のリセット
         this.activeTarots = [];

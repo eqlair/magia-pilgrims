@@ -7,6 +7,8 @@ import { GlobalState } from '../systems/GlobalState';
 import { RelicGenerator } from '../systems/RelicGenerator';
 import { SaveManager } from '../systems/SaveManager';
 import { fontSize, FONT_MAIN } from '../config/GameFont';
+import { build1221WildhuntCommands } from '../data/wildhuntEvents';
+
 
 
 export default class AdventureScene extends Phaser.Scene {
@@ -513,8 +515,14 @@ export default class AdventureScene extends Phaser.Scene {
                     this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
                 }
 
+                // 1221wildhuntイベント復帰時 -> 次のアクションで確定で突破戦が始まるフラグ
+                if (data && data.from1221WildhuntEvent) {
+                    this.is1221WildhuntPendingBreakthrough = true;
+                }
+
                 // 12/21イベント完了時 -> 周回イベント(event_resp)の連続起動
                 if (data && data.from1221Event) {
+
                     const respData = this.cache.json.get('event_resp');
                     if (respData) {
                         this.scene.pause();
@@ -1946,8 +1954,10 @@ export default class AdventureScene extends Phaser.Scene {
     checkScheduledEvents() {
         this.check1207Event();
         this.check1214Event();
+        this.check1221NightWildhunt();
         this.check1221Event();
     }
+
 
     check1207Event() {
         const gs = GlobalState.getInstance();
@@ -2004,6 +2014,30 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
     }
+
+    check1221NightWildhunt() {
+        const gs = GlobalState.getInstance();
+        if (this.currentMonth === 12 && this.currentDay === 21 && this.timePeriodIndex === 2 && !gs.event1221WildhuntPlayed) {
+            const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+            const isNamedHex = currentHex && currentHex.cellData && currentHex.cellData.name && currentHex.cellData.name !== '水域' && currentHex.cellData.name !== '密林';
+
+            // 地名付きの土地に滞在していない場合
+            if (!isNamedHex) {
+                gs.event1221WildhuntPlayed = true;
+
+                const commands = build1221WildhuntCommands(this.party);
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: commands,
+                    returnScene: 'AdventureScene',
+                    from1221WildhuntEvent: true
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     /** 周回開始時のマップ踏破・視界リセット処理 */
     resetMapForNewLoop() {
@@ -2081,9 +2115,14 @@ export default class AdventureScene extends Phaser.Scene {
 
     /** 12/21夜の地名なしヘクスでの行動チェック */
     check1221NightForcedBreakthrough() {
+        if (this.is1221WildhuntPendingBreakthrough) {
+            this.is1221WildhuntPendingBreakthrough = false;
+            this.start1221Breakthrough();
+            return true;
+        }
         if (this.currentDay === 21 && this.timePeriodIndex === 2) {
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
-            const hasName = currentHex && currentHex.cellData && currentHex.cellData.name && currentHex.cellData.name.trim() !== '';
+            const hasName = currentHex && currentHex.cellData && currentHex.cellData.name && currentHex.cellData.name.trim() !== '' && currentHex.cellData.name !== '水域' && currentHex.cellData.name !== '密林';
             if (!hasName) {
                 this.start1221Breakthrough();
                 return true;
@@ -2091,6 +2130,7 @@ export default class AdventureScene extends Phaser.Scene {
         }
         return false;
     }
+
 
 
 

@@ -73,10 +73,14 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_1214a', 'files/event/1214a.jpg');
         this.load.image('bg_1214b', 'files/event/1214b.jpg');
         this.load.json('event_1221', 'src/data/event_1221.json');
+        this.load.json('event_1221wildhunt', 'src/data/event_1221wildhunt.json');
         this.load.image('bg_1221a', 'files/event/1221a.jpg');
         this.load.image('bg_1221b', 'files/event/1221b.jpg');
         this.load.image('bg_1221c', 'files/event/1221c.jpg');
+        this.load.image('bg_wildhunt', 'files/event/wildhunt.jpg');
+        this.load.audio('bgm_wildhunt', 'files/BGM/wildhunt.mp3');
         this.load.json('event_resp', 'src/data/event_resp.json');
+
         this.load.image('bg_resp', 'files/event/resp.jpg');
         this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
         this.load.audio('bgm_star', 'files/BGM/star.mp3');
