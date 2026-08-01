@@ -1123,24 +1123,31 @@ export class BattleEngine {
                 }
             }
 
-            e.update(dt);
-            if (e.stunTimer > 0) continue; // スタン中は行動しない
-
-            // サンドバッグ敵の元の位置復元処理
+            // ── サンドバッグ敵の初期スポーン位置復元思考 ──
             if (e.isSandbag && e.baseX !== undefined && e.baseZ !== undefined) {
+                // スタン状態を早めに解除
+                if (e.stunTimer > 0) e.stunTimer = Math.max(0, e.stunTimer - dt * 3.0);
+                
                 const dx = e.baseX - e.x;
                 const dz = e.baseZ - e.z;
                 const dist = Math.sqrt(dx * dx + dz * dz);
-                if (dist > 0.01) {
-                    const step = Math.min(dist, dt * 2.0); // 2m/sの速度で元の位置へ戻る
+                
+                if (dist > 0.02) {
+                    // 目標地点(初期位置)へ秒速1.0mの速度で戻る
+                    const returnSpeed = 1.0;
+                    const step = Math.min(dist, returnSpeed * dt);
                     e.x += (dx / dist) * step;
                     e.z += (dz / dist) * step;
                 } else {
                     e.x = e.baseX;
                     e.z = e.baseZ;
                 }
-                continue; // サンドバッグは独自の攻撃・移動を行わない
+                continue; // サンドバッグはこれ以上の移動・攻撃行動を行わない
             }
+
+            e.update(dt);
+            if (e.stunTimer > 0) continue; // スタン中は行動しない
+
 
             if (e.isBoss) {
 
