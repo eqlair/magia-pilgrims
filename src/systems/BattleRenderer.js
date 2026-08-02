@@ -11,8 +11,9 @@ export class BattleRenderer {
         this.spriteMap = new Map();
         this.uiMap = new Map();
 
-        // 1m幅を基準としたキャラのベーススケール
-        this.CHAR_BASE_SCALE = 1.0 / 728 * 2.0; 
+        // 1m幅を基準としたキャラのベーススケール（フレームサイズ150px基準）
+        this.CHAR_BASE_SCALE = 1.0 / 150 * 2.0; 
+
     }
 
     update() {
@@ -495,8 +496,9 @@ export class BattleRenderer {
                         sprite.setAlpha(1.0);
                     }
                 } else {
-                    const baseWidth = sprite.width || 728;
-                    finalScale = p.scale * (this.CHAR_BASE_SCALE * (728 / baseWidth));
+                    const baseWidth = sprite.width || 150;
+                    finalScale = p.scale * (this.CHAR_BASE_SCALE * (150 / baseWidth));
+
                     if (entity.owner === 'enemy') {
                         finalScale *= (entity.size || 1.0);
                     }
