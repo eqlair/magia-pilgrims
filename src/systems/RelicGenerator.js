@@ -1,5 +1,7 @@
 import relicWords from '../data/relic_words.json';
 import gemEffects from '../data/gem_effects.json';
+import { GlobalState } from './GlobalState';
+
 
 export class RelicGenerator {
     static TRAIT_LIST = [
