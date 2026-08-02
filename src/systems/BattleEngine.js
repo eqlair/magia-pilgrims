@@ -73,8 +73,16 @@ export class BattleEngine {
         // 突破モード(rule=2)パラメータ
         this.breakthroughDist = 0;
         this.breakthroughTarget = this.config.breakthroughTarget || 42195;
-        this.advanceSpeed = 0;
-        this.spawnInterval = this.config.spawnInterval !== undefined ? this.config.spawnInterval : 0.2;
+        this.advanceSpeed = 3.0; // 初期速度（最低速度3.0m/sから開始）
+
+        if (this.rule === 2) {
+            // テスト突入などで値が指定されていない場合のデフォルト値: LV1, 数量50, 出現頻度1.0秒
+            this.enemyLevel = this.config.enemyLevel !== undefined ? Math.max(1, (this.config.enemyLevel || 1) + gs.extraEnemyLevel) : 1;
+            this.enemyCountPerWave = this.config.enemyCount !== undefined ? this.config.enemyCount : 50;
+            this.spawnInterval = this.config.spawnInterval !== undefined ? this.config.spawnInterval : 1.0;
+        } else {
+            this.spawnInterval = this.config.spawnInterval !== undefined ? this.config.spawnInterval : 0.2;
+        }
 
 
 
@@ -714,10 +722,24 @@ export class BattleEngine {
             
             if (this.rule === 2) {
                 // ── 突破モード (rule=2) ──
-                // 後衛人数に応じて進行速度が落ちる (基本8m/s - 後衛1人につき-1m/s)
-                const rearCount = this.players.filter(p => !p.isDead && !p.isFront).length;
-                this.advanceSpeed = Math.max(0, 8.0 - rearCount * 1.0);
+                // 全員前列にいる間: 1秒で+0.1m/s加速
+                // 1人でも後列に下がると: 1秒で-1.0m/s低下
+                // 最低速度: 3.0m/s
+                const alivePlayers = this.players.filter(p => !p.isDead);
+                const rearCount = alivePlayers.filter(p => !p.isFront).length;
+
+                if (rearCount === 0 && alivePlayers.length > 0) {
+                    this.advanceSpeed += 0.1 * dt;
+                } else if (rearCount > 0) {
+                    this.advanceSpeed -= 1.0 * dt;
+                }
+
+                if (this.advanceSpeed < 3.0) {
+                    this.advanceSpeed = 3.0;
+                }
+
                 this.breakthroughDist += this.advanceSpeed * dt;
+
 
                 // 目標距離走破でクリア
                 if (this.breakthroughDist >= this.breakthroughTarget) {

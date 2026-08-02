@@ -647,10 +647,8 @@ export default class BattleScene extends Phaser.Scene {
     initBreakthroughDebugUI() {
         if (this.battleConfig.rule !== 2 || !this.engine) return;
 
-        const { width, height } = this.scale;
-        
-        // デバッグパネルコンテナ (画面右上近辺に設置)
-        const panel = this.add.container(width - 150, 125).setDepth(2500);
+        // デバッグパネルコンテナ (初期非表示)
+        const panel = this.add.container(170, 115).setDepth(2500).setVisible(false);
 
         const bg = this.add.rectangle(0, 0, 280, 160, 0x000000, 0.85)
             .setStrokeStyle(2, 0x00ffcc)
@@ -682,21 +680,21 @@ export default class BattleScene extends Phaser.Scene {
         });
 
         // 2. 敵の最大量調整
-        const countText = this.add.text(-30, -10, `最大量: ${this.engine.enemyCountPerWave || 10}体`, {
+        const countText = this.add.text(-30, -10, `最大量: ${this.engine.enemyCountPerWave || 50}体`, {
             fontFamily: 'monospace', fontSize: '13px', color: '#ffffff'
         }).setOrigin(0.5);
 
         const countMinusBtn = this.add.text(-110, -10, ' [量-] ', {
             fontFamily: 'monospace', fontSize: '12px', color: '#ffaaaa', backgroundColor: '#333333', padding: {x:4,y:2}
         }).setOrigin(0.5).setInteractive().on('pointerdown', () => {
-            this.engine.enemyCountPerWave = Math.max(1, (this.engine.enemyCountPerWave || 10) - 2);
+            this.engine.enemyCountPerWave = Math.max(1, (this.engine.enemyCountPerWave || 50) - 5);
             countText.setText(`最大量: ${this.engine.enemyCountPerWave}体`);
         });
 
         const countPlusBtn = this.add.text(65, -10, ' [量+] ', {
             fontFamily: 'monospace', fontSize: '12px', color: '#aaffaa', backgroundColor: '#333333', padding: {x:4,y:2}
         }).setOrigin(0.5).setInteractive().on('pointerdown', () => {
-            this.engine.enemyCountPerWave = (this.engine.enemyCountPerWave || 10) + 3;
+            this.engine.enemyCountPerWave = (this.engine.enemyCountPerWave || 50) + 5;
             countText.setText(`最大量: ${this.engine.enemyCountPerWave}体`);
         });
 
@@ -736,6 +734,22 @@ export default class BattleScene extends Phaser.Scene {
         });
 
         panel.add([bg, title, lvText, lvMinusBtn, lvPlusBtn, countText, countMinusBtn, countPlusBtn, intervalText, speedMinusBtn, speedPlusBtn, bgText, bgSwitchBtn]);
+
+        // --- 左上 トンカチ (🔨) デバッグトグルボタン ---
+        const hammerBtnContainer = this.add.container(35, 35).setDepth(2600);
+        const hammerBg = this.add.circle(0, 0, 18, 0x000000, 0.8)
+            .setStrokeStyle(2, 0x00ffcc)
+            .setInteractive({ useHandCursor: true });
+
+        const hammerIcon = this.add.text(0, 0, '🔨', {
+            fontSize: '18px'
+        }).setOrigin(0.5);
+
+        hammerBg.on('pointerdown', () => {
+            panel.setVisible(!panel.visible);
+        });
+
+        hammerBtnContainer.add([hammerBg, hammerIcon]);
     }
 
 
