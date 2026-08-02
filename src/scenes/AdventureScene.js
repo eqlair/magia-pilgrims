@@ -744,8 +744,8 @@ export default class AdventureScene extends Phaser.Scene {
                             h.bgSprite.setScale(this.hexWidth / tw, (this.hexWidth / tw) * this.mapTiltY);
                         }
                         
-                        h.effSprite.scaleY = h.effSprite.scaleX * this.mapTiltY;
                         h.outline.scaleY = this.mapTiltY;
+
                     }
                     
                     this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
