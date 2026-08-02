@@ -34,9 +34,9 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`face_00${i}`, `files/CHR/00${i}p.jpg`);
             
             // 編成画面やマップ画面用のミニキャラ
-            let filePrefix = `00${i}002`;
-            if (i === 1) filePrefix = '001sion002'; // 紫苑のファイル名例外
+            const filePrefix = `00${i}002`;
             this.load.spritesheet(`mini_00${i}`, `files/CHR/${filePrefix}.png`, { frameWidth: 728, frameHeight: 720 });
+
         }
         
         // キャラクター固有トークデータ(JSON)

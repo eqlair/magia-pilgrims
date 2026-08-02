@@ -39,12 +39,13 @@ export default class AdventureScene extends Phaser.Scene {
         this.load.image('bg_map_base', 'files/MAP/BG_map.jpg');
         
         // ミニキャラ（全キャラ分）
-        this.load.spritesheet('mini_001', 'files/CHR/001sion002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('mini_001', 'files/CHR/001002.png', { frameWidth: 728, frameHeight: 720 });
         this.load.spritesheet('mini_002', 'files/CHR/002002.png', { frameWidth: 728, frameHeight: 720 });
         this.load.spritesheet('mini_003', 'files/CHR/003002.png', { frameWidth: 728, frameHeight: 720 });
         this.load.spritesheet('mini_004', 'files/CHR/004002.png', { frameWidth: 728, frameHeight: 720 });
         this.load.spritesheet('mini_005', 'files/CHR/005002.png', { frameWidth: 728, frameHeight: 720 });
-        this.load.spritesheet('sion', 'files/CHR/001sion002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('sion', 'files/CHR/001002.png', { frameWidth: 728, frameHeight: 720 });
+
     }
 
     create() {

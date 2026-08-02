@@ -235,37 +235,24 @@ export class BattleRenderer {
                         const isLeft = (angle >= 135 || angle <= -135);    // 左 (dx < 0)
                         const isDown = (!isUp && !isRight && !isLeft);     // 下/手前 (dz > 0)
 
-                        if (charId === '001') {
-                            // 紫苑: 0:下, 1:右, 2:左, 3:上
-                            if (isDown) frame = 0;
-                            else if (isRight) frame = 1;
-                            else if (isLeft) frame = 2;
-                            else if (isUp) frame = 3;
-                        } else if (charId === '005') {
-                            // 李乃果: 前後(上下)反転 ＆ 左右反転
-                            if (isUp) frame = 0;
-                            else if (isDown) frame = 3;
-                            else if (isRight) frame = 1;
-                            else if (isLeft) frame = 2;
-                        } else {
-                            if (isUp) frame = 3;
-                            else if (isRight) frame = 2;
-                            else if (isLeft) frame = 1;
-                            else frame = 0;
-                        }
+                        // 統一仕様: 0:下(前), 1:左, 2:右, 3:上(背面)
+                        if (isDown) frame = 0;
+                        else if (isLeft) frame = 1;
+                        else if (isRight) frame = 2;
+                        else if (isUp) frame = 3;
                     }
                     sprite.setFrame(frame);
                 } else if (isBreakthrough) {
                     // 突破ステージ(rule === 2):
-                    // 攻撃中であればターゲットの方向に応じた攻撃アニメーション、攻撃時以外（idle/moving）は紫苑のみ上向き走行（コマ4, 5）
+                    // 攻撃中であればターゲットの方向に応じた攻撃アニメーション、攻撃時以外（idle/moving）は紫苑のみ上向き走行（コマ3/7）
                     let attackFrame = null;
                     if (entity.targetEnemy && isAttacking) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle >= -45 && angle <= 45) attackFrame = 2; // 右向き(コマ2)
+                        if (angle >= 45 && angle <= 135) attackFrame = 0; // 手前(下)向き(コマ0)
                         else if (angle >= 135 || angle <= -135) attackFrame = 1; // 左向き(コマ1)
-                        else if (angle > 45 && angle < 135) attackFrame = 0; // 手前(下)向き(コマ0)
+                        else if (angle >= -45 && angle <= 45) attackFrame = 2; // 右向き(コマ2)
                         else attackFrame = 3; // 奥(上)向き(コマ3)
                     }
 
@@ -273,9 +260,9 @@ export class BattleRenderer {
                         sprite.setTexture(baseTex);
                         sprite.setFrame(attackFrame);
                     } else if (charId === '001' && this.scene.textures.exists(motionTex)) {
-                        // 紫苑(001): 攻撃時以外はずっと上向き走行モーション(コマ4, 5)を秒4回(250ms毎)で繰り返し！
+                        // 紫苑(001): 攻撃時以外はずっと上向き走行モーション(コマ3と7の交互)を秒4回(250ms毎)で繰り返し！
                         sprite.setTexture(motionTex);
-                        const runFrame = Math.floor(this.scene.time.now / 250) % 2 === 0 ? 4 : 5;
+                        const runFrame = Math.floor(this.scene.time.now / 250) % 2 === 0 ? 3 : 7;
                         sprite.setFrame(runFrame);
                     } else {
                         sprite.setTexture(baseTex);
@@ -288,16 +275,17 @@ export class BattleRenderer {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        let frame = 3;
-                        if (angle > 45 && angle < 135) frame = 3;
-                        else if (angle >= -45 && angle <= 45) frame = 1;
-                        else if (angle >= 135 || angle <= -135) frame = 2;
-                        else frame = 0;
+                        let frame = 0;
+                        if (angle > 45 && angle < 135) frame = 0; // 下
+                        else if (angle >= 135 || angle <= -135) frame = 1; // 左
+                        else if (angle >= -45 && angle <= 45) frame = 2; // 右
+                        else frame = 3; // 上
                         sprite.setFrame(frame);
                     } else {
                         sprite.setFrame(0);
                     }
                 }
+
             }
 
  else if (textureKey.startsWith('battle_')) {
@@ -507,7 +495,8 @@ export class BattleRenderer {
                         sprite.setAlpha(1.0);
                     }
                 } else {
-                    finalScale = p.scale * this.CHAR_BASE_SCALE;
+                    const baseWidth = sprite.width || 728;
+                    finalScale = p.scale * (this.CHAR_BASE_SCALE * (728 / baseWidth));
                     if (entity.owner === 'enemy') {
                         finalScale *= (entity.size || 1.0);
                     }
@@ -516,6 +505,7 @@ export class BattleRenderer {
                         finalScale *= (2.0 - progress);
                     }
                 }
+
                 sprite.setScale(finalScale * scaleAnim);
             }
 

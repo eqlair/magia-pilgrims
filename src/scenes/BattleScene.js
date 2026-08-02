@@ -28,8 +28,9 @@ export default class BattleScene extends Phaser.Scene {
 
     preload() {
         // 戦闘用ミニキャラ（battle_XXX: 立ち絵と別キーで管理）
-        this.load.spritesheet('battle_001', '/files/CHR/001sion002.png', { frameWidth: 728, frameHeight: 720 });
-        this.load.spritesheet('battle_001_b', '/files/CHR/001002b.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('battle_001', '/files/CHR/001002.png', { frameWidth: 728, frameHeight: 720 });
+        this.load.spritesheet('battle_001_b', '/files/CHR/001002b.png', { frameWidth: 150, frameHeight: 150 });
+
         this.load.spritesheet('battle_002', '/files/CHR/002002.png', { frameWidth: 728, frameHeight: 720 });
         this.load.spritesheet('battle_002_b', '/files/CHR/002002b.png', { frameWidth: 728, frameHeight: 720 });
         this.load.image('weapon_002', '/files/CHR/002003.png');

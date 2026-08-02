@@ -11,10 +11,11 @@ export default class MapTestScene extends Phaser.Scene {
     preload() {
         // 画像の読み込み（スプライトシートとして）
         // Shion: 2912x1440, 4x2 = 8 frames -> 728x720 per frame
-        this.load.spritesheet('sion', '/files/CHR/001sion002.png', {
+        this.load.spritesheet('sion', '/files/CHR/001002.png', {
             frameWidth: 728,
             frameHeight: 720
         });
+
 
         // Enemy: 2912x720, 4x1 = 4 frames -> 728x720 per frame
         this.load.spritesheet('enemy', '/files/ENEMY/en001.png', {
