@@ -369,6 +369,11 @@ export default class AdventureScene extends Phaser.Scene {
         // 撤退または全滅からの復帰
 
         if (data && (data.isGameOver || data.isRetreated)) {
+            // イベントシーンが残っていれば終了
+            if (this.scene.isActive('EventScene')) {
+                this.scene.stop('EventScene');
+            }
+
             // 12/21の全滅時はリスポーンイベントへ突入
             if (data.isGameOver && (data.is1221NightBattle || this.currentDay === 21)) {
                 const respData = this.cache.json.get('event_resp');
@@ -389,12 +394,30 @@ export default class AdventureScene extends Phaser.Scene {
                 this._preBattleSnapshot = null;
             }
 
+            // 二重表示を防ぐため既存のメッセージを消去
+            if (this._retreatMsgText) {
+                this._retreatMsgText.destroy();
+                this._retreatMsgText = null;
+            }
+
             const msg = data.isGameOver ? '部隊は全滅した…' : '戦闘から撤退した。';
-            // 簡単なメッセージ表示
-            const txt = this.add.text(this.scale.width/2, this.scale.height/2, msg, {
-                fontSize: '32px', color: '#ff4444', backgroundColor: '#000', padding: {x:20, y:20}
-            }).setOrigin(0.5).setDepth(3000);
-            this.time.delayedCall(3000, () => txt.destroy());
+            // メッセージ表示 (1つのみ単一管理)
+            this._retreatMsgText = this.add.text(this.scale.width/2, this.scale.height/2, msg, {
+                fontFamily: 'sans-serif',
+                fontSize: '28px',
+                color: '#ff6666',
+                backgroundColor: 'rgba(0,0,0,0.85)',
+                padding: { x: 24, y: 16 },
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5).setDepth(3000).setScrollFactor(0);
+
+            this.time.delayedCall(2500, () => {
+                if (this._retreatMsgText) {
+                    this._retreatMsgText.destroy();
+                    this._retreatMsgText = null;
+                }
+            });
             
             // BGM再開
             this.sound.stopAll();
@@ -405,6 +428,7 @@ export default class AdventureScene extends Phaser.Scene {
             }
             return;
         }
+
 
         // 夜探索からの勝利復帰
         if (data && data.isNightExploration && data.fromBattle) {
