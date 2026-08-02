@@ -88,7 +88,26 @@ export default class BattleScene extends Phaser.Scene {
         TransitionManager.fadeIn(this);
         const { width, height } = this.scale;
 
+        // ── テクスチャフィルター: 全スプライトにLINEAR（バイリニア補間）を適用 ──
+        // 大きな画像を小さく縮小する際のガビガビ（アウトラインのにじみ）を軽減する
+        const spriteKeys = [
+            'battle_001', 'battle_001_b',
+            'battle_002', 'battle_002_b', 'weapon_002',
+            'battle_003', 'battle_003_b', 'weapon_003',
+            'battle_004', 'battle_004_b', 'weapon_004',
+            'battle_005', 'battle_005_b', 'weapon_005',
+            'en001', 'en002', 'en003',
+            'boss001', 'boss002', 'boss003', 'boss004',
+            'bullet', 'grenade'
+        ];
+        spriteKeys.forEach(key => {
+            if (this.textures.exists(key)) {
+                this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+            }
+        });
+
         // 敵弾丸用テクスチャ生成（白丸）
+
         if (!this.textures.exists('enemy_bullet')) {
             const bG = this.make.graphics({x:0, y:0, add:false});
             bG.fillStyle(0xffffff, 1.0);

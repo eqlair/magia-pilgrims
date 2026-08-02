@@ -26,10 +26,16 @@ const config = {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
+    // スプライト縮小時のアンチエイリアス（バイリニアフィルタリング）
+    antialias: true,
+    antialiasGL: true,
+    // ピクセルアートモードOFF（ドット絵ではなく滑らかな縮小補間を使用）
+    pixelArt: false,
     // canvasは透明にして背面の動画が見えるようにする
     transparent: true,
     scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DebugMenuScene]
 };
+
 
 export const game = new Phaser.Game(config);
 
