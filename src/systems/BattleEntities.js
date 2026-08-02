@@ -151,12 +151,14 @@ export class PlayerCharacter extends BattleEntity {
 
         this.updateAttackPatterns();
         // --- 特技（オートスキル）用のプロパティ ---
-        this.specialTimer = 0.0;
+        const initSpecialInterval = this.charId === '003' ? 12.0 : 10.0;
+        this.specialTimer = initSpecialInterval; // 開幕はリロードタイム(10s/12s)からスタート
         this.reloadMultiplier = 1.0;
         this.hitRateBonus = 0;
         this.barrierHp = 0;
         this.barrierTimer = 0;
         this.buffTimer = 0; // 紫苑のバフタイマーなど
+
 
         // 必殺技のクールダウン設定
         this.maxUltimateCooldown = Math.max(0, 60.0 - (this.wlv * 2.0));
