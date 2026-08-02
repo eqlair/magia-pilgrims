@@ -702,6 +702,7 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '28px', color: '#aaffaa', backgroundColor: '#224422'
         }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
         this.exploreBtn.on('pointerdown', () => {
+            if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) this._startExploration();
         });
@@ -711,6 +712,7 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '28px', color: '#aaccff', backgroundColor: '#222244'
         }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
         this.restBtn.on('pointerdown', () => {
+            if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) {
                 this.inRestMode = true;
@@ -726,6 +728,7 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: '#333333'
         }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
         this.statusBtn.on('pointerdown', () => {
+            if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             this.scene.pause();
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
@@ -740,7 +743,7 @@ export default class AdventureScene extends Phaser.Scene {
         }).setOrigin(0, 1).setScrollFactor(0).setDepth(500).setPadding(8, 4);
         this._updateFoodDisplay();
 
-        // UI: 広域マップボタン
+        // UI: 広域表示ボタン
         this.isWideMap = false;
         const wideBtn = this.add.text(20, 20, '広域表示にする', {
             fontFamily: 'sans-serif', fontSize: '24px', color: '#aaffaa', backgroundColor: '#333333'
@@ -1359,7 +1362,8 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     onHexTap(hex) {
-        if (this.isJumping || this.isHappyJumping) return;
+        if (this.isWideMap || this.isTransitioningMode || this.isJumping || this.isHappyJumping) return;
+
         
         // 現在地をタップした場合は喜ぶアクション
         if (hex.col === this.playerCol && hex.row === this.playerRow) {
@@ -2005,7 +2009,8 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     update(time, delta) {
-        if (this.isTransitioning) return;
+        if (this.isTransitioning || this.isWideMap) return;
+
         
         // 背景のサイズと位置をズームに反比例させて画面に対して固定する
         const zoom = this.cameras.main.zoom;
