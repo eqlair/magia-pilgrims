@@ -445,7 +445,19 @@ export class BattleEngine {
                 if (tarot.id === 16 && tarot.isUpright && attacker.owner === 'player' && attacker.devilBuff) {
                     finalDamage *= 1.50;
                 }
+                // No.20 審判 (id: 21)
+                if (tarot.id === 21 && attacker.owner === 'player') {
+                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
+                    if (tarot.isUpright && totalAff >= 1) {
+                        attacker.critRateBonus = (attacker.critRateBonus || 0) + 0.05;
+                        attacker.critMultBonus = (attacker.critMultBonus || 0) + 0.50;
+                    } else if (!tarot.isUpright && totalAff <= 0) {
+                        attacker.critRateBonus = (attacker.critRateBonus || 0) + 0.10;
+                        attacker.critMultBonus = (attacker.critMultBonus || 0) + 1.00;
+                    }
+                }
             }
+
 
 
             
@@ -1208,11 +1220,16 @@ export class BattleEngine {
 
             // 突破モード(rule=2)中、味方が前進している分の相対移動 (敵が手前Z方向へ流れる)
             if (this.rule === 2 && !e.isDying && this.waveState === 'playing') {
-                e.z -= (this.advanceSpeed || 0) * dt;
+                    e.z -= (this.advanceSpeed || 0) * dt;
             }
 
+            // 世界(正位置)効果：敵のすべての行動速度を20%遅くする
+            const gs = GlobalState.getInstance();
+            const enemySlowMult = gs.enemySlowActive ? 0.80 : 1.0;
+            const enemyDt = dt * enemySlowMult;
+
             if (e.isDying) {
-                e.deathTimer += dt;
+                e.deathTimer += enemyDt;
                 
                 if (e.isBoss) {
                     // 魔女の死亡演出進行（3段階）

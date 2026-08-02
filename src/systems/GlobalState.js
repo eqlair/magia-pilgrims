@@ -520,7 +520,7 @@ export class GlobalState {
                     }
                 }
                 break;
-            case 17:
+            case 17: // No.16 塔 (id: 17)
                 if (isUpright) {
                     if (party.length >= 2) {
                         const nonMain = party.filter(id => id !== '001');
@@ -528,7 +528,6 @@ export class GlobalState {
                             const targetId = nonMain[Math.floor(Math.random() * nonMain.length)];
                             const targetChar = this.characters[targetId];
                             if (targetChar) {
-                                // 装備品をインベントリに戻す
                                 if (targetChar.equipGem) {
                                     this.inventory.gems.push(targetChar.equipGem);
                                     targetChar.equipGem = null;
@@ -539,80 +538,67 @@ export class GlobalState {
                                         targetChar.equipRelics[i] = null;
                                     }
                                 }
-                            }
-                            // パーティから除外（EXPをストックに回収）
-                            if (targetChar && targetChar.exp) {
-                                this.stockExp += targetChar.exp;
-                                targetChar.exp = 0;
+                                if (targetChar.exp) {
+                                    this.stockExp += targetChar.exp;
+                                    targetChar.exp = 0;
+                                }
                             }
                             delete this.savedFormation[targetId];
-                            console.log(`[Tarot 17] Removed ${targetId} from party and unequipped items`);
+                            console.log(`[Tarot 17 Tower] Removed ${targetId} from party`);
                         }
                     }
                 } else {
-                    this.extraEnemyLevel += 1;
-                    this.extraWaves += 1;
+                    this.extraWitchLevel = (this.extraWitchLevel || 0) + 2;
                 }
                 break;
-            case 18:
+            case 18: // No.17 星 (id: 18)
                 if (isUpright) {
                     for (const cid of party) {
                         const char = this.characters[cid];
                         if (char) {
-                            if (Math.random() < 0.5) {
-                                char.meleeLevel += 1;
-                            } else {
-                                char.rangedLevel += 1;
-                            }
+                            if (Math.random() < 0.5) char.meleeLevel += 1;
+                            else char.rangedLevel += 1;
                         }
                     }
                 } else {
-                    const targetId = party[Math.floor(Math.random() * party.length)];
-                    const char = this.characters[targetId];
-                    if (char) {
-                        char.meleeLevel += 1;
-                        char.rangedLevel += 1;
+                    for (const cid of party) {
+                        const char = this.characters[cid];
+                        if (char) {
+                            char.meleeLevel += 1;
+                            char.rangedLevel += 1;
+                        }
                     }
                 }
                 break;
-            case 19:
+            case 19: // No.18 月 (id: 19)
                 if (isUpright) {
                     this.spMultiplier = 1.5;
                 } else {
-                    // 最も精神力を失っているメンバーの精神力を最大まで回復できる分のSPを得る
-                    let maxMissingSp = 0;
                     for (const cid of party) {
                         const char = this.characters[cid];
                         if (char) {
-                            const stats = this.calcStats(cid, party);
-                            const missing = stats.maxSp - char.currentSp;
-                            if (missing > maxMissingSp) {
-                                maxMissingSp = missing;
-                            }
+                            char.currentSp = (char.currentSp || 0) + 200;
                         }
                     }
-                    if (maxMissingSp > 0) {
-                        this.stockSp += maxMissingSp;
-                        console.log(`[Tarot 19] Gained ${maxMissingSp} SP`);
-                    }
                 }
                 break;
-            case 20:
+            case 20: // No.19 太陽 (id: 20)
                 if (isUpright) {
-                    this.expMultiplier = 2.0;
+                    this.expMultiplier = 1.3;
                 } else {
-                    this.extraEnemyLevel += 2;
+                    this.boostRandomEnemyCells(3);
                 }
                 break;
-            case 22:
+            case 22: // No.21 世界 (id: 22)
                 if (isUpright) {
-                    this.enemySpeedHalf = true;
+                    this.enemySlowActive = true;
                 } else {
-                    this.extraWitchLevel += 2;
+                    this.extraWitchLevel = (this.extraWitchLevel || 0) + 1;
                 }
                 break;
         }
     }
+
 
     // レベルを上げる処理
     levelUp(charId) {
@@ -872,7 +858,28 @@ export class GlobalState {
         this.savedFormation[charId] = fallback;
         return fallback;
     }
+
+    boostRandomEnemyCells(count = 3) {
+        if (this.adventureScene && this.adventureScene.mapGrid) {
+            const enemyCells = [];
+            this.adventureScene.mapGrid.forEach(cell => {
+                if (cell && cell.enemyLevel > 0) enemyCells.push(cell);
+            });
+            const shuffled = enemyCells.sort(() => 0.5 - Math.random());
+            const targets = shuffled.slice(0, count);
+            targets.forEach(c => {
+                c.enemyLevel += 1;
+            });
+            if (this.adventureScene.updateVisibility) {
+                this.adventureScene.updateVisibility();
+            }
+            console.log(`[GlobalState] Boosted level for ${targets.length} enemy cells by +1`);
+        } else {
+            this.extraEnemyLevel = (this.extraEnemyLevel || 0) + 1;
+        }
+    }
 }
+
 
 
 
