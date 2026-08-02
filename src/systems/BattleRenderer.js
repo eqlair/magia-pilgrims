@@ -357,10 +357,23 @@ export class BattleRenderer {
             }
 
             // 色付け（属性ごとの敵弾丸用など）
-            if (textureKey === 'enemy_bullet' && entity.color !== undefined && entity.color !== null) {
-                sprite.setTint(entity.color);
+            if (textureKey === 'enemy_bullet') {
+                let tintColor = entity.color;
+                if (tintColor === undefined || tintColor === null) {
+                    const attrColors = {
+                        red: 0xff3344,
+                        purple: 0xd033ff,
+                        green: 0x33ff66,
+                        yellow: 0xffff33,
+                        blue: 0x33aaff
+                    };
+                    tintColor = attrColors[entity.attribute] || 0xff4444;
+                }
+                sprite.setTint(tintColor);
+                sprite.setBlendMode(Phaser.BlendModes.ADD); // 発光感のある鮮やかな着色
             } else {
                 sprite.clearTint();
+                sprite.setBlendMode(Phaser.BlendModes.NORMAL);
             }
 
             if (entity.owner === 'enemy') {
@@ -382,16 +395,18 @@ export class BattleRenderer {
             if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey.startsWith('weapon_')) {
                 // entity.size (m) に対応するスケールを計算
                 // baseWidthピクセルの画像が、ワールド上でentity.size(m)の幅になるようにする
-                const baseWidth = sprite.width || 50; 
+                const baseWidth = sprite.width || 100; 
                 
                 // ★視認性向上のための描画倍率（当たり判定はそのまま、見た目だけ大きくする）
-                // 敵の弾丸はより威圧感を出すために2.5倍、プレイヤー側は1.5倍で描画する
-                let visualMultiplier = (entity.owner === 'enemy') ? 2.5 : 1.5;
+                // 敵の弾丸(ball.png)は画面で見やすく美しい球体サイズ(3.5倍)に調整
+                let visualMultiplier = (entity.owner === 'enemy') ? 3.5 : 1.5;
+                if (textureKey === 'enemy_bullet') visualMultiplier = 3.5;
                 if (textureKey === 'weapon_004') visualMultiplier = 0.75; // 黄蘭の弾丸は見た目1/2
                 if (textureKey === 'hit_effect6') visualMultiplier = 8.0;  // キック衝撃波はしっかり目立つサイズにする
 
                 
                 sprite.setScale(p.scale * ((entity.size * visualMultiplier) / baseWidth));
+
                 
                 // 進行方向に向ける（弾丸のみ、手りゅう弾は回転させないかクルクル回すか）
                 if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'hit_effect6' || textureKey.startsWith('weapon_')) {

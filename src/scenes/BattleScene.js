@@ -64,10 +64,12 @@ export default class BattleScene extends Phaser.Scene {
 
 
         this.load.image('bullet', '/files/CHR/001004.png');
+        this.load.image('enemy_bullet', '/files/EFFECT/ball.png');
         this.load.image('grenade', '/files/CHR/001003.png');
         for (let i = 1; i <= 6; i++) {
             this.load.image(`hit_effect${i}`, `/files/EFFECT/hit_effect${i}.png`);
         }
+
 
         // 突破BGMと背景画像
         this.load.audio('bgm_toppa', '/files/BGM/toppa.mp3');
