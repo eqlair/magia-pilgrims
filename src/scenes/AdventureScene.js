@@ -755,10 +755,14 @@ export default class AdventureScene extends Phaser.Scene {
                     this.cameras.main.setFollowOffset(0, tweenObj.offsetY);
                     this.mapTiltY = tweenObj.tilt;
                     
-                    // ヘクス位置をまとめて傾き調整
+                    // ヘクス位置と縦潰れ補正を滑らかに更新
                     for (const h of this.hexes) {
                         h.py = h.row * this.hexVertSpacing * this.mapTiltY;
                         h.container.setY(h.py);
+                        if (h.outline) h.outline.scaleY = this.mapTiltY;
+                        if (h.bgSprite && h.bgSprite.width > 0) {
+                            h.bgSprite.setScale(this.hexWidth / h.bgSprite.width, (this.hexWidth / h.bgSprite.width) * this.mapTiltY);
+                        }
                     }
                     
                     const currentHex = this.grid[this.playerRow][this.playerCol];
@@ -769,6 +773,7 @@ export default class AdventureScene extends Phaser.Scene {
                     this.updateVisibility();
                 }
             });
+
 
         });
 
@@ -1084,7 +1089,13 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
+            if (h.outline) {
+                h.outline.scaleY = this.mapTiltY;
+            }
+
+
             if (h.text && h.text.visible !== showText) h.text.setVisible(showText);
+
 
             // 魔女の表示更新（視界内または踏破済みのみ表示）
             if (cell.witchLevel > 0 && isVisibleToPlayer) {
