@@ -51,18 +51,23 @@ export default class AdventureScene extends Phaser.Scene {
         TransitionManager.fadeIn(this);
         const { width, height } = this.scale;
 
-        // 日数と時間帯の設定 (12月1日 午前スタート)
-        this.currentMonth = 12;
-        this.currentDay = 1;
+        // 日数と時間帯の設定
         this.timePeriods = ['午前', '午後', '夜'];
-        this.timePeriodIndex = 0;
+
+        // セーブデータから復元するか、初期値を使うか判定
+        const _savedForDate = this._initData.fromSave ? SaveManager.loadGameData() : null;
+        const _adv = _savedForDate && _savedForDate.adventureState ? _savedForDate.adventureState : null;
+        this.currentMonth = (_adv && _adv.currentMonth) ? _adv.currentMonth : 12;
+        this.currentDay   = (_adv && _adv.currentDay)   ? _adv.currentDay   : 1;
+        this.timePeriodIndex = (_adv && _adv.timePeriodIndex !== undefined) ? _adv.timePeriodIndex : 0;
         this.timeOfDay = this.timePeriods[this.timePeriodIndex];
         
         // 敵の量コントロール
         this.globalEnemyCount = 10;
-        this.globalWaveCount = 3.0;
+        this.globalWaveCount = (_adv && _adv.globalWaveCount) ? _adv.globalWaveCount : 3.0;
         this.globalEnemyLevel = 1;
         this.previousPartySize = 1;
+
 
         // ── BGM制御 ──
         this.sound.stopAll();
