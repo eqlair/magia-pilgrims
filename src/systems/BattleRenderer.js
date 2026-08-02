@@ -788,9 +788,11 @@ export class BattleRenderer {
                 const radiusPx = (eff.radius || 1.5) * p.scale;
                 const baseWidth = obj.width || 300;
                 
-                // 魔女死亡時の大爆発(majo_death_3)は超巨大に拡大
+                // 魔女死亡時の小爆発(majo_death_2)はサイズ2倍、最終大爆発(majo_death_3)は超巨大に拡大
                 let sizeMult = 2.5;
-                if (eff.type === 'majo_death_3') sizeMult = 5.0;
+                if (eff.type === 'majo_death_2') sizeMult = 5.0;
+                if (eff.type === 'majo_death_3') sizeMult = 8.0;
+
 
                 const scaleFactor = 0.4 + progress * 1.2;
                 obj.setScale((radiusPx * sizeMult * scaleFactor) / baseWidth);

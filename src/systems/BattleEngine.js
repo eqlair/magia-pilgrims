@@ -1272,9 +1272,10 @@ export class BattleEngine {
                         for (let i = 0; i < 24; i++) { // 3秒間分一気に仕込む（手抜き）
                             setTimeout(() => {
                                 if (e.isDead) return;
-                                const rx = e.x + (Math.random() - 0.5) * e.size * 0.66;
-                                const rz = e.z + (Math.random() - 0.5) * e.size * 0.66;
-                                this.effects.push(new EffectEntity(rx, rz, { type: 'majo_death_2', radius: e.size * 0.5, lifeTime: 0.5 }));
+                                 const rx = e.x + (Math.random() - 0.5) * e.size * 1.32;
+                                const rz = e.z + (Math.random() - 0.5) * e.size * 1.32;
+                                this.effects.push(new EffectEntity(rx, rz, { type: 'majo_death_2', radius: e.size * 1.0, lifeTime: 0.5 }));
+
                             }, 1000 + (3000 / 24) * i);
                         }
                     } else if (e.deathPhase === 1 && e.deathTimer >= 4.0) { // +3秒後
