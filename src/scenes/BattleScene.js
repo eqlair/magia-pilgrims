@@ -45,19 +45,22 @@ export default class BattleScene extends Phaser.Scene {
         this.load.image('weapon_005', '/files/CHR/005003.png');
 
 
-        // 雑魚敵（画像全体の幅2912px, 高さ720px -> 4分割で728x720）
+        // 雑魚敵（画像全体の幅1200px, 高さ300px -> 4分割で300x300）
         for (let i = 1; i <= 3; i++) {
             this.load.spritesheet(`en00${i}`, `/files/ENEMY/en00${i}.png`, {
-                frameWidth: 728,
-                frameHeight: 720
+                frameWidth: 300,
+                frameHeight: 300
             });
         }
 
-        // ボス（魔女）の個別サイズ指定
-        this.load.spritesheet('boss001', '/files/ENEMY/boss001.png', { frameWidth: 1440, frameHeight: 1456 }); // 5760x1456
-        this.load.spritesheet('boss002', '/files/ENEMY/boss002.png', { frameWidth: 1024, frameHeight: 1024 }); // 4096x1024
-        this.load.spritesheet('boss003', '/files/ENEMY/boss003.png', { frameWidth: 1472, frameHeight: 1456 }); // 5889x1456
-        this.load.spritesheet('boss004', '/files/ENEMY/boss004.png', { frameWidth: 1472, frameHeight: 1456 }); // 5889x1456
+        // ボス（魔女: 画像全体の幅4000px, 高さ1000px -> 4分割で1000x1000）
+        for (let i = 1; i <= 4; i++) {
+            this.load.spritesheet(`boss00${i}`, `/files/ENEMY/boss00${i}.png`, {
+                frameWidth: 1000,
+                frameHeight: 1000
+            });
+        }
+
 
         this.load.image('bullet', '/files/CHR/001004.png');
         this.load.image('grenade', '/files/CHR/001003.png');

@@ -17,11 +17,12 @@ export default class MapTestScene extends Phaser.Scene {
         });
 
 
-        // Enemy: 2912x720, 4x1 = 4 frames -> 728x720 per frame
+        // Enemy: 1200x300, 4x1 = 4 frames -> 300x300 per frame
         this.load.spritesheet('enemy', '/files/ENEMY/en001.png', {
-            frameWidth: 728,
-            frameHeight: 720
+            frameWidth: 300,
+            frameHeight: 300
         });
+
     }
 
     create() {
