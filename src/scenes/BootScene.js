@@ -33,9 +33,10 @@ export default class BootScene extends Phaser.Scene {
         for (let i = 1; i <= 5; i++) {
             this.load.image(`face_00${i}`, `files/CHR/00${i}p.jpg`);
             
-            // 編成画面やマップ画面用のミニキャラ
+            // 編成画面やマップ画面用のミニキャラ（600x300, 4列×2行 = 150x150/フレーム）
             const filePrefix = `00${i}002`;
-            this.load.spritesheet(`mini_00${i}`, `files/CHR/${filePrefix}.png`, { frameWidth: 728, frameHeight: 720 });
+            this.load.spritesheet(`mini_00${i}`, `files/CHR/${filePrefix}.png`, { frameWidth: 150, frameHeight: 150 });
+
 
         }
         

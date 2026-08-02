@@ -27,22 +27,23 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     preload() {
-        // 戦闘用ミニキャラ（600x300, 横4等分 = frameWidth:150, frameHeight:300）
-        this.load.spritesheet('battle_001', '/files/CHR/001002.png', { frameWidth: 150, frameHeight: 300 });
-        this.load.spritesheet('battle_001_b', '/files/CHR/001002b.png', { frameWidth: 150, frameHeight: 300 });
+        // 戦闘用ミニキャラ（600x300, 横4列×縦2行 = frameWidth:150, frameHeight:150）
+        this.load.spritesheet('battle_001', '/files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_001_b', '/files/CHR/001002b.png', { frameWidth: 150, frameHeight: 150 });
 
-        this.load.spritesheet('battle_002', '/files/CHR/002002.png', { frameWidth: 150, frameHeight: 300 });
-        this.load.spritesheet('battle_002_b', '/files/CHR/002002b.png', { frameWidth: 150, frameHeight: 300 });
+        this.load.spritesheet('battle_002', '/files/CHR/002002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_002_b', '/files/CHR/002002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_002', '/files/CHR/002003.png');
-        this.load.spritesheet('battle_003', '/files/CHR/003002.png', { frameWidth: 150, frameHeight: 300 });
-        this.load.spritesheet('battle_003_b', '/files/CHR/003002b.png', { frameWidth: 150, frameHeight: 300 });
+        this.load.spritesheet('battle_003', '/files/CHR/003002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_003_b', '/files/CHR/003002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_003', '/files/CHR/003003.png');
-        this.load.spritesheet('battle_004', '/files/CHR/004002.png', { frameWidth: 150, frameHeight: 300 });
-        this.load.spritesheet('battle_004_b', '/files/CHR/004002b.png', { frameWidth: 150, frameHeight: 300 });
+        this.load.spritesheet('battle_004', '/files/CHR/004002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_004_b', '/files/CHR/004002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_004', '/files/CHR/004003.png');
-        this.load.spritesheet('battle_005', '/files/CHR/005002.png', { frameWidth: 150, frameHeight: 300 });
-        this.load.spritesheet('battle_005_b', '/files/CHR/005002b.png', { frameWidth: 150, frameHeight: 300 });
+        this.load.spritesheet('battle_005', '/files/CHR/005002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_005_b', '/files/CHR/005002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_005', '/files/CHR/005003.png');
+
 
 
         // 雑魚敵（画像全体の幅1200px, 高さ300px -> 4分割で300x300）

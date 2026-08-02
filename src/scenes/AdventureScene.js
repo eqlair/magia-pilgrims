@@ -38,13 +38,15 @@ export default class AdventureScene extends Phaser.Scene {
         // 画面下半分の最背面背景
         this.load.image('bg_map_base', 'files/MAP/BG_map.jpg');
         
-        // ミニキャラ（全キャラ分）
-        this.load.spritesheet('mini_001', 'files/CHR/001002.png', { frameWidth: 728, frameHeight: 720 });
-        this.load.spritesheet('mini_002', 'files/CHR/002002.png', { frameWidth: 728, frameHeight: 720 });
-        this.load.spritesheet('mini_003', 'files/CHR/003002.png', { frameWidth: 728, frameHeight: 720 });
-        this.load.spritesheet('mini_004', 'files/CHR/004002.png', { frameWidth: 728, frameHeight: 720 });
-        this.load.spritesheet('mini_005', 'files/CHR/005002.png', { frameWidth: 728, frameHeight: 720 });
-        this.load.spritesheet('sion', 'files/CHR/001002.png', { frameWidth: 728, frameHeight: 720 });
+        // ミニキャラ（全キャラ分, 600x300 = 4列×2行 = 150x150/フレーム）
+        this.load.spritesheet('mini_001', 'files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_002', 'files/CHR/002002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_003', 'files/CHR/003002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_004', 'files/CHR/004002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_005', 'files/CHR/005002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('sion', 'files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
+
+
 
     }
 
