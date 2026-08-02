@@ -147,22 +147,6 @@ export default class AdventureScene extends Phaser.Scene {
             h.bgSprite = this.add.sprite(0, 0, 'map_img_woods.jpg');
             h.bgSprite.setScale(1, this.mapTiltY);
             
-            // 敵エフェクト用Sprite
-            h.effSprite = this.add.sprite(0, 0, 'map_img_map_eff1.jpg');
-            h.effSprite.setScale(1, this.mapTiltY);
-            h.effSprite.setAlpha(0);
-            h.effSprite.setBlendMode(Phaser.BlendModes.ADD);
-
-            // アニメーション (0~50%で明滅)
-            this.tweens.add({
-                targets: h.effSprite,
-                alpha: 0.5,
-                yoyo: true,
-                repeat: -1,
-                duration: 1500 + Math.random() * 500,
-                ease: 'Sine.easeInOut'
-            });
-
             // インタラクティブ領域
             h.bgSprite.setInteractive();
             h.bgSprite.on('pointerdown', () => {
@@ -186,7 +170,8 @@ export default class AdventureScene extends Phaser.Scene {
                 align: 'center'
             }).setOrigin(0.5, 0.5);
 
-            h.container.add([h.bgSprite, h.effSprite, h.outline, h.text]);
+            h.container.add([h.bgSprite, h.outline, h.text]);
+
 
             h.witchSprite = this.add.sprite(0, 0, 'map_witch');
             const witchW = h.witchSprite.width || 300;
@@ -1025,20 +1010,8 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            // 敵の気配エフェクト（プレイヤー視界内のみ表示して省力化）
-            if (showEffect && this.textures.exists(`map_img_map_eff${cell.enemyAttr}.jpg`)) {
-                h.effSprite.setTexture(`map_img_map_eff${cell.enemyAttr}.jpg`);
-                h.effSprite.setVisible(true);
-                
-                const ew = h.effSprite.width;
-                if (ew > 0) {
-                    h.effSprite.setScale(this.hexWidth / ew);
-                }
-            } else {
-                h.effSprite.setVisible(false);
-            }
-            
             h.text.setVisible(showText);
+
             
             // 魔女の表示更新（視界内または踏破済みのみ表示）
             if (cell.witchLevel > 0 && isVisibleToPlayer) {
