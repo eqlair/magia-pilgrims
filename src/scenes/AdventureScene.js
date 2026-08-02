@@ -152,17 +152,23 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
 
-        // 21箇所のヘクスに魔女をランダム配置
-        const landHexes = this.hexes.filter(h => h.cellData.enemyLevel > 0);
-        for (let i = landHexes.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [landHexes[i], landHexes[j]] = [landHexes[j], landHexes[i]];
+        // セーブデータが存在しない場合（新規プレイ開始時）のみ魔女21箇所をランダム配置
+        const savedDataForWitch = SaveManager.loadGameData();
+        const hasSavedAdventure = savedDataForWitch && savedDataForWitch.adventureState && savedDataForWitch.adventureState.hexStates;
+
+        if (!hasSavedAdventure) {
+            const landHexes = this.hexes.filter(h => h.cellData.enemyLevel > 0);
+            for (let i = landHexes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [landHexes[i], landHexes[j]] = [landHexes[j], landHexes[i]];
+            }
+            const witchHexes = landHexes.slice(0, 21);
+            for (const wh of witchHexes) {
+                wh.cellData.witchLevel = wh.cellData.enemyLevel;
+                wh.cellData.initialWitchLevel = wh.cellData.enemyLevel;
+            }
         }
-        const witchHexes = landHexes.slice(0, 21);
-        for (const wh of witchHexes) {
-            wh.cellData.witchLevel = wh.cellData.enemyLevel;
-            wh.cellData.initialWitchLevel = wh.cellData.enemyLevel;
-        }
+
 
 
         // ヘックスごとの描画セットアップ

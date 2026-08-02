@@ -433,12 +433,12 @@ export default class EquipmentScene extends Phaser.Scene {
 
         // ── スマホ用右端 ページ送り (▲ / ▼) ボタンの追加 ──
         const scrollBtnX = this.width - 35;
-        const btnUp = this.add.text(scrollBtnX, 420 + 40, '▲\n上', {
-            fontSize: '16px', color: '#aaffaa', backgroundColor: '#334433', align: 'center', padding: { x: 8, y: 12 }
+        const btnUp = this.add.text(scrollBtnX, 45, '▲\n上', {
+            fontSize: '18px', color: '#ffffff', backgroundColor: '#225533', align: 'center', fontStyle: 'bold', padding: { x: 10, y: 10 }
         }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
 
-        const btnDown = this.add.text(scrollBtnX, 420 + listHeight - 10, '▼\n下', {
-            fontSize: '16px', color: '#aaffaa', backgroundColor: '#334433', align: 'center', padding: { x: 8, y: 12 }
+        const btnDown = this.add.text(scrollBtnX, listHeight - 10, '▼\n下', {
+            fontSize: '18px', color: '#ffffff', backgroundColor: '#225533', align: 'center', fontStyle: 'bold', padding: { x: 10, y: 10 }
         }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
 
         this.bottomContainer.add(btnUp);
@@ -458,6 +458,7 @@ export default class EquipmentScene extends Phaser.Scene {
 
         btnUp.on('pointerdown', () => scrollByAmount(180));
         btnDown.on('pointerdown', () => scrollByAmount(-180));
+
 
         // PCマウスホイールスクロール
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
