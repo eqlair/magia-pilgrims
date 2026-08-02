@@ -129,19 +129,30 @@ export default class DemoScene extends Phaser.Scene {
         // すでに表示されていれば無視
         if (document.getElementById('battle-config-panel')) return;
 
+        const { width, height } = this.scale;
+        // 下のPhaserボタンへの入力貫通を防ぐ全画面遮断レイヤー
+        const modalBlocker = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.5)
+            .setDepth(999)
+            .setInteractive();
+
         const panel = document.createElement('div');
         panel.id = 'battle-config-panel';
         panel.style.position = 'absolute';
         panel.style.top = '50%';
         panel.style.left = '50%';
         panel.style.transform = 'translate(-50%, -50%)';
-        panel.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+        panel.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
         panel.style.border = '2px solid #a54a4a';
         panel.style.padding = '20px';
         panel.style.color = '#fff';
         panel.style.fontFamily = 'sans-serif';
         panel.style.zIndex = '1000';
         panel.style.width = '300px';
+
+        // パネル上のタッチ・クリックイベントがCanvasへ透過しないようにブロック
+        ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend', 'mousedown', 'mouseup'].forEach(evt => {
+            panel.addEventListener(evt, (e) => e.stopPropagation());
+        });
 
         panel.innerHTML = `
             <h2 style="margin-top:0; text-align:center; color:#ffaaaa;">Battle Config</h2>
@@ -183,7 +194,7 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="bc-party" value="004"> 4.黄蘭</label><br>
                 <label><input type="checkbox" class="bc-party" value="005"> 5.李乃果</label>
             </div>
-            <div style="display:flex; justify-content:space-between;">
+            <div style="display:flex; justify-style:space-between;">
                 <button id="bc-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>
                 <button id="bc-start" style="padding:5px 10px; background-color:#a54a4a; color:#fff; border:none; cursor:pointer;">START</button>
             </div>
@@ -191,9 +202,12 @@ export default class DemoScene extends Phaser.Scene {
 
         document.body.appendChild(panel);
 
-        document.getElementById('bc-cancel').addEventListener('click', () => {
+        const closePanel = () => {
+            if (modalBlocker) modalBlocker.destroy();
             panel.remove();
-        });
+        };
+
+        document.getElementById('bc-cancel').addEventListener('click', closePanel);
 
         document.getElementById('bc-start').addEventListener('click', () => {
             const partySelect = Array.from(document.querySelectorAll('.bc-party'))
@@ -206,9 +220,9 @@ export default class DemoScene extends Phaser.Scene {
                 enemyCount: parseInt(document.getElementById('bc-enemy').value, 10) || 10,
                 waveCount: parseInt(document.getElementById('bc-wave').value) || 1,
                 majoLevel: parseInt(document.getElementById('bc-majo').value) || 0,
-                party: partySelect.length > 0 ? partySelect : ['001'] // 最低でも1人は参加させる
+                party: partySelect.length > 0 ? partySelect : ['001']
             };
-            panel.remove();
+            closePanel();
             TransitionManager.transitionTo(this, 'BattleScene', config);
         });
     }
@@ -216,19 +230,28 @@ export default class DemoScene extends Phaser.Scene {
     _showAdventureConfig() {
         if (document.getElementById('adv-config-panel')) return;
 
+        const { width, height } = this.scale;
+        const modalBlocker = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.5)
+            .setDepth(999)
+            .setInteractive();
+
         const panel = document.createElement('div');
         panel.id = 'adv-config-panel';
         panel.style.position = 'absolute';
         panel.style.top = '50%';
         panel.style.left = '50%';
         panel.style.transform = 'translate(-50%, -50%)';
-        panel.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+        panel.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
         panel.style.border = '2px solid #5a5a2a';
         panel.style.padding = '20px';
         panel.style.color = '#fff';
         panel.style.fontFamily = 'sans-serif';
         panel.style.zIndex = '1000';
         panel.style.width = '250px';
+
+        ['pointerdown', 'pointerup', 'click', 'touchstart', 'touchend', 'mousedown', 'mouseup'].forEach(evt => {
+            panel.addEventListener(evt, (e) => e.stopPropagation());
+        });
 
         panel.innerHTML = `
             <h2 style="margin-top:0; text-align:center; color:#ffdd77;">Adventure Config</h2>
@@ -248,9 +271,12 @@ export default class DemoScene extends Phaser.Scene {
 
         document.body.appendChild(panel);
 
-        document.getElementById('ac-cancel').addEventListener('click', () => {
+        const closePanel = () => {
+            if (modalBlocker) modalBlocker.destroy();
             panel.remove();
-        });
+        };
+
+        document.getElementById('ac-cancel').addEventListener('click', closePanel);
 
         document.getElementById('ac-start').addEventListener('click', () => {
             const partySelect = Array.from(document.querySelectorAll('.ac-party'))
@@ -260,8 +286,9 @@ export default class DemoScene extends Phaser.Scene {
             const config = {
                 party: partySelect.length > 0 ? partySelect : ['001']
             };
-            panel.remove();
+            closePanel();
             TransitionManager.transitionTo(this, 'AdventureScene', config);
         });
     }
+
 }
