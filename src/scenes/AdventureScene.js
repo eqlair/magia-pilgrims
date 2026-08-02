@@ -1188,26 +1188,29 @@ export default class AdventureScene extends Phaser.Scene {
 
             
             // 可愛いジャンプアニメーション（Z軸ジャンプと回転・スケール）
-            const jumpObj = { z: 0, angle: 0, scale: 0.15 };
+            const baseScaleX = this.PSCALE_X;
+            const baseScaleY = this.PSCALE_Y;
+            const jumpObj = { z: 0, angle: 0, scaleMult: 1.0 };
             this.tweens.add({
                 targets: jumpObj,
                 z: -30,
                 angle: (dirFrame === 1) ? 15 : (dirFrame === 2) ? -15 : 0, // 右=右傾き, 左=左傾き
-                scale: 0.18, // 少し膨らむ
+                scaleMult: 1.08, // 少し跳ねて膨らむ(1.0 -> 1.08)
                 yoyo: true,
                 duration: 200,
                 ease: 'Sine.easeOut',
                 onUpdate: () => {
                     this.player.displayOriginY = this.player.height / 2 - jumpObj.z / this.player.scaleY;
                     this.player.setAngle(jumpObj.angle);
-                    this.player.setScale(jumpObj.scale);
+                    this.player.setScale(baseScaleX * jumpObj.scaleMult, baseScaleY * jumpObj.scaleMult);
                 },
                 onComplete: () => {
                     this.player.displayOriginY = this.player.height / 2;
                     this.player.setAngle(0);
-                    this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
+                    this.player.setScale(baseScaleX, baseScaleY);
                 }
             });
+
 
         } else {
                 this.player.setPosition(hex.px, hex.py - this.CHAR_OFFSET_Y);
@@ -1729,8 +1732,9 @@ export default class AdventureScene extends Phaser.Scene {
             const startX = width * 0.2 + Math.random() * (width * 0.6);
             const startY = height * 0.3 + Math.random() * (height * 0.4);
 
-            const runner = this.add.image(startX, startY, spriteKey)
-                .setScale(0.13);
+            const runner = this.add.sprite(startX, startY, spriteKey)
+                .setScale(this.PSCALE_X || 0.45, this.PSCALE_Y || 0.45)
+                .setFrame(3); // 初期: 下向き
 
             this._exploreContainer.add(runner);
             runners.push(runner);
@@ -1747,7 +1751,22 @@ export default class AdventureScene extends Phaser.Scene {
                 const dist = Math.hypot(dx, dy);
                 const duration = Math.max(250, (dist / speedFactor) * 1000);
 
-                runner.setFlipX(dx < 0);
+                // 走る方向に合わせた向き設定 (0:上, 1:左, 2:右, 3:下)
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    if (dy < 0) {
+                        runner.setFrame(0); // 上向き
+                    } else {
+                        runner.setFrame(3); // 下向き
+                    }
+                    runner.setFlipX(false);
+                } else {
+                    if (dx < 0) {
+                        runner.setFrame(1); // 左向き
+                    } else {
+                        runner.setFrame(2); // 右向き
+                    }
+                    runner.setFlipX(false);
+                }
 
                 const tw = this.tweens.add({
                     targets: runner,
@@ -1768,6 +1787,7 @@ export default class AdventureScene extends Phaser.Scene {
 
             runToRandomPoint();
         });
+
 
         // 5秒後に探索完了
         this.time.delayedCall(5000, () => {
