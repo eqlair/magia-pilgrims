@@ -769,7 +769,7 @@ export class BattleRenderer {
             } else if (eff.type === 'kick_hit') {
                 obj = this.scene.add.sprite(0, 0, 'hit_effect6');
                 obj.setDepth(2000);
-            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb') {
+            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
                 obj = this.scene.add.sprite(0, 0, 'bomb');
                 obj.setDepth(1800);
             } else {
@@ -782,18 +782,23 @@ export class BattleRenderer {
         if (p.visible) {
             let progress = 1.0 - (eff.lifeTime / eff.maxLife);
 
-            if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb') {
-                // 爆発エフェクト: bomb.png (300x300) を使用。着色なしで急拡大＆フェードアウト
+            if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
+                // 爆発エフェクト (魔女死亡時含む): bomb.png (300x300) を使用。着色なしで急拡大＆フェードアウト
                 obj.setPosition(p.x, p.y - p.scale * 0.5);
                 const radiusPx = (eff.radius || 1.5) * p.scale;
                 const baseWidth = obj.width || 300;
-                // ドカンと拡大する演出（0.4倍 -> 1.4倍）
-                const scaleFactor = 0.4 + progress * 1.0;
-                obj.setScale((radiusPx * 2.5 * scaleFactor) / baseWidth);
-                obj.setAlpha(Math.max(0, (1.0 - progress) * 0.9));
+                
+                // 魔女死亡時の大爆発(majo_death_3)は超巨大に拡大
+                let sizeMult = 2.5;
+                if (eff.type === 'majo_death_3') sizeMult = 5.0;
+
+                const scaleFactor = 0.4 + progress * 1.2;
+                obj.setScale((radiusPx * sizeMult * scaleFactor) / baseWidth);
+                obj.setAlpha(Math.max(0, (1.0 - progress) * 0.95));
                 obj.clearTint(); // 着色しない
                 return;
             }
+
             
             if ((eff.type && eff.type.startsWith('element_hit_')) || eff.type === 'kick_hit') {
 
