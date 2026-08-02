@@ -20,8 +20,9 @@ export const ENEMY_TYPES = [
     { id: 7, name: 'オーク', spawnCount: 6, hp: 90, speed: 30, moveDist: 3.9, moveInterval: 0.5, atkRange: 8.0, atkFreq: 2.0, atkPower: 1, weight: 75, debuffResist: 0, size: 0.75, textureKey: 'en001', frame: 0 },
     { id: 8, name: 'オーガ', spawnCount: 3, hp: 125, speed: 25, moveDist: 3.6, moveInterval: 0.35, atkRange: 8.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 1.0, textureKey: 'en002', frame: 2 },
     { id: 9, name: 'ゴーレム', spawnCount: 1, hp: 250, speed: 25, moveDist: 3.6, moveInterval: 0.6, atkRange: 8.0, atkFreq: 2.0, atkPower: 1, weight: 110, debuffResist: 50, size: 1.25, textureKey: 'en002', frame: 1 },
-    { id: 10, name: 'サンドバッグ', spawnCount: 3, hp: 99999, speed: 0, moveDist: 0, moveInterval: 99, atkRange: 0, atkFreq: 99, atkPower: 0, weight: 100, debuffResist: 100, size: 1.0, textureKey: 'en001', frame: 1 }
+    { id: 10, name: 'サンドバッグ', spawnCount: 3, hp: 99999, speed: 0, moveDist: 0, moveInterval: 99, atkRange: 0, atkFreq: 99, atkPower: 0, weight: 1000, debuffResist: 100, size: 1.0, textureKey: 'en001', frame: 1 }
 ];
+
 
 
 export class BattleEngine {
@@ -1146,9 +1147,10 @@ export class BattleEngine {
                 const dist = Math.sqrt(dx * dx + dz * dz);
                 
                 if (dist > 0.02) {
-                    // 目標地点(初期位置)へ秒速1.0mの速度で戻る
-                    const returnSpeed = 1.0;
+                    // 目標地点(初期位置)へ秒速3.0mの速度で迅速に戻る(3倍速)
+                    const returnSpeed = 3.0;
                     const step = Math.min(dist, returnSpeed * dt);
+
                     e.x += (dx / dist) * step;
                     e.z += (dz / dist) * step;
                 } else {
