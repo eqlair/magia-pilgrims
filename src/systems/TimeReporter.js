@@ -50,10 +50,10 @@ export class TimeReporter {
             .setAlpha(0)
             .setDepth(DEPTH)
             .setScrollFactor(0)
-            .setScale(1, 0.01); // ほぼ0から始める（0だとtweenが効かない場合がある）
+            .setScale(1, 0.01); // ほぼ0から始める
 
-        // ── 日付テキスト（右に隠れた位置からスタート）──
-        const label = scene.add.text(width + 400, CY - 10, displayText, {
+        // ── 日付テキスト（帯上下中央にピッタリ配置・setOrigin 0.5, 0.5）──
+        const label = scene.add.text(width + 400, CY, displayText, {
             fontFamily: FONT_MAIN,
             fontSize: Math.floor(height / 13) + 'px',
             color: '#ffffff',
@@ -61,19 +61,19 @@ export class TimeReporter {
             stroke: '#000000',
             strokeThickness: 4,
             shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 8, fill: true }
-        }).setOrigin(0.5, 1).setDepth(DEPTH + 1).setScrollFactor(0).setAlpha(0);
-        // uiCameraが用意されているシーン（AdventureSceneなど）では、メインカメラを無視してUIカメラだけに描画させる
+        }).setOrigin(0.5, 0.5).setDepth(DEPTH + 1).setScrollFactor(0).setAlpha(0);
+
         if (scene.cameras.main && scene.uiCamera) {
             scene.cameras.main.ignore([blocker, band, label]);
         }
 
         // ──────────────────────────────
-        // ステップ1: 帯が中心から上下に広がる + テキストが右から来る
+        // ステップ1: 帯が中心から上下に広がる (不透明度80%) + テキストが右から来る
         // ──────────────────────────────
         scene.tweens.add({
             targets: band,
-            alpha: 1,
-            scaleY: 1,           // ← これで上下均等に広がる（origin中心のため）
+            alpha: 0.8, // 不透明度80%
+            scaleY: 1,  // 上下均等に広がる
             duration: 500,
             ease: 'Quad.easeOut'
         });
@@ -85,9 +85,10 @@ export class TimeReporter {
             duration: 450,
             ease: 'Back.easeOut',
 
-            // ステップ2: 中央で0.7秒停止 → テキストが左へ流れる
+            // ステップ2: 中央で1.7秒静止（1秒延長） → テキストが左へ流れる
             onComplete: () => {
-                scene.time.delayedCall(700, () => {
+                scene.time.delayedCall(1700, () => {
+
                     scene.tweens.add({
                         targets: label,
                         x: -400,
