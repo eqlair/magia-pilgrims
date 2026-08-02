@@ -383,17 +383,26 @@ export default class BattleScene extends Phaser.Scene {
                 this.sound.play('se_awaken_boss', { volume: 1.0 });
             }
 
-            // ワーニング画像の横流し（3秒かけて右から左へ）
+            // ワーニング画像の横流し（不透明度80%、元の迫力ある大きさに拡大し、4秒かけてゆったり右から左へ流す）
             const { width, height } = this.scale;
-            const warnImg = this.add.image(width + 400, height / 2, 'warn001').setDepth(3000);
+            const scaleFactor = 1.6; // 元の大きさに拡大（幅約960px, 高さ320px）
+            const imgWidth = 600 * scaleFactor;
+            const startX = width + (imgWidth / 2);
+            const endX = -(imgWidth / 2);
+
+            const warnImg = this.add.image(startX, height / 2, 'warn001')
+                .setDepth(3000)
+                .setAlpha(0.8) // 不透明度80%
+                .setScale(scaleFactor);
             
             this.tweens.add({
                 targets: warnImg,
-                x: -400,
-                duration: 3000,
+                x: endX,
+                duration: 4000, // 3秒 + 1秒延長 = 4秒間
                 ease: 'Linear',
                 onComplete: () => warnImg.destroy()
             });
+
         }
 
         // 魔女戦闘開始時のBGM
