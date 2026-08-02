@@ -999,31 +999,41 @@ export default class AdventureScene extends Phaser.Scene {
 
     // 背景用: カット前の元画像キーを返す（bg_img_ プレフィックス）
     findBgImageFile(col, row, cellData) {
+        if (!cellData) return 'map_img_woods.jpg';
         const colLetter = String.fromCharCode(97 + col);
         const rowNum = row + 1;
         
         const regexSpecific = new RegExp(`^m\\(${colLetter},${rowNum}\\)(r)?\\.(jpg|png)$`, 'i');
-        const regexGeneric = new RegExp(`^m\\(${cellData.name}\\)(r)?\\.(jpg|png)$`, 'i');
+        const cleanName = (cellData.name || '').replace(/\n/g, '');
+        const regexGeneric = new RegExp(`^m\\(${cleanName}\\)(r)?\\.(jpg|png)$`, 'i');
         
         let foundSpecific = null;
         let foundGeneric = null;
 
         for (const file of MapFileList) {
             if (regexSpecific.test(file)) foundSpecific = file;
-            if (regexGeneric.test(file)) foundGeneric = file;
+            if (cleanName && regexGeneric.test(file)) foundGeneric = file;
         }
 
-        if (foundSpecific) return `bg_img_${foundSpecific}`;
+        if (foundSpecific && this.textures.exists(`bg_img_${foundSpecific}`)) {
+            return `bg_img_${foundSpecific}`;
+        }
+        if (foundGeneric && this.textures.exists(`bg_img_${foundGeneric}`)) {
+            return `bg_img_${foundGeneric}`;
+        }
         if (cellData.name === '水域') {
             return (this.timeOfDay === '夜') ? 'map_img_sea_night.png' : 'map_img_sea_day.png';
         }
         if (cellData.name === '密林') {
-            return 'bg_img_woods.jpg';
+            return this.textures.exists('bg_img_m(woods).jpg') ? 'bg_img_m(woods).jpg' : 'map_img_woods.jpg';
         }
-        if (foundGeneric) return `bg_img_${foundGeneric}`;
         
-        return 'bg_img_woods.jpg';
+        if (foundSpecific) return `map_img_${foundSpecific}`;
+        if (foundGeneric) return `map_img_${foundGeneric}`;
+        
+        return 'map_img_woods.jpg';
     }
+
 
     getHexDistance(col1, row1, col2, row2) {
         // Odd-r からキューブ座標への変換
@@ -1882,19 +1892,16 @@ export default class AdventureScene extends Phaser.Scene {
         this.bgCurrent = this.add.image(width / 2, height / 2, 'map_img_woods.jpg')
             .setScrollFactor(0)
             .setDepth(-100)
-            .setDisplaySize(width, height)
             .setVisible(false);
         
         // 移動先の背景（フェードイン用）
         this.bgNext = this.add.image(width / 2, height / 2, 'map_img_woods.jpg')
             .setScrollFactor(0)
             .setDepth(-99)
-            .setDisplaySize(width, height)
             .setAlpha(0)
             .setVisible(false);
         
-        // 背景はメインカメラに描画（深度-100でマップの背後）
-        // UIカメラから無視する
+        // 背景はメインカメラに描画（UIカメラから無視）
         this.nightOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6)
             .setScrollFactor(0)
             .setDepth(-98)
@@ -1903,16 +1910,16 @@ export default class AdventureScene extends Phaser.Scene {
             
         this.uiCamera.ignore([this.bgCurrent, this.bgNext, this.baseBg, this.nightOverlay]);
         
-        // サイズと位置は update() でズームに合わせて動的に計算し、
-        // 常に「横幅いっぱい」「下端が画面中心」になるようにする
         this.bgCurrent.setOrigin(0.5, 1);
         this.bgNext.setOrigin(0.5, 1);
         
         // 初期背景: 現在いるヘクスの画像を設定
-        const currentHex = this.grid[this.playerRow][this.playerCol];
-        const bgKey = this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData);
-        if (this.textures.exists(bgKey)) {
-            this.bgCurrent.setTexture(bgKey).setVisible(true).setAlpha(1);
+        const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+        if (currentHex) {
+            const bgKey = this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData);
+            if (this.textures.exists(bgKey)) {
+                this.bgCurrent.setTexture(bgKey).setVisible(true).setAlpha(1);
+            }
         }
         this.updateNightOverlay();
     }
@@ -1924,35 +1931,41 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     updateBackground(hex, animate) {
-        if (!this.bgCurrent || !this.bgCurrent.sys || !this.bgNext || !this.bgNext.sys) return;
-        if (!hex) return;
+        if (!this.bgCurrent || !this.bgNext || !hex) return;
         
-        // 背景用は元画像（カット前）を使用
+        // 背景用は現在いるヘクスの画像を取得
         const bgKey = this.findBgImageFile(hex.col, hex.row, hex.cellData);
-        const { width, height } = this.scale;
-        
         if (!this.textures.exists(bgKey)) return;
 
-        
+        // すでに同じ背景がセットされている場合はそのまま
+        if (this.bgCurrent.texture.key === bgKey && !this.bgNext.visible) return;
+
         if (!animate) {
             this.bgCurrent.setTexture(bgKey).setVisible(true).setAlpha(1);
+            this.bgNext.setVisible(false).setAlpha(0);
             return;
         }
         
-        // フェードイン: 移動先画像を上に重ねて透明度0からフェードイン
-        this.bgNext.setTexture(bgKey).setAlpha(0).setVisible(true);
+        // 旧背景(bgCurrent)の上に新背景(bgNext)を重ねて透明度0→1にクロスフェード（黒バックが見えない）
+        this.bgNext.setTexture(bgKey)
+            .setScale(this.bgCurrent.scaleX, this.bgCurrent.scaleY)
+            .setPosition(this.bgCurrent.x, this.bgCurrent.y)
+            .setAlpha(0)
+            .setVisible(true);
         
+        this.tweens.killTweensOf(this.bgNext);
         this.tweens.add({
             targets: this.bgNext,
             alpha: 1,
-            duration: 400,
-            ease: 'Linear',
+            duration: 450,
+            ease: 'Cubic.easeOut',
             onComplete: () => {
                 this.bgCurrent.setTexture(bgKey).setAlpha(1).setVisible(true);
                 this.bgNext.setVisible(false).setAlpha(0);
             }
         });
     }
+
 
     resetIdleTimer() {
         if (this.idleTimer) {
