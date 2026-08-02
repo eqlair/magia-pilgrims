@@ -106,11 +106,12 @@ export default class AdventureScene extends Phaser.Scene {
         this.timeOfDay = this.timePeriods[this.timePeriodIndex];
 
         
-        // 敵の量コントロール
-        this.globalEnemyCount = 10;
-        this.globalWaveCount = (_adv && _adv.globalWaveCount) ? _adv.globalWaveCount : 3.0;
+        // 敵の量・ウェーブ数コントロール（デフォルトウェーブ数: 2）
+        this.globalWaveCount = (_adv && _adv.globalWaveCount) ? _adv.globalWaveCount : 2.0;
+        this.globalEnemyCount = (_adv && _adv.globalEnemyCount !== undefined) ? _adv.globalEnemyCount : 10;
         this.globalEnemyLevel = 1;
         this.previousPartySize = 1;
+
 
 
         // ── BGM制御 ──
@@ -1464,16 +1465,15 @@ export default class AdventureScene extends Phaser.Scene {
                 this._dec21MorningApplied = true;
                 this.globalEnemyLevel += 1;
                 this.globalEnemyCount += 50;
-                this.globalWaveCount = (this.globalWaveCount || 1) + 1;
                 gsInst.debugEnemySizeMultiplier = 1.2;
             } else if (this.timePeriodIndex === 1 && !this._dec21AfternoonApplied) {
                 this._dec21AfternoonApplied = true;
                 this.globalEnemyLevel += 1;
                 this.globalEnemyCount += 50;
-                this.globalWaveCount = (this.globalWaveCount || 1) + 1;
                 gsInst.debugEnemySizeMultiplier = 1.2;
             }
         }
+
 
 
 
@@ -1578,32 +1578,32 @@ export default class AdventureScene extends Phaser.Scene {
     showTimeSignal(onComplete = null) {
         // TimeReporterを使って時報を表示。時報終了後にイベント起動およびタロット起動チェック
         TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
-            let anyEventFired = false;
+            // 1. スケジュールイベントチェック（12/7イベント等）を最優先で発動！
+            const eventFired = this.checkScheduledEvents();
+            if (eventFired) {
+                // イベントが起動した場合はタロット等の重複起動を防止
+                return;
+            }
 
-            // 食料ゼロ等のイベントコールバック
+            // 2. 食料ゼロ等の特別イベントコールバック
             if (typeof onComplete === 'function') {
                 onComplete();
-                anyEventFired = true; // イベント起動あり（EventSceneへ遷移する）
+                return;
             }
 
-            // スケジュールイベントチェック（各メソッドが起動したらtrueを返す）
-            const eventFired = this.checkScheduledEvents();
-            if (eventFired) anyEventFired = true;
-
-            // タロット引き（午前→午後の切り替えタイミング）
+            // 3. タロット引き（午前→午後の切り替えタイミング）
             if (this._pendingTarot) {
                 this._pendingTarot = false;
-                anyEventFired = true;
                 this.scene.pause();
                 this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
+                return;
             }
 
-            // イベントが何も発動しなかった場合 = 入力待ち状態になったのでセーブ
-            if (!anyEventFired) {
-                SaveManager.saveGame(this);
-            }
+            // イベントが何も発動しなかった場合 = 入力待ち状態になったので自動保存
+            SaveManager.saveGame(this);
         });
     }
+
 
 
 
@@ -2150,8 +2150,9 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1207Event() {
         const gs = GlobalState.getInstance();
-        // 12月7日の午後の終わり（夜に切り替わった直後: timePeriodIndex === 2）
-        if (this.currentDay === 7 && this.timePeriodIndex === 2 && !gs.event1207Played) {
+        // 12月7日の夜(timePeriodIndex === 2)またはそれ以降で未再生の場合に発動
+        if (this.currentDay >= 7 && !gs.event1207Played) {
+            if (this.currentDay === 7 && this.timePeriodIndex < 2) return false; // 12/7の午前・午後は夜まで待つ
             gs.event1207Played = true;
             const eventData = this.cache.json.get('event_1207');
             if (eventData) {
@@ -2161,11 +2162,12 @@ export default class AdventureScene extends Phaser.Scene {
                     returnScene: 'AdventureScene',
                     from1207Event: true
                 });
-                return true; // イベント発動した
+                return true; // イベント発動
             }
         }
         return false;
     }
+
 
     check1214Event() {
         const gs = GlobalState.getInstance();
@@ -2366,7 +2368,9 @@ export default class AdventureScene extends Phaser.Scene {
         if (adv.timeOfDay !== undefined) this.timeOfDay = adv.timeOfDay;
         if (adv.timePeriodIndex !== undefined) this.timePeriodIndex = adv.timePeriodIndex;
         if (adv.globalWaveCount !== undefined) this.globalWaveCount = adv.globalWaveCount;
+        if (adv.globalEnemyCount !== undefined) this.globalEnemyCount = adv.globalEnemyCount;
         if (adv.inRestMode !== undefined) this.inRestMode = adv.inRestMode;
+
         if (adv.party) this.party = adv.party;
         this.previousPartySize = (adv.previousPartySize !== undefined) ? adv.previousPartySize : (this.party ? this.party.length : 1);
 

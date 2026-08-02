@@ -77,8 +77,10 @@ export class SaveManager {
                     currentDay: adventureScene.currentDay || 1,
                     timeOfDay: adventureScene.timeOfDay || '午前',
                     timePeriodIndex: adventureScene.timePeriodIndex || 0,
-                    globalWaveCount: adventureScene.globalWaveCount || 1,
+                    globalWaveCount: adventureScene.globalWaveCount || 2,
+                    globalEnemyCount: adventureScene.globalEnemyCount !== undefined ? adventureScene.globalEnemyCount : 10,
                     party: adventureScene.party || ['001'],
+
                     previousPartySize: adventureScene.party ? adventureScene.party.length : 1,
                     inRestMode: adventureScene.inRestMode || false,
                     hexStates: hexStates
