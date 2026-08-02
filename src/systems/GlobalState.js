@@ -830,8 +830,9 @@ export class GlobalState {
             return this.savedFormation[charId]; // 既に割り当て済み
         }
 
-        // レーン4( -2 ), レーン2( -1 ), レーン1( 0 ), レーン3( 1 ), レーン5( 2 )
-        const searchLanes = [-2, -1, 0, 1, 2];
+        // センター(0), 左1(-1), 左2(-2), 右1(1), 右2(2) の順で空きレーンを検索
+        const searchLanes = [0, -1, -2, 1, 2];
+
 
         // 1. 後列 (isFront === false) の空きレーンを検索
         for (const lane of searchLanes) {

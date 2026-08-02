@@ -280,8 +280,9 @@ export default class AdventureScene extends Phaser.Scene {
 
         if (this._initData.fromTitleNewGame) {
             initialParty = ['001'];
-            gs.savedFormation = { '001': { isFront: true, index: 0 } };
+            gs.savedFormation = { '001': { lane: 0, isFront: false } };
         } else if (!initialParty || initialParty.length === 0) {
+
             const savedData = SaveManager.loadGameData();
             if (savedData && savedData.adventureState && savedData.adventureState.party) {
                 initialParty = savedData.adventureState.party;
