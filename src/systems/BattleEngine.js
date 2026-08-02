@@ -340,6 +340,24 @@ export class BattleEngine {
                 if (tarot.id === 1 && !tarot.isUpright) {
                     isFoolReversedActive = true;
                 }
+                // No.2 女教皇 (id: 3)
+                if (tarot.id === 3 && attacker.owner === 'player') {
+                    if (tarot.isUpright) levelHitBonus += 0.20; // 命中率+20%
+                    else levelHitBonus += 0.10; // 逆位置: 命中率+10%
+                }
+                // No.3 女帝 (id: 4)
+                if (tarot.id === 4 && attacker.owner === 'player') {
+                    if (tarot.isUpright) {
+                        finalDamage *= 1.20; // 攻撃力+20%
+                    } else {
+                        if (attacker.isFront) finalDamage *= 1.20; // 前衛: +20%
+                        else finalDamage *= 0.90; // 後衛: -10%
+                    }
+                }
+                // No.2 女教皇 逆位置 (攻撃力+10%)
+                if (tarot.id === 3 && !tarot.isUpright && attacker.owner === 'player') {
+                    finalDamage *= 1.10;
+                }
                 if (tarot.id === 9) {
                     if (tarot.isUpright && levelDiff < 0 && attacker.owner === 'player') {
                         // 敵が高レベルの場合、レベル差による減少を半分にする
@@ -397,10 +415,14 @@ export class BattleEngine {
                 finalDamage *= attacker.atkMultiplier;
             }
             
-            // 愚者(逆)効果適用 (被ダメージ20%増し)
+            // 愚者(逆)効果適用 (前衛攻撃力+20%, 被ダメージ20%増し)
+            if (attacker.owner === 'player' && attacker.isFront && isFoolReversedActive) {
+                finalDamage *= 1.20;
+            }
             if (defender.owner === 'player' && defender.isFront && isFoolReversedActive) {
                 finalDamage *= 1.20;
             }
+
 
             if (finalDamage < 1) finalDamage = 1;
             finalDamage = Math.ceil(finalDamage);
@@ -1076,8 +1098,12 @@ export class BattleEngine {
                 // 成功・キャンセルどちらもリロードへ
                 // 実際の攻撃間隔 = 基本間隔 * (100 / ステータス値) * 各種バフ倍率
                 const baseReload = p.reloadStat || 100;
-                cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0);
+                const gs = GlobalState.getInstance();
+                const isMagicianUpright = gs.activeTarots.some(t => t.id === 2 && t.isUpright);
+                const magicianReloadMult = isMagicianUpright ? 0.90 : 1.0;
+                cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult;
                 cs.phase       = 'reloading';
+
                 
                 // キャンセルの場合のみ即時ホップバック（距離が遠すぎた場合など）
                 if (cs.cancelled) {
