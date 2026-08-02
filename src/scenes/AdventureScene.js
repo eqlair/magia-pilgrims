@@ -1751,15 +1751,16 @@ export default class AdventureScene extends Phaser.Scene {
                 const dist = Math.hypot(dx, dy);
                 const duration = Math.max(250, (dist / speedFactor) * 1000);
 
-                // 走る方向に合わせた向き設定 (0:上, 1:左, 2:右, 3:下)
+                // 走る方向に合わせた向き設定 (0:正面/下向き, 1:左向き, 2:右向き, 3:背中/上向き)
                 if (Math.abs(dy) > Math.abs(dx)) {
                     if (dy < 0) {
-                        runner.setFrame(0); // 上向き
+                        runner.setFrame(3); // 上へ移動（奥へ進む＝背中を向ける）
                     } else {
-                        runner.setFrame(3); // 下向き
+                        runner.setFrame(0); // 下へ移動（手前へ進む＝正面を向く）
                     }
                     runner.setFlipX(false);
                 } else {
+
                     if (dx < 0) {
                         runner.setFrame(1); // 左向き
                     } else {
