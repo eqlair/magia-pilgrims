@@ -52,17 +52,31 @@ export default class AdventureScene extends Phaser.Scene {
 
     create() {
         TransitionManager.fadeIn(this);
-        const { width, height } = this.scale;
+        const isNewGame = !!(this._initData && this._initData.isNewGame);
+        if (isNewGame) {
+            SaveManager.clearSaveData();
+        }
 
         // 日数と時間帯の設定
         this.timePeriods = ['午前', '午後', '夜'];
 
         // セーブデータおよびGlobalStateから正確な日付を復元
         const gs = GlobalState.getInstance();
+        if (isNewGame) {
+            gs.currentMonth = 12;
+            gs.currentDay = 1;
+            gs.timePeriodIndex = 0;
+            gs.inventory = { relics: [], gems: [] };
+        }
+
         const _savedForDate = SaveManager.loadGameData();
         const _adv = _savedForDate && _savedForDate.adventureState ? _savedForDate.adventureState : null;
         
-        if (this._initData && this._initData.fromSave && _adv) {
+        if (isNewGame) {
+            this.currentMonth = 12;
+            this.currentDay   = 1;
+            this.timePeriodIndex = 0;
+        } else if (this._initData && this._initData.fromSave && _adv) {
             this.currentMonth = _adv.currentMonth || 12;
             this.currentDay   = _adv.currentDay   || 1;
             this.timePeriodIndex = (_adv.timePeriodIndex !== undefined) ? _adv.timePeriodIndex : 0;
@@ -80,6 +94,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.currentDay   = 1;
             this.timePeriodIndex = 0;
         }
+
         
         // GlobalStateにも確実に同調・保存
         gs.currentMonth = this.currentMonth;
@@ -342,11 +357,14 @@ export default class AdventureScene extends Phaser.Scene {
         // -- 画面上部のテロップ (Tips) --
         this.setupTicker();
 
-        // セーブデータが存在すれば常にマップ状態(全ヘクスの敵属性・魔女配置等)を100%復元適用
-        const saveData = SaveManager.loadGameData();
-        if (saveData && saveData.adventureState) {
-            this.applySaveData(saveData);
+        // セーブデータが存在し、かつ新規ゲーム起動(isNewGame)でない場合のみマップ状態を復元適用
+        if (!isNewGame) {
+            const saveData = SaveManager.loadGameData();
+            if (saveData && saveData.adventureState) {
+                this.applySaveData(saveData);
+            }
         }
+
 
 
         // 休息モード中であればRestSceneへ直接接続して再開（時間の踏み倒し裏技防止）

@@ -284,10 +284,12 @@ export default class DemoScene extends Phaser.Scene {
                                     .map(cb => cb.value);
 
             const config = {
-                party: partySelect.length > 0 ? partySelect : ['001']
+                party: partySelect.length > 0 ? partySelect : ['001'],
+                isNewGame: true // デモ起動時は全データ・日付・マップをリセット起動
             };
             closePanel();
             TransitionManager.transitionTo(this, 'AdventureScene', config);
+
         });
     }
 
