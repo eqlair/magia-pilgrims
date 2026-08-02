@@ -398,11 +398,27 @@ export class BattleEngine {
                         levelDmgBonusAmount *= 2;
                     }
                 }
-                if (tarot.id === 10 && tarot.isUpright && attacker.owner === 'player') {
-                    // 距離による命中率マイナス補正を無くす
-                    distDrop = 0;
+                // No.9 隠者 (id: 10)
+                if (tarot.id === 10 && attacker.owner === 'player') {
+                    if (tarot.isUpright) {
+                        distDrop = 0; // 距離による命中減衰をなくす
+                        levelHitBonus += 0.10; // 命中率+10%
+                    } else {
+                        if (!attacker.isFront) levelHitBonus += 0.20; // 後衛命中率+20%
+                    }
+                }
+                // No.11 正義 (id: 12)
+                if (tarot.id === 12 && attacker.owner === 'player') {
+                    if (tarot.isUpright) {
+                        finalDamage *= 1.10; // 攻撃力+10%
+                        levelHitBonus += 0.10; // 命中率+10%
+                    } else {
+                        if (attacker.justiceAtkBuff) finalDamage *= attacker.justiceAtkBuff;
+                        if (attacker.justiceHitBuff) levelHitBonus += attacker.justiceHitBuff;
+                    }
                 }
             }
+
             
             // 基本命中率100%
             hitRate = 1.0 - distDrop + levelHitBonus;
