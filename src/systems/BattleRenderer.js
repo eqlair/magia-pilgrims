@@ -1,7 +1,10 @@
+import Phaser from 'phaser';
+
 /**
  * BattleEngineの論理データを元に、MapProjectorを使って2.5D描画を行うクラス
  */
 export class BattleRenderer {
+
     constructor(scene, engine, projector) {
         this.scene = scene;
         this.engine = engine;
