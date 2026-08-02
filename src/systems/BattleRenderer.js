@@ -769,6 +769,9 @@ export class BattleRenderer {
             } else if (eff.type === 'kick_hit') {
                 obj = this.scene.add.sprite(0, 0, 'hit_effect6');
                 obj.setDepth(2000);
+            } else if (eff.type === 'grenade_explosion') {
+                obj = this.scene.add.sprite(0, 0, 'grenade_explosion');
+                obj.setDepth(1800);
             } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
                 obj = this.scene.add.sprite(0, 0, 'bomb');
                 obj.setDepth(1800);
@@ -782,7 +785,20 @@ export class BattleRenderer {
         if (p.visible) {
             let progress = 1.0 - (eff.lifeTime / eff.maxLife);
 
+            if (eff.type === 'grenade_explosion') {
+                // 手りゅう弾爆発: grenade.png (200x200) を使用。適正スケールに調整
+                obj.setPosition(p.x, p.y - p.scale * 0.5);
+                const radiusPx = (eff.radius || 1.5) * p.scale;
+                const baseWidth = obj.width || 200; // 200px
+                const scaleFactor = 0.5 + progress * 1.0;
+                obj.setScale((radiusPx * 3.0 * scaleFactor) / baseWidth);
+                obj.setAlpha(Math.max(0, (1.0 - progress) * 0.95));
+                obj.clearTint(); // 着色しない
+                return;
+            }
+
             if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
+
                 // 爆発エフェクト (魔女死亡時含む): bomb.png (300x300) を使用。着色なしで急拡大＆フェードアウト
                 obj.setPosition(p.x, p.y - p.scale * 0.5);
                 const radiusPx = (eff.radius || 1.5) * p.scale;

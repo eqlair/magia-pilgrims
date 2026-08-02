@@ -1885,7 +1885,8 @@ export class BattleEngine {
 
             if (b.type && !b.type.startsWith('swing_') && b.distanceTraveled >= b.targetDist) {
                 if (b.type === 'grenade') {
-                    this.effects.push(new EffectEntity(b.x, b.z, { type: 'explosion', radius: 2.0, lifeTime: 0.5 }));
+                    this.effects.push(new EffectEntity(b.x, b.z, { type: 'grenade_explosion', radius: 2.0, lifeTime: 0.5 }));
+
                     const targets = b.owner === 'player' ? this.enemies : this.players;
                     for (const aoeTarget of targets) {
                         if (aoeTarget.isDead || aoeTarget.isDying) continue;
@@ -1958,7 +1959,8 @@ export class BattleEngine {
                     b.hitTimes.set(t, this.time);
 
                     if (b.type === 'grenade') {
-                        this.effects.push(new EffectEntity(b.x, b.z, { type: 'explosion', radius: 2.0, lifeTime: 0.5 }));
+                        this.effects.push(new EffectEntity(b.x, b.z, { type: 'grenade_explosion', radius: 2.0, lifeTime: 0.5 }));
+
                         for (const aoeTarget of targets) {
                             if (aoeTarget.isDead || aoeTarget.isDying) continue;
                             const adx = b.x - aoeTarget.x;
