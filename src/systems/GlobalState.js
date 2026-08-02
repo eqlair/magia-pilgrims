@@ -455,7 +455,19 @@ export class GlobalState {
         const party = Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : ['001'];
         
         switch(tarotId) {
+            case 6: // No.5 教皇 (id: 6)
+                if (isUpright) {
+                    let maxSpVal = 0;
+                    for (const cid of party) {
+                        const stats = this.calcStats(cid, party);
+                        if (stats.maxSp > maxSpVal) maxSpVal = stats.maxSp;
+                    }
+                    this.stockSp += Math.ceil(maxSpVal);
+                    console.log(`[Tarot 6 Pope] Added ${Math.ceil(maxSpVal)} stock SP`);
+                }
+                break;
             case 11:
+
                 if (isUpright) {
                     // 平均レベルの算出
                     let totalLevel = 0;

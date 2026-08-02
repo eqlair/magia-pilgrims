@@ -354,10 +354,39 @@ export class BattleEngine {
                         else finalDamage *= 0.90; // 後衛: -10%
                     }
                 }
+                // No.4 皇帝 (id: 5)
+                if (tarot.id === 5 && attacker.owner === 'player') {
+                    if (tarot.isUpright && attacker.emperorBuff) {
+                        finalDamage *= 1.50; // 50%UP
+                    } else if (!tarot.isUpright) {
+                        const frontAliveCount = this.players.filter(p => p.isFront && !p.isDead).length;
+                        if (frontAliveCount === 1 && attacker.isFront) {
+                            finalDamage *= 1.50; // 前衛1人の時+50%
+                        }
+                    }
+                }
+                // No.5 教皇 (id: 6)
+                if (tarot.id === 6 && !tarot.isUpright && attacker.owner === 'player') {
+                    if (!attacker.isFront) finalDamage *= 1.30; // 後衛+30%
+                }
+                // No.6 恋人 (id: 7)
+                if (tarot.id === 7 && attacker.owner === 'player') {
+                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
+                    if (tarot.isUpright && totalAff >= 1) {
+                        finalDamage *= 1.20; // 親愛度1以上で+20%
+                    } else if (!tarot.isUpright && totalAff <= 0) {
+                        finalDamage *= 2.00; // 親愛度0以下で+100%
+                    }
+                }
+                // No.7 戦車 (id: 8)
+                if (tarot.id === 8 && !tarot.isUpright && attacker.owner === 'player') {
+                    finalDamage *= 1.20; // 攻撃力+20%
+                }
                 // No.2 女教皇 逆位置 (攻撃力+10%)
                 if (tarot.id === 3 && !tarot.isUpright && attacker.owner === 'player') {
                     finalDamage *= 1.10;
                 }
+
                 if (tarot.id === 9) {
                     if (tarot.isUpright && levelDiff < 0 && attacker.owner === 'player') {
                         // 敵が高レベルの場合、レベル差による減少を半分にする
@@ -1101,7 +1130,16 @@ export class BattleEngine {
                 const gs = GlobalState.getInstance();
                 const isMagicianUpright = gs.activeTarots.some(t => t.id === 2 && t.isUpright);
                 const magicianReloadMult = isMagicianUpright ? 0.90 : 1.0;
-                cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult;
+                
+                // No.7 戦車 (id: 8)
+                const isChariotUpright = gs.activeTarots.some(t => t.id === 8 && t.isUpright);
+                const isChariotReversed = gs.activeTarots.some(t => t.id === 8 && !t.isUpright);
+                let chariotReloadMult = 1.0;
+                if (isChariotUpright && p.isFront) chariotReloadMult = 0.80; // 前衛20%短縮
+                if (isChariotReversed) chariotReloadMult *= 1.10; // 逆位置10%遅化
+
+                cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult * chariotReloadMult;
+
                 cs.phase       = 'reloading';
 
                 
