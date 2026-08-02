@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { App } from '@capacitor/app';
+
 import BootScene from './scenes/BootScene';
 import TitleScene from './scenes/TitleScene';
 import DemoScene from './scenes/DemoScene';
@@ -38,5 +40,37 @@ const config = {
 
 
 export const game = new Phaser.Game(config);
-
 window.game = game;
+
+// ── バックグラウンド自動消音・一時停止（App LifeCycle & Web Visibility API）──
+const handleAppPause = () => {
+    console.log('[App] Background paused - stopping audio');
+    if (game && game.sound) {
+        game.sound.pauseAll();
+    }
+};
+
+const handleAppResume = () => {
+    console.log('[App] Foreground resumed - resuming audio');
+    if (game && game.sound) {
+        game.sound.resumeAll();
+    }
+};
+
+// 1. Capacitor アプリライフサイクルイベント
+App.addListener('pause', handleAppPause);
+App.addListener('resume', handleAppResume);
+
+// 2. ブラウザ / WebView 標準の Visibility Change イベント（タスク切替・ホーム画面移動の確実な検知）
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        handleAppPause();
+    } else {
+        handleAppResume();
+    }
+});
+
+// 3. ウィンドウフォーカス喪失時も保険で一時停止
+window.addEventListener('blur', handleAppPause);
+window.addEventListener('focus', handleAppResume);
+

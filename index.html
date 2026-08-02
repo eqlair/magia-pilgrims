@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Magia_Pilgrims</title>
 
     <!-- Noto Serif JP: 400(Regular), 700(Bold) -->
@@ -19,14 +19,14 @@
 
       /*
        * ゲーム全体のコンテナ
-       * position: fixed + inset: 0 で画面全体に固定し、
-       * flexbox で canvas を確実に中央配置する。
-       * width: 100% ではスクロールバー幅の影響でズレることがあるため
-       * この方式が最も確実。
+       * position: fixed + inset: 0 で全画面に固定し、
+       * flexbox で canvas を縦長画面でも完璧な画面真ん中に配置する。
        */
       #game-container {
         position: fixed;
-        inset: 0; /* top:0; left:0; right:0; bottom:0 の短縮形 */
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -42,11 +42,14 @@
         pointer-events: none;
       }
 
-      /* Phaser canvas（前面） */
+      /* Phaser canvas（前面） 
+       * Phaserのインラインmargin指定による上下のズレを防ぐため margin: 0 !important を適用
+       */
       canvas {
         position: relative;
         z-index: 1;
         display: block;
+        margin: 0 !important;
       }
     </style>
   </head>
