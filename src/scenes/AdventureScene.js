@@ -189,10 +189,12 @@ export default class AdventureScene extends Phaser.Scene {
             h.container.add([h.bgSprite, h.effSprite, h.outline, h.text]);
 
             h.witchSprite = this.add.sprite(0, 0, 'map_witch');
-            h.witchSprite.setScale(0.12);
+            const witchW = h.witchSprite.width || 300;
+            h.witchSprite.setScale(94.0 / witchW);
             h.witchSprite.setOrigin(0.5, 1);
             h.witchSprite.setVisible(false);
             h.container.add(h.witchSprite);
+
             
             const attrColors = {
                 1: '#ff4444', 2: '#aa44ff', 3: '#44ff44', 4: '#ffff44', 5: '#44aaff'
@@ -985,8 +987,9 @@ export default class AdventureScene extends Phaser.Scene {
                 continue;
             }
             
+            const isVisibleToPlayer = (cell.visited === 1 || cell.revealed === 1 || cell.isAdjacent);
             let imgKey = 'map_img_m(unexplored).jpg';
-            let showEffect = (cell.enemyLevel > 0);
+            let showEffect = (cell.enemyLevel > 0 && isVisibleToPlayer);
             let showText = false;
 
             if (cell.visited === 1) {
@@ -1003,7 +1006,7 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
             // 未踏破は25%の不透明度、それ以外は100%
-            if (cell.visited !== 1 && cell.revealed !== 1 && !cell.isAdjacent) {
+            if (!isVisibleToPlayer) {
                 h.container.setAlpha(0.25);
             } else {
                 h.container.setAlpha(1);
@@ -1022,6 +1025,7 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
+            // 敵の気配エフェクト（プレイヤー視界内のみ表示して省力化）
             if (showEffect && this.textures.exists(`map_img_map_eff${cell.enemyAttr}.jpg`)) {
                 h.effSprite.setTexture(`map_img_map_eff${cell.enemyAttr}.jpg`);
                 h.effSprite.setVisible(true);
@@ -1034,11 +1038,10 @@ export default class AdventureScene extends Phaser.Scene {
                 h.effSprite.setVisible(false);
             }
             
-            
             h.text.setVisible(showText);
             
-            // 魔女の表示更新
-            if (cell.witchLevel > 0) {
+            // 魔女の表示更新（視界内または踏破済みのみ表示）
+            if (cell.witchLevel > 0 && isVisibleToPlayer) {
                 h.witchSprite.setVisible(true);
                 h.witchText.setText(`Witch LV.${cell.witchLevel}`);
                 h.witchText.setVisible(true); 
@@ -1047,14 +1050,15 @@ export default class AdventureScene extends Phaser.Scene {
                 if (h.witchText) h.witchText.setVisible(false);
             }
             
-            // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする）
-            if (cell.enemyLevel > 0 && !(cell.witchLevel > 0)) {
+            // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする・視界内のみ表示）
+            if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && isVisibleToPlayer) {
                 const actualEnemyLevel = Math.max(1, cell.enemyLevel + (this.globalEnemyLevel - 1));
                 h.enemyText.setText(`Wasp LV.${actualEnemyLevel}`);
                 h.enemyText.setVisible(true);
             } else {
                 if (h.enemyText) h.enemyText.setVisible(false);
             }
+
 
         }
     }
