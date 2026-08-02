@@ -728,23 +728,28 @@ export class BattleEngine {
             
             if (this.rule === 2) {
                 // ── 突破モード (rule=2) ──
-                // 全員前列にいる間: 1秒で+0.1m/s加速
-                // 1人でも後列に下がると: 1秒で-1.0m/s低下
-                // 最低速度: 3.0m/s
                 const alivePlayers = this.players.filter(p => !p.isDead);
                 const rearCount = alivePlayers.filter(p => !p.isFront).length;
 
                 if (rearCount === 0 && alivePlayers.length > 0) {
+                    // 全員前列にいる間: 8.0m/s未満の場合は即座に8.0m/sに即復帰し、さらに1秒ごとに+0.1m/s加速
+                    if (this.advanceSpeed < 8.0) {
+                        this.advanceSpeed = 8.0;
+                    }
                     this.advanceSpeed += 0.1 * dt;
                 } else if (rearCount > 0) {
+                    // 1人でも後列に下がると: 1秒ごとに-1.0m/s低下
                     this.advanceSpeed -= 1.0 * dt;
-                }
 
-                if (this.advanceSpeed < 3.0) {
-                    this.advanceSpeed = 3.0;
+                    // 最低速度は 8 - (後列にいるメンバーの数)
+                    const minSpeed = Math.max(0, 8.0 - rearCount);
+                    if (this.advanceSpeed < minSpeed) {
+                        this.advanceSpeed = minSpeed;
+                    }
                 }
 
                 this.breakthroughDist += this.advanceSpeed * dt;
+
 
 
                 // 目標距離走破でクリア
