@@ -1133,11 +1133,12 @@ export default class AdventureScene extends Phaser.Scene {
 
         this.resetIdleTimer();
 
-        // 向きの変更 (0:正面, 1:右向き画像, 2:左向き画像, 3:上)
+        // 向きの変更 (0:正面/下, 1:左向き, 2:右向き, 3:背中/上)
         let dirFrame = 0;
-        if (dx > 10) dirFrame = 1;       // 右へ移動
-        else if (dx < -10) dirFrame = 2; // 左へ移動
-        else if (dy < -10) dirFrame = 3; // 上へ移動
+        if (dx > 10) dirFrame = 2;       // 右へ移動 -> コマ2 (右向き)
+        else if (dx < -10) dirFrame = 1; // 左へ移動 -> コマ1 (左向き)
+        else if (dy < -10) dirFrame = 3; // 上へ移動 -> コマ3 (背中/上向き)
+        else if (dy > 10) dirFrame = 0;  // 下へ移動 -> コマ0 (正面/下向き)
         
         // playHappyActionで反転しているかもしれないのでスケールをリセット
         this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
@@ -1194,7 +1195,8 @@ export default class AdventureScene extends Phaser.Scene {
             this.tweens.add({
                 targets: jumpObj,
                 z: -30,
-                angle: (dirFrame === 1) ? 15 : (dirFrame === 2) ? -15 : 0, // 右=右傾き, 左=左傾き
+                angle: (dirFrame === 2) ? 15 : (dirFrame === 1) ? -15 : 0, // 右=右傾き, 左=左傾き
+
                 scaleMult: 1.08, // 少し跳ねて膨らむ(1.0 -> 1.08)
                 yoyo: true,
                 duration: 200,
