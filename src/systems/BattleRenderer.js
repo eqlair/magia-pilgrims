@@ -245,30 +245,28 @@ export class BattleRenderer {
                     sprite.setFrame(frame);
 
                 } else if (isBreakthrough) {
-                    // 突破ステージ(rule === 2):
-                    // 攻撃中であればターゲットの方向に応じた攻撃アニメーション、攻撃時以外（idle/moving）は紫苑のみ上向き走行（コマ3/7）
-                    let attackFrame = null;
+                    // 突破ステージ: 全キャラ上向き走行(コマ4,5を0.25s交互)が基本
+                    // _bシート: 0:上攻撃, 1:左攻撃, 2:右攻撃, 3:下攻撃, 4,5:上走行, 6,7:下走行
+                    const runFrame = Math.floor(this.scene.time.now / 250) % 2 === 0 ? 4 : 5;
+
+                    // 前向き（奥=上方向）攻撃中は走行継続。横・手前攻撃のみ攻撃モーション表示。
+                    let attackMotionFrame = null;
                     if (entity.targetEnemy && isAttacking) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle >= 45 && angle <= 135) attackFrame = 3; // 手前(下)向き(コマ3)
-                        else if (angle >= 135 || angle <= -135) attackFrame = 1; // 左向き(コマ1)
-                        else if (angle >= -45 && angle <= 45) attackFrame = 2; // 右向き(コマ2)
-                        else attackFrame = 0; // 奥(上)向き(コマ0)
+                        if (angle >= 45 && angle <= 135)          attackMotionFrame = 3; // 手前(下)向き攻撃
+                        else if (angle >= 135 || angle <= -135)   attackMotionFrame = 1; // 左向き攻撃
+                        else if (angle >= -45 && angle <= 45)     attackMotionFrame = 2; // 右向き攻撃
+                        // 奥(上)向き攻撃 → attackMotionFrame = null のまま → 走行継続
                     }
 
-                    if (attackFrame !== null) {
-                        sprite.setTexture(baseTex);
-                        sprite.setFrame(attackFrame);
-                    } else if (charId === '001' && this.scene.textures.exists(motionTex)) {
-                        // 紫苑(001): 攻撃時以外はずっと上向き走行モーション(コマ0と4の交互)を秒4回(250ms毎)で繰り返し！
+                    if (this.scene.textures.exists(motionTex)) {
                         sprite.setTexture(motionTex);
-                        const runFrame = Math.floor(this.scene.time.now / 250) % 2 === 0 ? 0 : 4;
-                        sprite.setFrame(runFrame);
+                        sprite.setFrame(attackMotionFrame !== null ? attackMotionFrame : runFrame);
                     } else {
                         sprite.setTexture(baseTex);
-                        sprite.setFrame(0); // 上向き
+                        sprite.setFrame(attackMotionFrame !== null ? attackMotionFrame : 0);
                     }
 
                 } else {
