@@ -341,11 +341,16 @@ export default class AdventureScene extends Phaser.Scene {
 
         
         // 他のシーン（EventSceneなど）から復帰したときの処理
-        this.events.on('resume', (scene, data) => {
+        // ※ on()は毎回追加されるため、必ず一度offしてから登録して二重発火を防ぐ
+        if (this._resumeHandler) {
+            this.events.off('resume', this._resumeHandler, this);
+        }
+        this._resumeHandler = (scene, data) => {
             this._isAdvancingTime = false; // シーン復帰時に時間経過ロックを必ず解除
             if (data && data.fromRest) {
                 this.inRestMode = false;
                 SaveManager.saveGame(this);
+
             }
 
             
@@ -586,7 +591,8 @@ export default class AdventureScene extends Phaser.Scene {
 
             }
 
-        });
+        };
+        this.events.on('resume', this._resumeHandler, this);
 
 
         // --- UI: 日付と時間帯表示（ステータス・探索などのさらに上） ---
