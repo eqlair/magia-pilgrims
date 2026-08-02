@@ -52,10 +52,12 @@ export default class AdventureScene extends Phaser.Scene {
 
     create() {
         TransitionManager.fadeIn(this);
+        const { width, height } = this.scale;
         const isNewGame = !!(this._initData && this._initData.isNewGame);
         if (isNewGame) {
             SaveManager.clearSaveData();
         }
+
 
         // 日数と時間帯の設定
         this.timePeriods = ['午前', '午後', '夜'];
