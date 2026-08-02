@@ -102,6 +102,18 @@ export default class CampScene extends Phaser.Scene {
         });
         this.mainViewContainer.add(backBtn);
 
+        // 隊列設定（配置変更）ボタン（右上）
+        const formationBtn = this.add.text(width * 0.95, height * 0.02, '⚔️ 隊列設定', {
+            stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#aaffaa', backgroundColor: '#335533'
+        }).setInteractive().setPadding(10).setOrigin(1, 0);
+
+        formationBtn.on('pointerdown', () => {
+            this.scene.pause('CampScene');
+            this.scene.launch('FormationScene', { party: this.party, returnScene: 'CampScene' });
+        });
+        this.mainViewContainer.add(formationBtn);
+
+
         // タイトル
         this.mainViewContainer.add(this.add.text(width * 0.5, height * 0.05, 'ステータス', {
             stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold'
