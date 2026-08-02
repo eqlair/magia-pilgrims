@@ -748,40 +748,28 @@ export default class AdventureScene extends Phaser.Scene {
                 tilt: targetTilt,
                 zoom: targetZoom,
                 offsetY: targetOffsetY,
-                duration: 600,
+                duration: 400,
                 ease: 'Cubic.easeInOut',
                 onUpdate: () => {
                     this.cameras.main.setZoom(tweenObj.zoom);
                     this.cameras.main.setFollowOffset(0, tweenObj.offsetY);
                     this.mapTiltY = tweenObj.tilt;
                     
+                    // ヘクス位置をまとめて傾き調整
                     for (const h of this.hexes) {
                         h.py = h.row * this.hexVertSpacing * this.mapTiltY;
                         h.container.setY(h.py);
-                        
-                        // bgSpriteのスケール比率維持
-                        const tw = h.bgSprite.width;
-                        if (tw > 0) {
-                            h.bgSprite.setScale(this.hexWidth / tw, (this.hexWidth / tw) * this.mapTiltY);
-                        }
-                        
-                        h.outline.scaleY = this.mapTiltY;
-
                     }
                     
-                    this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
-                    
                     const currentHex = this.grid[this.playerRow][this.playerCol];
-                    this.player.setY(currentHex.py - this.CHAR_OFFSET_Y);
+                    if (currentHex) this.player.setY(currentHex.py - this.CHAR_OFFSET_Y);
                 },
                 onComplete: () => {
                     this.isTransitioningMode = false;
-                    // 通常表示に戻った時は移行完了後に視界を狭める
-                    if (!this.isWideMap) {
-                        this.updateVisibility();
-                    }
+                    this.updateVisibility();
                 }
             });
+
         });
 
         this.uiContainer.add([
@@ -1056,7 +1044,6 @@ export default class AdventureScene extends Phaser.Scene {
             
             const isVisibleToPlayer = (cell.visited === 1 || cell.revealed === 1 || cell.isAdjacent);
             let imgKey = 'map_img_m(unexplored).jpg';
-            let showEffect = (cell.enemyLevel > 0 && isVisibleToPlayer);
             let showText = false;
 
             if (cell.visited === 1) {
@@ -1073,50 +1060,53 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
             // 未踏破は25%の不透明度、それ以外は100%
-            if (!isVisibleToPlayer) {
-                h.container.setAlpha(0.25);
-            } else {
-                h.container.setAlpha(1);
+            const targetAlpha = !isVisibleToPlayer ? 0.25 : 1;
+            if (h.container.alpha !== targetAlpha) {
+                h.container.setAlpha(targetAlpha);
             }
-            h.bgSprite.clearTint();
 
             h.container.setVisible(true);
 
-            if (this.textures.exists(imgKey)) {
-                h.bgSprite.setTexture(imgKey);
-                
-                // Spriteのプロパティから元の画像サイズを取得してスケールを適用
+            // テクスチャが変更された場合のみ再適用（爆速化）
+            if (h.currentImgKey !== imgKey) {
+                h.currentImgKey = imgKey;
+                if (this.textures.exists(imgKey)) {
+                    h.bgSprite.setTexture(imgKey);
+                    const tw = h.bgSprite.width;
+                    if (tw > 0) {
+                        h.bgSprite.setScale(this.hexWidth / tw, (this.hexWidth / tw) * this.mapTiltY);
+                    }
+                }
+            } else {
                 const tw = h.bgSprite.width;
                 if (tw > 0) {
                     h.bgSprite.setScale(this.hexWidth / tw, (this.hexWidth / tw) * this.mapTiltY);
                 }
             }
 
-            h.text.setVisible(showText);
+            if (h.text && h.text.visible !== showText) h.text.setVisible(showText);
 
-            
             // 魔女の表示更新（視界内または踏破済みのみ表示）
             if (cell.witchLevel > 0 && isVisibleToPlayer) {
-                h.witchSprite.setVisible(true);
-                h.witchText.setText(`Witch LV.${cell.witchLevel}`);
-                h.witchText.setVisible(true); 
+                if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
+                const wText = `Witch LV.${cell.witchLevel}`;
+                if (h.witchText.text !== wText) h.witchText.setText(wText);
+                if (!h.witchText.visible) h.witchText.setVisible(true); 
             } else {
-                if (h.witchSprite) h.witchSprite.setVisible(false);
-                if (h.witchText) h.witchText.setVisible(false);
+                if (h.witchSprite && h.witchSprite.visible) h.witchSprite.setVisible(false);
+                if (h.witchText && h.witchText.visible) h.witchText.setVisible(false);
             }
             
             // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする・視界内のみ表示）
             if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && isVisibleToPlayer) {
-                const actualEnemyLevel = cell.enemyLevel;
-                h.enemyText.setText(`Wasp LV.${actualEnemyLevel}`);
-                h.enemyText.setVisible(true);
-
+                const eText = `Wasp LV.${cell.enemyLevel}`;
+                if (h.enemyText.text !== eText) h.enemyText.setText(eText);
+                if (!h.enemyText.visible) h.enemyText.setVisible(true);
             } else {
-                if (h.enemyText) h.enemyText.setVisible(false);
+                if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
             }
-
-
         }
+
     }
 
     moveToHex(hex, animate = true) {
