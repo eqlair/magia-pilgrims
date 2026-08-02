@@ -427,17 +427,19 @@ export default class AdventureScene extends Phaser.Scene {
                 if (!this.party.includes(data.joinCharacterId)) {
                     this.party.push(data.joinCharacterId);
                     const gs = GlobalState.getInstance();
-                    if (!gs.savedFormation) gs.savedFormation = {};
-                    if (!gs.savedFormation[data.joinCharacterId]) {
-                        gs.savedFormation[data.joinCharacterId] = { lane: 0, isFront: true };
-                    }
+                    gs.assignFormationForNewMember(data.joinCharacterId);
                     console.log('Joined party & updated savedFormation:', data.joinCharacterId);
                     SaveManager.saveGame(this);
                 }
             }
 
+
             // GlobalState.savedFormation に存在するキャラクターを this.party に同期
             const gs = GlobalState.getInstance();
+            // パーティ内の未登録キャラに自動隊列を割り当て
+            for (const charId of this.party) {
+                gs.assignFormationForNewMember(charId);
+            }
             if (gs.savedFormation) {
                 for (const charId of Object.keys(gs.savedFormation)) {
                     if (!this.party.includes(charId)) {
@@ -446,6 +448,7 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                 }
             }
+
 
 
 

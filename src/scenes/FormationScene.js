@@ -36,14 +36,11 @@ export default class FormationScene extends Phaser.Scene {
         for (let i = 0; i < this.party.length; i++) {
             const charId = this.party[i];
             
-            // 初期レーン・配置
-            let lane = laneOffsets[i] !== undefined ? laneOffsets[i] : 0;
-            let isFront = false;
-            
-            if (this.globalState.savedFormation && this.globalState.savedFormation[charId]) {
-                lane = this.globalState.savedFormation[charId].lane;
-                isFront = this.globalState.savedFormation[charId].isFront;
-            }
+            // 初期レーン・配置（未設定の場合は4-2-1-3-5の順で後列に自動配置）
+            const form = this.globalState.assignFormationForNewMember(charId);
+            let lane = form.lane;
+            let isFront = form.isFront;
+
 
             const textureKey = `mini_${charId}`;
             const altTextureKey = `battle_${charId}`;

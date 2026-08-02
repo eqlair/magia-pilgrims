@@ -813,6 +813,54 @@ export class GlobalState {
         this.food = 100;
     }
 
+    /**
+     * 新規メンバー加入時の自動隊列割り当て
+     * 5つのレーン (4, 2, 1, 3, 5 ➔ [-2, -1, 0, 1, 2]) を順番に調べ、
+     * 空いていたレーンの後列 (isFront: false) に自動配置する。
+     */
+    assignFormationForNewMember(charId) {
+        if (!this.savedFormation) {
+            this.savedFormation = {};
+        }
+        if (this.savedFormation[charId]) {
+            return this.savedFormation[charId]; // 既に割り当て済み
+        }
+
+        // レーン4( -2 ), レーン2( -1 ), レーン1( 0 ), レーン3( 1 ), レーン5( 2 )
+        const searchLanes = [-2, -1, 0, 1, 2];
+
+        // 1. 後列 (isFront === false) の空きレーンを検索
+        for (const lane of searchLanes) {
+            const isOccupied = Object.values(this.savedFormation).some(
+                f => f && f.lane === lane && f.isFront === false
+            );
+            if (!isOccupied) {
+                const formation = { lane: lane, isFront: false };
+                this.savedFormation[charId] = formation;
+                console.log(`[GlobalState] Auto assigned ${charId} to lane ${lane} (Back)`);
+                return formation;
+            }
+        }
+
+        // 2. もし全員後列が埋まっていた場合、前列 (isFront === true) の空きレーンを検索
+        for (const lane of searchLanes) {
+            const isOccupied = Object.values(this.savedFormation).some(
+                f => f && f.lane === lane && f.isFront === true
+            );
+            if (!isOccupied) {
+                const formation = { lane: lane, isFront: true };
+                this.savedFormation[charId] = formation;
+                console.log(`[GlobalState] Auto assigned ${charId} to lane ${lane} (Front)`);
+                return formation;
+            }
+        }
+
+        // 3. 万が一すべて埋まっていた場合
+        const fallback = { lane: 0, isFront: false };
+        this.savedFormation[charId] = fallback;
+        return fallback;
+    }
 }
+
 
 
