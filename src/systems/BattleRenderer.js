@@ -96,20 +96,8 @@ export class BattleRenderer {
 
         // キック弾の範囲描画は不要になったため消去
 
-        // 爆発エフェクト（手りゅう弾）の描画更新
-        for (const e of this.engine.effects) {
-            if (e.type === 'explosion') {
-                const p = this.projector.project(e.x, e.z);
-                if (p.visible) {
-                    // 半径 1.0m の赤い円
-                    const radius = p.scale * e.radius;
-                    // 残り時間で透明度を調整
-                    const alpha = Math.max(0, e.lifeTime / e.maxLife);
-                    this.aoeGraphics.fillStyle(0xff0000, alpha * 0.5); // 半透明の赤
-                    this.aoeGraphics.fillCircle(p.x, p.y, radius);
-                }
-            }
-        }
+        // 爆発エフェクトは_updateEffect側でbomb.pngスプライトとして処理
+
 
         
         // デバッグ用: スイング武器の命中判定(hitbox)描画は非表示にしました
@@ -781,6 +769,9 @@ export class BattleRenderer {
             } else if (eff.type === 'kick_hit') {
                 obj = this.scene.add.sprite(0, 0, 'hit_effect6');
                 obj.setDepth(2000);
+            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb') {
+                obj = this.scene.add.sprite(0, 0, 'bomb');
+                obj.setDepth(1800);
             } else {
                 obj = this.scene.add.graphics();
             }
@@ -790,8 +781,22 @@ export class BattleRenderer {
         const p = this.projector.project(eff.x, eff.z);
         if (p.visible) {
             let progress = 1.0 - (eff.lifeTime / eff.maxLife);
+
+            if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb') {
+                // 爆発エフェクト: bomb.png (300x300) を使用。着色なしで急拡大＆フェードアウト
+                obj.setPosition(p.x, p.y - p.scale * 0.5);
+                const radiusPx = (eff.radius || 1.5) * p.scale;
+                const baseWidth = obj.width || 300;
+                // ドカンと拡大する演出（0.4倍 -> 1.4倍）
+                const scaleFactor = 0.4 + progress * 1.0;
+                obj.setScale((radiusPx * 2.5 * scaleFactor) / baseWidth);
+                obj.setAlpha(Math.max(0, (1.0 - progress) * 0.9));
+                obj.clearTint(); // 着色しない
+                return;
+            }
             
             if ((eff.type && eff.type.startsWith('element_hit_')) || eff.type === 'kick_hit') {
+
                 obj.setPosition(p.x, p.y - p.scale * 1.0); // 衝突点(腰の高さ)
                 
                 let sizeM = 0;
