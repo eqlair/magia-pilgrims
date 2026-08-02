@@ -79,9 +79,11 @@ export class SaveManager {
                     timePeriodIndex: adventureScene.timePeriodIndex || 0,
                     globalWaveCount: adventureScene.globalWaveCount || 1,
                     party: adventureScene.party || ['001'],
+                    previousPartySize: adventureScene.party ? adventureScene.party.length : 1,
                     inRestMode: adventureScene.inRestMode || false,
                     hexStates: hexStates
                 };
+
             } else if (existing && existing.adventureState) {
                 adventureData = existing.adventureState;
                 if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {

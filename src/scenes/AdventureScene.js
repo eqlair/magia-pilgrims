@@ -563,8 +563,9 @@ export default class AdventureScene extends Phaser.Scene {
                     attribute: attrStr,
                     enemyCount: this.globalEnemyCount,
                     waveCount: Math.ceil(this.globalWaveCount),
-                    enemyLevel: this.globalEnemyLevel + (data.enemyLevel || 1) - 1,
+                    enemyLevel: data.enemyLevel || 1,
                     majoLevel: data.majoLevel || 0,
+
                     isOverlay: true,
                     returnScene: 'AdventureScene',
                     party: this.party,
@@ -1100,9 +1101,10 @@ export default class AdventureScene extends Phaser.Scene {
             
             // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする・視界内のみ表示）
             if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && isVisibleToPlayer) {
-                const actualEnemyLevel = Math.max(1, cell.enemyLevel + (this.globalEnemyLevel - 1));
+                const actualEnemyLevel = cell.enemyLevel;
                 h.enemyText.setText(`Wasp LV.${actualEnemyLevel}`);
                 h.enemyText.setVisible(true);
+
             } else {
                 if (h.enemyText) h.enemyText.setVisible(false);
             }
@@ -1447,18 +1449,19 @@ export default class AdventureScene extends Phaser.Scene {
         
         // 毎日夜になるたびに
         if (this.timePeriodIndex === 2) {
-            // 7日ごとの夜に敵のレベル+1
+            // 7日ごとの夜に敵および魔女のレベル+1
             if (this.currentDay > 0 && this.currentDay % 7 === 0) {
                 this.globalEnemyLevel += 1;
             
-            // マップ上の残存する敵のレベルも更新する
-            for (const row of this.grid) {
-                for (const hex of row) {
-                    if (hex && hex.cellData && hex.cellData.enemyLevel > 0) {
-                        hex.cellData.enemyLevel += 1;
+                // マップ上の残存する敵・魔女のレベルも更新する
+                for (const row of this.grid) {
+                    for (const hex of row) {
+                        if (hex && hex.cellData) {
+                            if (hex.cellData.enemyLevel > 0) hex.cellData.enemyLevel += 1;
+                            if (hex.cellData.witchLevel > 0) hex.cellData.witchLevel += 1;
+                        }
                     }
                 }
-            }
             }
             this.updateVisibility();
         }
@@ -1468,11 +1471,12 @@ export default class AdventureScene extends Phaser.Scene {
             this.globalEnemyCount = Math.floor(this.globalEnemyCount * 1.4);
             this.globalEnemyLevel += 1;
             
-            // マップ上の残存する敵のレベルも更新する
+            // マップ上の残存する敵・魔女のレベルも更新する
             for (const row of this.grid) {
                 for (const hex of row) {
-                    if (hex && hex.cellData && hex.cellData.enemyLevel > 0) {
-                        hex.cellData.enemyLevel += 1;
+                    if (hex && hex.cellData) {
+                        if (hex.cellData.enemyLevel > 0) hex.cellData.enemyLevel += 1;
+                        if (hex.cellData.witchLevel > 0) hex.cellData.witchLevel += 1;
                     }
                 }
             }
@@ -1480,6 +1484,7 @@ export default class AdventureScene extends Phaser.Scene {
             
             this.previousPartySize = this.party.length;
         }
+
         
         // 午前(0)から午後(1)になったタイミングでタロットを引く
         if (this.timePeriodIndex === 1) {
@@ -2310,6 +2315,8 @@ export default class AdventureScene extends Phaser.Scene {
         if (adv.globalWaveCount !== undefined) this.globalWaveCount = adv.globalWaveCount;
         if (adv.inRestMode !== undefined) this.inRestMode = adv.inRestMode;
         if (adv.party) this.party = adv.party;
+        this.previousPartySize = (adv.previousPartySize !== undefined) ? adv.previousPartySize : (this.party ? this.party.length : 1);
+
 
 
         // ヘックスの訪問・レベル情報を復元
