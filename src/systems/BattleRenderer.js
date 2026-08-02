@@ -249,16 +249,16 @@ export class BattleRenderer {
                     // _bシート: 0:上攻撃, 1:左攻撃, 2:右攻撃, 3:下攻撃, 4,5:上走行, 6,7:下走行
                     const runFrame = Math.floor(this.scene.time.now / 250) % 2 === 0 ? 4 : 5;
 
-                    // 前向き（奥=上方向）攻撃中は走行継続。横・手前攻撃のみ攻撃モーション表示。
+                    // 近接攻撃(isMeleeMotion)時のみ攻撃モーションを適用。遠距離攻撃(飛び道具)時は走行を継続！
                     let attackMotionFrame = null;
-                    if (entity.targetEnemy && isAttacking) {
+                    if (entity.targetEnemy && isMeleeMotion) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle >= 45 && angle <= 135)          attackMotionFrame = 3; // 手前(下)向き攻撃
-                        else if (angle >= 135 || angle <= -135)   attackMotionFrame = 1; // 左向き攻撃
-                        else if (angle >= -45 && angle <= 45)     attackMotionFrame = 2; // 右向き攻撃
-                        // 奥(上)向き攻撃 → attackMotionFrame = null のまま → 走行継続
+                        if (angle >= 45 && angle <= 135)          attackMotionFrame = 3; // 手前(下)向き近接攻撃
+                        else if (angle >= 135 || angle <= -135)   attackMotionFrame = 1; // 左向き近接攻撃
+                        else if (angle >= -45 && angle <= 45)     attackMotionFrame = 2; // 右向き近接攻撃
+                        else                                      attackMotionFrame = 0; // 奥(上)向き近接攻撃
                     }
 
                     if (this.scene.textures.exists(motionTex)) {
@@ -268,6 +268,7 @@ export class BattleRenderer {
                         sprite.setTexture(baseTex);
                         sprite.setFrame(attackMotionFrame !== null ? attackMotionFrame : 0);
                     }
+
 
                 } else {
                     // 通常のアニメーション (baseTex)
