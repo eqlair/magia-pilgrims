@@ -55,13 +55,37 @@ export default class AdventureScene extends Phaser.Scene {
         // 日数と時間帯の設定
         this.timePeriods = ['午前', '午後', '夜'];
 
-        // セーブデータから復元するか、初期値を使うか判定
-        const _savedForDate = this._initData.fromSave ? SaveManager.loadGameData() : null;
+        // セーブデータおよびGlobalStateから正確な日付を復元
+        const gs = GlobalState.getInstance();
+        const _savedForDate = SaveManager.loadGameData();
         const _adv = _savedForDate && _savedForDate.adventureState ? _savedForDate.adventureState : null;
-        this.currentMonth = (_adv && _adv.currentMonth) ? _adv.currentMonth : 12;
-        this.currentDay   = (_adv && _adv.currentDay)   ? _adv.currentDay   : 1;
-        this.timePeriodIndex = (_adv && _adv.timePeriodIndex !== undefined) ? _adv.timePeriodIndex : 0;
+        
+        if (this._initData && this._initData.fromSave && _adv) {
+            this.currentMonth = _adv.currentMonth || 12;
+            this.currentDay   = _adv.currentDay   || 1;
+            this.timePeriodIndex = (_adv.timePeriodIndex !== undefined) ? _adv.timePeriodIndex : 0;
+        } else if (gs.currentMonth !== undefined && gs.currentDay !== undefined) {
+            // 他シーン（CampScene等）からの遷移・復帰
+            this.currentMonth = gs.currentMonth;
+            this.currentDay   = gs.currentDay;
+            this.timePeriodIndex = gs.timePeriodIndex || 0;
+        } else if (_adv) {
+            this.currentMonth = _adv.currentMonth || 12;
+            this.currentDay   = _adv.currentDay   || 1;
+            this.timePeriodIndex = (_adv.timePeriodIndex !== undefined) ? _adv.timePeriodIndex : 0;
+        } else {
+            this.currentMonth = 12;
+            this.currentDay   = 1;
+            this.timePeriodIndex = 0;
+        }
+        
+        // GlobalStateにも確実に同調・保存
+        gs.currentMonth = this.currentMonth;
+        gs.currentDay = this.currentDay;
+        gs.timePeriodIndex = this.timePeriodIndex;
+
         this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+
         
         // 敵の量コントロール
         this.globalEnemyCount = 10;
@@ -252,8 +276,8 @@ export default class AdventureScene extends Phaser.Scene {
         this.isJumping = false;
         
         // パーティ編成の読み込みと復元 (savedFormation や セーブデータから優先復元)
-        const gs = GlobalState.getInstance();
         let initialParty = this._initData.party;
+
         if (this._initData.fromTitleNewGame) {
             initialParty = ['001'];
             gs.savedFormation = { '001': { isFront: true, index: 0 } };
@@ -409,11 +433,22 @@ export default class AdventureScene extends Phaser.Scene {
             return;
         }
 
-            if (this.player) this.player.setVisible(true);
+        const gs = GlobalState.getInstance();
+        if (gs.currentMonth !== undefined && gs.currentDay !== undefined) {
+            this.currentMonth = gs.currentMonth;
+            this.currentDay = gs.currentDay;
+            this.timePeriodIndex = gs.timePeriodIndex || 0;
+            this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+            if (this.dateTimeText) {
+                this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+            }
+        }
+
+        if (this.player) this.player.setVisible(true);
+
             if (data && data.joinCharacterId) {
                 if (!this.party.includes(data.joinCharacterId)) {
                     this.party.push(data.joinCharacterId);
-                    const gs = GlobalState.getInstance();
                     gs.assignFormationForNewMember(data.joinCharacterId);
                     console.log('Joined party & updated savedFormation:', data.joinCharacterId);
                     SaveManager.saveGame(this);
@@ -422,7 +457,6 @@ export default class AdventureScene extends Phaser.Scene {
 
 
             // GlobalState.savedFormation に存在するキャラクターを this.party に同期
-            const gs = GlobalState.getInstance();
             // パーティ内の未登録キャラに自動隊列を割り当て
             for (const charId of this.party) {
                 gs.assignFormationForNewMember(charId);
@@ -435,6 +469,7 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                 }
             }
+
 
 
 
@@ -1335,12 +1370,18 @@ export default class AdventureScene extends Phaser.Scene {
         }
         this.timeOfDay = this.timePeriods[this.timePeriodIndex];
 
+        // GlobalState と即座に同期
+        const gsInst = GlobalState.getInstance();
+        gsInst.currentMonth = this.currentMonth;
+        gsInst.currentDay = this.currentDay;
+        gsInst.timePeriodIndex = this.timePeriodIndex;
+
         if (this.dateTimeText) {
             this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
         }
 
+
         // 12月21日の難易度補正（午前・午後）
-        const gsInst = GlobalState.getInstance();
         if (this.currentDay === 21) {
             if (this.timePeriodIndex === 0 && !this._dec21MorningApplied) {
                 this._dec21MorningApplied = true;
@@ -1356,6 +1397,7 @@ export default class AdventureScene extends Phaser.Scene {
                 gsInst.debugEnemySizeMultiplier = 1.2;
             }
         }
+
 
 
         // 敵の量コントロール

@@ -15,8 +15,14 @@ export class GlobalState {
         // グローバルなストック経験値（共有）
         this.stockExp = 0;
         
+        // 日付・時間帯プロパティ
+        this.currentMonth = 12;
+        this.currentDay = 1;
+        this.timePeriodIndex = 0; // 0:午前, 1:午後, 2:夜
+        
         // 食料（0〜100）
         this.food = 100;
+
         
         // 所持SP（魔女撃破時に獲得、休息でSP回復に使用）
         this.stockSp = 0;

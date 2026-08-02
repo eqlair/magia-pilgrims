@@ -28,6 +28,9 @@ export class SaveManager {
                 stockExp: gs.stockExp,
                 stockSp: gs.stockSp,
                 food: gs.food,
+                currentMonth: gs.currentMonth,
+                currentDay: gs.currentDay,
+                timePeriodIndex: gs.timePeriodIndex,
                 inventory: gs.inventory,
                 characters: gs.characters,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
@@ -43,6 +46,7 @@ export class SaveManager {
                 expMultiplier: gs.expMultiplier,
                 spMultiplier: gs.spMultiplier
             };
+
 
             // AdventureScene のマップ状況をシリアライズ
             const existing = SaveManager.loadGameData();
@@ -137,7 +141,11 @@ export class SaveManager {
         if (d.stockExp !== undefined) gs.stockExp = d.stockExp;
         if (d.stockSp !== undefined) gs.stockSp = d.stockSp;
         if (d.food !== undefined) gs.food = d.food;
+        if (d.currentMonth !== undefined) gs.currentMonth = d.currentMonth;
+        if (d.currentDay !== undefined) gs.currentDay = d.currentDay;
+        if (d.timePeriodIndex !== undefined) gs.timePeriodIndex = d.timePeriodIndex;
         if (d.inventory) gs.inventory = d.inventory;
+
         if (d.characters) gs.characters = d.characters;
         if (d.savedFormation) gs.savedFormation = d.savedFormation;
         if (d.activeTarots) gs.activeTarots = d.activeTarots;
