@@ -502,13 +502,14 @@ export default class AdventureScene extends Phaser.Scene {
             let advancedTimeThisResume = false;
 
             // 探索・休息・戦闘完了時のみ時間を1コマ進める（イベント自体では進めない）
+            // advanceTime内でshowTimeSignalが呼ばれ、その中でcheckScheduledEventsとセーブが行われる
             if (data && (data.fromExploration || data.fromRest || data.fromBattle) && !data.fromTarot && !data.isNotification) {
                 if (!advancedTimeThisResume) {
                     this.advanceTime();
-                    this.checkScheduledEvents();
                     advancedTimeThisResume = true;
                 }
             }
+
 
 
             if (data && data.fromBattle) {
@@ -591,6 +592,8 @@ export default class AdventureScene extends Phaser.Scene {
                     this._pendingTarot = false;
                     this.scene.pause();
                     this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
+                    // タロット起動 → タロットから戻った際のresumeでセーブされる
+                    return;
                 }
 
                 // 1221wildhuntイベント復帰時 -> 次のアクションで確定で突破戦が始まるフラグ
@@ -640,9 +643,16 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
+                // タロット/イベント/戦闘いずれも発動せず → 入力待ち状態なのでセーブ
+                if (!advancedTimeThisResume) {
+                    // advanceTimeを経由していない復帰（キャンプ・装備・隊列など）
+                    SaveManager.saveGame(this);
+                }
+                // advanceTimeを経由した場合はshowTimeSignal内でセーブ済み
             }
 
         };
+
         this.events.on('resume', this._resumeHandler, this);
 
 
@@ -1523,14 +1533,29 @@ export default class AdventureScene extends Phaser.Scene {
     showTimeSignal(onComplete = null) {
         // TimeReporterを使って時報を表示。時報終了後にイベント起動およびタロット起動チェック
         TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
+            let anyEventFired = false;
+
+            // 食料ゼロ等のイベントコールバック
             if (typeof onComplete === 'function') {
                 onComplete();
+                anyEventFired = true; // イベント起動あり（EventSceneへ遷移する）
             }
-            this.checkScheduledEvents();
+
+            // スケジュールイベントチェック（各メソッドが起動したらtrueを返す）
+            const eventFired = this.checkScheduledEvents();
+            if (eventFired) anyEventFired = true;
+
+            // タロット引き（午前→午後の切り替えタイミング）
             if (this._pendingTarot) {
                 this._pendingTarot = false;
+                anyEventFired = true;
                 this.scene.pause();
                 this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
+            }
+
+            // イベントが何も発動しなかった場合 = 入力待ち状態になったのでセーブ
+            if (!anyEventFired) {
+                SaveManager.saveGame(this);
             }
         });
     }
@@ -2051,10 +2076,12 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     checkScheduledEvents() {
-        this.check1207Event();
-        this.check1214Event();
-        this.check1221NightWildhunt();
-        this.check1221Event();
+        // 各イベントが発動したかどうかをbooleanで返す
+        const e1 = this.check1207Event();
+        const e2 = this.check1214Event();
+        const e3 = this.check1221NightWildhunt();
+        const e4 = this.check1221Event();
+        return e1 || e2 || e3 || e4;
     }
 
 
@@ -2063,8 +2090,6 @@ export default class AdventureScene extends Phaser.Scene {
         // 12月7日の午後の終わり（夜に切り替わった直後: timePeriodIndex === 2）
         if (this.currentDay === 7 && this.timePeriodIndex === 2 && !gs.event1207Played) {
             gs.event1207Played = true;
-            SaveManager.saveGame(this);
-
             const eventData = this.cache.json.get('event_1207');
             if (eventData) {
                 this.scene.pause();
@@ -2073,8 +2098,10 @@ export default class AdventureScene extends Phaser.Scene {
                     returnScene: 'AdventureScene',
                     from1207Event: true
                 });
+                return true; // イベント発動した
             }
         }
+        return false;
     }
 
     check1214Event() {
@@ -2094,7 +2121,9 @@ export default class AdventureScene extends Phaser.Scene {
                 from1214Event: true,
                 explorationDrops: [newGem]
             });
+            return true; // イベント発動した
         }
+        return false;
     }
 
     check1221Event() {
@@ -2110,8 +2139,10 @@ export default class AdventureScene extends Phaser.Scene {
                     returnScene: 'AdventureScene',
                     from1221Event: true
                 });
+                return true; // イベント発動した
             }
         }
+        return false;
     }
 
     check1221NightWildhunt() {
