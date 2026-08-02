@@ -769,6 +769,9 @@ export class BattleRenderer {
             } else if (eff.type === 'kick_hit') {
                 obj = this.scene.add.sprite(0, 0, 'hit_effect6');
                 obj.setDepth(2000);
+            } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {
+                obj = this.scene.add.sprite(0, 0, 'nrg');
+                obj.setDepth(1500);
             } else if (eff.type === 'grenade_explosion') {
                 obj = this.scene.add.sprite(0, 0, 'grenade_explosion');
                 obj.setDepth(1800);
@@ -778,6 +781,8 @@ export class BattleRenderer {
             } else {
                 obj = this.scene.add.graphics();
             }
+
+
             this.effectMap.set(eff, obj);
         }
         
@@ -785,7 +790,47 @@ export class BattleRenderer {
         if (p.visible) {
             let progress = 1.0 - (eff.lifeTime / eff.maxLife);
 
+            if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {
+                // キャラクターを包むオーラ・リングエフェクト: nrg.png (200x200) スプライト
+                obj.setPosition(p.x, p.y - p.scale * 1.0); // 腰〜胸の高さ
+                
+                let colorHex = 0x33ff66;
+                const customColor = eff.customData?.color;
+                if (typeof customColor === 'number') {
+                    colorHex = customColor;
+                } else if (typeof customColor === 'string') {
+                    if (customColor === 'green') colorHex = 0x33ff66;
+                    else if (customColor === 'cyan') colorHex = 0x00ffff;
+                    else if (customColor === 'purple') colorHex = 0xd033ff;
+                    else if (customColor === 'yellow') colorHex = 0xffff33;
+                    else if (customColor === 'red') colorHex = 0xff3344;
+                } else if (eff.type === 'barrier_hit') {
+                    colorHex = 0x00ffff;
+                }
+
+                obj.setTint(colorHex);
+                obj.setBlendMode(Phaser.BlendModes.ADD); // 鮮やかに発光
+
+                const radiusPx = (eff.radius || 1.5) * p.scale;
+                const baseWidth = obj.width || 200;
+
+                if (eff.type === 'buff_circle') {
+                    // 中心に向かってスーッと収束しながら輝く
+                    const currentRadius = radiusPx * (0.3 + progress * 0.7);
+                    obj.setScale((currentRadius * 2.5) / baseWidth);
+                    obj.setAlpha(progress * 0.85);
+                } else {
+                    // barrier_hit: パッと表示されてフェードアウト
+                    obj.setScale((radiusPx * 2.2) / baseWidth);
+                    const alpha = (eff.customData?.alpha || 0.6) * progress;
+                    obj.setAlpha(alpha);
+                }
+                obj.setDepth(1000 - p.depth + 1);
+                return;
+            }
+
             if (eff.type === 'grenade_explosion') {
+
                 // 手りゅう弾爆発: grenade.png (200x200) を使用。適正スケールに調整
                 obj.setPosition(p.x, p.y - p.scale * 0.5);
                 const radiusPx = (eff.radius || 1.5) * p.scale;
