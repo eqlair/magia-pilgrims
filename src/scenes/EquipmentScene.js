@@ -357,29 +357,57 @@ export default class EquipmentScene extends Phaser.Scene {
             if (isMat) bgColor = 0x552222;
 
             const bgHeight = this.expandedLayout ? itemSpacing + 25 : itemSpacing;
-            const bg = this.add.rectangle(20, currentY, this.width - 40, bgHeight, bgColor).setOrigin(0, 0).setInteractive();
+            const bg = this.add.rectangle(20, currentY, this.width - 90, bgHeight, bgColor).setOrigin(0, 0).setInteractive();
             scrollContainer.add(bg);
             
             // Name
             this.drawColoredItem(scrollContainer, 30, currentY + 8, '', item, '16px', this.expandedLayout);
 
-            // Lock icon - add background rectangle to increase hit area
-            const lockBg = this.add.rectangle(this.width - 50, currentY + 16, 40, 40, 0x000000, 0).setInteractive();
-            const lockTxt = this.add.text(this.width - 50, currentY + 16, item.isLocked ? '🔒' : '🔓', { fontSize: '18px' }).setOrigin(0.5, 0.5);
+            // Lock icon - 鍵アイコンが上半分隠れないように少し下へ配置(currentY + bgHeight / 2 + 2)
+            const lockY = currentY + Math.floor(bgHeight / 2) + 2;
+            const lockBg = this.add.rectangle(this.width - 90, lockY, 36, bgHeight - 4, 0x000000, 0.4).setOrigin(0.5, 0.5).setInteractive();
+            const lockTxt = this.add.text(this.width - 90, lockY + 1, item.isLocked ? '🔒' : '🔓', { fontSize: '16px' }).setOrigin(0.5, 0.5);
 
             scrollContainer.add(lockBg);
             scrollContainer.add(lockTxt);
 
-            // Interactions
-            lockBg.on('pointerdown', () => {
+            // スワイプ判定用変数
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let touchStartScrollY = 0;
+            let isSwiping = false;
+
+            lockBg.on('pointerdown', (pointer) => {
                 if (!this.enhanceMode) {
                     item.isLocked = !item.isLocked;
                     lockTxt.setText(item.isLocked ? '🔒' : '🔓');
-                    // this.globalState.save(); // Save the state immediately
+                    SaveManager.saveGame();
                 }
             });
 
-            bg.on('pointerdown', () => {
+            bg.on('pointerdown', (pointer) => {
+                touchStartY = pointer.y;
+                touchStartX = pointer.x;
+                touchStartScrollY = scrollContainer.y;
+                isSwiping = false;
+            });
+
+            bg.on('pointermove', (pointer) => {
+                if (!pointer.isDown) return;
+                const dy = pointer.y - touchStartY;
+                if (Math.abs(dy) > 8 || isSwiping) {
+                    isSwiping = true;
+                    let targetY = touchStartScrollY + dy;
+                    const minY = listHeight - currentY < 0 ? listHeight - currentY : 40;
+                    if (targetY > 40) targetY = 40;
+                    if (targetY < minY) targetY = minY;
+                    scrollContainer.y = targetY;
+                }
+            });
+
+            bg.on('pointerup', (pointer) => {
+                if (isSwiping) return; // スワイプした場合はタップ扱いしない
+
                 if (this.enhanceMode) {
                     if (item === this.enhanceBaseItem) return;
                     if (item.isLocked) return; // Cannot use locked
@@ -397,33 +425,48 @@ export default class EquipmentScene extends Phaser.Scene {
                 }
             });
 
-            scrollContainer.add(lockTxt);
             currentY += bgHeight;
         });
 
-        // Add dragging logic to scrollContainer
-        const hitArea = new Phaser.Geom.Rectangle(20, 0, this.width - 40, Math.max(listHeight, currentY));
-        scrollContainer.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
-        this.input.setDraggable(scrollContainer);
+        // スクロール限界計算
+        const minY = listHeight - currentY < 0 ? listHeight - currentY : 40;
 
-        let startY = 0;
-        scrollContainer.on('dragstart', (pointer) => { startY = scrollContainer.y; });
-        scrollContainer.on('drag', (pointer, dragX, dragY) => {
-            let targetY = dragY;
-            const minY = listHeight - currentY < 0 ? listHeight - currentY : 40;
+        // ── スマホ用右端 ページ送り (▲ / ▼) ボタンの追加 ──
+        const scrollBtnX = this.width - 35;
+        const btnUp = this.add.text(scrollBtnX, 420 + 40, '▲\n上', {
+            fontSize: '16px', color: '#aaffaa', backgroundColor: '#334433', align: 'center', padding: { x: 8, y: 12 }
+        }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+
+        const btnDown = this.add.text(scrollBtnX, 420 + listHeight - 10, '▼\n下', {
+            fontSize: '16px', color: '#aaffaa', backgroundColor: '#334433', align: 'center', padding: { x: 8, y: 12 }
+        }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+
+        this.bottomContainer.add(btnUp);
+        this.bottomContainer.add(btnDown);
+
+        const scrollByAmount = (amount) => {
+            let targetY = scrollContainer.y + amount;
             if (targetY > 40) targetY = 40;
             if (targetY < minY) targetY = minY;
-            scrollContainer.y = targetY;
-        });
-        
-        // Mouse wheel
+            this.tweens.add({
+                targets: scrollContainer,
+                y: targetY,
+                duration: 200,
+                ease: 'Power1'
+            });
+        };
+
+        btnUp.on('pointerdown', () => scrollByAmount(180));
+        btnDown.on('pointerdown', () => scrollByAmount(-180));
+
+        // PCマウスホイールスクロール
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
             let targetY = scrollContainer.y - (deltaY * 0.5);
-            const minY = listHeight - currentY < 0 ? listHeight - currentY : 40;
             if (targetY > 40) targetY = 40;
             if (targetY < minY) targetY = minY;
             scrollContainer.y = targetY;
         });
+
     }
 
     equipItem(invIndex) {
