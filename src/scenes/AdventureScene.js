@@ -233,10 +233,11 @@ export default class AdventureScene extends Phaser.Scene {
         this.currentCharKey = 'sion';
         this.player = this.add.sprite(0, 0, this.currentCharKey);
         
-        // スケールとオフセットの定数
-        this.PSCALE_X = 0.15;
-        this.PSCALE_Y = 0.15;
+        // スケールとオフセットの定数（フレームサイズ150px基準: 旧728px×0.15 ≒ 新150px×0.73）
+        this.PSCALE_X = 0.73;
+        this.PSCALE_Y = 0.73;
         this.CHAR_OFFSET_Y = 52; // キャラを絵の1/4ほど上にずらす(25 + 27)
+
 
         // ヘクスの上にちょこんと乗るようにスケール
         this.player.setScale(this.PSCALE_X, this.PSCALE_Y);
