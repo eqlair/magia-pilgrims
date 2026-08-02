@@ -536,8 +536,9 @@ export class PlayerCharacter extends BattleEntity {
             }
         } else if (this.charId === '003') {
             // 紅華: 4m槍投げ（両端を繋げた形）
-            const dmg = 20 * this.atk * ultimateDamageMultiplier;
+            const dmg = 2.0 * this.atk * ultimateDamageMultiplier;
             // baseX, baseZ を使用してキャラクターの現在位置から発射
+
             const spawnX = this.x;
             const spawnZ = this.z;
             
