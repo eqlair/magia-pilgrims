@@ -167,9 +167,25 @@ export class BattleEngine {
                     if (maxMissingSp > 0) {
                         gs.stockSp += maxMissingSp;
                         this.earnedSp = (this.earnedSp || 0) + maxMissingSp;
-                        console.log(`[Tarot 6 Upright] Recovered ${maxMissingSp} SP`);
                     }
                 }
+                if (tarot.id === 13 && tarot.isUpright && this.players.length > 0) {
+                    // No.12 吊るされた男 (id: 13) 正位置: メンバーの誰か生命力10%を失い、他の誰か1人の攻撃力+20%
+                    const targetDmg = this.players[Math.floor(Math.random() * this.players.length)];
+                    targetDmg.hp = Math.max(1, targetDmg.hp - Math.ceil(targetDmg.maxHp * 0.10));
+                    
+                    const others = this.players.filter(p => p !== targetDmg);
+                    const targetBuff = others.length > 0 ? others[Math.floor(Math.random() * others.length)] : targetDmg;
+                    targetBuff.hangedBuff = true;
+                }
+                if (tarot.id === 16 && tarot.isUpright && this.players.length > 0) {
+                    // No.15 悪魔 (id: 16) 正位置: ランダム1人 攻撃力+50% & 毎秒1HP減少呪い
+                    const target = this.players[Math.floor(Math.random() * this.players.length)];
+                    target.devilBuff = true;
+                    target.devilCursed = true;
+                    target.devilCursedTimer = 0;
+                }
+
                 if (tarot.id === 12 && !tarot.isUpright) {
                     // 戦闘毎にランダムで味方一人の攻撃力と命中率が50%上がる
                     if (this.players.length > 0) {
@@ -179,23 +195,17 @@ export class BattleEngine {
                         console.log(`[Tarot 12 Reversed] Boosted ${target.charId} ATK/HIT by 50%`);
                     }
                 }
-                if (tarot.id === 16 && tarot.isUpright) {
-                    // 戦闘毎にランダムで味方一人の攻撃力が100％上がり、1秒ごとに1点の生命力を失うようになる
-                    if (this.players.length > 0) {
-                        const target = this.players[Math.floor(Math.random() * this.players.length)];
-                        target.atk = Math.floor(target.atk * 2.0);
-                        target.devilPoison = true; // カスタムフラグ
-                        console.log(`[Tarot 16 Upright] Boosted ${target.charId} ATK by 100% with poison`);
-                    }
-                }
             }
         }
+
+
 
         // --- DPS計測モード (rule=3 または isDpsTest) ---
         if (this.rule === 3 || this.config.isDpsTest) {
             this.spawnSandbags();
         }
     }
+
 
     spawnSandbags() {
         const sandbagData = ENEMY_TYPES.find(t => t.id === 10) || ENEMY_TYPES[9];
@@ -417,7 +427,26 @@ export class BattleEngine {
                         if (attacker.justiceHitBuff) levelHitBonus += attacker.justiceHitBuff;
                     }
                 }
+                // No.12 吊るされた男 (id: 13) 正位置: 攻撃力+20%
+                if (tarot.id === 13 && tarot.isUpright && attacker.owner === 'player' && attacker.hangedBuff) {
+                    finalDamage *= 1.20;
+                }
+                // No.13 死神 (id: 14) 正位置: CH率+5%, CH倍率+50%
+                if (tarot.id === 14 && tarot.isUpright && attacker.owner === 'player') {
+                    attacker.critRateBonus = (attacker.critRateBonus || 0) + 0.05;
+                    attacker.critMultBonus = (attacker.critMultBonus || 0) + 0.50;
+                }
+                // No.14 節制 (id: 15)
+                if (tarot.id === 15 && attacker.owner === 'player') {
+                    if (tarot.isUpright) levelHitBonus += 0.10; // 命中+10%
+                    else levelHitBonus -= 0.10; // 逆位置 命中-10%
+                }
+                // No.15 悪魔 (id: 16) 正位置: 攻撃力+50%
+                if (tarot.id === 16 && tarot.isUpright && attacker.owner === 'player' && attacker.devilBuff) {
+                    finalDamage *= 1.50;
+                }
             }
+
 
             
             // 基本命中率100%
@@ -1154,7 +1183,12 @@ export class BattleEngine {
                 if (isChariotUpright && p.isFront) chariotReloadMult = 0.80; // 前衛20%短縮
                 if (isChariotReversed) chariotReloadMult *= 1.10; // 逆位置10%遅化
 
-                cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult * chariotReloadMult;
+                // No.14 節制 (id: 15) 逆位置: リロード20%短縮
+                const isTemperanceReversed = gs.activeTarots.some(t => t.id === 15 && !t.isUpright);
+                const temperanceReloadMult = isTemperanceReversed ? 0.80 : 1.0;
+
+                cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult * chariotReloadMult * temperanceReloadMult;
+
 
                 cs.phase       = 'reloading';
 
@@ -1716,10 +1750,20 @@ export class BattleEngine {
             if (p.gachaDebugTimer > 0) {
                 p.gachaDebugTimer -= dt;
             }
+
+            // 悪魔(正位置)の呪い：毎秒1点ダメージ
+            if (p.devilCursed && p.hp > 1) {
+                p.devilCursedTimer = (p.devilCursedTimer || 0) + dt;
+                if (p.devilCursedTimer >= 1.0) {
+                    p.devilCursedTimer -= 1.0;
+                    p.hp = Math.max(1, p.hp - 1);
+                }
+            }
             
             // 特技の更新
             p.updateSpecialSkills(dt, this.players, this.effects, this.floatingTexts);
         }
+
 
         // 弾の更新と当たり判定
         for (const b of this.bullets) {

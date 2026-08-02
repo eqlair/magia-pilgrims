@@ -483,31 +483,31 @@ export class GlobalState {
                     this.extraWaves += 1;
                 }
                 break;
-            case 13:
-                if (isUpright) {
-                    // パーティからランダムに2人選ぶ（1人の場合は同じ人が対象）
-                    const target1 = party[Math.floor(Math.random() * party.length)];
-                    const target2 = party.length > 1 ? party.filter(id => id !== target1)[Math.floor(Math.random() * (party.length - 1))] : target1;
-                    this.tarot13_targetHp = target1;
-                    this.tarot13_targetAtk = target2;
-                } else {
-                    this.extraEnemyLevel -= 1;
-                    this.extraWaves += 1;
-                }
-                break;
-            case 14:
+            case 14: // No.13 死神 (id: 14)
                 if (!isUpright) {
-                    // 生命力上限が50%上がるので、現在生命力も50%回復させる
                     for (const cid of party) {
                         const char = this.characters[cid];
                         if (char) {
-                            const stats = this.calcBaseStats(cid);
-                            const healAmount = Math.floor(stats.maxHp * 0.5);
-                            char.currentHp += healAmount;
+                            const stats = this.calcStats(cid, party);
+                            const bonusHp = Math.ceil(stats.maxHp * 0.30);
+                            char.currentHp = (char.currentHp || stats.maxHp) + bonusHp;
                         }
                     }
                 }
                 break;
+            case 16: // No.15 悪魔 (id: 16)
+                if (!isUpright) {
+                    for (const cid of party) {
+                        const char = this.characters[cid];
+                        if (char) {
+                            const stats = this.calcStats(cid, party);
+                            const bonusSp = Math.ceil(stats.maxSp * 0.30);
+                            char.currentSp = (char.currentSp || stats.maxSp) + bonusSp;
+                        }
+                    }
+                }
+                break;
+
             case 16:
                 if (!isUpright) {
                     for (const cid of party) {
