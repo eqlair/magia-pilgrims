@@ -164,13 +164,12 @@ export class BattleRenderer {
                 const cs = entity.combatState;
                 const isAttacking = cs && (cs.phase === 'acting' || cs.phase === 'reloading');
                 if (!isAttacking && !entity.isDead && entity.hp > 0) {
-                    if (entity.charId === '001') {
-                        const hopPhase = (this.scene.time.now % 250) / 250;
-                        const hopOffset = Math.sin(hopPhase * Math.PI) * 0.12; // ごく小さい跳ね
-                        heightOffset += p.scale * hopOffset;
-                    }
+                    const hopPhase = (this.scene.time.now % 250) / 250;
+                    const hopOffset = Math.sin(hopPhase * Math.PI) * 0.12; // ごく小さい跳ね
+                    heightOffset += p.scale * hopOffset;
                 }
             }
+
 
             let finalX = p.x;
             let finalY = p.y - heightOffset;
@@ -245,29 +244,56 @@ export class BattleRenderer {
                     sprite.setFrame(frame);
 
                 } else if (isBreakthrough) {
-                    // 突破ステージ: 全キャラ上向き走行(コマ4,5を0.25s交互)が基本
-                    // _bシート: 0:上攻撃, 1:左攻撃, 2:右攻撃, 3:下攻撃, 4,5:上走行, 6,7:下走行
+                    // 突破ステージ: 基本は全キャラ上向き走行(コマ4,5を0.25s交互)
                     const runFrame = Math.floor(this.scene.time.now / 250) % 2 === 0 ? 4 : 5;
 
-                    // 近接攻撃(isMeleeMotion)時のみ攻撃モーションを適用。遠距離攻撃(飛び道具)時は走行を継続！
-                    let attackMotionFrame = null;
+                    let useBaseTex = false;
+                    let targetFrame = null;
+
                     if (entity.targetEnemy && isMeleeMotion) {
+                        // 近接攻撃中: _bシート(motionTex)の近接攻撃コマ(0, 1, 2, 3)
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle >= 45 && angle <= 135)          attackMotionFrame = 3; // 手前(下)向き近接攻撃
-                        else if (angle >= 135 || angle <= -135)   attackMotionFrame = 1; // 左向き近接攻撃
-                        else if (angle >= -45 && angle <= 45)     attackMotionFrame = 2; // 右向き近接攻撃
-                        else                                      attackMotionFrame = 0; // 奥(上)向き近接攻撃
+                        if (angle >= 45 && angle <= 135)          targetFrame = 3; // 下(手前)向き攻撃
+                        else if (angle >= 135 || angle <= -135)   targetFrame = 1; // 左向き攻撃
+                        else if (angle >= -45 && angle <= 45)     targetFrame = 2; // 右向き攻撃
+                        else                                      targetFrame = 0; // 上(奥)向き攻撃
+                    } else if (entity.targetEnemy && isAttacking) {
+                        // 遠距離攻撃中(飛び道具): 
+                        // 横・手前向き射撃時は通常スプライト(baseTex)でその方向を向く。前(奥)向き射撃時は走行を継続！
+                        const dx = entity.targetEnemy.x - entity.x;
+                        const dz = entity.targetEnemy.z - entity.z;
+                        const angle = Math.atan2(dz, dx) * 180 / Math.PI;
+                        if (angle >= 45 && angle <= 135) {
+                            useBaseTex = true;
+                            targetFrame = 3; // 手前(下)向き
+                        } else if (angle >= 135 || angle <= -135) {
+                            useBaseTex = true;
+                            targetFrame = 1; // 左向き
+                        } else if (angle >= -45 && angle <= 45) {
+                            useBaseTex = true;
+                            targetFrame = 2; // 右向き
+                        } else {
+                            // 前(奥)向き射撃 → 走行継続
+                            targetFrame = runFrame;
+                        }
+                    } else {
+                        // 非攻撃時: 上向き走行継続
+                        targetFrame = runFrame;
                     }
 
-                    if (this.scene.textures.exists(motionTex)) {
+                    if (useBaseTex) {
+                        sprite.setTexture(baseTex);
+                        sprite.setFrame(targetFrame);
+                    } else if (this.scene.textures.exists(motionTex)) {
                         sprite.setTexture(motionTex);
-                        sprite.setFrame(attackMotionFrame !== null ? attackMotionFrame : runFrame);
+                        sprite.setFrame(targetFrame);
                     } else {
                         sprite.setTexture(baseTex);
-                        sprite.setFrame(attackMotionFrame !== null ? attackMotionFrame : 0);
+                        sprite.setFrame(0);
                     }
+
 
 
                 } else {
