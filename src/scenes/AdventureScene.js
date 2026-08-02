@@ -129,7 +129,8 @@ export default class AdventureScene extends Phaser.Scene {
         for (let row = 0; row < MapData.length; row++) {
             this.grid[row] = [];
             for (let col = 0; col < MapData[row].length; col++) {
-                const cellData = MapData[row][col];
+                // MapDataの参照汚染を防ぐためディープコピー
+                const cellData = JSON.parse(JSON.stringify(MapData[row][col]));
                 // 初期状態の付与
                 cellData.visited = cellData.visited || 0;
                 cellData.revealed = cellData.revealed || 0; // 一度でも隣接した水域・密林用
@@ -137,8 +138,11 @@ export default class AdventureScene extends Phaser.Scene {
                 if (cellData.initialEnemyLevel === undefined) {
                     cellData.initialEnemyLevel = cellData.enemyLevel || 0;
                 }
-                // 敵の属性(1~5)をランダムに設定（MapDataにあるenemyLevelは上書きしない）
-                cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
+                // 敵の属性(1~5)をランダムに初期設定
+                if (cellData.enemyAttr === undefined) {
+                    cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
+                }
+
                 
                 const xOffset = (row % 2 === 1) ? (this.hexWidth / 2) : 0;
                 const px = col * this.hexWidth + xOffset;
@@ -338,13 +342,12 @@ export default class AdventureScene extends Phaser.Scene {
         // -- 画面上部のテロップ (Tips) --
         this.setupTicker();
 
-        // セーブデータからの復元チェック
-        if (this._initData && (this._initData.fromSave || this._initData.loadSave)) {
-            const saveData = SaveManager.loadGameData();
-            if (saveData) {
-                this.applySaveData(saveData);
-            }
+        // セーブデータが存在すれば常にマップ状態(全ヘクスの敵属性・魔女配置等)を100%復元適用
+        const saveData = SaveManager.loadGameData();
+        if (saveData && saveData.adventureState) {
+            this.applySaveData(saveData);
         }
+
 
         // 休息モード中であればRestSceneへ直接接続して再開（時間の踏み倒し裏技防止）
         if (this.inRestMode) {
