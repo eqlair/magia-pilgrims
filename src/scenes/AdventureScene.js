@@ -1591,13 +1591,17 @@ export default class AdventureScene extends Phaser.Scene {
                 return;
             }
 
-            // 3. タロット引き（午前→午後の切り替えタイミング）
+            // 3. タロット引き（午前→午後の切り替えタイミング・未獲得カードが残っている場合のみ）
+            const gs = GlobalState.getInstance();
             if (this._pendingTarot) {
                 this._pendingTarot = false;
-                this.scene.pause();
-                this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
-                return;
+                if (!gs.drawnTarotCards || gs.drawnTarotCards.length < 22) {
+                    this.scene.pause();
+                    this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
+                    return;
+                }
             }
+
 
             // イベントが何も発動しなかった場合 = 入力待ち状態になったので自動保存
             SaveManager.saveGame(this);

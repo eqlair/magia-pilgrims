@@ -43,6 +43,7 @@ export class GlobalState {
 
         // 発動中のタロットカードリスト [{id: Number, isUpright: Boolean}]
         this.activeTarots = [];
+        this.drawnTarotCards = []; // すでに引いて獲得したタロットカードIDのリスト（二度と出ない）
         
         // デバッグ機能: 戦闘後に宝石確定ドロップ
         this.debugForceGemDrop = false;
@@ -56,10 +57,11 @@ export class GlobalState {
         // --- タロット用の一時・永続フラグ ---
         this.extraEnemyLevel = 0; // マップ上の雑魚敵レベル補正
         this.extraWitchLevel = 0; // マップ上の魔女レベル補正
-        this.extraWaves = 0; // ウェーブ数増加補正
+        this.extraWaves = 0;
         this.enemySpeedHalf = false; // 敵速度半減
         this.expMultiplier = 1.0; // EXP倍率
         this.spMultiplier = 1.0; // SP倍率
+
         this.tarot13_targetHp = null; // No.13(正)のHP変更対象キャラID
         this.tarot13_targetAtk = null; // No.13(正)のATK上昇対象キャラID
 
@@ -483,12 +485,10 @@ export class GlobalState {
                     }
                     const avgLevel = Math.floor(totalLevel / party.length) || 1;
                     const reqExp = this.getRequiredExp(avgLevel);
-                    this.stockExp += reqExp;
                     console.log(`[Tarot 11] Added ${reqExp} stock EXP`);
-                } else {
-                    this.extraWaves += 1;
                 }
                 break;
+
             case 14: // No.13 死神 (id: 14)
                 if (!isUpright) {
                     for (const cid of party) {
@@ -659,6 +659,8 @@ export class GlobalState {
             inventory: JSON.parse(JSON.stringify(this.inventory)),
             savedFormation: JSON.parse(JSON.stringify(this.savedFormation)),
             activeTarots: JSON.parse(JSON.stringify(this.activeTarots)),
+            drawnTarotCards: JSON.parse(JSON.stringify(this.drawnTarotCards || [])),
+
             extraEnemyLevel: this.extraEnemyLevel,
             extraWitchLevel: this.extraWitchLevel,
             extraWaves: this.extraWaves,
@@ -797,8 +799,10 @@ export class GlobalState {
 
         // タロット関係のリセット
         this.activeTarots = [];
+        this.drawnTarotCards = [];
         this.tarot13_targetHp = null;
         this.tarot13_targetAtk = null;
+
 
         // マップ・難易度補正のリセット
         this.extraEnemyLevel = 0;

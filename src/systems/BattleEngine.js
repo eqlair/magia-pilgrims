@@ -201,14 +201,18 @@ export class BattleEngine {
                 }
 
                 if (tarot.id === 12 && !tarot.isUpright) {
-                    // 戦闘毎にランダムで味方一人の攻撃力と命中率が50%上がる
+                    // 戦闘毎にランダムで味方一人の攻撃力と命中率が50%上がる（重複累積を防止）
                     if (this.players.length > 0) {
                         const target = this.players[Math.floor(Math.random() * this.players.length)];
-                        target.atk = Math.floor(target.atk * 1.5);
-                        target.hitRateBonus = (target.hitRateBonus || 0) + 0.50;
-                        console.log(`[Tarot 12 Reversed] Boosted ${target.charId} ATK/HIT by 50%`);
+                        if (!target.tarotAtkBuffApplied) {
+                            target.tarotAtkBuffApplied = true;
+                            target.atkMultiplier = (target.atkMultiplier || 1.0) * 1.5;
+                            target.hitRateBonus = Math.min(1.0, (target.hitRateBonus || 0) + 0.50);
+                            console.log(`[Tarot 12 Reversed] Boosted ${target.charId} ATK multiplier by 1.5`);
+                        }
                     }
                 }
+
             }
         }
 

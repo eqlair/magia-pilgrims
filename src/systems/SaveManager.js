@@ -35,7 +35,9 @@ export class SaveManager {
                 characters: gs.characters,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
                 activeTarots: gs.activeTarots,
+                drawnTarotCards: gs.drawnTarotCards || [],
                 event1207Played: gs.event1207Played,
+
                 event1214Played: gs.event1214Played,
                 event1221Played: gs.event1221Played,
 
@@ -153,7 +155,9 @@ export class SaveManager {
         if (d.characters) gs.characters = d.characters;
         if (d.savedFormation) gs.savedFormation = d.savedFormation;
         if (d.activeTarots) gs.activeTarots = d.activeTarots;
+        if (d.drawnTarotCards) gs.drawnTarotCards = d.drawnTarotCards;
         if (d.event1207Played !== undefined) gs.event1207Played = d.event1207Played;
+
         if (d.event1214Played !== undefined) gs.event1214Played = d.event1214Played;
         if (d.event1221Played !== undefined) gs.event1221Played = d.event1221Played;
 

@@ -33,38 +33,46 @@ export default class TarotScene extends Phaser.Scene {
         }).setOrigin(0.5).setAlpha(0);
         this.uiContainer.add(this.promptText);
 
-        // Deck remaining count
-        this.tarotDeck = this.registry.get('tarotDeck');
-        if (!this.tarotDeck || this.tarotDeck.length === 0) {
-            // Generate a new deck if not provided
-            this.tarotDeck = [];
-            for (let i = 1; i <= 22; i++) {
+        const gs = GlobalState.getInstance();
+        if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
+
+        // 全22枚すでに引いて獲得している場合はタロット発生なし
+        if (gs.drawnTarotCards.length >= 22) {
+            console.log('[TarotScene] All 22 tarot cards already drawn. Ending scene.');
+            this.time.delayedCall(10, () => this.endScene());
+            return;
+        }
+
+        // 過去に選んで引いたカード(drawnTarotCards)を除外した未獲得カードのみで山札を作成
+        this.tarotDeck = [];
+        for (let i = 1; i <= 22; i++) {
+            if (!gs.drawnTarotCards.includes(i)) {
                 this.tarotDeck.push(i);
             }
-            Phaser.Utils.Array.Shuffle(this.tarotDeck);
         }
+        Phaser.Utils.Array.Shuffle(this.tarotDeck);
 
         // Iキーで3枚配りなおす（インチキ機能）
         this.input.keyboard.on('keydown-I', () => {
             if (!this.canSelect) return;
             
             console.log('Redrawing Tarot Cards...');
-            // 引いたカードをデッキに戻してシャッフル
+            // 選んでいない3枚をデッキに戻して再シャッフル
             if (this.drawnCardIds && this.drawnCardIds.length > 0) {
-                this.drawnCardIds.forEach(id => this.tarotDeck.push(id));
+                this.drawnCardIds.forEach(id => {
+                    if (!this.tarotDeck.includes(id)) this.tarotDeck.push(id);
+                });
                 this.drawnCardIds = [];
             }
             Phaser.Utils.Array.Shuffle(this.tarotDeck);
             
-            // BGMが重複しないように止める
             if (this.bgm) {
                 this.bgm.stop();
                 this.bgm.destroy();
             }
-            
-            // シーンをリスタート
             this.scene.restart();
         });
+
 
         this.startCardFlowAnimation();
     }
@@ -117,22 +125,13 @@ export default class TarotScene extends Phaser.Scene {
         const positionsX = [this.width / 6, this.width / 2, this.width * 5 / 6];
         const targetWidth = this.width * 0.3; // 画面の3/10
 
-        // Draw 3 cards from the deck (or fewer if deck is almost empty)
-        // 山札が3枚未満になったら、引いていないカードを補充してシャッフル
-        if (this.tarotDeck.length < 3) {
-            const usedIds = new Set(this.drawnCardIds || []);
-            const missing = [];
-            for (let i = 1; i <= 22; i++) {
-                if (!usedIds.has(i) && !this.tarotDeck.includes(i)) {
-                    missing.push(i);
-                }
-            }
-            this.tarotDeck.push(...missing);
-            Phaser.Utils.Array.Shuffle(this.tarotDeck);
-        }
+        const gs = GlobalState.getInstance();
+        if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
+
+        // 残っている山札から最大3枚を引く
         const drawCount = Math.min(3, this.tarotDeck.length);
         if (drawCount === 0) {
-            // No cards left to draw!
+            console.log('[TarotScene] No undrawn tarot cards left.');
             this.endScene();
             return;
         }
@@ -142,11 +141,11 @@ export default class TarotScene extends Phaser.Scene {
             this.drawnCardIds.push(this.tarotDeck.shift());
         }
 
+
         let completedTweens = 0;
 
-        const gs = GlobalState.getInstance();
-
         // Oキーでデバッグフラグトグル
+
         this.input.keyboard.on('keydown-O', () => {
             gs.tarotAllFaceUp = !gs.tarotAllFaceUp;
             console.log('Tarot All Face Up:', gs.tarotAllFaceUp);
@@ -207,6 +206,20 @@ export default class TarotScene extends Phaser.Scene {
         const cardId = this.drawnCardIds[index];
         const cardData = this.tarotData[cardId];
 
+        // 選択したカードを永久獲得リスト(drawnTarotCards)に保存して山札から除外
+        if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
+        if (!gs.drawnTarotCards.includes(cardId)) {
+            gs.drawnTarotCards.push(cardId);
+        }
+
+        // 選ばれなかった残りの2枚は山札に戻して再シャッフル
+        this.drawnCardIds.forEach((id, i) => {
+            if (i !== index && !gs.drawnTarotCards.includes(id)) {
+                this.tarotDeck.push(id);
+            }
+        });
+        Phaser.Utils.Array.Shuffle(this.tarotDeck);
+
         // 50% chance of Upright vs Reversed
         const isUpright = Math.random() >= 0.5;
 
@@ -222,6 +235,7 @@ export default class TarotScene extends Phaser.Scene {
                 });
             }
         });
+
 
         const startScale = selectedCard.scaleX;
         const targetScale = startScale * 1.5; // Enlarge 1.5x from selection size
