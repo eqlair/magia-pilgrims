@@ -909,14 +909,16 @@ export default class AdventureScene extends Phaser.Scene {
         breakTestBtn.on('pointerdown', () => {
             TransitionManager.transitionTo(this, 'BattleScene', {
                 rule: 2,
+                isTest: true,
                 party: this.party || ['001', '002', '003', '004', '005'],
-                enemyCount: 30,
+                enemyCount: 50,
                 enemyLevel: 1,
-                spawnInterval: 0.2,
+                spawnInterval: 1.0,
                 breakthroughTarget: 42195,
                 returnScene: 'AdventureScene'
             });
         });
+
 
         this.uiContainer.add([breakTestBtn]);
 

@@ -73,7 +73,7 @@ export class BattleEngine {
         // 突破モード(rule=2)パラメータ
         this.breakthroughDist = 0;
         this.breakthroughTarget = this.config.breakthroughTarget || 42195;
-        this.advanceSpeed = 3.0; // 初期速度（最低速度3.0m/sから開始）
+        this.advanceSpeed = 8.0; // 初期速度 (8.0m/s)
 
         if (this.rule === 2) {
             // テスト突入などで値が指定されていない場合のデフォルト値: LV1, 数量50, 出現頻度1.0秒
@@ -117,9 +117,15 @@ export class BattleEngine {
                 lane = gs.savedFormation[charId].lane;
                 isFront = gs.savedFormation[charId].isFront;
             }
+
+            // 突破モード (rule === 2) の場合は配置設定に関わらず全員強制的に前衛 (isFront = true) スタート
+            if (this.rule === 2) {
+                isFront = true;
+            }
             
             const isFoodEmpty = (this.config.isFoodEmpty === true);
             const pc = new PlayerCharacter(lane, isFront ? 3.0 : 1.0, { name: name, lane: lane, isFront: isFront, charId: charId, party: party, isFoodEmpty: isFoodEmpty });
+
             pc.engine = this;
             const charIdToAttr = {
                 '001': 'purple',
