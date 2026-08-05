@@ -16,14 +16,22 @@ export class SpriteText extends Phaser.GameObjects.Container {
         super(scene, x, y);
         this.textureKey = config.textureKey || 'letterS';
         this.spacing = config.spacing !== undefined ? config.spacing : 22; // 30px幅の文字用詰めピッチ
-        this.originX = config.originX !== undefined ? config.originX : 0.5;
-        this.originY = config.originY !== undefined ? config.originY : 0.5;
+        this.textOriginX = config.originX !== undefined ? config.originX : 0.5;
+        this.textOriginY = config.originY !== undefined ? config.originY : 0.5;
         this.tintColor = config.tint !== undefined ? config.tint : 0xffffff;
         
         this.sprites = [];
         this.currentText = '';
         this.setText(text);
         scene.add.existing(this);
+    }
+
+    setOrigin(originX, originY = originX) {
+        this.textOriginX = originX;
+        this.textOriginY = originY;
+        const oldText = this.currentText;
+        this.currentText = '';
+        return this.setText(oldText);
     }
 
     setText(text) {
@@ -46,7 +54,7 @@ export class SpriteText extends Phaser.GameObjects.Container {
         }
 
         const totalWidth = validCharCount > 0 ? (validCharCount - 1) * this.spacing : 0;
-        const startX = -totalWidth * this.originX;
+        const startX = -totalWidth * this.textOriginX;
 
         let charIdx = 0;
         for (let i = 0; i < str.length; i++) {
@@ -63,12 +71,12 @@ export class SpriteText extends Phaser.GameObjects.Container {
             let spr = this.sprites[charIdx];
             if (!spr) {
                 spr = this.scene.add.image(0, 0, this.textureKey, frameIdx);
-                spr.setOrigin(0.5, this.originY);
+                spr.setOrigin(0.5, this.textOriginY);
                 this.add(spr);
                 this.sprites[charIdx] = spr;
             } else {
                 spr.setFrame(frameIdx);
-                spr.setOrigin(0.5, this.originY);
+                spr.setOrigin(0.5, this.textOriginY);
                 spr.setVisible(true);
             }
 
@@ -84,6 +92,7 @@ export class SpriteText extends Phaser.GameObjects.Container {
 
         return this;
     }
+
 
     setTint(color) {
         this.tintColor = color;
