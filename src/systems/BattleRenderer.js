@@ -725,7 +725,7 @@ export class BattleRenderer {
                 
                 textObj = new SpriteText(this.scene, 0, 0, ft.amount.toString(), {
                     tint: tint,
-                    spacing: 20,
+                    spacing: 28,
                     originX: 0.5,
                     originY: 0.5
                 });
@@ -738,11 +738,12 @@ export class BattleRenderer {
             const p = this.projector.project(ft.x, ft.z);
             if (p.visible) {
                 textObj.setVisible(true);
-                // スプライト文字（30x60px）の適正スケール計算
-                let textScale = p.scale / 70.0;
+                // スプライト文字（30x60px）の適正スケール計算 (全体で2割小さく)
+                let textScale = (p.scale / 70.0) * 0.8;
                 if (ft.type === 'skill') {
                     textScale *= 0.7; // スキルテキストは少し小型化
                 }
+
                 
                 textObj.setPosition(p.x, p.y - p.scale * 2.0 - ft.yOffset * p.scale);
                 textObj.setScale(textScale);
@@ -1063,11 +1064,12 @@ export class BattleRenderer {
         if (!this.battleInfoText) {
             this.battleInfoText = new SpriteText(this.scene, this.scene.scale.width / 2, 20, '', {
                 tint: 0xffffff,
-                spacing: 20,
+                spacing: 28,
                 originX: 0.5,
                 originY: 0.5
-            }).setDepth(9999).setScale(0.6);
+            }).setDepth(9999).setScale(0.48);
         }
+
 
         // 突破モード(rule === 2)の場合は突破HUDがあるため非表示
         if (this.scene.battleConfig && this.scene.battleConfig.rule === 2) {

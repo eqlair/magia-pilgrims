@@ -15,16 +15,20 @@ export class SpriteText extends Phaser.GameObjects.Container {
     constructor(scene, x, y, text = '', config = {}) {
         super(scene, x, y);
         this.textureKey = config.textureKey || 'letterS';
-        this.spacing = config.spacing !== undefined ? config.spacing : 22; // 30px幅の文字用詰めピッチ
+        this.spacing = config.spacing !== undefined ? config.spacing : 28; // 30px幅の文字用にゆったり配置
         this.textOriginX = config.originX !== undefined ? config.originX : 0.5;
         this.textOriginY = config.originY !== undefined ? config.originY : 0.5;
         this.tintColor = config.tint !== undefined ? config.tint : 0xffffff;
         
+        const defaultScale = config.scale !== undefined ? config.scale : 0.8;
+        this.setScale(defaultScale);
+
         this.sprites = [];
         this.currentText = '';
         this.setText(text);
         scene.add.existing(this);
     }
+
 
     setOrigin(originX, originY = originX) {
         this.textOriginX = originX;

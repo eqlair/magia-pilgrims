@@ -240,10 +240,11 @@ export default class BattleScene extends Phaser.Scene {
         // DPS表示（画面左下・スプライト文字）
         this.dpsText = new SpriteText(this, 10, this.scale.height - 10, '', {
             tint: 0x00ffaa,
-            spacing: 18,
+            spacing: 28,
             originX: 0,
             originY: 1
-        }).setDepth(1500).setScale(0.45);
+        }).setDepth(1500).setScale(0.36);
+
 
 
     }
