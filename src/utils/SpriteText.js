@@ -1,15 +1,34 @@
 import Phaser from 'phaser';
 
 const CHAR_FRAME_MAP = {
+    // 1行目: 数字 (0~9)
     '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
+
+    // 2行目: 英大文字 A~M (小文字a~mも兼用)
     'A': 13, 'B': 14, 'C': 15, 'D': 16, 'E': 17, 'F': 18, 'G': 19, 'H': 20, 'I': 21, 'J': 22, 'K': 23, 'L': 24, 'M': 25,
-    'N': 26, 'O': 27, 'P': 28, 'Q': 29, 'R': 30, 'S': 31, 'T': 32, 'U': 33, 'V': 34, 'W': 35, 'X': 36, 'Y': 37, 'Z': 38,
     'a': 13, 'b': 14, 'c': 15, 'd': 16, 'e': 17, 'f': 18, 'g': 19, 'h': 20, 'i': 21, 'j': 22, 'k': 23, 'l': 24, 'm': 25,
-    'n': 26, 'o': 27, 'p': 28, 'q': 29, 'r': 30, 's': 31, 't': 32, 'u': 33, 'v': 34, 'w': 35, 'x': 36, 'y': 37, 'z': 38
+
+    // 3行目: 英大文字 N~Z (小文字n~zも兼用)
+    'N': 26, 'O': 27, 'P': 28, 'Q': 29, 'R': 30, 'S': 31, 'T': 32, 'U': 33, 'V': 34, 'W': 35, 'X': 36, 'Y': 37, 'Z': 38,
+    'n': 26, 'o': 27, 'p': 28, 'q': 29, 'r': 30, 's': 31, 't': 32, 'u': 33, 'v': 34, 'w': 35, 'x': 36, 'y': 37, 'z': 38,
+
+    // 4行目: 半角スペース (4行目0列目: frame 39) ＆ 各種記号類
+    ' ': 39,
+    '+': 40,
+    '-': 41,
+    '/': 42,
+    ':': 43,
+    '%': 44,
+    '.': 45,
+    ',': 46,
+    '(': 47,
+    ')': 48,
+    '!': 49,
+    '?': 50
 };
 
 /**
- * 13列x3行のスプライトシート(letterS.png)から文字・数字を描画する高速スプライトテキストコンポーネント
+ * 13列x4行のスプライトシート(letterS.png)から文字・数字・記号を描画する爆速スプライトテキストコンポーネント
  */
 export class SpriteText extends Phaser.GameObjects.Container {
     constructor(scene, x, y, text = '', config = {}) {
@@ -29,7 +48,6 @@ export class SpriteText extends Phaser.GameObjects.Container {
         scene.add.existing(this);
     }
 
-
     setOrigin(originX, originY = originX) {
         this.textOriginX = originX;
         this.textOriginY = originY;
@@ -43,16 +61,11 @@ export class SpriteText extends Phaser.GameObjects.Container {
         if (this.currentText === str) return this;
         this.currentText = str;
 
-        // 全体の表示幅(totalWidth)を計算するために、有効な文字・スペースの総数をカウント
+        // 全体の表示幅(totalWidth)を計算するために、有効な文字の総数をカウント
         let displayCharCount = 0;
-        let drawableCharCount = 0;
-
         for (let i = 0; i < str.length; i++) {
             const ch = str[i];
             if (CHAR_FRAME_MAP[ch] !== undefined) {
-                displayCharCount++;
-                drawableCharCount++;
-            } else if (ch === ' ') {
                 displayCharCount++;
             }
         }
@@ -60,32 +73,24 @@ export class SpriteText extends Phaser.GameObjects.Container {
         const totalWidth = displayCharCount > 0 ? (displayCharCount - 1) * this.spacing : 0;
         const startX = -totalWidth * this.textOriginX;
 
-        let curPosIdx = 0; // 全体の文字位置(スペース含む)
-        let sprIdx = 0;    // 描画する実スプライトのインデックス(密な配列)
-
+        let charIdx = 0;
         for (let i = 0; i < str.length; i++) {
             const ch = str[i];
-
-            if (ch === ' ') {
-                curPosIdx++;
-                continue;
-            }
-
             const frameIdx = CHAR_FRAME_MAP[ch];
             if (frameIdx === undefined) continue;
 
-            let spr = this.sprites[sprIdx];
+            let spr = this.sprites[charIdx];
             if (!spr) {
                 spr = this.scene.add.image(0, 0, this.textureKey, frameIdx);
                 this.add(spr);
-                this.sprites[sprIdx] = spr;
+                this.sprites[charIdx] = spr;
             } else {
                 spr.setFrame(frameIdx);
                 spr.setVisible(true);
             }
 
             spr.setOrigin(0.5, this.textOriginY);
-            spr.setPosition(startX + curPosIdx * this.spacing, 0);
+            spr.setPosition(startX + charIdx * this.spacing, 0);
 
             if (this.tintColor !== 0xffffff) {
                 spr.setTint(this.tintColor);
@@ -93,12 +98,11 @@ export class SpriteText extends Phaser.GameObjects.Container {
                 spr.clearTint();
             }
 
-            curPosIdx++;
-            sprIdx++;
+            charIdx++;
         }
 
         // 使わなくなった余分なスプライトを非表示に
-        for (let i = sprIdx; i < this.sprites.length; i++) {
+        for (let i = charIdx; i < this.sprites.length; i++) {
             if (this.sprites[i]) {
                 this.sprites[i].setVisible(false);
             }
@@ -106,6 +110,7 @@ export class SpriteText extends Phaser.GameObjects.Container {
 
         return this;
     }
+
 
 
 
