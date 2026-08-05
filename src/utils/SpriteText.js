@@ -43,59 +43,70 @@ export class SpriteText extends Phaser.GameObjects.Container {
         if (this.currentText === str) return this;
         this.currentText = str;
 
-        // 対象となる文字数をカウント
-        let validCharCount = 0;
+        // 全体の表示幅(totalWidth)を計算するために、有効な文字・スペースの総数をカウント
+        let displayCharCount = 0;
+        let drawableCharCount = 0;
+
         for (let i = 0; i < str.length; i++) {
             const ch = str[i];
-            if (CHAR_FRAME_MAP[ch] !== undefined || ch === ' ') {
-                validCharCount++;
+            if (CHAR_FRAME_MAP[ch] !== undefined) {
+                displayCharCount++;
+                drawableCharCount++;
+            } else if (ch === ' ') {
+                displayCharCount++;
             }
         }
 
-        // 使用しないスプライトを非表示
-        for (let i = validCharCount; i < this.sprites.length; i++) {
-            this.sprites[i].setVisible(false);
-        }
-
-        const totalWidth = validCharCount > 0 ? (validCharCount - 1) * this.spacing : 0;
+        const totalWidth = displayCharCount > 0 ? (displayCharCount - 1) * this.spacing : 0;
         const startX = -totalWidth * this.textOriginX;
 
-        let charIdx = 0;
+        let curPosIdx = 0; // 全体の文字位置(スペース含む)
+        let sprIdx = 0;    // 描画する実スプライトのインデックス(密な配列)
+
         for (let i = 0; i < str.length; i++) {
             const ch = str[i];
-            const frameIdx = CHAR_FRAME_MAP[ch];
 
             if (ch === ' ') {
-                charIdx++;
+                curPosIdx++;
                 continue;
             }
 
+            const frameIdx = CHAR_FRAME_MAP[ch];
             if (frameIdx === undefined) continue;
 
-            let spr = this.sprites[charIdx];
+            let spr = this.sprites[sprIdx];
             if (!spr) {
                 spr = this.scene.add.image(0, 0, this.textureKey, frameIdx);
-                spr.setOrigin(0.5, this.textOriginY);
                 this.add(spr);
-                this.sprites[charIdx] = spr;
+                this.sprites[sprIdx] = spr;
             } else {
                 spr.setFrame(frameIdx);
-                spr.setOrigin(0.5, this.textOriginY);
                 spr.setVisible(true);
             }
 
-            spr.setPosition(startX + charIdx * this.spacing, 0);
+            spr.setOrigin(0.5, this.textOriginY);
+            spr.setPosition(startX + curPosIdx * this.spacing, 0);
+
             if (this.tintColor !== 0xffffff) {
                 spr.setTint(this.tintColor);
             } else {
                 spr.clearTint();
             }
 
-            charIdx++;
+            curPosIdx++;
+            sprIdx++;
+        }
+
+        // 使わなくなった余分なスプライトを非表示に
+        for (let i = sprIdx; i < this.sprites.length; i++) {
+            if (this.sprites[i]) {
+                this.sprites[i].setVisible(false);
+            }
         }
 
         return this;
     }
+
 
 
     setTint(color) {
