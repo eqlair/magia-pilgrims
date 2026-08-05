@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { SpriteText } from '../utils/SpriteText';
+
 
 /**
  * BattleEngineの論理データを元に、MapProjectorを使って2.5D描画を行うクラス
@@ -697,7 +699,7 @@ export class BattleRenderer {
         }
     }
 
-    // 浮遊テキスト描画
+    // 浮遊テキスト描画（スプライト文字 letterS.png を使用して描画を超爆速化）
     _updateFloatingTexts() {
         if (!this.floatingTextMap) this.floatingTextMap = new Map();
         
@@ -713,37 +715,35 @@ export class BattleRenderer {
         for (const ft of this.engine.floatingTexts) {
             let textObj = this.floatingTextMap.get(ft.id);
             if (!textObj) {
-                let color = '#ff0000'; // 赤:通常
-                if (ft.type === 'critical') color = '#ffff00'; // 黄:クリティカル・有効
-                else if (ft.type === 'resist') color = '#cc00ff'; // 紫:軽減
-                else if (ft.type === 'miss') color = '#aaaaaa'; // グレー:miss
-                else if (ft.type === 'heal') color = '#00ff00'; // 緑:回復
-                else if (ft.type === 'barrier') color = '#0088ff'; // 青:バリア
-                else if (ft.type === 'skill') color = '#ffaa00'; // オレンジ:スキル
+                let tint = 0xff3333; // 赤:通常
+                if (ft.type === 'critical') tint = 0xffff00; // 黄:クリティカル
+                else if (ft.type === 'resist') tint = 0xcc33ff; // 紫:軽減
+                else if (ft.type === 'miss') tint = 0xaaaaaa; // グレー:miss/reloading
+                else if (ft.type === 'heal') tint = 0x33ff66; // 緑:回復
+                else if (ft.type === 'barrier') tint = 0x00ccff; // 青:バリア
+                else if (ft.type === 'skill') tint = 0xffaa00; // オレンジ:スキル
                 
-                textObj = this.scene.add.text(0, 0, ft.amount.toString(), {
-                    fontSize: '100px',
-                    color: color,
-                    fontStyle: 'bold',
-                    stroke: '#000000',
-                    strokeThickness: 10
-                }).setOrigin(0.5, 0.5);
+                textObj = new SpriteText(this.scene, 0, 0, ft.amount.toString(), {
+                    tint: tint,
+                    spacing: 20,
+                    originX: 0.5,
+                    originY: 0.5
+                });
                 
                 this.floatingTextMap.set(ft.id, textObj);
+            } else {
+                textObj.setText(ft.amount.toString());
             }
 
             const p = this.projector.project(ft.x, ft.z);
             if (p.visible) {
                 textObj.setVisible(true);
-                // 上に移動させる (yOffset) + キャラクターの頭上付近 (p.scale * 2.0程度)
-                // 100pxのフォントに対して、p.scale (1mあたりのピクセル数, 奥行きで40〜100程度) を使ってスケールする
-                // 元の1/4のサイズにするため p.scale / 200.0 と設定
-                let textScale = p.scale / 200.0;
+                // スプライト文字（30x60px）の適正スケール計算
+                let textScale = p.scale / 70.0;
                 if (ft.type === 'skill') {
-                    textScale *= 0.66; // スキル発動時のテキストは2/3のサイズ
+                    textScale *= 0.7; // スキルテキストは少し小型化
                 }
                 
-                // yOffsetはメートル単位(ft.yOffset) * p.scaleでピクセル数に変換
                 textObj.setPosition(p.x, p.y - p.scale * 2.0 - ft.yOffset * p.scale);
                 textObj.setScale(textScale);
                 
@@ -756,6 +756,7 @@ export class BattleRenderer {
             }
         }
     }
+
 
     _updateEffect(eff) {
         if (!this.effectMap) this.effectMap = new Map();
@@ -1010,13 +1011,12 @@ export class BattleRenderer {
 
     _updateSystemUI() {
         if (!this.sysText) {
-            this.sysText = this.scene.add.text(this.scene.scale.width / 2, this.scene.scale.height / 3, '', {
-                fontSize: '48px',
-                color: '#ff0000',
-                fontStyle: 'bold',
-                stroke: '#ffffff',
-                strokeThickness: 8
-            }).setOrigin(0.5, 0.5).setDepth(3000);
+            this.sysText = new SpriteText(this.scene, this.scene.scale.width / 2, this.scene.scale.height / 3, '', {
+                tint: 0xff3333,
+                spacing: 24,
+                originX: 0.5,
+                originY: 0.5
+            }).setDepth(3000);
             this.sysTextTimer = 0;
         }
 
@@ -1061,15 +1061,12 @@ export class BattleRenderer {
 
     _updateBattleInfo() {
         if (!this.battleInfoText) {
-            this.battleInfoText = this.scene.add.text(this.scene.scale.width / 2, 12, '', {
-                fontFamily: 'sans-serif',
-                fontSize: '20px',
-                fontStyle: 'bold',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 4,
-                align: 'center'
-            }).setOrigin(0.5, 0).setDepth(9999);
+            this.battleInfoText = new SpriteText(this.scene, this.scene.scale.width / 2, 20, '', {
+                tint: 0xffffff,
+                spacing: 20,
+                originX: 0.5,
+                originY: 0.5
+            }).setDepth(9999).setScale(0.6);
         }
 
         // 突破モード(rule === 2)の場合は突破HUDがあるため非表示
@@ -1105,9 +1102,10 @@ export class BattleRenderer {
             // ウェーブをすべてクリアした後は非表示にする
             this.battleInfoText.setText('');
         } else {
-            this.battleInfoText.setText(`Enemy ${enemiesRemaining}/${totalEnemies}  Wave ${currentWave}/${totalWaves}  Time ${min}:${sec}`);
+            this.battleInfoText.setText(`ENEMY ${enemiesRemaining}/${totalEnemies}  WAVE ${currentWave}/${totalWaves}  TIME ${min}:${sec}`);
         }
     }
+
 
 
     // クリーンアップ

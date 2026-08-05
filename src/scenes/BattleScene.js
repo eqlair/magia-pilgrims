@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
+import { SpriteText } from '../utils/SpriteText';
 import { TransitionManager } from '../systems/TransitionManager';
+
 import { MapProjector } from '../systems/MapProjector';
 import { BattleEngine } from '../systems/BattleEngine';
 import { EnemyCharacter } from '../systems/BattleEntities';
@@ -235,14 +237,14 @@ export default class BattleScene extends Phaser.Scene {
             }
         });
 
-        // DPS表示（画面左下）
-        this.dpsText = this.add.text(10, this.scale.height - 10, '', {
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            color: '#00ffaa',
-            stroke: '#000000',
-            strokeThickness: 3,
-        }).setOrigin(0, 1).setDepth(1500);
+        // DPS表示（画面左下・スプライト文字）
+        this.dpsText = new SpriteText(this, 10, this.scale.height - 10, '', {
+            tint: 0x00ffaa,
+            spacing: 18,
+            originX: 0,
+            originY: 1
+        }).setDepth(1500).setScale(0.45);
+
 
     }
 
@@ -532,9 +534,10 @@ export default class BattleScene extends Phaser.Scene {
             // 最大DPS更新
             if (oneSec > this.engine.maxDps) this.engine.maxDps = oneSec;
             this.dpsText.setText(
-                `DPS 今: ${Math.floor(oneSec).toLocaleString()}  10s平: ${Math.floor(tenSecDps).toLocaleString()}  最大: ${Math.floor(this.engine.maxDps).toLocaleString()}`
+                `DPS ${Math.floor(oneSec)} 10S ${Math.floor(tenSecDps)} MAX ${Math.floor(this.engine.maxDps)}`
             );
         }
+
     }
 
     drawGrid() {
