@@ -772,13 +772,15 @@ export class BattleRenderer {
                 obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で黒枠を完全透明化しエネルギー発光！
                 obj.setDepth(1500);
             } else if (eff.type === 'grenade_explosion') {
-
                 obj = this.scene.add.sprite(0, 0, 'grenade_explosion');
+                obj.setFlip(Math.random() < 0.5, Math.random() < 0.5); // ランダムに左右・上下反転
                 obj.setDepth(1800);
             } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
                 obj = this.scene.add.sprite(0, 0, 'bomb');
+                obj.setFlip(Math.random() < 0.5, Math.random() < 0.5); // ランダムに左右・上下反転を織り交ぜて見た目に違いを出す
                 obj.setDepth(1800);
             } else {
+
                 obj = this.scene.add.graphics();
             }
 
