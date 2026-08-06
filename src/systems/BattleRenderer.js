@@ -493,14 +493,7 @@ export class BattleRenderer {
                         // 今回は見た目をその半分(2.5)に落とします。 -> ユーザーの「直径4m(片側2m)」の希望に完全に合わせるため 2.0 にします -> 1.5倍にするため 3.0 にします
                         const targetScale = p.scale * (3.0 / baseHeight);
                         sprite.setScale(targetScale);
-                        
-                        // デバッグ用の当たり判定の円を描画
-                        if (this.debugGraphics) {
-                            const hitRadius = entity.hitRange !== undefined ? entity.hitRange : (entity.size / 2);
-                            this.debugGraphics.lineStyle(2, 0xffff00, 0.5); // 黄色で半透明
-                            // isProjectile のため heightOffset 分上に描画されているのに合わせる
-                            this.debugGraphics.strokeCircle(p.x, p.y - (p.scale * 1.0), hitRadius * p.scale);
-                        }
+
                         
                         // 180度反対方向の同じ槍を表示してケツで繋げる
                         let sprite2 = entity.sprite2;
@@ -813,8 +806,20 @@ export class BattleRenderer {
                     obj.setTint(custom.color);
                 }
 
-                // 上側(y=0)が先端のため、ターゲット進行方向角度 angleRad に +90度補正
-                const angleDeg = ((custom.angleRad || 0) * 180 / Math.PI) + 90;
+                // 2.5Dプロジェクション画面ピクセル上での確実な視覚角度を計算
+                let angleDeg = 0;
+                if (custom.srcX !== undefined && custom.targetX !== undefined) {
+                    const pChar = this.projector.project(custom.srcX, custom.srcZ);
+                    const pTarget = this.projector.project(custom.targetX, custom.targetZ);
+                    const screenDx = pTarget.x - pChar.x;
+                    const screenDy = pTarget.y - pChar.y;
+                    const screenAngleRad = Math.atan2(screenDy, screenDx);
+                    // 画面上で真上(-Y)に攻撃した時、回転0度(上側y=0が先端、下側y=1が手前)になるよう+90度補正
+                    angleDeg = (screenAngleRad * 180 / Math.PI) + 90;
+                } else {
+                    angleDeg = ((custom.angleRad || 0) * 180 / Math.PI) + 90;
+                }
+
                 obj.setAngle(angleDeg);
 
                 const alpha = Math.max(0, eff.lifeTime / eff.maxLife);
@@ -825,6 +830,7 @@ export class BattleRenderer {
                 obj.setScale(p.scale * (sizeM / baseWidth));
                 return;
             }
+
 
 
             if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {

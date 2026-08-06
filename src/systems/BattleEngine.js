@@ -1154,8 +1154,11 @@ export class BattleEngine {
 
                     if (isSwing) {
                         // ── スイング系: キャラ位置に固定された範囲弾丸を生成 ──
-                        // 各キャラスイング速度を1.5倍に高速化
-                        const swingDuration = (action.swingDur || 0.25) / 1.5;
+                        // 各キャラスイング速度を1.5倍に高速化（紅華003の槍回転速度はご指定により半分=持続時間2倍に緩やか化）
+                        let swingDuration = (action.swingDur || 0.25) / 1.5;
+                        if (p.charId === '003') {
+                            swingDuration = (action.swingDur || 0.5) * 2.0;
+                        }
                         const b = new Bullet(p.x, p.z, {
                             vx: 0, vz: 0,
                             damage:     damage,
@@ -1168,6 +1171,7 @@ export class BattleEngine {
                             lifeTime:   swingDuration,
                         });
                         b.sourceEntity = p;
+
                         b.maxLife      = swingDuration;
                         b.baseAngle    = Math.atan2(dz, dx); // 固定する
                         b.swingDir     = Math.random() < 0.5 ? 1 : -1;
@@ -2028,9 +2032,14 @@ export class BattleEngine {
                                         customData: {
                                             color: elemColor,
                                             angleRad: angleRad,
-                                            charId: cid
+                                            charId: cid,
+                                            srcX: px,
+                                            srcZ: pz,
+                                            targetX: t.x,
+                                            targetZ: t.z
                                         }
                                     }));
+
                                 }
                             } else {
                                 const len = Math.sqrt(b.vx*b.vx + b.vz*b.vz) || 1.0;
