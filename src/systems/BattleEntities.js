@@ -515,9 +515,12 @@ export class PlayerCharacter extends BattleEntity {
                         vx: Math.cos(randomAngle)*spd, vz: Math.sin(randomAngle)*spd,
                         damage: bulletDmg, knockback: 1, size: 0.8, lifeTime: 4.0, type: 'weapon_004',
                         swayPhase: 0,
-                        swayAmp: 0, // ゆらゆらしない
+                        swayAmp: 0,
+                        spinAngle: Math.random() * Math.PI * 2,
+                        spinSpeed: (Math.random() < 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.5), // 全てランダムな回転方向・速度でゆっくり回転
                         stunDuration: 3.0 // 命中時に3秒行動不能
                     });
+
                     bObj.sourceEntity = this;
                     
                     if (this.engine) {

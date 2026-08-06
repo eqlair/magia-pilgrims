@@ -462,40 +462,24 @@ export class BattleRenderer {
                             sprite2.setAngle(sprite.angle + 180);
                         }
                         
-                        if (entity.type === 'swing_004' || entity.type === 'swing_ultimate_004') {
-                            sprite.setVisible(false); // 根本の弾丸スプライトは非表示
-                            if (entity.type === 'swing_004') {
-                                if (!this.beamGraphics) {
-                                    this.beamGraphics = this.scene.add.graphics();
-                                    this.beamGraphics.setDepth(100);
-                                }
-                                // 扇状の残像を描画
-                                const radius = (entity.hitRange || 1.5) * p.scale; // 描画半径
-                            this.beamGraphics.fillStyle(0xffff00, Math.max(0, 0.4 * (1.0 - progress))); // 徐々に消える
-                            this.beamGraphics.beginPath();
-                            this.beamGraphics.moveTo(p.x, p.y);
-                            const startRad = (baseAngle - 90 - (angleRange * dir)) * Math.PI / 180;
-                            const currentRad = (baseAngle - 90 - (angleRange * dir) + (angleRange*2 * progress * dir)) * Math.PI / 180;
-                            this.beamGraphics.arc(p.x, p.y, radius, startRad, currentRad, dir === -1);
-                            this.beamGraphics.closePath();
-                            this.beamGraphics.fillPath();
-                            }
+                        if (entity.type === 'swing_004') {
+                            sprite.setVisible(true);
+                            // 黄蘭の近接攻撃(004003b.png)も蒼樹の剣と同様に長めの3.0m相当でスイング表示
+                            const baseHeight = sprite.height || 100;
+                            const targetScale = p.scale * (3.0 / baseHeight);
+                            sprite.setScale(targetScale);
+                        } else if (entity.type === 'swing_ultimate_004') {
+                            sprite.setVisible(false);
                         }
                     } else if (entity.type === 'ultimate_003') {
                         // 必殺技は常に回転
                         sprite.setAngle(entity.spinAngle * 180 / Math.PI);
                         
-                        // 画像の長さを十分な大きさに固定（直径4m以上に見えるように）
                         const hitRadius = entity.hitRange !== undefined ? entity.hitRange : (entity.size / 2);
                         const baseHeight = sprite.height || 100;
-                        
-                        // 実は通常攻撃(swing_003)が半径3.0m相当のスケールだったため、
-                        // 半径2.0m(直径4m)を指定すると通常攻撃より小さく見えてしまっていました。
-                        // 今回は見た目をその半分(2.5)に落とします。 -> ユーザーの「直径4m(片側2m)」の希望に完全に合わせるため 2.0 にします -> 1.5倍にするため 3.0 にします
                         const targetScale = p.scale * (3.0 / baseHeight);
                         sprite.setScale(targetScale);
 
-                        
                         // 180度反対方向の同じ槍を表示してケツで繋げる
                         let sprite2 = entity.sprite2;
                         if (!sprite2) {
@@ -507,11 +491,17 @@ export class BattleRenderer {
                         sprite2.setPosition(sprite.x, sprite.y);
                         sprite2.setScale(sprite.scaleX, sprite.scaleY);
                         sprite2.setAngle(sprite.angle + 180);
+                    } else if (entity.spinSpeed !== undefined) {
+                        // 黄蘭の必殺技後に舞う004003b.png: 全てをランダムな回転方向、速度でゆっくり回転
+                        const dt = (this.scene.game.loop.delta / 1000);
+                        entity.spinAngle = (entity.spinAngle || 0) + entity.spinSpeed * dt;
+                        sprite.setAngle(entity.spinAngle * 180 / Math.PI);
                     } else {
                         // 通常の飛ぶ武器
                         const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                         sprite.setAngle(angle);
                     }
+
                 } else if (textureKey === 'grenade') {
                     // 手りゅう弾はクルクル回る
                     sprite.setAngle(this.scene.time.now * 0.5);
