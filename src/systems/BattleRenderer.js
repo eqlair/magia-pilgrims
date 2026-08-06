@@ -396,8 +396,10 @@ export class BattleRenderer {
                 // 敵の弾丸(ball.png)は画面で見やすく美しい球体サイズ(3.5倍)に調整
                 let visualMultiplier = (entity.owner === 'enemy') ? 3.5 : 1.5;
                 if (textureKey === 'enemy_bullet') visualMultiplier = 3.5;
+                if (textureKey === 'weapon_002') visualMultiplier = 3.0; // 蒼樹の剣の大きさを今の2倍に拡大！
                 if (textureKey === 'weapon_004') visualMultiplier = 0.75; // 黄蘭の弾丸は見た目1/2
-                if (textureKey === 'hit_effect6') visualMultiplier = 8.0;  // キック衝撃波はしっかり目立つサイズにする
+                if (textureKey === 'hit_effect6') visualMultiplier = 8.0;  // キック衝撃波
+
 
                 
                 sprite.setScale(p.scale * ((entity.size * visualMultiplier) / baseWidth));
@@ -815,10 +817,11 @@ export class BattleRenderer {
                 obj.setAlpha(alpha);
 
                 const baseWidth = obj.width || 200;
-                const sizeM = 2.5; // 2.5m 相当の見た目サイズ
+                const sizeM = 3.75; // 1.5倍に拡大した見た目サイズ (3.75m相当)
                 obj.setScale(p.scale * (sizeM / baseWidth));
                 return;
             }
+
 
             if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {
 

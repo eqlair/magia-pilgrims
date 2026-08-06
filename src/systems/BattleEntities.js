@@ -435,12 +435,12 @@ export class PlayerCharacter extends BattleEntity {
                     const swingBullet = new Bullet(this.x, this.z, {
                         owner: 'player', isPiercing: true,
                         vx: 0, vz: 0,
-                        damage: bulletDmg, knockback: 5, size: 0.5, hitRange: 3.5 * (2/3), lifeTime: 2.0, type: 'swing_ultimate_002'
+                        damage: bulletDmg, knockback: 5, size: 1.0, hitRange: 3.5 * (2/3), lifeTime: 2.0, type: 'swing_ultimate_002'
                     });
                     swingBullet.sourceEntity = this;
                     swingBullet.maxLife = 2.0;
                     swingBullet.baseAngle = 0; // 0から360度回転する
-                    swingBullet.swingDir = Math.random() < 0.5 ? 1 : -1;
+                    swingBullet.swingDir = 1; // 8本の剣の回転方向を時計回りに統一！
                     bullets.push(swingBullet); if (swingBullet && swingBullet.sourceEntity && swingBullet.sourceEntity.triggerAttackShake) swingBullet.sourceEntity.triggerAttackShake();
                     
                     // 2. 薙ぎ払い終了後(2.0秒後)に飛び道具として発射
@@ -451,15 +451,16 @@ export class PlayerCharacter extends BattleEntity {
                         const dz = this.targetEnemy.z - this.z;
                         const len = Math.sqrt(dx*dx + dz*dz) || 1.0;
                         const speed = 30.0;
-                        // サイズは通常の飛び道具と同じ大きさにする(size: 0.5)、射程は10m
+                        // 飛んでいく剣の大きさを今の2倍(size: 1.0)に拡大
                         const flyBullet = new Bullet(this.x, this.z, {
                             owner: 'player', isPiercing: true,
                             vx: (dx/len)*speed, vz: (dz/len)*speed,
-                            damage: bulletDmg, knockback: 0, size: 0.5, targetDist: 10.0, lifeTime: 2.0, type: 'weapon_002'
+                            damage: bulletDmg, knockback: 0, size: 1.0, targetDist: 10.0, lifeTime: 2.0, type: 'weapon_002'
                         });
                         flyBullet.sourceEntity = this;
                         bullets.push(flyBullet); if (flyBullet && flyBullet.sourceEntity && flyBullet.sourceEntity.triggerAttackShake) flyBullet.sourceEntity.triggerAttackShake();
                     }});
+
                 }});
             }
 
