@@ -1154,6 +1154,8 @@ export class BattleEngine {
 
                     if (isSwing) {
                         // ── スイング系: キャラ位置に固定された範囲弾丸を生成 ──
+                        // 各キャラスイング速度を1.5倍に高速化
+                        const swingDuration = (action.swingDur || 0.25) / 1.5;
                         const b = new Bullet(p.x, p.z, {
                             vx: 0, vz: 0,
                             damage:     damage,
@@ -1163,14 +1165,15 @@ export class BattleEngine {
                             hitRange:   action.weaponRange !== undefined ? action.weaponRange : action.range,
                             isPiercing: action.isPiercing !== false,
                             type:       `swing_${p.charId}`,
-                            lifeTime:   action.swingDur || 0.25,
+                            lifeTime:   swingDuration,
                         });
                         b.sourceEntity = p;
-                        b.maxLife      = action.swingDur || 0.25;
+                        b.maxLife      = swingDuration;
                         b.baseAngle    = Math.atan2(dz, dx); // 固定する
                         b.swingDir     = Math.random() < 0.5 ? 1 : -1;
                         this.bullets.push(b); if (b && b.sourceEntity && b.sourceEntity.triggerAttackShake) b.sourceEntity.triggerAttackShake();
                     } else {
+
                         // ── 飛び道具系: shotCount分の弾を拡散発射 ──
                         const sc     = action.shotCount || 1;
                         const spread = action.spread || 0;
@@ -1237,9 +1240,12 @@ export class BattleEngine {
                 const temperanceReloadMult = isTemperanceReversed ? 0.80 : 1.0;
 
                 cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult * chariotReloadMult * temperanceReloadMult;
-
+                if (cs.comboType === 'near') {
+                    cs.reloadTimer /= 1.5; // 各キャラスイング・近接攻撃テンポを1.5倍爆速化
+                }
 
                 cs.phase       = 'reloading';
+
 
                 
                 // キャンセルの場合のみ即時ホップバック（距離が遠すぎた場合など）

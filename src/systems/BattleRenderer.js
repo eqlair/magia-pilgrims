@@ -73,18 +73,17 @@ export class BattleRenderer {
             else if (b.type === 'bullet') textureKey = 'bullet';
             else if (b.type === 'enemy_bullet') textureKey = 'enemy_bullet';
 
-            else if (b.type === 'weapon_002') textureKey = 'weapon_002';
-            else if (b.type === 'weapon_003' || b.type === 'ultimate_003') textureKey = 'weapon_003';
-            else if (b.type === 'weapon_004') textureKey = 'weapon_004';
+            else if (b.type === 'weapon_002' || b.type === 'swing_002') textureKey = 'weapon_002';
+            else if (b.type === 'weapon_003' || b.type === 'swing_003' || b.type === 'ultimate_003') textureKey = 'weapon_003';
+            else if (b.type === 'weapon_004' || b.type === 'swing_004') textureKey = 'weapon_004';
             else if (b.type === 'weapon_005' || b.type === 'swing_005') textureKey = 'weapon_005';
             else if (b.type === 'swing_ultimate_002') textureKey = 'weapon_002';
             // 汎用: swing_XXX 形式
             else if (b.type && b.type.startsWith('swing_')) {
                 const id = b.type.replace('swing_', '');
-                if (id !== '002' && id !== '003' && id !== '004') {
-                    textureKey = `weapon_${id}`;
-                }
+                textureKey = `weapon_${id}`;
             }
+
 
             if (textureKey) {
                 this._updateSprite(b, textureKey);
