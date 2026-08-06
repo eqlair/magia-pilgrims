@@ -396,9 +396,13 @@ export class BattleRenderer {
                 // 敵の弾丸(ball.png)は画面で見やすく美しい球体サイズ(3.5倍)に調整
                 let visualMultiplier = (entity.owner === 'enemy') ? 3.5 : 1.5;
                 if (textureKey === 'enemy_bullet') visualMultiplier = 3.5;
-                if (textureKey === 'weapon_002') visualMultiplier = 3.0; // 蒼樹の剣の大きさを今の2倍に拡大！
+                if (textureKey === 'weapon_002') {
+                    // 回転中(swing_ultimate_002)は元のサイズ(1.5)、飛んでいく時のみ2倍(3.0)に拡大
+                    visualMultiplier = (entity.type === 'swing_ultimate_002') ? 1.5 : 3.0;
+                }
                 if (textureKey === 'weapon_004') visualMultiplier = 0.75; // 黄蘭の弾丸は見た目1/2
                 if (textureKey === 'hit_effect6') visualMultiplier = 8.0;  // キック衝撃波
+
 
 
                 

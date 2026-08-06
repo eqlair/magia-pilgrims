@@ -432,19 +432,20 @@ export class PlayerCharacter extends BattleEntity {
                     const bulletDmg = 1.5 * this.atk * ultimateDamageMultiplier;
                     
                     // 1. 360度薙ぎ払い用のスイング弾丸を生成 (2.0秒)
+                    // 1. 360度薙ぎ払い用のスイング弾丸を生成 (回転速度2倍: 1.0秒, サイズは元の0.5)
                     const swingBullet = new Bullet(this.x, this.z, {
                         owner: 'player', isPiercing: true,
                         vx: 0, vz: 0,
-                        damage: bulletDmg, knockback: 5, size: 1.0, hitRange: 3.5 * (2/3), lifeTime: 2.0, type: 'swing_ultimate_002'
+                        damage: bulletDmg, knockback: 5, size: 0.5, hitRange: 3.5 * (2/3), lifeTime: 1.0, type: 'swing_ultimate_002'
                     });
                     swingBullet.sourceEntity = this;
-                    swingBullet.maxLife = 2.0;
+                    swingBullet.maxLife = 1.0;
                     swingBullet.baseAngle = 0; // 0から360度回転する
                     swingBullet.swingDir = 1; // 8本の剣の回転方向を時計回りに統一！
                     bullets.push(swingBullet); if (swingBullet && swingBullet.sourceEntity && swingBullet.sourceEntity.triggerAttackShake) swingBullet.sourceEntity.triggerAttackShake();
                     
-                    // 2. 薙ぎ払い終了後(2.0秒後)に飛び道具として発射
-                    this.delayedActions.push({ timer: 2.0, action: () => {
+                    // 2. 薙ぎ払い終了後(1.0秒後)に飛び道具として発射
+                    this.delayedActions.push({ timer: 1.0, action: () => {
                         if (this.isDead || !this.targetEnemy) return;
                         
                         const dx = this.targetEnemy.x - this.x;
@@ -460,6 +461,7 @@ export class PlayerCharacter extends BattleEntity {
                         flyBullet.sourceEntity = this;
                         bullets.push(flyBullet); if (flyBullet && flyBullet.sourceEntity && flyBullet.sourceEntity.triggerAttackShake) flyBullet.sourceEntity.triggerAttackShake();
                     }});
+
 
                 }});
             }
