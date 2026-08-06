@@ -654,9 +654,11 @@ export class BattleEngine {
             // 経験値計算 (敵死亡時)
             if (defender.owner === 'enemy') {
                 const lv = defender.level || 1;
-                const baseExp = defender.isBoss ? Math.pow(lv, 2) * 200 : lv;
+                // 雑魚敵の経験値はレベルの2倍(lv * 2)、魔女(isBoss)は変更なし
+                const baseExp = defender.isBoss ? Math.pow(lv, 2) * 200 : (lv * 2);
                 this.earnedExp += Math.floor(baseExp * GlobalState.getInstance().expMultiplier);
             }
+
 
             if (defender.isBoss) {
                 // 魔女死亡時の第一段階エフェクト
@@ -2153,8 +2155,9 @@ export class BattleEngine {
             const totalToKill = remainingEnemies + aliveEnemies.length;
 
             const enemyLv = this.enemyLevel || 1;
-            const baseExp = enemyLv; 
+            const baseExp = enemyLv * 2; // 雑魚敵レベルの2倍
             this.earnedExp += Math.floor(baseExp * totalToKill * gs.expMultiplier);
+
 
             for (const enemy of this.enemies) {
                 if (!enemy.isDead && enemy.hp > 0) {
