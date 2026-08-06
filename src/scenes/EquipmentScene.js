@@ -552,25 +552,22 @@ export default class EquipmentScene extends Phaser.Scene {
                 }
             }
 
-            // Regenerate name using new rank words
+            // 新しいランクの冠詞を取得して入れ替える
             const pList = relicWords.prefixes[this.enhanceBaseItem.rank] || relicWords.prefixes[1];
-            const prefix = pList[Math.floor(Math.random() * pList.length)] || '';
-            // Only prefix changes based on rank, adj and noun remain the same for flavor, or we regenerate everything.
-            // Let's just regenerate the prefix to show growth, keep adj and noun.
-            const parts = this.enhanceBaseItem.name.split(/(?=[^\w\s])/); // Simplified extraction
-            // To be safer, just append "+" or regenerate full name
-            // 既存のランク冠詞を除去してから新しい冠詞を付与
+            const newPrefix = pList[Math.floor(Math.random() * pList.length)] || '';
+            
             let baseName = this.enhanceBaseItem.name;
-            // 全ランクの冠詞リストを収集して、先頭にある冠詞を除去する
-            const allPrefixes = Object.values(relicWords.prefixes).flat();
+            // 長い冠詞から順に前方一致判定し、古い冠詞をきれいに除去して入れ替える
+            const allPrefixes = Object.values(relicWords.prefixes).flat().sort((a, b) => b.length - a.length);
             for (const p of allPrefixes) {
-                if (baseName.startsWith(p + 'の')) {
-                    baseName = baseName.slice(p.length + 1); // 「冠詞の」を除去
+                if (baseName.startsWith(p)) {
+                    baseName = baseName.slice(p.length);
                     break;
                 }
             }
-            this.enhanceBaseItem.name = `${prefix}の${baseName}`;
+            this.enhanceBaseItem.name = `${newPrefix}${baseName}`;
         }
+
 
         this.enhanceMode = false;
         this.enhanceMaterials = [];
