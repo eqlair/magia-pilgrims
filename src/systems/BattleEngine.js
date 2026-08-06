@@ -57,6 +57,44 @@ export class BattleEngine {
         this.totalWaves = Math.max(1, (this.config.waveCount || 1) + gs.extraWaves);
         this.majoLevel = Math.max(0, (this.config.majoLevel || 0) + gs.extraWitchLevel);
         this.enemyLevel = Math.max(1, (this.config.enemyLevel || 1) + gs.extraEnemyLevel);
+
+        // 夜間戦闘フラグ判定 (この戦闘セッション限りの一時的適用)
+        this.isNightBattle = !!(this.config.isNightExploration || this.config.isNightBattle || this.config.isNight);
+
+        // 編成中最高レベルキャラクターを計算
+        const party = this.config.party || ['001'];
+        let maxCharLevel = 1;
+        for (const pId of party) {
+            const st = gs.getCharStats(pId);
+            if (st && st.level) {
+                maxCharLevel = Math.max(maxCharLevel, st.level);
+            }
+        }
+
+        if (this.isNightBattle) {
+            // ── 雑魚敵夜限定強化更新 ──
+            // 雑魚敵レベルが本来の+3になる。マップに設定のない場合、最高レベルキャラ+3
+            const hasMapLevel = (this.config.enemyLevel !== undefined && this.config.enemyLevel > 0);
+            if (hasMapLevel) {
+                this.enemyLevel = Math.max(1, (this.config.enemyLevel || 1) + 3);
+            } else {
+                this.enemyLevel = maxCharLevel + 3;
+            }
+
+            // 出現数が1.5倍になる
+            this.enemyCountPerWave = Math.floor(this.enemyCountPerWave * 1.5);
+
+            // ウェーブ数が3になる
+            if (this.majoLevel === 0) {
+                this.totalWaves = 3;
+            }
+
+            // 魔女出現時もレベルが同様に高レベルキャラクターの+5
+            if (this.majoLevel > 0) {
+                this.majoLevel = maxCharLevel + 5;
+            }
+        }
+
         this.earnedExp = 0;
         this.earnedSp = 0;
         this.totalDamage = 0;
@@ -98,9 +136,8 @@ export class BattleEngine {
         }
 
         // パーティ情報を取得
-
-        const party = this.config.party || ['001'];
         this.players = [];
+
 
         // レーン配置 (-2, -1, 0, 1, 2)
         const laneOffsets = [0, -1, 1, -2, 2];
@@ -307,9 +344,18 @@ export class BattleEngine {
             const enemy = new EnemyCharacter(x, z, enemyData);
             enemy.isDropSpawn = isDropSpawn;
             enemy.spawnDropTimer = isDropSpawn ? 1.0 : 0; // 1/5の降下敵のみ降下タイマーを付与
+
+            if (this.isNightBattle) {
+                // 雑魚敵夜限定補正: 大きさが1.5倍、攻撃射程が2倍
+                enemy.size *= 1.5;
+                enemy.farThreshold *= 2.0;
+                enemy.weaponRange *= 2.0;
+            }
+
             this.enemies.push(enemy);
             spawnedEnemies.push(enemy);
         }
+
 
         return spawnedEnemies;
     }
@@ -334,8 +380,15 @@ export class BattleEngine {
             textureKey: textureKey,
             attribute: this.enemyAttribute
         };
-        this.enemies.push(new BossCharacter(x, z, bossData));
+        const boss = new BossCharacter(x, z, bossData);
+        if (this.isNightBattle) {
+            // 魔女夜限定補正: HPは本来の2倍
+            boss.maxHp *= 2.0;
+            boss.hp = boss.maxHp;
+        }
+        this.enemies.push(boss);
     }
+
 
     applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null) {
         if (defender.isDead || defender.isDying || defender.hp <= 0) return false;
@@ -523,14 +576,15 @@ export class BattleEngine {
             if (attacker.owner === 'player' && attacker.isFront && isFoolReversedActive) {
                 finalDamage *= 1.20;
             }
-            if (defender.owner === 'player' && defender.isFront && isFoolReversedActive) {
-                finalDamage *= 1.20;
+            // 夜間限定デバフ: キャラクターの受けるダメージが約2倍(各属性防御力、抵抗力+100のデバフ)
+            if (defender.owner === 'player' && this.isNightBattle) {
+                finalDamage = (finalDamage * 2.0) + 100;
             }
-
 
             if (finalDamage < 1) finalDamage = 1;
             finalDamage = Math.ceil(finalDamage);
         }
+
 
         // --- バリア判定 ---
         if (defender.barrierHp && defender.barrierHp > 0) {
