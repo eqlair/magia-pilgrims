@@ -1156,8 +1156,9 @@ export class BattleEngine {
                         // ── スイング系: キャラ位置に固定された範囲弾丸を生成 ──
                         let swingDuration = (action.swingDur || 0.25) / 1.5;
                         if (p.charId === '003') {
-                            swingDuration = 1.0; // 紅華(003)の近接スイング持続時間はゆったり1.0秒
+                            swingDuration = 0.5; // 紅華(003)の近接スイング持続時間はベストテンポの0.5秒
                         }
+
 
 
                         const b = new Bullet(p.x, p.z, {
@@ -1247,10 +1248,11 @@ export class BattleEngine {
                 cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult * chariotReloadMult * temperanceReloadMult;
                 if (cs.comboType === 'near') {
                     if (p.charId === '003') {
-                        cs.reloadTimer = Math.max(1.0, cs.reloadTimer);
+                        cs.reloadTimer = Math.max(0.5, cs.reloadTimer);
                     } else {
                         cs.reloadTimer /= 1.5;
                     }
+
                 }
 
 
