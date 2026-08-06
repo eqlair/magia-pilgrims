@@ -425,8 +425,9 @@ export class BattleRenderer {
                         }
                         let angleRange = 60;
                         if (entity.type === 'swing_004') angleRange = 90; // 180度(±90)
-                        if (entity.type === 'swing_003') angleRange = 360; // 720度回転(±360)で回転速度2倍
+                        if (entity.type === 'swing_003') angleRange = 270; // 1.5回転分(±270度 = 計540度)
                         if (entity.type === 'swing_ultimate_002') angleRange = 180; // 360度薙ぎ払い
+
                         
                         // 軌跡（時計回り）と画像の回転方向を合わせるため、マイナス方向に回転させる
                         const dir = entity.swingDir || 1;

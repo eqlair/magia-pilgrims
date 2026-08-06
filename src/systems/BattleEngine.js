@@ -1154,11 +1154,9 @@ export class BattleEngine {
 
                     if (isSwing) {
                         // ── スイング系: キャラ位置に固定された範囲弾丸を生成 ──
-                        // 各キャラスイング速度を1.5倍に高速化（紅華003の槍回転速度はご指定により半分=持続時間2倍に緩やか化）
-                        let swingDuration = (action.swingDur || 0.25) / 1.5;
-                        if (p.charId === '003') {
-                            swingDuration = (action.swingDur || 0.5) * 2.0;
-                        }
+                        // 各キャラスイング速度を1.5倍に高速化 (持続時間は短めのコンパクト設定)
+                        const swingDuration = (action.swingDur || 0.25) / 1.5;
+
                         const b = new Bullet(p.x, p.z, {
                             vx: 0, vz: 0,
                             damage:     damage,
