@@ -20,6 +20,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.spritesheet('letterS', 'files/CHR/letterS.png', { frameWidth: 30, frameHeight: 60 });
 
         this.load.image('warn001', 'files/EFFECT/warn001.png');
+        this.load.image('slash', 'files/EFFECT/slash.png');
+
 
         this.load.image('portrait_001', 'files/CHR/001001.png');
         this.load.image('portrait_002', 'files/CHR/002001.png');

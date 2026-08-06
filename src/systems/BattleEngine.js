@@ -1841,14 +1841,16 @@ export class BattleEngine {
                 }
             }
 
-            // スイング系の武器はキャラクターの動きに追従させる
-
+            // スイング系の武器はキャラクターの動きに追従させる（要件③: 攻撃判定はキャラクターと一緒に移動する）
             if (b.type && b.type.startsWith('swing_') && b.sourceEntity) {
                 b.x = b.sourceEntity.x;
                 b.z = b.sourceEntity.z;
 
-                // 軌跡エフェクトの生成
-                if (b.baseAngle !== undefined && b.baseAngle !== null) {
+                const cid = b.sourceEntity.charId;
+                const isNoTrail = (cid === '002' || cid === '003' || cid === '004');
+
+                // 蒼樹(002)・紅華(003)・黄蘭(004)の場合は軌跡を描かない（要件①）
+                if (!isNoTrail && b.baseAngle !== undefined && b.baseAngle !== null) {
                     const progress = 1.0 - (b.lifeTime / b.maxLife);
                     let swingRange = 60 * (Math.PI / 180);
                     if (b.type === 'swing_004') swingRange = 90 * (Math.PI / 180);
@@ -1865,11 +1867,7 @@ export class BattleEngine {
                     
                     let trailColor = 0x00ffff;
                     if (b.owner === 'player' && b.sourceEntity) {
-                        const cid = b.sourceEntity.charId;
                         if (cid === '001') trailColor = 0xaa00aa; // 紫
-                        else if (cid === '002') trailColor = 0x00ffff; // 青/水
-                        else if (cid === '003') trailColor = 0xff3333; // 赤
-                        else if (cid === '004') trailColor = 0xffff00; // 黄
                         else if (cid === '005') trailColor = 0x8888ff; // 薄青
                     }
 
@@ -1880,12 +1878,13 @@ export class BattleEngine {
 
                     this.effects.push(new EffectEntity(tipX, tipZ, {
                         type: 'swing_trail',
-                        radius: 0.2, // 線にするため少し太く
-                        lifeTime: 1.0, // 1秒かけて消える
+                        radius: 0.2,
+                        lifeTime: 1.0,
                         customData: { color: trailColor, prevX, prevZ }
                     }));
                 }
             }
+
 
             if (b.type && !b.type.startsWith('swing_') && b.distanceTraveled >= b.targetDist) {
                 if (b.type === 'grenade') {
@@ -1999,10 +1998,39 @@ export class BattleEngine {
                             if (b.type && b.type.startsWith('swing_')) {
                                 const len = Math.sqrt(dx*dx + dz*dz) || 1.0;
                                 t.applyKnockback((b.knockback * -dx) / len, (b.knockback * -dz) / len);
+
+                                const src = b.sourceEntity;
+                                const cid = src ? src.charId : '002';
+                                if (cid === '002' || cid === '003' || cid === '004') {
+                                    // 命中した相手(t)と攻撃判定/キャラクター(src)の中間点
+                                    const midX = src ? (src.x + t.x) / 2 : (b.x + t.x) / 2;
+                                    const midZ = src ? (src.z + t.z) / 2 : (b.z + t.z) / 2;
+
+                                    // 各キャラクターの属性着色 (002:水/氷シアン, 003:炎の赤/オレンジ, 004:雷の黄色)
+                                    let elemColor = 0x00ccff; // 002: 蒼樹 (水色)
+                                    if (cid === '003') elemColor = 0xff3300; // 003: 紅華 (赤/オレンジ)
+                                    else if (cid === '004') elemColor = 0xffff00; // 004: 黄蘭 (黄色)
+
+                                    const px = src ? src.x : b.x;
+                                    const pz = src ? src.z : b.z;
+                                    const angleRad = Math.atan2(t.z - pz, t.x - px);
+
+                                    this.effects.push(new EffectEntity(midX, midZ, {
+                                        type: 'slash_hit',
+                                        lifeTime: 0.35,
+                                        maxLife: 0.35,
+                                        customData: {
+                                            color: elemColor,
+                                            angleRad: angleRad,
+                                            charId: cid
+                                        }
+                                    }));
+                                }
                             } else {
                                 const len = Math.sqrt(b.vx*b.vx + b.vz*b.vz) || 1.0;
                                 t.applyKnockback((b.knockback * b.vx) / len, (b.knockback * b.vz) / len);
                             }
+
                             if (t.isPlayer && b.owner === 'enemy' && b.knockback >= 5) {
                                 t.isFront = false; // ボスの攻撃で吹き飛ばされたら強制後衛
                             }

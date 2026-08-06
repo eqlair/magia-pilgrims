@@ -73,20 +73,23 @@ export class BattleRenderer {
             else if (b.type === 'bullet') textureKey = 'bullet';
             else if (b.type === 'enemy_bullet') textureKey = 'enemy_bullet';
 
-            else if (b.type === 'weapon_002' || b.type === 'swing_002') textureKey = 'weapon_002';
-            else if (b.type === 'weapon_003' || b.type === 'swing_003' || b.type === 'ultimate_003') textureKey = 'weapon_003';
-            else if (b.type === 'weapon_004' || b.type === 'swing_004') textureKey = 'weapon_004';
+            else if (b.type === 'weapon_002') textureKey = 'weapon_002';
+            else if (b.type === 'weapon_003' || b.type === 'ultimate_003') textureKey = 'weapon_003';
+            else if (b.type === 'weapon_004') textureKey = 'weapon_004';
             else if (b.type === 'weapon_005' || b.type === 'swing_005') textureKey = 'weapon_005';
             else if (b.type === 'swing_ultimate_002') textureKey = 'weapon_002';
-            // 汎用: swing_XXX 形式(中心数値ID) の手割り
+            // 汎用: swing_XXX 形式
             else if (b.type && b.type.startsWith('swing_')) {
                 const id = b.type.replace('swing_', '');
-                textureKey = `weapon_${id}`;
+                if (id !== '002' && id !== '003' && id !== '004') {
+                    textureKey = `weapon_${id}`;
+                }
             }
 
             if (textureKey) {
                 this._updateSprite(b, textureKey);
             }
+
         }
         
         // キック弾丸・爆発エフェクトの Graphics 描画
@@ -771,7 +774,12 @@ export class BattleRenderer {
             } else if (eff.type === 'kick_hit') {
                 obj = this.scene.add.sprite(0, 0, 'hit_effect6');
                 obj.setDepth(2000);
+            } else if (eff.type === 'slash_hit') {
+                obj = this.scene.add.sprite(0, 0, 'slash');
+                obj.setOrigin(0.5, 1.0); // 横長だけどグラフィック上側が先端。下側が手前
+                obj.setDepth(2500);
             } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {
+
                 obj = this.scene.add.sprite(0, 0, 'nrg');
                 obj.setDepth(1500);
             } else if (eff.type === 'grenade_explosion') {
@@ -792,7 +800,29 @@ export class BattleRenderer {
         if (p.visible) {
             let progress = 1.0 - (eff.lifeTime / eff.maxLife);
 
+            if (eff.type === 'slash_hit') {
+                obj.setPosition(p.x, p.y - p.scale * 0.8);
+                const custom = eff.customData || {};
+
+                if (custom.color !== undefined) {
+                    obj.setTint(custom.color);
+                }
+
+                // 上側(y=0)が先端のため、ターゲット進行方向角度 angleRad に +90度補正
+                const angleDeg = ((custom.angleRad || 0) * 180 / Math.PI) + 90;
+                obj.setAngle(angleDeg);
+
+                const alpha = Math.max(0, eff.lifeTime / eff.maxLife);
+                obj.setAlpha(alpha);
+
+                const baseWidth = obj.width || 200;
+                const sizeM = 2.5; // 2.5m 相当の見た目サイズ
+                obj.setScale(p.scale * (sizeM / baseWidth));
+                return;
+            }
+
             if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {
+
                 // キャラクターを包むオーラ・リングエフェクト: nrg.png (200x200) スプライト
                 obj.setPosition(p.x, p.y - p.scale * 1.0); // 腰〜胸の高さ
                 
