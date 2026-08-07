@@ -407,6 +407,19 @@ export default class BattleScene extends Phaser.Scene {
         // 論理更新
         this.engine.update(dt);
 
+        // Tips駆動タイマー (戦闘開始2秒後初回表示、以降18秒周期)
+        if (this.tipTimerCount === undefined) this.tipTimerCount = 0;
+        this.tipTimerCount += dt;
+        if (!this.hasShownFirstTip && this.tipTimerCount >= 2.0) {
+            this.hasShownFirstTip = true;
+            this.tipTimerCount = 0;
+            this.showBattleTip();
+        } else if (this.hasShownFirstTip && this.tipTimerCount >= 18.0) {
+            this.tipTimerCount = 0;
+            this.showBattleTip();
+        }
+
+
 
         // 突破モード時の疑似3D傾斜スライス床のスクロールとUI更新
         if (this.battleConfig.rule === 2 && this.engine) {
@@ -914,8 +927,9 @@ export default class BattleScene extends Phaser.Scene {
         const startY = -80;
 
 
-        // コンテナの作成
-        this.tipsContainer = this.add.container(width / 2, startY).setDepth(1800);
+        // コンテナの作成 (最前面 Depth: 3500, ScrollFactor: 0 で画面最前面固定)
+        this.tipsContainer = this.add.container(width / 2, startY).setDepth(3500).setScrollFactor(0);
+
 
         // 薄い黒の枠（画面横幅に対して約25文字分が見えるサイズ感）
         const panelWidth = Math.min(width * 0.88, 620);

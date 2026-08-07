@@ -18,8 +18,8 @@ export default class OpScene extends Phaser.Scene {
         this.load.audio('bgm_mad', '/files/BGM/007_stage_mad.mp3');
         this.load.audio('se_bomb', '/files/OP/bomb.mp3');
 
-        // シナリオデータをロード
-        this.load.json('op_event', '/files/OP/op_event.json');
+        this.load.image('op_title', 'files/OP/title.png');
+        this.load.audio('op_start', 'files/OP/start.mp3');
     }
 
     create() {
@@ -36,24 +36,44 @@ export default class OpScene extends Phaser.Scene {
         this.engine = new EventEngine(this, eventData, () => {
             this.engine.cleanup();
             if (this.sound) this.sound.stopAll();
-            // OP会話終了後、紫苑一人(LV1, 中央後衛)でチュートリアル戦闘へ突入
-            // 条件: 紫苑1人, 黄色属性, bgm_battle4, 敵レベル2, ウェーブ数2, 魔女レベル1, 撤退不可
-            TransitionManager.transitionTo(this, 'BattleScene', {
-                party: ['001'],
-                rule: 1,
-                enemyLevel: 2,
-                totalWaves: 2,
-                waveCount: 2,
-                majoLevel: 1,
-                attribute: 'yellow',
-                bgmKey: 'bgm_battle4',
-                bossBgmKey: 'bgm_boss3',
 
-                isTutorial: true,
-                canRetreat: false,
-                returnScene: 'AdventureScene'
+            // 会話終了後、画面中央に title.png を表示し、start.mp3 を再生
+            const width = this.scale.width;
+            const height = this.scale.height;
+
+            const overlayBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000).setDepth(4999);
+            const titleImg = this.add.image(width / 2, height / 2, 'op_title')
+                .setOrigin(0.5)
+                .setDepth(5000);
+
+            if (titleImg.width > 0 && titleImg.height > 0) {
+                const scale = Math.min(width / titleImg.width, height / titleImg.height) * 0.9;
+                titleImg.setScale(scale);
+            }
+
+            if (this.cache.audio.exists('op_start')) {
+                this.sound.play('op_start', { volume: 0.8 });
+            }
+
+            // 5秒後にチュートリアル戦闘へ突入
+            this.time.delayedCall(5000, () => {
+                TransitionManager.transitionTo(this, 'BattleScene', {
+                    party: ['001'],
+                    rule: 1,
+                    enemyLevel: 2,
+                    totalWaves: 2,
+                    waveCount: 2,
+                    majoLevel: 1,
+                    attribute: 'yellow',
+                    bgmKey: 'bgm_battle4',
+                    bossBgmKey: 'bgm_boss3',
+                    isTutorial: true,
+                    canRetreat: false,
+                    returnScene: 'AdventureScene'
+                });
             });
         });
+
 
 
 
