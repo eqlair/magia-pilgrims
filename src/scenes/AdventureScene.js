@@ -1526,9 +1526,15 @@ export default class AdventureScene extends Phaser.Scene {
             this.playHappyAction();
             return;
         }
+
+        // チュートリアル午後(探索限定モード)の場合、移動は不可
+        if (this.isExploreOnlyTutorial) {
+            return;
+        }
         
         // 隣接しているヘクスのみ移動可能
         if (!hex.cellData.isAdjacent) return;
+
         
         // 水域・密林には移動不可
         if (hex.cellData.name === '水域' || hex.cellData.name === '密林') return;
@@ -2602,18 +2608,17 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     // ─────────────────────────────────────────────────────
-    // チュートリアル進行・イベント制御 & 操作制限 (移動のみ許可)
+    // チュートリアル進行・イベント制御 & 操作制限
     // ─────────────────────────────────────────────────────
     checkTutorialEvents() {
         const gs = GlobalState.getInstance();
+        const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+        const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
+
+        // ── チュートリアル午前 ──
         if (gs.isTutorialMode && !gs.tutorialMorningSeen && gs.currentMonth === 12 && gs.currentDay === 1 && gs.timePeriodIndex === 0) {
-            // イベントを見たフラグを即座に記録 (敗北や巻き戻りで再発生させない)
             gs.tutorialMorningSeen = true;
             SaveManager.saveGame(this);
-
-            // 東京駅（または現在地）の背景画像キーを取得
-            const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
-            const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
 
             let eventData = this.cache.json.get('tutorial_morning');
             if (eventData) {
@@ -2635,7 +2640,6 @@ export default class AdventureScene extends Phaser.Scene {
 
                 eventData = [
                     { cmd: "bg", key: bgKey },
-                    { cmd: "location", name: "東京駅" },
                     { cmd: "chara", key: "portrait_001", pos: "right" }
                 ];
                 for (let i = 0; i < morningLines.length; i++) {
@@ -2651,9 +2655,6 @@ export default class AdventureScene extends Phaser.Scene {
                 eventData.push({ cmd: "end" });
             }
 
-
-
-            // イベント再生
             this.eventEngine = new EventEngine(this, eventData, () => {
                 if (this.eventEngine) {
                     this.eventEngine.cleanup();
@@ -2662,24 +2663,88 @@ export default class AdventureScene extends Phaser.Scene {
                 this.applyTutorialRestrictions();
             });
             this.eventEngine.start();
-        } else if (gs.isTutorialMode) {
+            return;
+        }
+
+        // ── チュートリアル午後 ──
+        if (gs.isTutorialMode && !gs.tutorialAfternoonSeen && gs.timePeriodIndex === 1) {
+            gs.tutorialAfternoonSeen = true;
+            SaveManager.saveGame(this);
+
+            let eventData = this.cache.json.get('tutorial_afternoon');
+            if (eventData) {
+                eventData = JSON.parse(JSON.stringify(eventData));
+                if (eventData[0] && (eventData[0].cmd === 'image' || eventData[0].cmd === 'bg')) {
+                    eventData[0] = { cmd: 'bg', key: bgKey };
+                }
+            } else {
+                const talkSion = this.cache.json.get('talk_001');
+                const afternoonLines = (talkSion && talkSion['チュートリアル(午後)']) ? talkSion['チュートリアル(午後)'] : [
+                    "どこも化け物だらけだ、ひどい目に遭った…",
+                    "あまり大きく移動はしないで周辺を調べてみようかな",
+                    "化け物に見つからないように…",
+                    "(探索を選んでみてください。)"
+                ];
+
+                eventData = [
+                    { cmd: "bg", key: bgKey },
+                    { cmd: "chara", key: "portrait_001", pos: "right" }
+                ];
+                for (let i = 0; i < afternoonLines.length; i++) {
+                    const text = afternoonLines[i];
+                    const isSystem = text.startsWith('(') && text.endsWith(')');
+                    eventData.push({
+                        cmd: "text",
+                        name: isSystem ? "" : "紫苑",
+                        body: text
+                    });
+                }
+                eventData.push({ cmd: "clearText" });
+                eventData.push({ cmd: "end" });
+            }
+
+            this.eventEngine = new EventEngine(this, eventData, () => {
+                if (this.eventEngine) {
+                    this.eventEngine.cleanup();
+                    this.eventEngine = null;
+                }
+                this.applyTutorialRestrictions();
+            });
+            this.eventEngine.start();
+            return;
+        }
+
+        if (gs.isTutorialMode) {
             this.applyTutorialRestrictions();
         }
     }
 
-    /** チュートリアル中の操作制限（「移動」以外を不可にする） */
+    /** チュートリアル中の操作制限（午前：移動のみ、午後：探索のみ） */
     applyTutorialRestrictions() {
         const gs = GlobalState.getInstance();
         if (!gs.isTutorialMode) return;
 
-        this.isMovementOnlyTutorial = true;
+        if (gs.timePeriodIndex === 0) {
+            // チュートリアル午前：移動のみ許可
+            this.isMovementOnlyTutorial = true;
+            this.isExploreOnlyTutorial = false;
 
-        // UIボタン（探索・休息・編成・デバッグボタンなど）を無効化・隠す
-        if (this.restBtn) this.restBtn.setVisible(false);
-        if (this.exploreBtn) this.exploreBtn.setVisible(false);
-        if (this.statusBtn) this.statusBtn.setVisible(false);
-        if (this.dbgBtn) this.dbgBtn.setVisible(false);
+            if (this.restBtn) this.restBtn.setVisible(false);
+            if (this.exploreBtn) this.exploreBtn.setVisible(false);
+            if (this.statusBtn) this.statusBtn.setVisible(false);
+            if (this.dbgBtn) this.dbgBtn.setVisible(false);
+        } else if (gs.timePeriodIndex === 1) {
+            // チュートリアル午後：探索のみ許可
+            this.isMovementOnlyTutorial = false;
+            this.isExploreOnlyTutorial = true;
+
+            if (this.exploreBtn) this.exploreBtn.setVisible(true);
+            if (this.restBtn) this.restBtn.setVisible(false);
+            if (this.statusBtn) this.statusBtn.setVisible(false);
+            if (this.dbgBtn) this.dbgBtn.setVisible(false);
+        }
     }
 }
+
 
 

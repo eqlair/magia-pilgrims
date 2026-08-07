@@ -25,7 +25,8 @@ export class EventEngine {
         const { width, height } = scene.scale;
         this.W = width;
         this.H = height;
-        this.DEPTH = 100;
+        this.DEPTH = 5000;
+
 
         // レイヤー管理
         this.bgImage     = null;
@@ -179,8 +180,9 @@ export class EventEngine {
 
         const newBg = this.scene.add.image(this.W / 2, this.H / 2, key)
             .setDepth(this.DEPTH).setAlpha(0);
-        const scale = this.H / newBg.height;
+        const scale = Math.max(this.W / newBg.width, this.H / newBg.height);
         newBg.setScale(scale);
+
 
         if (this.bgOverlay) {
             this.bgOverlay.destroy();
@@ -356,7 +358,9 @@ export class EventEngine {
         if (this.illustImage) { this.illustImage.destroy(); this.illustImage = null; }
         if (this.charaRight)  { this.charaRight.destroy();  this.charaRight  = null; }
         if (this.charaLeft)   { this.charaLeft.destroy();   this.charaLeft   = null; }
+        if (this.locationLabel) { this.locationLabel.destroy(); this.locationLabel = null; }
         this._clearText(() => {});
+
         if (this._currentBgm) {
             if (this._currentBgm.isPlaying) this._currentBgm.stop();
             this._currentBgm.destroy();
