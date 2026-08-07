@@ -1754,11 +1754,18 @@ export default class AdventureScene extends Phaser.Scene {
                 return;
             }
 
-            // 2. 食料ゼロ等の特別イベントコールバック
+            // 2. チュートリアルイベントチェック (午前・午後・夜等)
+            const tutFired = this.checkTutorialEvents();
+            if (tutFired) {
+                return;
+            }
+
+            // 3. 食料ゼロ等の特別イベントコールバック
             if (typeof onComplete === 'function') {
                 onComplete();
                 return;
             }
+
 
             // 3. タロット引き（午前→午後の切り替えタイミング・未獲得カードが残っている場合のみ）
             const gs = GlobalState.getInstance();
@@ -2663,7 +2670,7 @@ export default class AdventureScene extends Phaser.Scene {
                 this.applyTutorialRestrictions();
             });
             this.eventEngine.start();
-            return;
+            return true;
         }
 
         // ── チュートリアル午後 ──
@@ -2711,15 +2718,17 @@ export default class AdventureScene extends Phaser.Scene {
                 this.applyTutorialRestrictions();
             });
             this.eventEngine.start();
-            return;
+            return true;
         }
 
         if (gs.isTutorialMode) {
             this.applyTutorialRestrictions();
         }
+        return false;
     }
 
     /** チュートリアル中の操作制限（午前：移動のみ、午後：探索のみ） */
+
     applyTutorialRestrictions() {
         const gs = GlobalState.getInstance();
         if (!gs.isTutorialMode) return;
