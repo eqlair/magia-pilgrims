@@ -1517,8 +1517,10 @@ export default class AdventureScene extends Phaser.Scene {
 
         // 前回より仲間が増えているかチェック
         if (this.party.length > this.previousPartySize) {
-            this.globalEnemyCount = Math.floor(this.globalEnemyCount * 1.4);
+            // 仲間加入時: 現在値の20% + 10
+            this.globalEnemyCount = Math.floor(this.globalEnemyCount * 1.20) + 10;
             this.globalEnemyLevel += 1;
+
             
             // マップ上の残存する敵・魔女のレベルも更新する
             for (const row of this.grid) {
