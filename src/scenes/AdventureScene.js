@@ -1492,9 +1492,9 @@ export default class AdventureScene extends Phaser.Scene {
 
 
         // 敵の量コントロール
-        // 時間が進む -> 数量が1～5増える
+        // 時間が進む -> 数量が1～3増える
+        this.globalEnemyCount += Math.floor(Math.random() * 3) + 1;
 
-        this.globalEnemyCount += Math.floor(Math.random() * 5) + 1;
         
         // 毎日夜になるたびに
         if (this.timePeriodIndex === 2) {
