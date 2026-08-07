@@ -848,14 +848,17 @@ export default class BattleScene extends Phaser.Scene {
         const gs = GlobalState.getInstance();
         if (gs.hideBattleTips || this.isExiting) return;
 
-        let tipsData = this.cache.json.get('tipsB');
-        if (!tipsData || !tipsData.tips || tipsData.tips.length === 0) {
-            tipsData = this.cache.json.get('tips');
-        }
-        if (!tipsData || !tipsData.tips) return;
+        // tipsB.json のみを使用
+        const tipsData = this.cache.json.get('tipsB');
+        if (!tipsData || !tipsData.tips || tipsData.tips.length === 0) return;
 
         const list = tipsData.tips;
-        const rawText = list[Math.floor(Math.random() * list.length)];
+        if (this.currentTipIndex === undefined) {
+            this.currentTipIndex = 0;
+        }
+        const rawText = list[this.currentTipIndex % list.length];
+        this.currentTipIndex = (this.currentTipIndex + 1) % list.length;
+
 
         // 全角スペースは改行として扱う。なければ25文字程度で折り返し
         let displayText = rawText;
@@ -875,8 +878,10 @@ export default class BattleScene extends Phaser.Scene {
         }
 
         const width = this.scale.width;
-        const targetY = 95;
-        const startY = -60;
+        // もうちょっと下に表示 (targetY = 160)
+        const targetY = 160;
+        const startY = -80;
+
 
         // コンテナの作成
         this.tipsContainer = this.add.container(width / 2, startY).setDepth(1800);

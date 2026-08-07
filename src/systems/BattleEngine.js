@@ -373,12 +373,13 @@ export class BattleEngine {
         const spawnedEnemies = [];
         let targets = [];
 
-        if (this.currentWave === 1) {
+        if (this.currentWave <= 1) {
             // ウェーブ 1: スウォーム(id:1) 9匹 + マノウォー(id:4) 3匹
             targets = [
                 { id: 1, count: 9 },
                 { id: 4, count: 3 }
             ];
+
         } else {
             // ウェーブ 2: コボルド(id:6) 8匹 + オーガ(id:8) 3匹
             targets = [
@@ -941,8 +942,9 @@ export class BattleEngine {
                     }
                 }
 
-                // スポーン済みか否かに関わらず、全敵死亡 → ウェーブクリア
-                if (this.spawnedInWave >= this.enemyCountPerWave && aliveEnemies.length === 0) {
+                // スポーン済み且つ全敵死亡 → ウェーブクリア
+                if (this.spawnedInWave > 0 && this.spawnedInWave >= this.enemyCountPerWave && aliveEnemies.length === 0) {
+
                     console.log(`[BattleEngine] Wave ${this.currentWave} cleared! total=${this.totalWaves}`);
                     this.currentWave++;
                     this.spawnedInWave = 0;
