@@ -2844,7 +2844,18 @@ export default class AdventureScene extends Phaser.Scene {
     /** チュートリアル中の操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ） */
     applyTutorialRestrictions() {
         const gs = GlobalState.getInstance();
-        if (!gs.isTutorialMode) return;
+        if (!gs.isTutorialMode) {
+            // チュートリアルモード終了：すべての操作ロックを解除し全ボタンを表示
+            this.isMovementOnlyTutorial = false;
+            this.isExploreOnlyTutorial = false;
+            this.isRestOnlyTutorial = false;
+
+            if (this.exploreBtn) this.exploreBtn.setVisible(true);
+            if (this.restBtn) this.restBtn.setVisible(true);
+            if (this.statusBtn) this.statusBtn.setVisible(true);
+            if (this.dbgBtn) this.dbgBtn.setVisible(true);
+            return;
+        }
 
         if (gs.timePeriodIndex === 0) {
             // チュートリアル午前：移動のみ許可
@@ -2878,6 +2889,7 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.dbgBtn) this.dbgBtn.setVisible(false);
         }
     }
+
 
 }
 
