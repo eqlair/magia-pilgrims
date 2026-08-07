@@ -577,10 +577,11 @@ export class BattleEngine {
             if (attacker.owner === 'player' && attacker.isFront && isFoolReversedActive) {
                 finalDamage *= 1.20;
             }
-            // 夜間限定デバフ: キャラクターの受けるダメージが約2倍(各属性防御力、抵抗力+100のデバフ)
+            // 夜間限定デバフ: キャラクターの受けるダメージが2倍
             if (defender.owner === 'player' && this.isNightBattle) {
-                finalDamage = (finalDamage * 2.0) + 100;
+                finalDamage *= 2.0;
             }
+
 
             if (finalDamage < 1) finalDamage = 1;
             finalDamage = Math.ceil(finalDamage);
