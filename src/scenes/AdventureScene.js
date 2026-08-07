@@ -471,14 +471,18 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            TransitionManager.fadeIn(this);
             if (this._preBattleSnapshot) {
                 this.restoreSnapshot(this._preBattleSnapshot);
                 this._preBattleSnapshot = null;
             }
 
+            // 撤退または全滅からの復帰時チュートリアルチェック
+            this._justReturnedFromGameOverOrRetreat = true;
+            const tutFired = this.checkTutorialEvents();
+
             // 二重表示を防ぐため既存のメッセージを消去
             if (this._retreatMsgText) {
+
                 this._retreatMsgText.destroy();
                 this._retreatMsgText = null;
             }
@@ -2776,11 +2780,65 @@ export default class AdventureScene extends Phaser.Scene {
             return true;
         }
 
+        // ── チュートリアルゲームオーバー / 撤退 ──
+        if (!gs.tutorialGameOverSeen && (this._justReturnedFromGameOverOrRetreat || gs.pendingGameOverTutorial)) {
+            gs.tutorialGameOverSeen = true;
+            gs.pendingGameOverTutorial = false;
+            this._justReturnedFromGameOverOrRetreat = false;
+            SaveManager.saveGame(this);
+
+            let eventData = this.cache.json.get('tutorial_gameover');
+            if (eventData) {
+                eventData = JSON.parse(JSON.stringify(eventData));
+                if (eventData[0] && (eventData[0].cmd === 'image' || eventData[0].cmd === 'bg')) {
+                    eventData[0] = { cmd: 'bg', key: bgKey };
+                }
+            } else {
+                const talkSion = this.cache.json.get('talk_001');
+                const goLines = (talkSion && talkSion['チュートリアル(ゲームオーバー)']) ? talkSion['チュートリアル(ゲームオーバー)'] : [
+                    "…はっ！？",
+                    "眠っていたの？ひどい夢を見た気がする…",
+                    "…いやこの現実ももう充分悪夢なんだけど…",
+                    "(紫苑はわずかに時間を巻き戻す力を持っています。)",
+                    "(全滅の際、または戦闘中に撤退を選択すると、戦闘に突入する前まで戻ることができます。)"
+                ];
+
+                eventData = [
+                    { cmd: "bg", key: bgKey },
+                    { cmd: "chara", key: "portrait_001", pos: "right" }
+                ];
+                for (let i = 0; i < goLines.length; i++) {
+                    const text = goLines[i];
+                    const isSystem = text.startsWith('(') && text.endsWith(')');
+                    eventData.push({
+                        cmd: "text",
+                        name: isSystem ? "" : "紫苑",
+                        body: text
+                    });
+                }
+                eventData.push({ cmd: "clearText" });
+                eventData.push({ cmd: "end" });
+            }
+
+            this.eventEngine = new EventEngine(this, eventData, () => {
+                TransitionManager.meitenInPlace(this, () => {
+                    if (this.eventEngine) {
+                        this.eventEngine.cleanup();
+                        this.eventEngine = null;
+                    }
+                    this.applyTutorialRestrictions();
+                }, 800);
+            });
+            this.eventEngine.start();
+            return true;
+        }
+
         if (gs.isTutorialMode) {
             this.applyTutorialRestrictions();
         }
         return false;
     }
+
 
     /** チュートリアル中の操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ） */
     applyTutorialRestrictions() {

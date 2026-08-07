@@ -82,7 +82,9 @@ export class GlobalState {
         this.tutorialNightSeen = false;
         this.tutorialTarotSeen = false;
         this.tutorialRestSeen = false;
+        this.tutorialGameOverSeen = false;
         this.tutorialStep = 0;
+
 
 
 
@@ -834,7 +836,9 @@ export class GlobalState {
         this.tutorialNightSeen = false;
         this.tutorialTarotSeen = false;
         this.tutorialRestSeen = false;
+        this.tutorialGameOverSeen = false;
         this.tutorialStep = 0;
+
 
 
 
