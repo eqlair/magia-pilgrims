@@ -8,6 +8,8 @@ import { RelicGenerator } from '../systems/RelicGenerator';
 import { SaveManager } from '../systems/SaveManager';
 import { fontSize, FONT_MAIN } from '../config/GameFont';
 import { build1221WildhuntCommands } from '../data/wildhuntEvents';
+import { SpriteText } from '../utils/SpriteText';
+
 
 
 
@@ -769,36 +771,33 @@ export default class AdventureScene extends Phaser.Scene {
         this.statusBtn.on('pointerup', () => this.statusBtn.setScale(statScale));
         this.statusBtn.on('pointerout', () => this.statusBtn.setScale(statScale));
 
-        // --- UI (3) 最下段左: 食料パネル（food.png + 食料テキスト: 最大140） ---
+        // --- UI (3) 最下段左: 食料パネル（food.png + スプライト数字: 数値のみ） ---
         const panelScale = 0.28;
         this.foodBg = this.add.image(width / 2 - 185, height - 30, 'bg_food')
             .setScale(panelScale)
             .setDepth(500)
             .setScrollFactor(0);
 
-        this.foodText = this.add.text(width / 2 - 185, height - 30, '', {
-            fontFamily: 'sans-serif',
-            fontSize: '18px',
-            fontStyle: 'bold',
-            color: '#fffaee',
-            stroke: '#221100',
-            strokeThickness: 3
-        }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
+        this.foodText = new SpriteText(this, width / 2 - 160, height - 30, '', {
+            tint: 0xfffaee,
+            spacing: 22,
+            originX: 0.5,
+            originY: 0.5
+        }).setDepth(501).setScrollFactor(0).setScale(0.42);
 
-        // --- UI (3) 最下段右: SPパネル（soul.png + SPテキスト: 最大9999） ---
+        // --- UI (3) 最下段右: SPパネル（soul.png + スプライト数字: 数値のみ） ---
         this.spBg = this.add.image(width / 2 + 185, height - 30, 'bg_soul')
             .setScale(panelScale)
             .setDepth(500)
             .setScrollFactor(0);
 
-        this.spText = this.add.text(width / 2 + 185, height - 30, '', {
-            fontFamily: 'sans-serif',
-            fontSize: '18px',
-            fontStyle: 'bold',
-            color: '#ffea77',
-            stroke: '#221100',
-            strokeThickness: 3
-        }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
+        this.spText = new SpriteText(this, width / 2 + 210, height - 30, '', {
+            tint: 0xffea77,
+            spacing: 22,
+            originX: 0.5,
+            originY: 0.5
+        }).setDepth(501).setScrollFactor(0).setScale(0.42);
+
 
         this._updateFoodDisplay();
 
@@ -1744,18 +1743,20 @@ export default class AdventureScene extends Phaser.Scene {
         gs.food = Math.min(140, Math.max(0, gs.food));
         if (this.foodText) {
             const currentFood = Math.floor(gs.food);
-            this.foodText.setText(`食料 ${currentFood}`);
-            this.foodText.setColor(currentFood <= 0 ? '#ff5555' : '#fffaee');
+            this.foodText.setText(`${currentFood}`);
+            if (this.foodText.setTint) {
+                this.foodText.setTint(currentFood <= 0 ? 0xff4444 : 0xfffaee);
+            }
         }
 
         // SPの上限制限(最大9999)
         gs.stockSp = Math.min(9999, Math.max(0, gs.stockSp || 0));
         if (this.spText) {
             const currentSp = Math.floor(gs.stockSp);
-            this.spText.setText(`SP ${currentSp}`);
-            this.spText.setColor('#ffea77');
+            this.spText.setText(`${currentSp}`);
         }
     }
+
 
 
     _startExploration() {
