@@ -53,8 +53,17 @@ export class EventEngine {
 
     /** イベントを開始する */
     start() {
+        this._inputCooldown = true;
+        if (this.scene && this.scene.time) {
+            this.scene.time.delayedCall(600, () => {
+                this._inputCooldown = false;
+            });
+        } else {
+            this._inputCooldown = false;
+        }
         this._processNext();
     }
+
 
     /** インデックスのコマンドを処理 */
     _processNext() {
@@ -328,7 +337,8 @@ export class EventEngine {
         this._tapBlocker = this.scene.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x000000)
             .setAlpha(0.001).setDepth(this.DEPTH + 5).setInteractive();
 
-        this._tapBlocker.once('pointerdown', () => {
+        this._tapBlocker.on('pointerdown', () => {
+            if (this._inputCooldown) return;
             if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
             if (isLast) {
                 this._processNext();
@@ -338,6 +348,7 @@ export class EventEngine {
                 this._showPage();
             }
         });
+
     }
 
     _clearText(cb) {

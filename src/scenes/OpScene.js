@@ -121,14 +121,5 @@ export default class OpScene extends Phaser.Scene {
         this.skipBtn.on('pointerdown', triggerOpFinish);
 
         this.engine.start();
-
-
-
-
-
-
-
-        
-        this.engine.start();
     }
 }
