@@ -820,8 +820,9 @@ export class GlobalState {
         this.food = 100;
         this.stockSp = 0;
 
-        // パーティ初期化（紫苑のみ）
-        this.savedFormation = { '001': { isFront: true, index: 0 } };
+        // パーティ初期化（紫苑のみ：中央後衛）
+        this.savedFormation = { '001': { lane: 0, isFront: false } };
+
 
         // 全キャラクターステータスの初期化
         for (const id in this.characters) {
@@ -861,8 +862,9 @@ export class GlobalState {
         this.currentMonth = 12;
         this.currentDay = 1;
         this.timePeriodIndex = 0;
-        this.savedFormation = { '001': { isFront: true, index: 0 } };
+        this.savedFormation = { '001': { lane: 0, isFront: false } };
     }
+
 
 
 

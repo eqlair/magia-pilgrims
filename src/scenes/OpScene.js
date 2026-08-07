@@ -36,16 +36,18 @@ export default class OpScene extends Phaser.Scene {
         this.engine = new EventEngine(this, eventData, () => {
             this.engine.cleanup();
             if (this.sound) this.sound.stopAll();
-            // OP会話終了後、紫苑一人(LV1)でレベル1の雑魚敵・魔女ボスとのチュートリアル戦闘へ突入
+            // OP会話終了後、紫苑一人(LV1, 中央後衛)でレベル1の雑魚敵(10体)・魔女ボスとのチュートリアル戦闘へ突入
             TransitionManager.transitionTo(this, 'BattleScene', {
                 party: ['001'],
                 rule: 1,
                 enemyLevel: 1,
                 majoLevel: 1,
+                enemyCount: 10,
                 isTutorial: true,
                 returnScene: 'AdventureScene'
             });
         });
+
 
         
         this.engine.start();

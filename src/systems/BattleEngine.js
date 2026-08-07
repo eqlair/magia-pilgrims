@@ -153,9 +153,10 @@ export class BattleEngine {
             let lane = laneOffsets[i];
             let isFront = false;
             if (gs.savedFormation && gs.savedFormation[charId]) {
-                lane = gs.savedFormation[charId].lane;
-                isFront = gs.savedFormation[charId].isFront;
+                if (gs.savedFormation[charId].lane !== undefined) lane = gs.savedFormation[charId].lane;
+                if (gs.savedFormation[charId].isFront !== undefined) isFront = gs.savedFormation[charId].isFront;
             }
+
 
             // 突破モード (rule === 2) の場合は配置設定に関わらず全員強制的に前衛 (isFront = true) スタート
             if (this.rule === 2) {
