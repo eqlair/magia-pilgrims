@@ -1434,24 +1434,27 @@ export default class AdventureScene extends Phaser.Scene {
         const char1 = this.party[Math.floor(Math.random() * this.party.length)];
         events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
         
-        // トーク内容の取得（見つからなければデフォルトテキスト）
+        // トーク内容の取得（地名固有セリフ ➔ 汎用0~25/x1~x7セリフ）
         const talkData1 = this.cache.json.get(`talk_${char1}`);
         let locationText = '……。';
         if (talkData1) {
             // "現在の地名"のセリフを探す
-            const lines = talkData1[hex.cellData.name];
+            const lines = talkData1[hex.cellData?.name] || talkData1[displayName];
             if (lines && lines.length > 0) {
                 locationText = lines[Math.floor(Math.random() * lines.length)];
             } else {
-                // デフォルト（今回は汎用のものを適当に選ぶ想定だが、なければ沈黙）
-                const keys = Object.keys(talkData1).filter(k => k.startsWith('x'));
-                if (keys.length > 0) {
-                    const rk = keys[Math.floor(Math.random() * keys.length)];
+                // 汎用セリフ ("0"~"25" または "x1"~"x7") からランダム選択
+                const randomKeys = Object.keys(talkData1).filter(k => /^[0-9]+$/.test(k) || k.startsWith('x'));
+                if (randomKeys.length > 0) {
+                    const rk = randomKeys[Math.floor(Math.random() * randomKeys.length)];
                     const rlines = talkData1[rk];
-                    locationText = rlines[Math.floor(Math.random() * rlines.length)];
+                    if (rlines && rlines.length > 0) {
+                        locationText = rlines[Math.floor(Math.random() * rlines.length)];
+                    }
                 }
             }
         }
+
         
         // トーク名（データから取得して表示用の名前に整形する）
         const charData = GlobalState.getInstance().characters[char1];
