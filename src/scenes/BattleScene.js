@@ -848,9 +848,9 @@ export default class BattleScene extends Phaser.Scene {
         const gs = GlobalState.getInstance();
         if (gs.hideBattleTips || this.isExiting) return;
 
-        // tipsB.json または tips.json のデータを使用
+        // 戦闘専用攻略データ tips_battle.json のみを使用
         let list = null;
-        const rawJson = this.cache.json.get('tipsB') || this.cache.json.get('tips');
+        const rawJson = this.cache.json.get('tips_battle');
         if (rawJson) {
             if (Array.isArray(rawJson)) {
                 list = rawJson;
@@ -860,6 +860,7 @@ export default class BattleScene extends Phaser.Scene {
         }
 
         if (!list || list.length === 0) return;
+
 
         if (this.currentTipIndex === undefined) {
             this.currentTipIndex = 0;
