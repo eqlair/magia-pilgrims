@@ -65,11 +65,12 @@ export class BattleEngine {
         const party = this.config.party || ['001'];
         let maxCharLevel = 1;
         for (const pId of party) {
-            const st = gs.getCharStats(pId);
-            if (st && st.level) {
-                maxCharLevel = Math.max(maxCharLevel, st.level);
+            const ch = gs.characters[pId];
+            if (ch && ch.level) {
+                maxCharLevel = Math.max(maxCharLevel, ch.level);
             }
         }
+
 
         if (this.isNightBattle) {
             // ── 雑魚敵夜限定強化更新 ──
