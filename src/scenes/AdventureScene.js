@@ -2611,8 +2611,17 @@ export default class AdventureScene extends Phaser.Scene {
             gs.tutorialMorningSeen = true;
             SaveManager.saveGame(this);
 
+            // 東京駅（または現在地）の背景画像キーを取得
+            const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+            const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
+
             let eventData = this.cache.json.get('tutorial_morning');
-            if (!eventData) {
+            if (eventData) {
+                eventData = JSON.parse(JSON.stringify(eventData));
+                if (eventData[0] && (eventData[0].cmd === 'image' || eventData[0].cmd === 'bg')) {
+                    eventData[0] = { cmd: 'bg', key: bgKey };
+                }
+            } else {
                 const talkSion = this.cache.json.get('talk_001');
                 const morningLines = (talkSion && talkSion['チュートリアル(午前)']) ? talkSion['チュートリアル(午前)'] : [
                     "ここは…東京駅だったはず…",
@@ -2625,8 +2634,9 @@ export default class AdventureScene extends Phaser.Scene {
                 ];
 
                 eventData = [
-                    { cmd: "image", key: "ev001" },
-                    { cmd: "portrait", charId: "001" }
+                    { cmd: "bg", key: bgKey },
+                    { cmd: "location", name: "東京駅" },
+                    { cmd: "chara", key: "portrait_001", pos: "right" }
                 ];
                 for (let i = 0; i < morningLines.length; i++) {
                     const text = morningLines[i];
@@ -2640,6 +2650,7 @@ export default class AdventureScene extends Phaser.Scene {
                 eventData.push({ cmd: "clearText" });
                 eventData.push({ cmd: "end" });
             }
+
 
 
             // イベント再生
