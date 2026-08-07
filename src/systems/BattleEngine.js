@@ -1230,7 +1230,10 @@ export class BattleEngine {
                             isPiercing: action.isPiercing !== false,
                             type:       `swing_${p.charId}`,
                             lifeTime:   swingDuration,
+                            stunDuration: (p.charId === '004' ? 1.0 : (action.stunDuration || 0)),
+                            stunChance: 1.0
                         });
+
                         b.sourceEntity = p;
 
                         b.maxLife      = swingDuration;
@@ -1275,7 +1278,10 @@ export class BattleEngine {
                                 type:       action.type,
                                 targetDist: action.range !== undefined ? action.range : 20.0,
                                 lifeTime:   action.speed ? (action.range / action.speed) * 2 + 1 : 5,
+                                stunDuration: (p.charId === '004' ? 1.0 : (action.stunDuration || 0)),
+                                stunChance: 1.0
                             });
+
                             b.sourceEntity = p;
                             this.bullets.push(b); if (b && b.sourceEntity && b.sourceEntity.triggerAttackShake) b.sourceEntity.triggerAttackShake();
                         }

@@ -481,8 +481,10 @@ export class PlayerCharacter extends BattleEntity {
             const ribbonHit = new Bullet(this.x, this.z, {
                 owner: 'player', isPiercing: true,
                 vx: 0, vz: 0, // 動かない
-                damage: ribbonDmg, knockback: 5, size: 40.0, hitRange: 20.0, lifeTime: 0.1, type: 'swing_ultimate_004', ownerEntity: this
+                damage: ribbonDmg, knockback: 5, size: 40.0, hitRange: 20.0, lifeTime: 0.1, type: 'swing_ultimate_004', ownerEntity: this,
+                stunDuration: 1.0, stunChance: 1.0
             });
+
             ribbonHit.sourceEntity = this;
             bullets.push(ribbonHit); if (ribbonHit && ribbonHit.sourceEntity && ribbonHit.sourceEntity.triggerAttackShake) ribbonHit.sourceEntity.triggerAttackShake();
 
@@ -518,8 +520,10 @@ export class PlayerCharacter extends BattleEntity {
                         swayAmp: 0,
                         spinAngle: Math.random() * Math.PI * 2,
                         spinSpeed: (Math.random() < 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.5), // 全てランダムな回転方向・速度でゆっくり回転
-                        stunDuration: 3.0 // 命中時に3秒行動不能
+                        stunDuration: 1.0, // 命中時に1秒間行動不能(スタン)
+                        stunChance: 1.0
                     });
+
 
                     bObj.sourceEntity = this;
                     
