@@ -67,6 +67,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('chr_data', 'files/DATA/chr_data.json');
         this.load.json('tips', 'files/DATA/tips.json');
         this.load.json('tips_battle', 'files/DATA/tips_battle.json');
+        this.load.json('op_event', 'files/OP/op_event.json');
+
 
 
         for (let i = 0; i <= 22; i++) {
