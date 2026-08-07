@@ -407,17 +407,18 @@ export default class BattleScene extends Phaser.Scene {
         // 論理更新
         this.engine.update(dt);
 
-        // Tips駆動タイマー (戦闘開始2秒後初回表示、以降18秒周期)
-        if (this.tipTimerCount === undefined) this.tipTimerCount = 0;
-        this.tipTimerCount += dt;
-        if (!this.hasShownFirstTip && this.tipTimerCount >= 2.0) {
-            this.hasShownFirstTip = true;
-            this.tipTimerCount = 0;
-            this.showBattleTip();
-        } else if (this.hasShownFirstTip && this.tipTimerCount >= 18.0) {
-            this.tipTimerCount = 0;
-            this.showBattleTip();
+        // ── Tips更新 (戦闘開始2秒後初回表示、以降18秒周期で確実に順次表示) ──
+        const gs = GlobalState.getInstance();
+        if (!gs.hideBattleTips && !this.isExiting) {
+            if (this.tipCycleTimer === undefined) this.tipCycleTimer = -2.0; // 初回は2秒後に表示
+            this.tipCycleTimer += dt;
+
+            if (!this.isTipShowing && this.tipCycleTimer >= 0) {
+                this.showBattleTip();
+                this.tipCycleTimer = -18.0; // 18秒後に次回表示へリセット
+            }
         }
+
 
 
 
@@ -859,7 +860,10 @@ export default class BattleScene extends Phaser.Scene {
     // ─────────────────────────────────────────────────────
     showBattleTip() {
         const gs = GlobalState.getInstance();
-        if (gs.hideBattleTips || this.isExiting) return;
+        if (gs.hideBattleTips || this.isExiting || this.isTipShowing) return;
+
+        // 状態フラグを表示中にセット
+        this.isTipShowing = true;
 
         // 戦闘専用攻略データ tips_battle.json の抽出
         let list = null;
@@ -890,7 +894,6 @@ export default class BattleScene extends Phaser.Scene {
                 "ストック経験値はうまく使って戦力を調整しましょう。",
                 "戦闘中に生命力がゼロになると、　休息するまで回復できません。",
                 "戦闘中に全員が行動不能になるか、撤退を　選択すると戦闘に入る前の状態から再開できます。",
-
                 "右上の歯車の撤退メニューから、　この攻略情報の表示を消すことができます。"
             ];
         }
@@ -900,9 +903,6 @@ export default class BattleScene extends Phaser.Scene {
         }
         const rawText = list[this.currentTipIndex % list.length];
         this.currentTipIndex = (this.currentTipIndex + 1) % list.length;
-
-
-
 
         // 全角スペースは改行として扱う。なければ25文字程度で折り返し
         let displayText = rawText;
@@ -922,14 +922,11 @@ export default class BattleScene extends Phaser.Scene {
         }
 
         const width = this.scale.width;
-        // もうちょっと下に表示 (targetY = 160)
         const targetY = 160;
         const startY = -80;
 
-
         // コンテナの作成 (最前面 Depth: 3500, ScrollFactor: 0 で画面最前面固定)
         this.tipsContainer = this.add.container(width / 2, startY).setDepth(3500).setScrollFactor(0);
-
 
         // 薄い黒の枠（画面横幅に対して約25文字分が見えるサイズ感）
         const panelWidth = Math.min(width * 0.88, 620);
@@ -966,8 +963,8 @@ export default class BattleScene extends Phaser.Scene {
             duration: 350,
             ease: 'Back.easeOut',
             onComplete: () => {
-                // 文字が8秒表示されます
-                this.tipsHideTimer = this.time.delayedCall(8000, () => {
+                // 8秒表示後に引っ込める
+                this.time.delayedCall(8000, () => {
                     this.hideTipsPanelImmediately();
                 });
             }
@@ -976,10 +973,6 @@ export default class BattleScene extends Phaser.Scene {
 
     /** Tipsパネルを即座にニュッと引っ込めて消す */
     hideTipsPanelImmediately() {
-        if (this.tipsHideTimer) {
-            this.tipsHideTimer.remove();
-            this.tipsHideTimer = null;
-        }
         if (this.tipsContainer) {
             this.tweens.killTweensOf(this.tipsContainer);
             this.tweens.add({
@@ -994,21 +987,14 @@ export default class BattleScene extends Phaser.Scene {
                         this.tipsContainer.destroy();
                         this.tipsContainer = null;
                     }
+                    this.isTipShowing = false;
                 }
             });
+        } else {
+            this.isTipShowing = false;
         }
     }
 
-    /** 次のTips表示をスケジュール */
-    scheduleNextTip(delayMs = 18000) {
-        if (this.nextTipTimer) {
-            this.nextTipTimer.remove();
-        }
-        this.nextTipTimer = this.time.delayedCall(delayMs, () => {
-            this.showBattleTip();
-            this.scheduleNextTip(20000);
-        });
-    }
 }
 
 

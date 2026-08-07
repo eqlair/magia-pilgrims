@@ -41,23 +41,39 @@ export default class OpScene extends Phaser.Scene {
             this.engine.cleanup();
             if (this.sound) this.sound.stopAll();
 
-            // 会話終了後、画面中央に title.png を表示し、start.mp3 を再生
             const width = this.scale.width;
             const height = this.scale.height;
 
-            const overlayBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000).setDepth(4999);
+            // 背景黒
+            const blackBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000).setDepth(4998);
+
+            // 中央タイトル画像 (title.png)
             const titleImg = this.add.image(width / 2, height / 2, 'op_title')
                 .setOrigin(0.5)
                 .setDepth(5000);
 
             if (titleImg.width > 0 && titleImg.height > 0) {
-                const scale = Math.min(width / titleImg.width, height / titleImg.height) * 0.9;
+                const scale = Math.min(width / titleImg.width, height / titleImg.height) * 0.85;
                 titleImg.setScale(scale);
             }
 
+            // 前面ホワイトアウト用矩形 (白 0xffffff)
+            const whiteOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0xffffff)
+                .setDepth(5001)
+                .setAlpha(1.0);
+
+            // start.mp3 同時再生
             if (this.cache.audio.exists('op_start')) {
                 this.sound.play('op_start', { volume: 0.8 });
             }
+
+            // ホワイトアウトが4秒かけて消えていき、タイトル画像が浮かび上がる
+            this.tweens.add({
+                targets: whiteOverlay,
+                alpha: 0,
+                duration: 4000,
+                ease: 'Quad.easeOut'
+            });
 
             // 5秒後にチュートリアル戦闘へ突入
             this.time.delayedCall(5000, () => {
@@ -77,6 +93,7 @@ export default class OpScene extends Phaser.Scene {
                 });
             });
         });
+
 
 
 
