@@ -37,6 +37,12 @@ export default class AdventureScene extends Phaser.Scene {
         
         // 画面下半分の最背面背景
         this.load.image('bg_map_base', 'files/MAP/BG_map.jpg');
+
+        // MAP画面UIボタン画像
+        this.load.image('btn_tans', 'files/MAP/Btans.png'); // 探索ボタン
+        this.load.image('btn_kyuu', 'files/MAP/Bkyuu.png'); // 休息ボタン
+        this.load.image('btn_stat', 'files/MAP/Bstat.png'); // ステータスボタン
+
         
         // ミニキャラ（全キャラ分, 600x300 = 4列×2行 = 150x150/フレーム）
         this.load.spritesheet('mini_001', 'files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
@@ -697,21 +703,29 @@ export default class AdventureScene extends Phaser.Scene {
 
 
 
-        // --- UI: 探索ボタン（ステータスの上、少し大きめ） ---
-        this.exploreBtn = this.add.text(width / 2 - 100, height - 80, '探索', {
-            fontFamily: 'sans-serif', fontSize: '28px', color: '#aaffaa', backgroundColor: '#224422'
-        }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
+        // --- UI: 探索ボタン（Btans.png） ---
+        const tansScale = 0.16;
+        this.exploreBtn = this.add.image(width / 2 - 110, height - 75, 'btn_tans')
+            .setScale(tansScale)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(500);
         this.exploreBtn.on('pointerdown', () => {
+            this.exploreBtn.setScale(tansScale * 0.9);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) this._startExploration();
         });
+        this.exploreBtn.on('pointerup', () => this.exploreBtn.setScale(tansScale));
+        this.exploreBtn.on('pointerout', () => this.exploreBtn.setScale(tansScale));
 
-        // --- UI: 休息ボタン（ステータスの上、少し大きめ） ---
-        this.restBtn = this.add.text(width / 2 + 100, height - 80, '休息', {
-            fontFamily: 'sans-serif', fontSize: '28px', color: '#aaccff', backgroundColor: '#222244'
-        }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
+        // --- UI: 休息ボタン（Bkyuu.png） ---
+        const kyuuScale = 0.16;
+        this.restBtn = this.add.image(width / 2 + 110, height - 75, 'btn_kyuu')
+            .setScale(kyuuScale)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(500);
         this.restBtn.on('pointerdown', () => {
+            this.restBtn.setScale(kyuuScale * 0.9);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) {
@@ -721,13 +735,17 @@ export default class AdventureScene extends Phaser.Scene {
                 this.scene.launch('RestScene', { party: this.party, timeOfDay: this.timeOfDay });
             }
         });
+        this.restBtn.on('pointerup', () => this.restBtn.setScale(kyuuScale));
+        this.restBtn.on('pointerout', () => this.restBtn.setScale(kyuuScale));
 
-
-        // --- UI: ステータスボタン（下部中央） ---
-        this.statusBtn = this.add.text(width / 2, height - 20, 'ステータス', {
-            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: '#333333'
-        }).setOrigin(0.5, 1).setPadding(15, 10).setInteractive({ useHandCursor: true }).setDepth(500);
+        // --- UI: ステータスボタン（Bstat.png） ---
+        const statScale = 0.18;
+        this.statusBtn = this.add.image(width / 2, height - 25, 'btn_stat')
+            .setScale(statScale)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(500);
         this.statusBtn.on('pointerdown', () => {
+            this.statusBtn.setScale(statScale * 0.9);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             this.scene.pause();
@@ -735,6 +753,9 @@ export default class AdventureScene extends Phaser.Scene {
             const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_woods.jpg';
             this.scene.launch('CampScene', { party: this.party, bgKey: bgKey, isNight: this.timeOfDay === '夜' });
         });
+        this.statusBtn.on('pointerup', () => this.statusBtn.setScale(statScale));
+        this.statusBtn.on('pointerout', () => this.statusBtn.setScale(statScale));
+
 
 
         // UI: 食料表示（左下）
