@@ -116,7 +116,7 @@ export class GlobalState {
         const baseHp = def.baseHp || 1000;
         const baseSp = def.baseSp || 500;
 
-        return {
+        const charData = {
             id: id,
             name: name,
             level: level,
@@ -134,11 +134,22 @@ export class GlobalState {
             baseReload: 100, // ベースリロード速度 (100 = 1.0倍速)
             equipGem: null, // 宝石（1枠）
             equipRelics: [null, null, null, null, null], // レリクス（5枠）
-            // 算出される現在値（セーブロード時は再計算するかそのまま保持）
             currentHp: baseHp,
             currentSp: baseSp
         };
+
+        // calcStatsでレベルや基礎値から正確な最大生命力・精神力を求めて100%全回復状態で初期化
+        this.characters = this.characters || {};
+        this.characters[id] = charData;
+        const stats = this.calcStats(id);
+        if (stats) {
+            charData.currentHp = stats.maxHp;
+            charData.currentSp = stats.maxSp;
+        }
+
+        return charData;
     }
+
 
     // 次のレベルアップに必要な経験値を計算
     getRequiredExp(level) {
@@ -863,9 +874,16 @@ export class GlobalState {
             char.rangedLevel = 1;
             char.meleeExp = 0;
             char.rangedExp = 0;
-            char.currentHp = char.maxHp || 1000;
-            char.currentSp = char.maxSp || 500;
+            const stats = this.calcStats(id);
+            if (stats) {
+                char.currentHp = stats.maxHp;
+                char.currentSp = stats.maxSp;
+            } else {
+                char.currentHp = char.baseHp || 1000;
+                char.currentSp = char.baseSp || 500;
+            }
         }
+
 
         // マップ・難易度補正のリセット
         this.extraEnemyLevel = 0;

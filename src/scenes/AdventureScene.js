@@ -562,10 +562,22 @@ export default class AdventureScene extends Phaser.Scene {
                 if (!this.party.includes(data.joinCharacterId)) {
                     this.party.push(data.joinCharacterId);
                     gs.assignFormationForNewMember(data.joinCharacterId);
-                    console.log('Joined party & updated savedFormation:', data.joinCharacterId);
+
+                    // 加入キャラのHP・SPをその時点のmaxHp/maxSpで100%全回復・満タン状態で加入させる
+                    const joinedChar = gs.characters[data.joinCharacterId];
+                    if (joinedChar) {
+                        const stats = gs.calcStats(data.joinCharacterId, this.party);
+                        if (stats) {
+                            joinedChar.currentHp = stats.maxHp;
+                            joinedChar.currentSp = stats.maxSp;
+                        }
+                    }
+
+                    console.log('Joined party & updated savedFormation & healed:', data.joinCharacterId);
                     SaveManager.saveGame(this);
                 }
             }
+
 
 
             // GlobalState.savedFormation に存在するキャラクターを this.party に同期
