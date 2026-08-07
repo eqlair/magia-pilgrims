@@ -55,8 +55,9 @@ export class BattleEngine {
         this.enemyCountPerWave += Math.max(0, partySize - 1) * 15;
         const gs = GlobalState.getInstance();
         this.totalWaves = Math.max(1, (this.config.waveCount || 1) + gs.extraWaves);
-        this.majoLevel = Math.max(0, (this.config.majoLevel || 0) + gs.extraWitchLevel);
+        this.majoLevel = Math.max(0, this.config.majoLevel || 0);
         this.enemyLevel = Math.max(1, (this.config.enemyLevel || 1) + gs.extraEnemyLevel);
+
 
         // 夜間戦闘フラグ判定 (この戦闘セッション限りの一時的適用)
         this.isNightBattle = !!(this.config.isNightExploration || this.config.isNightBattle || this.config.isNight);

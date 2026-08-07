@@ -554,7 +554,7 @@ export class GlobalState {
                         }
                     }
                 } else {
-                    this.extraWitchLevel = (this.extraWitchLevel || 0) + 2;
+                    this.boostRandomWitchCells(2);
                 }
                 break;
             case 18: // No.17 星 (id: 18)
@@ -599,10 +599,11 @@ export class GlobalState {
                 if (isUpright) {
                     this.enemySlowActive = true;
                 } else {
-                    this.extraWitchLevel = (this.extraWitchLevel || 0) + 1;
+                    this.boostRandomWitchCells(1);
                 }
                 break;
         }
+
     }
 
 
@@ -889,7 +890,32 @@ export class GlobalState {
             this.extraEnemyLevel = (this.extraEnemyLevel || 0) + 1;
         }
     }
+
+    boostRandomWitchCells(amount = 1) {
+        if (this.adventureScene && this.adventureScene.hexGroup) {
+            const witchHexes = [];
+            this.adventureScene.hexGroup.getChildren().forEach(hex => {
+                if (hex && hex.cellData && hex.cellData.witchLevel > 0) {
+                    witchHexes.push(hex);
+                }
+            });
+
+            if (witchHexes.length === 0) {
+                console.log('[GlobalState] No witch cells found on map, tarot effect fizzled.');
+                return;
+            }
+
+            const targetHex = witchHexes[Math.floor(Math.random() * witchHexes.length)];
+            targetHex.cellData.witchLevel += amount;
+
+            if (this.adventureScene.updateVisibility) {
+                this.adventureScene.updateVisibility();
+            }
+            console.log(`[GlobalState] Boosted witch level at hex (${targetHex.col}, ${targetHex.row}) by +${amount} (New Lv: ${targetHex.cellData.witchLevel})`);
+        }
+    }
 }
+
 
 
 
