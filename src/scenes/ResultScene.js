@@ -15,7 +15,9 @@ export default class ResultScene extends Phaser.Scene {
         this.earnedExp = data.earnedExp || 0;
         this.earnedSp = data.earnedSp || 0;
         this.returnScene = data.returnScene || 'AdventureScene';
+        this.isTutorial = data.isTutorial || false;
         this.isRelicScreen = false;
+
         this.relicAnimationPlaying = false;
     }
 
@@ -177,12 +179,14 @@ export default class ResultScene extends Phaser.Scene {
                     alpha: 1,
                     duration: 1000,
                     onComplete: () => {
+                        const retParams = { fromBattle: true, party: this.party, isTutorialStart: this.isTutorial };
                         if (this.scene.isPaused(this.returnScene)) {
                             this.scene.stop();
-                            this.scene.resume(this.returnScene, { fromBattle: true, party: this.party });
+                            this.scene.resume(this.returnScene, retParams);
                         } else {
-                            TransitionManager.transitionTo(this, this.returnScene, { fromBattle: true, party: this.party });
+                            TransitionManager.transitionTo(this, this.returnScene, retParams);
                         }
+
 
                     }
                 });

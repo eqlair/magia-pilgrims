@@ -318,15 +318,33 @@ export default class AdventureScene extends Phaser.Scene {
         this.playerCol = 3;
         this.playerRow = 6;
         this.isJumping = false;
+
+        // チュートリアル初期化/ニューゲーム時
+        if (this._initData.isTutorialStart || this._initData.fromTitleNewGame) {
+            gs.currentMonth = 12;
+            gs.currentDay = 1;
+            gs.timePeriodIndex = 0;
+            this.currentMonth = 12;
+            this.currentDay = 1;
+            this.timePeriodIndex = 0;
+            this.timeOfDay = '午前';
+            
+            // 東京ヘクスの討伐済み初期化
+            const tokyoHex = this.grid[6]?.[3];
+            if (tokyoHex && tokyoHex.cellData) {
+                tokyoHex.cellData.visited = 1;
+                tokyoHex.cellData.enemyLevel = 0;
+                tokyoHex.cellData.witchLevel = 0;
+            }
+        }
         
         // パーティ編成の読み込みと復元 (savedFormation や セーブデータから優先復元)
         let initialParty = this._initData.party;
 
-        if (this._initData.fromTitleNewGame) {
+        if (this._initData.fromTitleNewGame || this._initData.isTutorialStart) {
             initialParty = ['001'];
             gs.savedFormation = { '001': { lane: 0, isFront: false } };
         } else if (!initialParty || initialParty.length === 0) {
-
             const savedData = SaveManager.loadGameData();
             if (savedData && savedData.adventureState && savedData.adventureState.party) {
                 initialParty = savedData.adventureState.party;
@@ -334,13 +352,14 @@ export default class AdventureScene extends Phaser.Scene {
         }
         
         const partySet = new Set(initialParty || ['001']);
-        if (!this._initData.fromTitleNewGame && gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+        if (!this._initData.fromTitleNewGame && !this._initData.isTutorialStart && gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
             for (const cid of Object.keys(gs.savedFormation)) {
                 partySet.add(cid);
             }
         }
         this.party = Array.from(partySet);
         console.log('[AdventureScene] Restored party:', this.party);
+
 
 
 
@@ -358,8 +377,19 @@ export default class AdventureScene extends Phaser.Scene {
         // -- 背景スプライトのセットアップ (ズームの影響なし) --
         this.setupBackground();
 
+        // チュートリアル/新規開始時の東京ヘクス討伐済み処理
+        if (this._initData.isTutorialStart || this._initData.fromTitleNewGame) {
+            const tokyoHex = this.grid[6]?.[3];
+            if (tokyoHex && tokyoHex.cellData) {
+                tokyoHex.cellData.visited = 1;
+                tokyoHex.cellData.enemyLevel = 0;
+                tokyoHex.cellData.witchLevel = 0;
+            }
+        }
+
         // 最初のヘックスを踏破済みにする
         this.moveToHex(this.grid[this.playerRow][this.playerCol], false);
+
         
         // -- カメラ設定 --
         this.normalZoom = 1.4;

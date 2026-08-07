@@ -812,6 +812,29 @@ export class GlobalState {
         this.tarot13_targetAtk = null;
 
 
+        // 日時・リソースのリセット (12月1日 午前)
+        this.currentMonth = 12;
+        this.currentDay = 1;
+        this.timePeriodIndex = 0; // 0:午前
+        this.food = 100;
+        this.stockSp = 0;
+
+        // パーティ初期化（紫苑のみ）
+        this.savedFormation = { '001': { isFront: true, index: 0 } };
+
+        // 全キャラクターステータスの初期化
+        for (const id in this.characters) {
+            const char = this.characters[id];
+            char.level = 1;
+            char.exp = 0;
+            char.meleeLevel = 1;
+            char.rangedLevel = 1;
+            char.meleeExp = 0;
+            char.rangedExp = 0;
+            char.currentHp = char.maxHp || 1000;
+            char.currentSp = char.maxSp || 500;
+        }
+
         // マップ・難易度補正のリセット
         this.extraEnemyLevel = 0;
         this.extraWitchLevel = 0;
@@ -824,10 +847,10 @@ export class GlobalState {
         this.debugEnemyMoveMultiplier = 1.0;
         this.debugEnemyRangeMultiplier = 1.0;
         this.debugEnemyHpGrowthRate = 1.0;
-
-        // リソースのリセット
-        this.food = 100;
+        this.activeTarots = [];
+        this.drawnTarotHistory = [];
     }
+
 
     /**
      * 新規メンバー加入時の自動隊列割り当て

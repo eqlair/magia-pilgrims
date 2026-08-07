@@ -54,33 +54,45 @@ export default class TitleScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // ── TAP TO START ──────────────────────
-        const tapText = this.add.text(width / 2, height * 0.76, 'TAP  TO  START', {
+        // ── NEW GAME ボタン ──────────────────────
+        const newGameBtn = this.add.text(width / 2, height * 0.72, 'NEW  GAME', {
             fontFamily: FONT_MAIN,
-            fontSize: fontSize.small(width),
-            color: '#ffffff',
+            fontSize: '26px',
+            color: '#fffaee',
             fontStyle: 'bold',
+            backgroundColor: 'rgba(30, 30, 60, 0.85)',
+            padding: { x: 35, y: 12 },
             stroke: '#000000',
             strokeThickness: 5,
-            shadow: { offsetX: 0, offsetY: 0, color: '#88ccff', blur: 20, fill: true }
-        }).setOrigin(0.5).setAlpha(0);
+            shadow: { offsetX: 0, offsetY: 0, color: '#ffcc44', blur: 15, fill: true }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        // フェードインしてから点滅
-        this.tweens.add({
-            targets: tapText,
-            alpha: 1,
-            duration: 800,
-            delay: 400,
-            onComplete: () => {
-                this.tweens.add({
-                    targets: tapText,
-                    alpha: 0.1,
-                    duration: 1000,
-                    yoyo: true, repeat: -1,
-                    ease: 'Sine.easeInOut'
-                });
-            }
+        newGameBtn.on('pointerdown', (pointer) => {
+            if (pointer && pointer.event) pointer.event.stopPropagation();
+            this._startNewGame();
         });
+
+        // 続きからボタン（セーブデータがある場合）
+        const hasSave = SaveManager.hasSaveData();
+        if (hasSave) {
+            const continueBtn = this.add.text(width / 2, height * 0.83, 'CONTINUE', {
+                fontFamily: FONT_MAIN,
+                fontSize: '26px',
+                color: '#aaccff',
+                fontStyle: 'bold',
+                backgroundColor: 'rgba(20, 20, 40, 0.85)',
+                padding: { x: 35, y: 12 },
+                stroke: '#000000',
+                strokeThickness: 5,
+                shadow: { offsetX: 0, offsetY: 0, color: '#4488ff', blur: 15, fill: true }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+            continueBtn.on('pointerdown', (pointer) => {
+                if (pointer && pointer.event) pointer.event.stopPropagation();
+                this._startDirectGame();
+            });
+        }
+
 
         // ── バージョン ─────────────────────────
         this.add.text(width - 10, height - 10, 'ver.0.0.1', {
@@ -120,10 +132,42 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     /**
-     * 通常タップ時：
-     * セーブデータがあればその続きから再開、なければ紫苑一人で新規スタート
+     * ニューゲーム選択時：
+     * データ完全初期化 ➔ OPイベントシーン(OpScene)へ
+     */
+    _startNewGame() {
+        this.input.enabled = false;
+
+        if (this._bgm && this._bgm.isPlaying) {
+            this.tweens.add({ targets: this._bgm, volume: 0, duration: 500 });
+        }
+
+        if (this._video) {
+            this._video.style.transition = 'opacity 0.5s';
+            this._video.style.opacity = '0';
+        }
+
+        // データの完全リセット (12月1日 午前, 紫苑1人, LV1, 食料100, SP0)
+        SaveManager.clearSaveData();
+        GlobalState.getInstance().resetAll();
+
+        // OPイベントへ遷移
+        TransitionManager.transitionTo(this, 'OpScene');
+
+        this.time.delayedCall(600, () => {
+            if (this._video) {
+                this._video.style.display = 'none';
+                this._video.style.opacity = '1';
+                this._video.style.transition = '';
+            }
+        });
+    }
+
+    /**
+     * 続きから再開時
      */
     _startDirectGame() {
+
         this.input.enabled = false;
 
         // BGMフェードアウト
