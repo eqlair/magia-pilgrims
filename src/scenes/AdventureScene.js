@@ -2663,11 +2663,13 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
             this.eventEngine = new EventEngine(this, eventData, () => {
-                if (this.eventEngine) {
-                    this.eventEngine.cleanup();
-                    this.eventEngine = null;
-                }
-                this.applyTutorialRestrictions();
+                TransitionManager.meitenInPlace(this, () => {
+                    if (this.eventEngine) {
+                        this.eventEngine.cleanup();
+                        this.eventEngine = null;
+                    }
+                    this.applyTutorialRestrictions();
+                }, 800);
             });
             this.eventEngine.start();
             return true;
@@ -2711,15 +2713,18 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
             this.eventEngine = new EventEngine(this, eventData, () => {
-                if (this.eventEngine) {
-                    this.eventEngine.cleanup();
-                    this.eventEngine = null;
-                }
-                this.applyTutorialRestrictions();
+                TransitionManager.meitenInPlace(this, () => {
+                    if (this.eventEngine) {
+                        this.eventEngine.cleanup();
+                        this.eventEngine = null;
+                    }
+                    this.applyTutorialRestrictions();
+                }, 800);
             });
             this.eventEngine.start();
             return true;
         }
+
 
         if (gs.isTutorialMode) {
             this.applyTutorialRestrictions();

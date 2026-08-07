@@ -108,4 +108,47 @@ export class TransitionManager {
             }
         });
     }
+
+    /**
+     * 同一シーン内で明転(ホワイトアウト ➔ 画面切り替え ➔ 明転あけ)を行う。
+     * @param {Phaser.Scene} scene - 対象シーン
+     * @param {Function} onWhiteoutComplete - 画面が真っ白になった瞬間(切り替え時)に実行する処理
+     * @param {number} [duration=1000] - フェード時間(ms)
+     */
+    static meitenInPlace(scene, onWhiteoutComplete, duration = 1000) {
+        if (scene.input) scene.input.enabled = false;
+
+        const { width, height } = scene.scale;
+        const whiteScreen = scene.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
+            .setAlpha(0)
+            .setDepth(9999)
+            .setScrollFactor(0);
+
+        // 1. 徐々にホワイトアウト (0 -> 100%)
+        scene.tweens.add({
+            targets: whiteScreen,
+            alpha: 1,
+            duration: duration,
+            ease: 'Linear',
+            onComplete: () => {
+                // 2. 真っ白になった瞬間に画面・レイヤー切替処理を実行
+                if (onWhiteoutComplete) {
+                    onWhiteoutComplete();
+                }
+
+                // 3. 徐々にホワイトアウトを消す (100% -> 0%)
+                scene.tweens.add({
+                    targets: whiteScreen,
+                    alpha: 0,
+                    duration: duration,
+                    ease: 'Linear',
+                    onComplete: () => {
+                        whiteScreen.destroy();
+                        if (scene.input) scene.input.enabled = true;
+                    }
+                });
+            }
+        });
+    }
 }
+
