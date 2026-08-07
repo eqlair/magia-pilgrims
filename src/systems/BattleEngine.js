@@ -2089,8 +2089,10 @@ export class BattleEngine {
                                     // デバフ抵抗に応じて効果時間が増減 (例: 50 -> 0.5秒, -50 -> 1.5秒)
                                     const resistMult = Math.max(0, 1.0 - (resist / 100));
                                     t.stunTimer = b.stunDuration * resistMult;
+                                    t.debuffColor = (b.sourceEntity && b.sourceEntity.charId === '004') ? 0xffff00 : 0xffff00;
                                 }
                             }
+
 
                             if (b.type && b.type.startsWith('swing_')) {
                                 const len = Math.sqrt(dx*dx + dz*dz) || 1.0;

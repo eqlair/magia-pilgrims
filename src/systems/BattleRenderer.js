@@ -354,8 +354,13 @@ export class BattleRenderer {
                 scaleAnim = 1.0 + Math.sin(entity.breathPhase) * 0.05;
             }
 
-            // 色付け（属性ごとの敵弾丸用など）
-            if (textureKey === 'enemy_bullet') {
+            // 色付け（デバフ状態や属性ごとの敵弾丸用など）
+            if (entity.owner === 'enemy' && entity.stunTimer > 0) {
+                // スタン/デバフ状態：デバフ属性カラー（黄欄=黄色 0xffff22）のフィルターを被せる
+                const debuffColor = entity.debuffColor !== undefined ? entity.debuffColor : 0xffff22;
+                sprite.setTint(debuffColor);
+                sprite.setBlendMode(Phaser.BlendModes.NORMAL);
+            } else if (textureKey === 'enemy_bullet') {
                 let tintColor = entity.color;
                 if (tintColor === undefined || tintColor === null) {
                     const attrColors = {
@@ -373,6 +378,7 @@ export class BattleRenderer {
                 sprite.clearTint();
                 sprite.setBlendMode(Phaser.BlendModes.NORMAL);
             }
+
 
             if (entity.owner === 'enemy') {
                 // フレームの更新
