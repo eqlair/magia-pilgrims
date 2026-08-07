@@ -743,6 +743,8 @@ export default class AdventureScene extends Phaser.Scene {
         }).setOrigin(0, 1).setScrollFactor(0).setDepth(500).setPadding(8, 4);
         this._updateFoodDisplay();
 
+
+
         // UI: 広域表示ボタン
         this.isWideMap = false;
         const wideBtn = this.add.text(20, 20, '広域表示にする', {
@@ -755,11 +757,13 @@ export default class AdventureScene extends Phaser.Scene {
             this.isWideMap = !this.isWideMap;
             wideBtn.setText(this.isWideMap ? '通常表示に戻す' : '広域表示にする');
             
-            // 広域化時は先に表示を更新（見えなかったヘクスを描画させる）
+            // ── 順序①: いろんなものが消失（UI・文字テキストの即時非表示化） ──
             if (this.isWideMap) {
+                this._setUIVisibilityForWideMap(false);
                 this.updateVisibility();
             }
 
+            // ── 順序②: 地形変化（ズームアウト・カメラ角度の切り替え） ──
             const targetZoom = this.isWideMap ? this.wideZoom : this.normalZoom;
             const targetTilt = this.isWideMap ? 1.0 : 0.65;
             const targetOffsetY = this.isWideMap ? 0 : this.normalOffsetY;
@@ -797,12 +801,15 @@ export default class AdventureScene extends Phaser.Scene {
                 },
                 onComplete: () => {
                     this.isTransitioningMode = false;
+                    if (!this.isWideMap) {
+                        // 通常表示に戻ったタイミングでUI表示を復帰
+                        this._setUIVisibilityForWideMap(true);
+                    }
                     this.updateVisibility();
                 }
             });
-
-
         });
+
 
         this.uiContainer.add([
             wideBtn,
@@ -818,9 +825,12 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '16px', color: '#ffff00',
             backgroundColor: '#333333', padding: { x: 8, y: 5 }
         }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+        this.dbgBtn = dbgBtn;
 
         // デバッグパネル（コンテナ）
         const dbgPanel = this.add.container(0, 0).setScrollFactor(0).setDepth(2100).setVisible(false);
+        this.dbgPanel = dbgPanel;
+
 
         const panelBg = this.add.rectangle(130, height / 2, 240, 300, 0x111122, 0.95)
             .setOrigin(0, 0.5).setStrokeStyle(1, 0x8888ff);
@@ -1131,31 +1141,58 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
 
-            if (h.text && h.text.visible !== showText) h.text.setVisible(showText);
-
-
-            // 魔女の表示更新（視界内または踏破済みのみ表示）
-            if (cell.witchLevel > 0 && isVisibleToPlayer) {
-                if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
-                const wText = `Witch LV.${cell.witchLevel}`;
-                if (h.witchText.text !== wText) h.witchText.setText(wText);
-                if (!h.witchText.visible) h.witchText.setVisible(true); 
-            } else {
-                if (h.witchSprite && h.witchSprite.visible) h.witchSprite.setVisible(false);
+            // 広域表示時は軽量化のため地名・敵LV・魔女LVなどの文字テキストを非表示にする
+            if (this.isWideMap) {
+                if (h.text && h.text.visible) h.text.setVisible(false);
                 if (h.witchText && h.witchText.visible) h.witchText.setVisible(false);
-            }
-            
-            // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする・視界内のみ表示）
-            if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && isVisibleToPlayer) {
-                const eText = `Wasp LV.${cell.enemyLevel}`;
-                if (h.enemyText.text !== eText) h.enemyText.setText(eText);
-                if (!h.enemyText.visible) h.enemyText.setVisible(true);
-            } else {
                 if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
+                if (cell.witchLevel > 0 && isVisibleToPlayer) {
+                    if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
+                } else {
+                    if (h.witchSprite && h.witchSprite.visible) h.witchSprite.setVisible(false);
+                }
+            } else {
+                if (h.text && h.text.visible !== showText) h.text.setVisible(showText);
+
+                // 魔女の表示更新（視界内または踏破済みのみ表示）
+                if (cell.witchLevel > 0 && isVisibleToPlayer) {
+                    if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
+                    const wText = `Witch LV.${cell.witchLevel}`;
+                    if (h.witchText.text !== wText) h.witchText.setText(wText);
+                    if (!h.witchText.visible) h.witchText.setVisible(true); 
+                } else {
+                    if (h.witchSprite && h.witchSprite.visible) h.witchSprite.setVisible(false);
+                    if (h.witchText && h.witchText.visible) h.witchText.setVisible(false);
+                }
+                
+                // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする・視界内のみ表示）
+                if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && isVisibleToPlayer) {
+                    const eText = `Wasp LV.${cell.enemyLevel}`;
+                    if (h.enemyText.text !== eText) h.enemyText.setText(eText);
+                    if (!h.enemyText.visible) h.enemyText.setVisible(true);
+                } else {
+                    if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
+                }
             }
+
         }
 
     }
+
+    _setUIVisibilityForWideMap(isVisible) {
+        if (this.dateTimeText) this.dateTimeText.setVisible(isVisible);
+        if (this.exploreBtn) this.exploreBtn.setVisible(isVisible);
+        if (this.restBtn) this.restBtn.setVisible(isVisible);
+        if (this.statusBtn) this.statusBtn.setVisible(isVisible);
+        if (this.foodText) this.foodText.setVisible(isVisible);
+        if (this.tickerBg) this.tickerBg.setVisible(isVisible);
+        if (this.tickerText) this.tickerText.setVisible(isVisible);
+        if (this.dbgBtn) this.dbgBtn.setVisible(isVisible);
+        if (this.dbgPanel) this.dbgPanel.setVisible(false);
+        if (this.breakTestBtn) this.breakTestBtn.setVisible(isVisible);
+        if (this.dpsTestBtn) this.dpsTestBtn.setVisible(isVisible);
+    }
+
 
     moveToHex(hex, animate = true) {
         if (animate && this.check1221NightForcedBreakthrough()) {
