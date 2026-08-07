@@ -52,8 +52,10 @@ export class SaveManager {
                 tutorialAfternoonSeen: gs.tutorialAfternoonSeen,
                 tutorialNightSeen: gs.tutorialNightSeen,
                 tutorialTarotSeen: gs.tutorialTarotSeen,
+                tutorialRestSeen: gs.tutorialRestSeen,
                 tutorialStep: gs.tutorialStep
             };
+
 
 
 
@@ -182,7 +184,9 @@ export class SaveManager {
         if (d.tutorialAfternoonSeen !== undefined) gs.tutorialAfternoonSeen = d.tutorialAfternoonSeen;
         if (d.tutorialNightSeen !== undefined) gs.tutorialNightSeen = d.tutorialNightSeen;
         if (d.tutorialTarotSeen !== undefined) gs.tutorialTarotSeen = d.tutorialTarotSeen;
+        if (d.tutorialRestSeen !== undefined) gs.tutorialRestSeen = d.tutorialRestSeen;
         if (d.tutorialStep !== undefined) gs.tutorialStep = d.tutorialStep;
+
 
 
 

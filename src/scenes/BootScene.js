@@ -70,6 +70,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('op_event', 'files/OP/op_event.json');
         this.load.json('tutorial_morning', 'files/DATA/tutorial_morning.json');
         this.load.json('tutorial_afternoon', 'files/DATA/tutorial_afternoon.json');
+        this.load.json('tutorial_night', 'files/DATA/tutorial_night.json');
+        this.load.json('tutorial_rest', 'files/DATA/tutorial_rest.json');
+
 
 
 

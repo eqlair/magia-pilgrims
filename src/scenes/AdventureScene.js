@@ -1527,10 +1527,11 @@ export default class AdventureScene extends Phaser.Scene {
             return;
         }
 
-        // チュートリアル午後(探索限定モード)の場合、移動は不可
-        if (this.isExploreOnlyTutorial) {
+        // チュートリアル午後(探索限定モード)・夜(休息限定モード)の場合、移動は不可
+        if (this.isExploreOnlyTutorial || this.isRestOnlyTutorial) {
             return;
         }
+
         
         // 隣接しているヘクスのみ移動可能
         if (!hex.cellData.isAdjacent) return;
@@ -2725,6 +2726,55 @@ export default class AdventureScene extends Phaser.Scene {
             return true;
         }
 
+        // ── チュートリアル夜 ──
+        if (gs.isTutorialMode && !gs.tutorialNightSeen && gs.timePeriodIndex === 2) {
+            gs.tutorialNightSeen = true;
+            SaveManager.saveGame(this);
+
+            let eventData = this.cache.json.get('tutorial_night');
+            if (eventData) {
+                eventData = JSON.parse(JSON.stringify(eventData));
+                if (eventData[0] && (eventData[0].cmd === 'image' || eventData[0].cmd === 'bg')) {
+                    eventData[0] = { cmd: 'bg', key: bgKey, darkOverlay: 0.7 };
+                }
+            } else {
+                const talkSion = this.cache.json.get('talk_001');
+                const nightLines = (talkSion && talkSion['チュートリアル(夜)']) ? talkSion['チュートリアル(夜)'] : [
+                    "日が暮れてしまう、電気もないし何も見えなくなるかもしれない…",
+                    "心なしか周辺の化け物の気配も妙に強くなったように感じる…",
+                    "夜の間はどこかに隠れて休んでいたほうがいいかもしれない。",
+                    "(休息を選んでみてください。)"
+                ];
+
+                eventData = [
+                    { cmd: "bg", key: bgKey, darkOverlay: 0.7 },
+                    { cmd: "chara", key: "portrait_001", pos: "right" }
+                ];
+                for (let i = 0; i < nightLines.length; i++) {
+                    const text = nightLines[i];
+                    const isSystem = text.startsWith('(') && text.endsWith(')');
+                    eventData.push({
+                        cmd: "text",
+                        name: isSystem ? "" : "紫苑",
+                        body: text
+                    });
+                }
+                eventData.push({ cmd: "clearText" });
+                eventData.push({ cmd: "end" });
+            }
+
+            this.eventEngine = new EventEngine(this, eventData, () => {
+                TransitionManager.meitenInPlace(this, () => {
+                    if (this.eventEngine) {
+                        this.eventEngine.cleanup();
+                        this.eventEngine = null;
+                    }
+                    this.applyTutorialRestrictions();
+                }, 800);
+            });
+            this.eventEngine.start();
+            return true;
+        }
 
         if (gs.isTutorialMode) {
             this.applyTutorialRestrictions();
@@ -2732,8 +2782,7 @@ export default class AdventureScene extends Phaser.Scene {
         return false;
     }
 
-    /** チュートリアル中の操作制限（午前：移動のみ、午後：探索のみ） */
-
+    /** チュートリアル中の操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ） */
     applyTutorialRestrictions() {
         const gs = GlobalState.getInstance();
         if (!gs.isTutorialMode) return;
@@ -2742,6 +2791,7 @@ export default class AdventureScene extends Phaser.Scene {
             // チュートリアル午前：移動のみ許可
             this.isMovementOnlyTutorial = true;
             this.isExploreOnlyTutorial = false;
+            this.isRestOnlyTutorial = false;
 
             if (this.restBtn) this.restBtn.setVisible(false);
             if (this.exploreBtn) this.exploreBtn.setVisible(false);
@@ -2751,13 +2801,25 @@ export default class AdventureScene extends Phaser.Scene {
             // チュートリアル午後：探索のみ許可
             this.isMovementOnlyTutorial = false;
             this.isExploreOnlyTutorial = true;
+            this.isRestOnlyTutorial = false;
 
             if (this.exploreBtn) this.exploreBtn.setVisible(true);
             if (this.restBtn) this.restBtn.setVisible(false);
             if (this.statusBtn) this.statusBtn.setVisible(false);
             if (this.dbgBtn) this.dbgBtn.setVisible(false);
+        } else if (gs.timePeriodIndex === 2) {
+            // チュートリアル夜：休息のみ許可
+            this.isMovementOnlyTutorial = false;
+            this.isExploreOnlyTutorial = false;
+            this.isRestOnlyTutorial = true;
+
+            if (this.exploreBtn) this.exploreBtn.setVisible(false);
+            if (this.restBtn) this.restBtn.setVisible(true);
+            if (this.statusBtn) this.statusBtn.setVisible(false);
+            if (this.dbgBtn) this.dbgBtn.setVisible(false);
         }
     }
+
 }
 
 

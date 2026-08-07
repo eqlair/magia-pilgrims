@@ -6,8 +6,10 @@ import { CharacterDetailHelper } from '../components/CharacterDetailHelper';
 import { TimeReporter } from '../systems/TimeReporter';
 
 import { fontSize, FONT_MAIN } from '../config/GameFont';
+import { EventEngine } from '../systems/EventEngine';
 
 export default class RestScene extends Phaser.Scene {
+
     constructor() {
         super('RestScene');
     }
@@ -73,7 +75,9 @@ export default class RestScene extends Phaser.Scene {
 
         
         this.drawMainView(width, height);
+        this.checkRestTutorial();
     }
+
 
     
     getRankColor(rank) {
@@ -353,5 +357,52 @@ export default class RestScene extends Phaser.Scene {
         });
         dialogContainer.add([backdrop, box, msgText, yesBtn, noBtn]);
     }
+
+    /** 休息画面に入った時の「チュートリアル(休息)」会話再生 */
+    checkRestTutorial() {
+        const gs = GlobalState.getInstance();
+        if (gs.isTutorialMode && !gs.tutorialRestSeen) {
+            gs.tutorialRestSeen = true;
+            SaveManager.saveGame();
+
+            let eventData = this.cache.json.get('tutorial_rest');
+            if (!eventData) {
+                const talkSion = this.cache.json.get('talk_001');
+                const restLines = (talkSion && talkSion['チュートリアル(休息)']) ? talkSion['チュートリアル(休息)'] : [
+                    "そういえば東京駅で化け物の親玉？が何か落としていたな",
+                    "黒いガラス玉みたいな…",
+                    "(休息中には精神力を消費して\n生命力を回復できます。)",
+                    "(精神力は化け物の親玉のようなものが落とすスピリットポッドを使って回復できます。)"
+                ];
+
+                eventData = [
+                    { cmd: "chara", key: "portrait_001", pos: "right" }
+                ];
+                for (let i = 0; i < restLines.length; i++) {
+                    const text = restLines[i];
+                    const isSystem = text.startsWith('(') && text.endsWith(')');
+                    eventData.push({
+                        cmd: "text",
+                        name: isSystem ? "" : "紫苑",
+                        body: text
+                    });
+                }
+                eventData.push({ cmd: "clearText" });
+                eventData.push({ cmd: "end" });
+            }
+
+            this.eventEngine = new EventEngine(this, eventData, () => {
+                if (this.eventEngine) {
+                    this.eventEngine.cleanup();
+                    this.eventEngine = null;
+                }
+                // チュートリアル休息完了 ➔ 操作禁止タイプの全チュートリアルが完全に完了！
+                gs.isTutorialMode = false;
+                SaveManager.saveGame();
+            });
+            this.eventEngine.start();
+        }
+    }
 }
+
 
