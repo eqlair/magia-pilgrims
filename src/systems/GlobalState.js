@@ -74,6 +74,9 @@ export class GlobalState {
         this.debugEnemyRangeMultiplier = 1.0;  // 1.0
         this.debugEnemySizeMultiplier = 1.0;   // 1.0
         this.debugEnemyHpGrowthRate = 1.0;     // 1.0
+        this.hideBattleTips = false;           // 戦闘中Tips表示OFFフラグ
+
+
 
         
         // 全キャラクターの永続データ

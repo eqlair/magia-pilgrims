@@ -46,8 +46,10 @@ export class SaveManager {
                 extraWaves: gs.extraWaves,
                 enemySpeedHalf: gs.enemySpeedHalf,
                 expMultiplier: gs.expMultiplier,
-                spMultiplier: gs.spMultiplier
+                spMultiplier: gs.spMultiplier,
+                hideBattleTips: gs.hideBattleTips
             };
+
 
 
             // AdventureScene のマップ状況をシリアライズ
@@ -167,6 +169,8 @@ export class SaveManager {
         if (d.enemySpeedHalf !== undefined) gs.enemySpeedHalf = d.enemySpeedHalf;
         if (d.expMultiplier !== undefined) gs.expMultiplier = d.expMultiplier;
         if (d.spMultiplier !== undefined) gs.spMultiplier = d.spMultiplier;
+        if (d.hideBattleTips !== undefined) gs.hideBattleTips = d.hideBattleTips;
+
 
         console.log('[SaveManager] GlobalState restored!');
         return true;

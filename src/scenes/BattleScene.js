@@ -199,6 +199,10 @@ export default class BattleScene extends Phaser.Scene {
         this.input.on('pointerup', this.onPointerUp, this);
         this.input.on('pointerupoutside', this.onPointerUp, this);
 
+        // 戦闘中Tipsの初表示スケジュール (2秒後)
+        this.scheduleNextTip(2000);
+
+
 
 
 
@@ -234,7 +238,35 @@ export default class BattleScene extends Phaser.Scene {
             retreatBtn.setAlpha(0.4);
         }
 
-        this.pauseContainer.add([resumeBtn, retreatBtn]);
+        // ── Tips表示を消す チェックボックス ──
+        const gs = GlobalState.getInstance();
+        const checkboxY = this.scale.height / 2 + 115;
+        const boxBg = this.add.rectangle(this.scale.width / 2 - 130, checkboxY, 26, 26, 0x222233)
+            .setStrokeStyle(2, 0xffffff);
+        const checkMark = this.add.text(this.scale.width / 2 - 130, checkboxY, '✓', {
+            fontSize: '22px', color: '#00ffcc', fontStyle: 'bold'
+        }).setOrigin(0.5).setVisible(!!gs.hideBattleTips);
+
+        const checkText = this.add.text(this.scale.width / 2 - 100, checkboxY, 'Tips表示を消す', {
+            fontSize: '22px', color: '#fffaee', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0, 0.5);
+
+        const checkHitArea = this.add.rectangle(this.scale.width / 2 - 10, checkboxY, 300, 40, 0x000000, 0.001)
+            .setInteractive({ useHandCursor: true });
+
+        const toggleTipsSetting = () => {
+            gs.hideBattleTips = !gs.hideBattleTips;
+            checkMark.setVisible(!!gs.hideBattleTips);
+            if (gs.hideBattleTips) {
+                this.hideTipsPanelImmediately();
+            } else {
+                this.scheduleNextTip(1000);
+            }
+        };
+
+        checkHitArea.on('pointerdown', toggleTipsSetting);
+        this.pauseContainer.add([resumeBtn, retreatBtn, boxBg, checkMark, checkText, checkHitArea]);
+
 
 
         this.confirmContainer = this.add.container(0, 0).setDepth(2200).setVisible(false);
@@ -809,8 +841,126 @@ export default class BattleScene extends Phaser.Scene {
         hammerBtnContainer.add([hammerBg, hammerIcon]);
     }
 
+    // ─────────────────────────────────────────────────────
+    // 戦闘中 Tips表示機能 (画面中央上部, 薄黒枠, 全角スペース改行, 8秒表示)
+    // ─────────────────────────────────────────────────────
+    showBattleTip() {
+        const gs = GlobalState.getInstance();
+        if (gs.hideBattleTips || this.isExiting) return;
 
+        let tipsData = this.cache.json.get('tipsB');
+        if (!tipsData || !tipsData.tips || tipsData.tips.length === 0) {
+            tipsData = this.cache.json.get('tips');
+        }
+        if (!tipsData || !tipsData.tips) return;
+
+        const list = tipsData.tips;
+        const rawText = list[Math.floor(Math.random() * list.length)];
+
+        // 全角スペースは改行として扱う。なければ25文字程度で折り返し
+        let displayText = rawText;
+        if (displayText.includes('　')) {
+            displayText = displayText.replace(/　/g, '\n');
+        } else if (displayText.length > 25 && !displayText.includes('\n')) {
+            const part1 = displayText.substring(0, 25);
+            const part2 = displayText.substring(25);
+            displayText = `${part1}\n${part2}`;
+        }
+
+        // 既存のTips容器を破棄/初期化
+        if (this.tipsContainer) {
+            this.tweens.killTweensOf(this.tipsContainer);
+            this.tipsContainer.destroy();
+            this.tipsContainer = null;
+        }
+
+        const width = this.scale.width;
+        const targetY = 95;
+        const startY = -60;
+
+        // コンテナの作成
+        this.tipsContainer = this.add.container(width / 2, startY).setDepth(1800);
+
+        // 薄い黒の枠（画面横幅に対して約25文字分が見えるサイズ感）
+        const panelWidth = Math.min(width * 0.88, 620);
+        const panelHeight = 84;
+        const panelBg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.78)
+            .setStrokeStyle(2, 0xffcc44);
+
+        // Tipsアイコンラベル
+        const labelText = this.add.text(-panelWidth / 2 + 15, -panelHeight / 2 + 8, '💡 Tips', {
+            fontSize: '13px', color: '#ffcc44', fontStyle: 'bold'
+        });
+
+        // 画面横に対して25文字程度の大きさの本文テキスト (2行表示)
+        const bodyText = this.add.text(0, 4, displayText, {
+            fontSize: '18px',
+            color: '#ffffff',
+            align: 'center',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3,
+            lineSpacing: 4
+        }).setOrigin(0.5, 0.5);
+
+        this.tipsContainer.add([panelBg, labelText, bodyText]);
+        this.tipsContainer.setScale(0.95, 0.1).setAlpha(0);
+
+        // 「ニュッ」と飛び出すアニメーション
+        this.tweens.add({
+            targets: this.tipsContainer,
+            y: targetY,
+            scaleX: 1.0,
+            scaleY: 1.0,
+            alpha: 1.0,
+            duration: 350,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // 文字が8秒表示されます
+                this.tipsHideTimer = this.time.delayedCall(8000, () => {
+                    this.hideTipsPanelImmediately();
+                });
+            }
+        });
+    }
+
+    /** Tipsパネルを即座にニュッと引っ込めて消す */
+    hideTipsPanelImmediately() {
+        if (this.tipsHideTimer) {
+            this.tipsHideTimer.remove();
+            this.tipsHideTimer = null;
+        }
+        if (this.tipsContainer) {
+            this.tweens.killTweensOf(this.tipsContainer);
+            this.tweens.add({
+                targets: this.tipsContainer,
+                y: -60,
+                scaleY: 0.1,
+                alpha: 0,
+                duration: 300,
+                ease: 'Sine.easeIn',
+                onComplete: () => {
+                    if (this.tipsContainer) {
+                        this.tipsContainer.destroy();
+                        this.tipsContainer = null;
+                    }
+                }
+            });
+        }
+    }
+
+    /** 次のTips表示をスケジュール */
+    scheduleNextTip(delayMs = 18000) {
+        if (this.nextTipTimer) {
+            this.nextTipTimer.remove();
+        }
+        this.nextTipTimer = this.time.delayedCall(delayMs, () => {
+            this.showBattleTip();
+            this.scheduleNextTip(20000);
+        });
+    }
 }
+
 
 
 

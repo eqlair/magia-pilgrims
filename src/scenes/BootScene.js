@@ -66,6 +66,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('join_events', 'files/DATA/join_events.json');
         this.load.json('chr_data', 'files/DATA/chr_data.json');
         this.load.json('tips', 'files/DATA/tips.json');
+        this.load.json('tipsB', 'files/DATA/tipsB.json');
+
         for (let i = 0; i <= 22; i++) {
             this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).jpg`);
         }
