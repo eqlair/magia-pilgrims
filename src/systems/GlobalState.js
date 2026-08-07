@@ -73,8 +73,15 @@ export class GlobalState {
         this.debugEnemyMoveMultiplier = 1.0;   // 1.0
         this.debugEnemyRangeMultiplier = 1.0;  // 1.0
         this.debugEnemySizeMultiplier = 1.0;   // 1.0
-        this.debugEnemyHpGrowthRate = 1.0;     // 1.0
         this.hideBattleTips = false;           // 戦闘中Tips表示OFFフラグ
+
+        // チュートリアル関連フラグ
+        this.isTutorialMode = false;
+        this.tutorialMorningSeen = false;
+        this.tutorialAfternoonSeen = false;
+        this.tutorialNightSeen = false;
+        this.tutorialStep = 0;
+
 
 
 
@@ -816,12 +823,20 @@ export class GlobalState {
         this.tarot13_targetAtk = null;
 
 
+        // チュートリアルフラグのリセット
+        this.isTutorialMode = true;
+        this.tutorialMorningSeen = false;
+        this.tutorialAfternoonSeen = false;
+        this.tutorialNightSeen = false;
+        this.tutorialStep = 0;
+
         // 日時・リソースのリセット (12月1日 午前)
         this.currentMonth = 12;
         this.currentDay = 1;
         this.timePeriodIndex = 0; // 0:午前
         this.food = 100;
         this.stockSp = 0;
+
 
         // パーティ初期化（紫苑のみ：中央後衛）
         this.savedFormation = { '001': { lane: 0, isFront: false } };

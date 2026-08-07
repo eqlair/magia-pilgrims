@@ -554,8 +554,21 @@ export default class BattleScene extends Phaser.Scene {
                     if (charData) {
                         charData.currentHp = Math.max(0, p.hp);
                         charData.currentSp = Math.max(0, p.sp);
+
+                        // チュートリアル戦闘後、紫苑(001)のHP・SPが減っていれば90%まで回復
+                        if (this.battleConfig.isTutorial && p.charId === '001') {
+                            const targetHp = Math.floor((charData.maxHp || 1000) * 0.9);
+                            const targetSp = Math.floor((charData.maxSp || 500) * 0.9);
+                            if (charData.currentHp < targetHp) {
+                                charData.currentHp = targetHp;
+                            }
+                            if (charData.currentSp < targetSp) {
+                                charData.currentSp = targetSp;
+                            }
+                        }
                     }
                 }
+
                 
                 TransitionManager.transitionTo(this, 'ResultScene', {
                     party: this.battleConfig.party || ['001'],

@@ -422,6 +422,10 @@ export default class AdventureScene extends Phaser.Scene {
             SaveManager.saveGame(this);
         }
 
+        // ── チュートリアル午前イベントの発動チェック ──
+        this.checkTutorialEvents();
+
+
         
         // アイドル時間計測用
         this.idleTime = 0;
@@ -2594,5 +2598,56 @@ export default class AdventureScene extends Phaser.Scene {
         }
         console.log('[AdventureScene] Restored state from save data!');
     }
+
+    // ─────────────────────────────────────────────────────
+    // チュートリアル進行・イベント制御 & 操作制限 (移動のみ許可)
+    // ─────────────────────────────────────────────────────
+    checkTutorialEvents() {
+        const gs = GlobalState.getInstance();
+        if (gs.isTutorialMode && !gs.tutorialMorningSeen && gs.currentMonth === 12 && gs.currentDay === 1 && gs.timePeriodIndex === 0) {
+            // イベントを見たフラグを即座に記録 (敗北や巻き戻りで再発生させない)
+            gs.tutorialMorningSeen = true;
+            SaveManager.saveGame(this);
+
+            let eventData = this.cache.json.get('tutorial_morning');
+            if (!eventData) {
+                eventData = [
+                    { cmd: "image", key: "ev001" },
+                    { cmd: "portrait", charId: "001" },
+                    { cmd: "text", name: "紫苑", body: "ふぅ……なんとか襲ってきた敵と魔女を退治できたみたい。でも、東京の街全体が異様な森に侵食されているわ……。" },
+                    { cmd: "text", name: "紫苑", body: "まずは周囲の状況を確認しながら、先へ進んでみよう。マップ上の隣接するヘクスをタップすれば、移動（探索）することができるわ。" },
+                    { cmd: "clearText" },
+                    { cmd: "end" }
+                ];
+            }
+
+            // イベント再生
+            this.eventEngine = new EventEngine(this, eventData, () => {
+                if (this.eventEngine) {
+                    this.eventEngine.cleanup();
+                    this.eventEngine = null;
+                }
+                this.applyTutorialRestrictions();
+            });
+            this.eventEngine.start();
+        } else if (gs.isTutorialMode) {
+            this.applyTutorialRestrictions();
+        }
+    }
+
+    /** チュートリアル中の操作制限（「移動」以外を不可にする） */
+    applyTutorialRestrictions() {
+        const gs = GlobalState.getInstance();
+        if (!gs.isTutorialMode) return;
+
+        this.isMovementOnlyTutorial = true;
+
+        // UIボタン（探索・休息・編成・デバッグボタンなど）を無効化・隠す
+        if (this.restBtn) this.restBtn.setVisible(false);
+        if (this.exploreBtn) this.exploreBtn.setVisible(false);
+        if (this.statusBtn) this.statusBtn.setVisible(false);
+        if (this.dbgBtn) this.dbgBtn.setVisible(false);
+    }
 }
+
 
