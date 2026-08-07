@@ -789,9 +789,28 @@ export class BossCharacter extends BattleEntity {
         const level = data.level || 1;
         this.level = level;
         
-        const hpTable = [3000, 5000, 7000, 9000, 11000, 14000, 17000, 20000];
-        this.hp = hpTable[Math.min(level - 1, 7)] || 3000;
+        const hpTable = [
+            9000,   // LV1
+            15000,  // LV2
+            21000,  // LV3
+            27000,  // LV4
+            33000,  // LV5
+            42000,  // LV6
+            51000,  // LV7
+            60000,  // LV8
+            69000,  // LV9
+            78000,  // LV10
+            100000, // LV11
+            200000, // LV12
+            300000  // LV13
+        ];
+        if (level <= hpTable.length) {
+            this.hp = hpTable[level - 1];
+        } else {
+            this.hp = 300000 + (level - 13) * 100000;
+        }
         this.maxHp = this.hp;
+
         
         this.atkPower = 15 + (level - 1) * 2;
         
