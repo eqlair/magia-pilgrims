@@ -38,7 +38,18 @@ export default class OpScene extends Phaser.Scene {
         const eventData = this.cache.json.get('op_event');
 
         this.engine = new EventEngine(this, eventData, () => {
-            this.engine.cleanup();
+            triggerOpFinish();
+        });
+
+        const triggerOpFinish = () => {
+            if (this.isSkipping) return;
+            this.isSkipping = true;
+            if (this.skipBtn) this.skipBtn.destroy();
+
+            if (this.engine) {
+                this.engine.cleanup();
+                this.engine = null;
+            }
             if (this.sound) this.sound.stopAll();
 
             const width = this.scale.width;
@@ -67,16 +78,16 @@ export default class OpScene extends Phaser.Scene {
                 this.sound.play('op_start', { volume: 0.8 });
             }
 
-            // ホワイトアウトが4秒かけて消えていき、タイトル画像が浮かび上がる
+            // ホワイトアウトがフェードアウトしてタイトル画像が浮かび上がる
             this.tweens.add({
                 targets: whiteOverlay,
                 alpha: 0,
-                duration: 4000,
+                duration: 3000,
                 ease: 'Quad.easeOut'
             });
 
-            // 5秒後にチュートリアル戦闘へ突入
-            this.time.delayedCall(5000, () => {
+            // チュートリアル戦闘へ突入
+            this.time.delayedCall(3500, () => {
                 TransitionManager.transitionTo(this, 'BattleScene', {
                     party: ['001'],
                     rule: 1,
@@ -92,7 +103,25 @@ export default class OpScene extends Phaser.Scene {
                     returnScene: 'AdventureScene'
                 });
             });
-        });
+        };
+
+        // ── 画面左上の隠しOPスキップボタン ──
+        this.isSkipping = false;
+        this.skipBtn = this.add.text(20, 20, '⏩ SKIP', {
+            fontFamily: 'sans-serif',
+            fontSize: '18px',
+            color: '#ffffff',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            padding: { x: 10, y: 6 }
+        }).setDepth(9999).setInteractive({ useHandCursor: true });
+
+        this.skipBtn.setAlpha(0.6);
+        this.skipBtn.on('pointerover', () => this.skipBtn.setAlpha(1.0));
+        this.skipBtn.on('pointerout', () => this.skipBtn.setAlpha(0.6));
+        this.skipBtn.on('pointerdown', triggerOpFinish);
+
+        this.engine.start();
+
 
 
 
