@@ -41,11 +41,11 @@ export class BattleRenderer {
                 this.spriteMap.delete(entity);
                 
                 if (this.uiMap.has(entity)) {
-                    const ui = this.uiMap.get(entity);
                     ui.hpBg.destroy(); ui.hpBar.destroy(); 
+                    if (ui.ultBg) ui.ultBg.destroy(); if (ui.ultBar) ui.ultBar.destroy();
                     ui.spBg.destroy(); ui.spBar.destroy(); 
-                    ui.hpText.destroy(); ui.spText.destroy();
                     this.uiMap.delete(entity);
+
                 }
             }
         }
@@ -571,10 +571,7 @@ export class BattleRenderer {
                 spBg: this.scene.add.rectangle(0, 0, 100, 10, 0x000000, 0.5).setOrigin(0.5, 0.5),
                 spBar: this.scene.add.rectangle(0, 0, 100, 10, 0x0000ff).setOrigin(0.5, 0.5),
                 ultBg: this.scene.add.rectangle(0, 0, 100, 10, 0x000000, 0.5).setOrigin(0.5, 0.5),
-                ultBar: this.scene.add.rectangle(0, 0, 100, 10, 0xff0000).setOrigin(0.5, 0.5),
-                // fontSizeは画面幅(540)に対するサイズ（約11px）に設定
-                hpText: this.scene.add.text(0, 0, '', { fontSize: '11px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5, 0.5),
-                spText: this.scene.add.text(0, 0, '', { fontSize: '11px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5, 0.5)
+                ultBar: this.scene.add.rectangle(0, 0, 100, 10, 0xff0000).setOrigin(0.5, 0.5)
             };
             this.uiMap.set(entity, ui);
         }
@@ -638,20 +635,12 @@ export class BattleRenderer {
             ui.spBg.setPosition(p.x, spY).setDepth(depth).setVisible(true);
             ui.spBar.setPosition(p.x, spY).setDepth(depth).setVisible(true);
             
-            // テキストのスケール（奥行きに関係なく固定サイズ11pxで表示）
-            ui.hpText.setText(`${Math.ceil(entity.hp)}`);
-            ui.hpText.setPosition(p.x, hpY).setDepth(depth + 0.1).setVisible(true).setScale(1);
-            
-            ui.spText.setText(`${Math.ceil(entity.sp)}`);
-            ui.spText.setPosition(p.x, spY).setDepth(depth + 0.1).setVisible(true).setScale(1);
-            
             // 死にかけ（透明化中）の時はゲージも透明に
             if (entity.isDying) {
                 const alpha = Math.max(0, entity.deathTimer / 0.5);
                 ui.hpBg.setAlpha(alpha); ui.hpBar.setAlpha(alpha);
                 ui.ultBg.setAlpha(alpha); ui.ultBar.setAlpha(alpha);
                 ui.spBg.setAlpha(alpha); ui.spBar.setAlpha(alpha);
-                ui.hpText.setAlpha(alpha); ui.spText.setAlpha(alpha);
             } else {
                 let alpha = 1.0;
                 if (entity.owner === 'enemy') {
@@ -667,16 +656,13 @@ export class BattleRenderer {
                 }
 
                 ui.hpBg.setAlpha(alpha); ui.hpBar.setAlpha(alpha);
-                ui.hpText.setAlpha(alpha);
                 
                 // 敵はSPなし
                 if (entity.owner === 'enemy') {
                     ui.spBg.setVisible(false); ui.spBar.setVisible(false);
-                    ui.spText.setVisible(false);
                 } else {
                     ui.ultBg.setAlpha(alpha); ui.ultBar.setAlpha(alpha);
                     ui.spBg.setAlpha(alpha); ui.spBar.setAlpha(alpha);
-                    ui.spText.setAlpha(alpha);
                 }
             }
         } else {
@@ -686,10 +672,9 @@ export class BattleRenderer {
             ui.ultBar.setVisible(false);
             ui.spBg.setVisible(false);
             ui.spBar.setVisible(false);
-            ui.hpText.setVisible(false);
-            ui.spText.setVisible(false);
         }
     }
+
 
     // 浮遊テキスト描画（スプライト文字 letterS.png を使用して描画を超爆速化）
     _updateFloatingTexts() {
