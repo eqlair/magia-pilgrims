@@ -47,7 +47,8 @@ export default class OpScene extends Phaser.Scene {
                 majoLevel: 1,
                 attribute: 'yellow',
                 bgmKey: 'bgm_battle4',
-                bossBgmKey: 'bgm_hexen',
+                bossBgmKey: 'bgm_boss3',
+
                 isTutorial: true,
                 canRetreat: false,
                 returnScene: 'AdventureScene'

@@ -848,9 +848,9 @@ export default class BattleScene extends Phaser.Scene {
         const gs = GlobalState.getInstance();
         if (gs.hideBattleTips || this.isExiting) return;
 
-        // 戦闘専用攻略データ tips_battle.json のみを使用
+        // 戦闘専用攻略データ tips_battle.json の抽出
         let list = null;
-        const rawJson = this.cache.json.get('tips_battle');
+        const rawJson = this.cache.json.get('tips_battle') || this.cache.json.get('tipsB') || this.cache.json.get('tips');
         if (rawJson) {
             if (Array.isArray(rawJson)) {
                 list = rawJson;
@@ -859,14 +859,35 @@ export default class BattleScene extends Phaser.Scene {
             }
         }
 
-        if (!list || list.length === 0) return;
+        // キャッシュ取得フォールバック（tips_battle.json の本文）
+        if (!list || list.length === 0) {
+            list = [
+                "キャラクターはスワイプして　左右、前後に移動できます。",
+                "敵から遠いと遠隔攻撃、　敵に近いと近接攻撃を行います。",
+                "キャラクターをダブルタップすると　必殺技を行います。",
+                "必殺技は強力ですが精神力を消費し、　連発することはできません。",
+                "前衛にいると近接攻撃の、後衛にいると　遠隔攻撃の技術が上がることがあります。",
+                "キャラクターや敵には5種類の属性があり、　相性によってダメージが増減します。",
+                "敵との距離が遠いと攻撃の命中率が下がります。",
+                "赤い情熱は、紫の混沌に強く青い統制に弱い。",
+                "紫の混沌は、緑の調和に強く赤い情熱に弱い。",
+                "緑の調和は、黄色の犠牲に強く紫の混沌に弱い。",
+                "黄色の犠牲は、青い統制に強く緑の調和に弱い。",
+                "青い統制は、赤い情熱に強く黄色の犠牲に弱い。",
+                "ストック経験値はうまく使って戦力を調整しましょう。",
+                "戦闘中に生命力がゼロになると、　休息するまで回復できません。",
+                "戦闘中に全員が行動不能になるか、撤退を　選択すると戦闘に入る前の状態から再開できます。",
 
+                "右上の歯車の撤退メニューから、　この攻略情報の表示を消すことができます。"
+            ];
+        }
 
         if (this.currentTipIndex === undefined) {
             this.currentTipIndex = 0;
         }
         const rawText = list[this.currentTipIndex % list.length];
         this.currentTipIndex = (this.currentTipIndex + 1) % list.length;
+
 
 
 
