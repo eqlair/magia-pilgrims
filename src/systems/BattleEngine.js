@@ -2076,8 +2076,17 @@ export class BattleEngine {
                         const isHit = this.applyDamage(b.sourceEntity, t, finalDmg, type, b.distanceTraveled, b.x, b.z);
                         if (isHit) {
                             if (b.stunDuration > 0 && Math.random() < b.stunChance) {
-                                t.stunTimer = b.stunDuration;
+                                const resist = t.debuffResist !== undefined ? t.debuffResist : 0;
+                                if (resist >= 100) {
+                                    // デバフ抵抗100以上(ボス等)は完全に効かない
+                                    t.stunTimer = 0;
+                                } else {
+                                    // デバフ抵抗に応じて効果時間が増減 (例: 50 -> 0.5秒, -50 -> 1.5秒)
+                                    const resistMult = Math.max(0, 1.0 - (resist / 100));
+                                    t.stunTimer = b.stunDuration * resistMult;
+                                }
                             }
+
                             if (b.type && b.type.startsWith('swing_')) {
                                 const len = Math.sqrt(dx*dx + dz*dz) || 1.0;
                                 t.applyKnockback((b.knockback * -dx) / len, (b.knockback * -dz) / len);

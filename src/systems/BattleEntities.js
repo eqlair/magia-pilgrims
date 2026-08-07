@@ -731,7 +731,9 @@ export class EnemyCharacter extends BattleEntity {
         this.speed = baseSpeed * 0.03; // m/sに変換
 
         this.weight = data.weight || 5;
+        this.debuffResist = data.debuffResist !== undefined ? data.debuffResist : 0;
         const baseSize = (data.size || 1.0) + Math.max(0, this.level - 1) * 0.1;
+
         this.size = baseSize * (gs.debugEnemySizeMultiplier || 1.0);
 
         
@@ -830,6 +832,8 @@ export class BossCharacter extends BattleEntity {
         }
         this.speed = this.baseSpeed * 0.03; 
         this.weight = 500; // 重いのでノックバックしにくい
+        this.debuffResist = data.debuffResist !== undefined ? data.debuffResist : 100; // 魔女ボスはデバフ抵抗100
+
         
         // エクセル準拠：大きさ
         this.size = 1.2 * Math.pow(1.3, level - 1) * (gs.debugEnemySizeMultiplier || 1.0); // 1.2, 1.6, 2.2, 3.0...
