@@ -37,7 +37,7 @@ export default class OpScene extends Phaser.Scene {
             this.engine.cleanup();
             if (this.sound) this.sound.stopAll();
             // OP会話終了後、紫苑一人(LV1, 中央後衛)でチュートリアル戦闘へ突入
-            // 条件: 紫苑1人, 敵出現数10, 敵レベル2, ウェーブ数2, 魔女レベル1
+            // 条件: 紫苑1人, 黄色属性, bgm_battle4, 敵レベル2, ウェーブ数2, 魔女レベル1, 撤退不可
             TransitionManager.transitionTo(this, 'BattleScene', {
                 party: ['001'],
                 rule: 1,
@@ -45,11 +45,15 @@ export default class OpScene extends Phaser.Scene {
                 totalWaves: 2,
                 waveCount: 2,
                 majoLevel: 1,
-                enemyCount: 10,
+                attribute: 'yellow',
+                bgmKey: 'bgm_battle4',
+                bossBgmKey: 'bgm_hexen',
                 isTutorial: true,
+                canRetreat: false,
                 returnScene: 'AdventureScene'
             });
         });
+
 
 
 

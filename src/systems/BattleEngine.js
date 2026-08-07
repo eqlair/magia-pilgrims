@@ -369,6 +369,61 @@ export class BattleEngine {
         return spawnedEnemies;
     }
 
+    spawnTutorialWave() {
+        const spawnedEnemies = [];
+        let targets = [];
+
+        if (this.currentWave === 1) {
+            // ウェーブ 1: スウォーム(id:1) 9匹 + マノウォー(id:4) 3匹
+            targets = [
+                { id: 1, count: 9 },
+                { id: 4, count: 3 }
+            ];
+        } else {
+            // ウェーブ 2: コボルド(id:6) 8匹 + オーガ(id:8) 3匹
+            targets = [
+                { id: 6, count: 8 },
+                { id: 8, count: 3 }
+            ];
+        }
+
+        for (const item of targets) {
+            const typeDef = ENEMY_TYPES.find(t => t.id === item.id);
+            if (!typeDef) continue;
+            for (let i = 0; i < item.count; i++) {
+                const isDrop = (i % 3 === 0);
+                const x = (Math.random() - 0.5) * 9.0;
+                const z = isDrop ? (11.0 + Math.random() * 2.0) : (20.0 + Math.random() * 3.0);
+
+                const enemyData = {
+                    name: typeDef.name,
+                    hp: typeDef.hp,
+                    speed: typeDef.speed,
+                    weight: typeDef.weight,
+                    atkRange: typeDef.atkRange,
+                    atkFreq: typeDef.atkFreq,
+                    atkPower: typeDef.atkPower,
+                    size: typeDef.size,
+                    moveDist: typeDef.moveDist,
+                    moveInterval: typeDef.moveInterval,
+                    debuffResist: typeDef.debuffResist,
+                    textureKey: typeDef.textureKey,
+                    frame: typeDef.frame,
+                    attribute: 'yellow',
+                    level: 2
+                };
+
+                const enemy = new EnemyCharacter(x, z, enemyData);
+                enemy.isDropSpawn = isDrop;
+                enemy.spawnDropTimer = isDrop ? 1.0 : 0;
+                this.enemies.push(enemy);
+                spawnedEnemies.push(enemy);
+            }
+        }
+
+        return spawnedEnemies;
+    }
+
     spawnEnemy(x, z, typeIndex = null) {
         const group = this.spawnEnemyGroup(typeIndex);
         if (group[0]) {
@@ -378,8 +433,6 @@ export class BattleEngine {
         return group[0];
     }
 
-
-
     spawnBoss(x, z) {
         const textureIndex = Math.floor(Math.random() * 4) + 1;
         const textureKey = `boss00${textureIndex}`;
@@ -387,16 +440,18 @@ export class BattleEngine {
             name: '魔女',
             level: this.majoLevel,
             textureKey: textureKey,
-            attribute: this.enemyAttribute
+            attribute: this.config.isTutorial ? 'yellow' : (this.enemyAttribute || 'yellow'),
+            movePattern: this.config.isTutorial ? 1 : undefined // チュートリアルは通常タイプ(1)
         };
         const boss = new BossCharacter(x, z, bossData);
         if (this.isNightBattle) {
-            // 魔女夜限定補正: HPは本来の2倍
             boss.maxHp *= 2.0;
             boss.hp = boss.maxHp;
         }
         this.enemies.push(boss);
+        return boss;
     }
+
 
 
     applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null) {
@@ -879,7 +934,8 @@ export class BattleEngine {
                     this.spawnTimer -= dt;
                     if (this.spawnTimer <= 0) {
                         this.spawnTimer = 1.0; // 1秒間隔
-                        const spawnedList = this.spawnEnemyGroup();
+                        const spawnedList = this.config.isTutorial ? this.spawnTutorialWave() : this.spawnEnemyGroup();
+
                         this.spawnedInWave += spawnedList.length;
 
                     }

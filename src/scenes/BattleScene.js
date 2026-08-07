@@ -172,9 +172,8 @@ export default class BattleScene extends Phaser.Scene {
             bg.setScale(Math.max(width / bg.width, height / bg.height));
             bg.setDepth(-100);
 
-            // 通常戦闘BGMの再生保証
-            const bgmIdx = Math.floor(Math.random() * 4) + 1;
-            const bKey = `bgm_battle${bgmIdx}`;
+            // 通常戦闘BGMの再生（チュートリアル指定等あれば優先再生）
+            const bKey = this.battleConfig.bgmKey || `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
             if (this.cache.audio.exists(bKey)) {
                 let isAnyPlaying = false;
                 if (this.sound.sounds) {
@@ -185,6 +184,7 @@ export default class BattleScene extends Phaser.Scene {
                 }
             }
         }
+
 
 
         // 3. 描画レンダラーの初期化
@@ -218,12 +218,24 @@ export default class BattleScene extends Phaser.Scene {
             .setInteractive()
             .on('pointerdown', () => this.togglePauseMenu());
 
-        const retreatBtn = this.add.text(this.scale.width/2, this.scale.height/2 + 40, '撤退', { fontSize: '32px', color: '#ffaaaa', backgroundColor: '#333', padding: {x:20,y:10}, stroke: '#000000', strokeThickness: 3 })
-            .setOrigin(0.5)
-            .setInteractive()
-            .on('pointerdown', () => this.showRetreatConfirm());
+        const isRetreatDisabled = !!(this.battleConfig && (this.battleConfig.canRetreat === false || this.battleConfig.isTutorial === true));
+        const retreatBtn = this.add.text(this.scale.width/2, this.scale.height/2 + 40, '撤退', { 
+            fontSize: '32px', 
+            color: isRetreatDisabled ? '#666666' : '#ffaaaa', 
+            backgroundColor: '#333', 
+            padding: {x:20,y:10}, 
+            stroke: '#000000', 
+            strokeThickness: 3 
+        }).setOrigin(0.5);
+
+        if (!isRetreatDisabled) {
+            retreatBtn.setInteractive().on('pointerdown', () => this.showRetreatConfirm());
+        } else {
+            retreatBtn.setAlpha(0.4);
+        }
 
         this.pauseContainer.add([resumeBtn, retreatBtn]);
+
 
         this.confirmContainer = this.add.container(0, 0).setDepth(2200).setVisible(false);
         const cOverlay = this.add.rectangle(this.scale.width/2, this.scale.height/2, this.scale.width, this.scale.height, 0x000000, 0.8).setInteractive();
@@ -441,10 +453,13 @@ export default class BattleScene extends Phaser.Scene {
                 }
             });
 
-            const bossBgmIdx = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
-            if (this.cache.audio.exists(`bgm_boss${bossBgmIdx}`)) {
-                this.sound.play(`bgm_boss${bossBgmIdx}`, { loop: true, volume: 0.5 });
+            const bossKey = this.battleConfig.bossBgmKey || `bgm_boss${Math.floor(Math.random() * 3) + 1}`;
+            if (this.cache.audio.exists(bossKey)) {
+                this.sound.play(bossKey, { loop: true, volume: 0.5 });
+            } else if (this.cache.audio.exists('bgm_hexen')) {
+                this.sound.play('bgm_hexen', { loop: true, volume: 0.5 });
             }
+
         }
 
         // 魔女死亡時のSE

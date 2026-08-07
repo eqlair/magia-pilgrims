@@ -851,13 +851,20 @@ export class BossCharacter extends BattleEntity {
         this.targetZMode = 'vanguard';
         this.targetLane = 0;
 
+        this.attribute = data.attribute || 'yellow';
+
         // 個性（移動パターン）の決定
-        const r = Math.floor(Math.random() * 8);
-        if (r < 4) this.movePattern = 1;      // 4/8 = 1/2
-        else if (r === 4) this.movePattern = 2; // 1/8
-        else if (r === 5) this.movePattern = 3; // 1/8
-        else if (r === 6) this.movePattern = 4; // 1/8
-        else this.movePattern = 5;              // 1/8
+        if (data.movePattern !== undefined) {
+            this.movePattern = (data.movePattern === 'normal' || data.movePattern === 'standard') ? 1 : data.movePattern;
+        } else {
+            const r = Math.floor(Math.random() * 8);
+            if (r < 4) this.movePattern = 1;      // 1: 通常タイプ
+            else if (r === 4) this.movePattern = 2; 
+            else if (r === 5) this.movePattern = 3; 
+            else if (r === 6) this.movePattern = 4; 
+            else this.movePattern = 5;              
+        }
+
 
         // 移動用パラメータ
         this.moveDist = 2.0; 
