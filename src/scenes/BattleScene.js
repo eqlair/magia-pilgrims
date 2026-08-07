@@ -199,8 +199,6 @@ export default class BattleScene extends Phaser.Scene {
         this.input.on('pointerup', this.onPointerUp, this);
         this.input.on('pointerupoutside', this.onPointerUp, this);
 
-        // 戦闘中Tipsの初表示スケジュール (2秒後)
-        this.scheduleNextTip(2000);
 
 
 
@@ -260,8 +258,9 @@ export default class BattleScene extends Phaser.Scene {
             if (gs.hideBattleTips) {
                 this.hideTipsPanelImmediately();
             } else {
-                this.scheduleNextTip(1000);
+                this.tipCycleTimer = -1.0; // チェック解除時は1秒後にTips表示
             }
+
         };
 
         checkHitArea.on('pointerdown', toggleTipsSetting);
