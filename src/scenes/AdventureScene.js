@@ -778,12 +778,12 @@ export default class AdventureScene extends Phaser.Scene {
             .setDepth(500)
             .setScrollFactor(0);
 
-        this.foodText = new SpriteText(this, width / 2 - 160, height - 30, '', {
+        this.foodText = new SpriteText(this, width / 2 - 150, height - 30, '', {
             tint: 0xfffaee,
-            spacing: 22,
+            spacing: 36,
             originX: 0.5,
             originY: 0.5
-        }).setDepth(501).setScrollFactor(0).setScale(0.42);
+        }).setDepth(501).setScrollFactor(0).setScale(0.40);
 
         // --- UI (3) 最下段右: SPパネル（soul.png + スプライト数字: 数値のみ） ---
         this.spBg = this.add.image(width / 2 + 185, height - 30, 'bg_soul')
@@ -791,12 +791,13 @@ export default class AdventureScene extends Phaser.Scene {
             .setDepth(500)
             .setScrollFactor(0);
 
-        this.spText = new SpriteText(this, width / 2 + 210, height - 30, '', {
+        this.spText = new SpriteText(this, width / 2 + 215, height - 30, '', {
             tint: 0xffea77,
-            spacing: 22,
+            spacing: 36,
             originX: 0.5,
             originY: 0.5
-        }).setDepth(501).setScrollFactor(0).setScale(0.42);
+        }).setDepth(501).setScrollFactor(0).setScale(0.40);
+
 
 
         this._updateFoodDisplay();
