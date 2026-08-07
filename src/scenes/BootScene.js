@@ -29,6 +29,14 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('portrait_004', 'files/CHR/004001.png');
         this.load.image('portrait_005', 'files/CHR/005001.png');
 
+        // 2人目用立ち絵 (001001b.png ~ 005001b.png)
+        this.load.image('portrait_001_b', 'files/CHR/001001b.png');
+        this.load.image('portrait_002_b', 'files/CHR/002001b.png');
+        this.load.image('portrait_003_b', 'files/CHR/003001b.png');
+        this.load.image('portrait_004_b', 'files/CHR/004001b.png');
+        this.load.image('portrait_005_b', 'files/CHR/005001b.png');
+
+
         // 属性アイコン
         for (let i = 1; i <= 5; i++) {
             this.load.image(`em_${i}`, `files/CHR/em_${i}.png`);

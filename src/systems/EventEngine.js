@@ -239,13 +239,26 @@ export class EventEngine {
     _showChara(key, pos, cb) {
         const isRight   = pos === 'right';
         const ref       = isRight ? 'charaRight' : 'charaLeft';
+        const otherRef  = isRight ? 'charaLeft'  : 'charaRight';
         const destX     = isRight ? this.W * 0.75 : this.W * 0.25;
         const startX    = isRight ? this.W + 200  : -200;
 
         if (this[ref]) { this[ref].destroy(); this[ref] = null; }
         if (!key) { cb(); return; }
 
-        const chara = this.scene.add.image(startX, this.H / 2, key)
+        // 2人目として画面に出てきたか判定 (画面内に既に1人目がいるか、キー自体に_bが明示されている場合)
+        let textureKey = key;
+        const hasOtherChara = !!this[otherRef];
+        if (hasOtherChara || key.endsWith('_b')) {
+            if (!textureKey.endsWith('_b') && textureKey.startsWith('portrait_')) {
+                const bKey = `${textureKey}_b`;
+                if (this.scene.textures.exists(bKey)) {
+                    textureKey = bKey;
+                }
+            }
+        }
+
+        const chara = this.scene.add.image(startX, this.H / 2, textureKey)
             .setDepth(this.DEPTH + 2).setAlpha(0);
         chara.setScale((this.H * 0.6) / chara.height);
 
@@ -254,6 +267,7 @@ export class EventEngine {
             onComplete: () => { this[ref] = chara; cb(); }
         });
     }
+
 
     // ─────────────────────────────────────────────────────
     // テキストボックス（\n\nでページ送り）

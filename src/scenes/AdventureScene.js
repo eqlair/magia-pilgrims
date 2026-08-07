@@ -1436,7 +1436,8 @@ export default class AdventureScene extends Phaser.Scene {
                 // 2人目登場
                 const availableChar2 = this.party.filter(c => c !== char1);
                 const char2 = availableChar2.length > 0 ? availableChar2[Math.floor(Math.random() * availableChar2.length)] : char1;
-                events.push({ cmd: 'chara', key: `portrait_${char2}`, pos: 'left' });
+                events.push({ cmd: 'chara', key: `portrait_${char2}_b`, pos: 'left' });
+
                 
                 const talkData2 = this.cache.json.get(`talk_${char2}`);
                 let battleText2 = '……！';
@@ -1678,7 +1679,8 @@ export default class AdventureScene extends Phaser.Scene {
                     const lines2 = talkData2 ? talkData2['食料ゼロ反応'] : null;
                     if (lines2) {
                         const body2 = lines2[Math.floor(Math.random() * lines2.length)];
-                        events.push({ cmd: 'chara', key: `portrait_${charId2}`, pos: 'left' });
+                        events.push({ cmd: 'chara', key: `portrait_${charId2}_b`, pos: 'left' });
+
                         events.push({ cmd: 'text', name: charName2, body: body2 });
                     }
                 }
@@ -1831,7 +1833,8 @@ export default class AdventureScene extends Phaser.Scene {
                 // メンバーが2人以上の場合
                 const availableChar2 = this.party.filter(c => c !== char1);
                 const char2 = availableChar2.length > 0 ? availableChar2[Math.floor(Math.random() * availableChar2.length)] : char1;
-                events.push({ cmd: 'chara', key: `portrait_${char2}`, pos: 'left' });
+                events.push({ cmd: 'chara', key: `portrait_${char2}_b`, pos: 'left' });
+
 
                 const talkData2 = this.cache.json.get(`talk_${char2}`);
                 const charData2 = GlobalState.getInstance().characters[char2];
