@@ -489,7 +489,14 @@ export class GlobalState {
                 }
                 break;
 
+            case 13: // No.12 吊るされた男 (id: 13) 逆位置: 踏破済みヘクス3箇所に周囲最高Lv+1の雑魚敵と魔女を生成
+                if (!isUpright) {
+                    this.spawnWitchEnemiesOnVisitedCells(3);
+                }
+                break;
+
             case 14: // No.13 死神 (id: 14)
+
                 if (!isUpright) {
                     for (const cid of party) {
                         const char = this.characters[cid];
@@ -914,7 +921,83 @@ export class GlobalState {
             console.log(`[GlobalState] Boosted witch level at hex (${targetHex.col}, ${targetHex.row}) by +${amount} (New Lv: ${targetHex.cellData.witchLevel})`);
         }
     }
+
+    spawnWitchEnemiesOnVisitedCells(count = 3) {
+        if (!this.adventureScene || !this.adventureScene.grid) return;
+        const grid = this.adventureScene.grid;
+
+        const visitedHexes = [];
+        const allEnemyLevels = [];
+
+        for (let r = 0; r < grid.length; r++) {
+            if (!grid[r]) continue;
+            for (let c = 0; c < grid[r].length; c++) {
+                const hex = grid[r][c];
+                if (!hex || !hex.cellData) continue;
+                
+                const cd = hex.cellData;
+                if (cd.visited === 1 || cd.isExplored) {
+                    visitedHexes.push(hex);
+                }
+                
+                if (cd.enemyLevel > 0) {
+                    allEnemyLevels.push(cd.enemyLevel);
+                }
+            }
+        }
+
+        if (visitedHexes.length === 0) return;
+
+        const shuffled = visitedHexes.sort(() => 0.5 - Math.random());
+        const targets = shuffled.slice(0, count);
+
+        targets.forEach(targetHex => {
+            const row = targetHex.row !== undefined ? targetHex.row : (targetHex.cellData ? targetHex.cellData.row : 0);
+            const col = targetHex.col !== undefined ? targetHex.col : (targetHex.cellData ? targetHex.cellData.col : 0);
+
+            const isOdd = (row % 2 !== 0);
+            const neighbors = [
+                [0, -1], [0, 1], [-1, 0], [1, 0],
+                isOdd ? [1, -1] : [-1, -1],
+                isOdd ? [1, 1] : [-1, 1]
+            ];
+
+            let maxNeighLevel = 0;
+            for (const n of neighbors) {
+                const nc = col + n[0];
+                const nr = row + n[1];
+                if (nr >= 0 && nr < grid.length && nc >= 0 && nc < grid[nr].length) {
+                    const adjHex = grid[nr][nc];
+                    if (adjHex && adjHex.cellData) {
+                        const eL = adjHex.cellData.enemyLevel || 0;
+                        const wL = adjHex.cellData.witchLevel || 0;
+                        const mL = Math.max(eL, wL);
+                        if (mL > maxNeighLevel) maxNeighLevel = mL;
+                    }
+                }
+            }
+
+            let finalLevel = 1;
+            if (maxNeighLevel > 0) {
+                finalLevel = maxNeighLevel + 1;
+            } else if (allEnemyLevels.length > 0) {
+                const sampleL = allEnemyLevels[Math.floor(Math.random() * allEnemyLevels.length)];
+                finalLevel = sampleL + 1;
+            } else {
+                finalLevel = 2;
+            }
+
+            targetHex.cellData.enemyLevel = finalLevel;
+            targetHex.cellData.witchLevel = finalLevel;
+        });
+
+        if (this.adventureScene.updateVisibility) {
+            this.adventureScene.updateVisibility();
+        }
+        console.log(`[GlobalState] Tarot Hanged Man (Reversed): Spawned enemies & witch on ${targets.length} visited cells.`);
+    }
 }
+
 
 
 
