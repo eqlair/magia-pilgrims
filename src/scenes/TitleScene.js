@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { SaveManager } from '../systems/SaveManager';
+import { GlobalState } from '../systems/GlobalState';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
+
 
 
 /**
