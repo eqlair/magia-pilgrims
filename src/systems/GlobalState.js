@@ -749,6 +749,7 @@ export class GlobalState {
 
     /** 周回（ループ）用リセット処理 */
     resetForNewLoop() {
+
         // 全キャラクターのステータス・装備リセット（友好度は維持）
         for (const id in this.characters) {
             const char = this.characters[id];
@@ -850,6 +851,19 @@ export class GlobalState {
         this.activeTarots = [];
         this.drawnTarotHistory = [];
     }
+
+    /** ニューゲーム完全初期化処理 */
+    resetAll() {
+        this.resetForNewLoop();
+        this.stockExp = 0;
+        this.stockSp = 0;
+        this.food = 100;
+        this.currentMonth = 12;
+        this.currentDay = 1;
+        this.timePeriodIndex = 0;
+        this.savedFormation = { '001': { isFront: true, index: 0 } };
+    }
+
 
 
     /**
