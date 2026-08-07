@@ -53,8 +53,8 @@ export class BattleEngine {
         // 味方が増えると敵も増える（主人公1人基準で+1人につき+15体）
         const partySize = (this.config.party || ['001']).length;
         this.enemyCountPerWave += Math.max(0, partySize - 1) * 15;
-        const gs = GlobalState.getInstance();
-        this.totalWaves = Math.max(1, (this.config.waveCount || 1) + gs.extraWaves);
+        this.totalWaves = Math.max(1, (this.config.totalWaves || this.config.waveCount || 1) + gs.extraWaves);
+
         this.majoLevel = Math.max(0, this.config.majoLevel || 0);
         this.enemyLevel = Math.max(1, (this.config.enemyLevel || 1) + gs.extraEnemyLevel);
 
@@ -63,9 +63,13 @@ export class BattleEngine {
         this.isNightBattle = !!(this.config.isNightExploration || this.config.isNightBattle || this.config.isNight);
 
         // 編成中最高レベルキャラクターを計算
-        const party = this.config.party || ['001'];
+        let party = this.config.party;
+        if (!party || !Array.isArray(party) || party.length === 0) {
+            party = ['001'];
+        }
         let maxCharLevel = 1;
         for (const pId of party) {
+
             const ch = gs.characters[pId];
             if (ch && ch.level) {
                 maxCharLevel = Math.max(maxCharLevel, ch.level);
