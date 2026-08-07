@@ -43,6 +43,9 @@ export default class AdventureScene extends Phaser.Scene {
         this.load.image('btn_kyuu', 'files/MAP/Bkyuu.png'); // 休息ボタン
         this.load.image('btn_stat', 'files/MAP/Bstat.png'); // ステータスボタン
         this.load.image('bg_date',   'files/MAP/date.png');  // 日付枠画像
+        this.load.image('bg_food',   'files/MAP/food.png');  // 食料枠画像
+        this.load.image('bg_soul',   'files/MAP/soul.png');  // SP枠画像
+
 
 
         
@@ -698,14 +701,14 @@ export default class AdventureScene extends Phaser.Scene {
         this.events.on('resume', this._resumeHandler, this);
 
 
-        // --- UI: 日付枠画像（date.png）と日付テキスト ---
+        // --- UI (1) 上段: 日付枠画像（date.png）と日付テキスト（ヘクスマップすぐ下） ---
         const dateScale = 0.35;
-        this.dateBg = this.add.image(width / 2, height - 170, 'bg_date')
+        this.dateBg = this.add.image(width / 2, height - 180, 'bg_date')
             .setScale(dateScale)
             .setDepth(500)
             .setScrollFactor(0);
 
-        this.dateTimeText = this.add.text(width / 2, height - 170, `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`, {
+        this.dateTimeText = this.add.text(width / 2, height - 180, `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`, {
             fontFamily: 'sans-serif',
             fontSize: '22px',
             fontStyle: 'bold',
@@ -714,9 +717,9 @@ export default class AdventureScene extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
 
-        // --- UI: 探索ボタン（Btans.png） ---
-        const tansScale = 0.35;
-        this.exploreBtn = this.add.image(width / 2 - 125, height - 90, 'btn_tans')
+        // --- UI (2) 中段: 探索ボタン（Btans.png）＆ 休息ボタン（Bkyuu.png） ---
+        const tansScale = 0.33;
+        this.exploreBtn = this.add.image(width / 2 - 110, height - 105, 'btn_tans')
             .setScale(tansScale)
             .setInteractive({ useHandCursor: true })
             .setDepth(500);
@@ -729,9 +732,8 @@ export default class AdventureScene extends Phaser.Scene {
         this.exploreBtn.on('pointerup', () => this.exploreBtn.setScale(tansScale));
         this.exploreBtn.on('pointerout', () => this.exploreBtn.setScale(tansScale));
 
-        // --- UI: 休息ボタン（Bkyuu.png） ---
-        const kyuuScale = 0.35;
-        this.restBtn = this.add.image(width / 2 + 125, height - 90, 'btn_kyuu')
+        const kyuuScale = 0.33;
+        this.restBtn = this.add.image(width / 2 + 110, height - 105, 'btn_kyuu')
             .setScale(kyuuScale)
             .setInteractive({ useHandCursor: true })
             .setDepth(500);
@@ -749,8 +751,8 @@ export default class AdventureScene extends Phaser.Scene {
         this.restBtn.on('pointerup', () => this.restBtn.setScale(kyuuScale));
         this.restBtn.on('pointerout', () => this.restBtn.setScale(kyuuScale));
 
-        // --- UI: ステータスボタン（Bstat.png） ---
-        const statScale = 0.38;
+        // --- UI (3) 最下段中央: ステータスボタン（Bstat.png） ---
+        const statScale = 0.35;
         this.statusBtn = this.add.image(width / 2, height - 30, 'btn_stat')
             .setScale(statScale)
             .setInteractive({ useHandCursor: true })
@@ -767,14 +769,39 @@ export default class AdventureScene extends Phaser.Scene {
         this.statusBtn.on('pointerup', () => this.statusBtn.setScale(statScale));
         this.statusBtn.on('pointerout', () => this.statusBtn.setScale(statScale));
 
+        // --- UI (3) 最下段左: 食料パネル（food.png + 食料テキスト: 最大140） ---
+        const panelScale = 0.28;
+        this.foodBg = this.add.image(width / 2 - 185, height - 30, 'bg_food')
+            .setScale(panelScale)
+            .setDepth(500)
+            .setScrollFactor(0);
 
+        this.foodText = this.add.text(width / 2 - 185, height - 30, '', {
+            fontFamily: 'sans-serif',
+            fontSize: '18px',
+            fontStyle: 'bold',
+            color: '#fffaee',
+            stroke: '#221100',
+            strokeThickness: 3
+        }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
 
+        // --- UI (3) 最下段右: SPパネル（soul.png + SPテキスト: 最大9999） ---
+        this.spBg = this.add.image(width / 2 + 185, height - 30, 'bg_soul')
+            .setScale(panelScale)
+            .setDepth(500)
+            .setScrollFactor(0);
 
-        // UI: 食料表示（左下）
-        this.foodText = this.add.text(20, height - 20, '', {
-            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffdd88', backgroundColor: 'rgba(0,0,0,0.5)'
-        }).setOrigin(0, 1).setScrollFactor(0).setDepth(500).setPadding(8, 4);
+        this.spText = this.add.text(width / 2 + 185, height - 30, '', {
+            fontFamily: 'sans-serif',
+            fontSize: '18px',
+            fontStyle: 'bold',
+            color: '#ffea77',
+            stroke: '#221100',
+            strokeThickness: 3
+        }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
+
         this._updateFoodDisplay();
+
 
 
 
@@ -851,8 +878,12 @@ export default class AdventureScene extends Phaser.Scene {
             this.exploreBtn,
             this.restBtn,
             this.statusBtn,
+            this.foodBg,
             this.foodText,
+            this.spBg,
+            this.spText,
         ]);
+
 
 
         // ── デバッグメニュー ──────────────────────────────────────────────
@@ -1221,7 +1252,11 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.exploreBtn) this.exploreBtn.setVisible(isVisible);
         if (this.restBtn) this.restBtn.setVisible(isVisible);
         if (this.statusBtn) this.statusBtn.setVisible(isVisible);
+        if (this.foodBg) this.foodBg.setVisible(isVisible);
         if (this.foodText) this.foodText.setVisible(isVisible);
+        if (this.spBg) this.spBg.setVisible(isVisible);
+        if (this.spText) this.spText.setVisible(isVisible);
+
         if (this.tickerBg) this.tickerBg.setVisible(isVisible);
         if (this.tickerText) this.tickerText.setVisible(isVisible);
         if (this.dbgBtn) this.dbgBtn.setVisible(isVisible);
@@ -1702,11 +1737,24 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     _updateFoodDisplay() {
-        if (!this.foodText) return;
         const gs = GlobalState.getInstance();
-        this.foodText.setText(`残り食料：${Math.floor(gs.food)}`);
-        this.foodText.setColor(gs.food <= 0 ? '#ff4444' : '#ffdd88');
+        // 食料の上限制限(最大140)
+        gs.food = Math.min(140, Math.max(0, gs.food));
+        if (this.foodText) {
+            const currentFood = Math.floor(gs.food);
+            this.foodText.setText(`食料 ${currentFood}`);
+            this.foodText.setColor(currentFood <= 0 ? '#ff5555' : '#fffaee');
+        }
+
+        // SPの上限制限(最大9999)
+        gs.stockSp = Math.min(9999, Math.max(0, gs.stockSp || 0));
+        if (this.spText) {
+            const currentSp = Math.floor(gs.stockSp);
+            this.spText.setText(`SP ${currentSp}`);
+            this.spText.setColor('#ffea77');
+        }
     }
+
 
     _startExploration() {
         if (this._isExploring) return;
