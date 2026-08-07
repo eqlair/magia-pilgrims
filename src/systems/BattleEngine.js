@@ -418,6 +418,9 @@ export class BattleEngine {
             // タロット効果(戦闘時)
             const activeTarots = GlobalState.getInstance().activeTarots || [];
             let isFoolReversedActive = false;
+            let tarotCritRateBonus = 0;
+            let tarotCritMultBonus = 0;
+
             
             for (const tarot of activeTarots) {
                 if (tarot.id === 1 && !tarot.isUpright) {
@@ -506,8 +509,8 @@ export class BattleEngine {
                 }
                 // No.13 死神 (id: 14) 正位置: CH率+5%, CH倍率+50%
                 if (tarot.id === 14 && tarot.isUpright && attacker.owner === 'player') {
-                    attacker.critRateBonus = (attacker.critRateBonus || 0) + 0.05;
-                    attacker.critMultBonus = (attacker.critMultBonus || 0) + 0.50;
+                    tarotCritRateBonus += 0.05;
+                    tarotCritMultBonus += 0.50;
                 }
                 // No.14 節制 (id: 15)
                 if (tarot.id === 15 && attacker.owner === 'player') {
@@ -522,13 +525,14 @@ export class BattleEngine {
                 if (tarot.id === 21 && attacker.owner === 'player') {
                     const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
                     if (tarot.isUpright && totalAff >= 1) {
-                        attacker.critRateBonus = (attacker.critRateBonus || 0) + 0.05;
-                        attacker.critMultBonus = (attacker.critMultBonus || 0) + 0.50;
+                        tarotCritRateBonus += 0.05;
+                        tarotCritMultBonus += 0.50;
                     } else if (!tarot.isUpright && totalAff <= 0) {
-                        attacker.critRateBonus = (attacker.critRateBonus || 0) + 0.10;
-                        attacker.critMultBonus = (attacker.critMultBonus || 0) + 1.00;
+                        tarotCritRateBonus += 0.10;
+                        tarotCritMultBonus += 1.00;
                     }
                 }
+
             }
 
 
@@ -562,12 +566,13 @@ export class BattleEngine {
 
             
             // クリティカル判定
-            let critChance = 0.05 + (attacker.critRateBonus || 0);
+            let critChance = 0.05 + (attacker.critRateBonus || 0) + tarotCritRateBonus;
             if (Math.random() < critChance) {
-                let critMult = 2.0 + (attacker.critMultBonus || 0);
-                finalDamage *= critMult; // クリティカル倍率は基本2倍＋装備補正
+                let critMult = 2.0 + (attacker.critMultBonus || 0) + tarotCritMultBonus;
+                finalDamage *= critMult; // クリティカル倍率は基本2倍＋装備補正＋タロット補正
                 damageType = 'critical';
             }
+
             
             // アタッカーの特技補正（黄蘭のパッシブなど）
             if (attacker.atkMultiplier !== undefined) {
