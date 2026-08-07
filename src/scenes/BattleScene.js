@@ -470,8 +470,10 @@ export default class BattleScene extends Phaser.Scene {
 
             this.time.delayedCall(waitTime, () => {
                 console.log('[BattleScene] delayedCall fired, transitioning to ResultScene');
+                if (this.sound) this.sound.stopAll();
                 
                 // 戦闘終了時のHP/SPをGlobalStateに反映
+
                 const globalState = GlobalState.getInstance();
                 for (const p of this.engine.players) {
                     const charData = globalState.characters[p.charId];
@@ -503,7 +505,9 @@ export default class BattleScene extends Phaser.Scene {
 
             const targetScene = this.battleConfig.returnScene || 'AdventureScene';
             this.time.delayedCall(this.engine.waveState === 'gameover' ? 4000 : 1500, () => {
+                if (this.sound) this.sound.stopAll();
                 if (this.scene.isPaused(targetScene)) {
+
                     TransitionManager.fadeOut(this, () => {
                         this.scene.stop();
                         this.scene.resume(targetScene, stateObj);

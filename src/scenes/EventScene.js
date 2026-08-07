@@ -163,7 +163,11 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _finishScene() {
+        if (this.sound) {
+            this.sound.stopAll();
+        }
         const { width, height } = this.scale;
+
         const whiteScreen = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
             .setAlpha(0).setDepth(9999).setScrollFactor(0);
             
