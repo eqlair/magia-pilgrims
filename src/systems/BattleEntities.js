@@ -707,9 +707,11 @@ export class EnemyCharacter extends BattleEntity {
         
         const gs = GlobalState.getInstance();
         this.level = data.level || 1;
-        const levelHpMult = Math.pow(1.2, Math.max(0, this.level - 1));
+        // レベルごとにもとの50%を加算増加 (Lv1=100%, Lv2=150%, Lv3=200%...)
+        const levelHpMult = 1.0 + Math.max(0, this.level - 1) * 0.5;
         
         this.hp = (data.hp || 30) * levelHpMult * (gs.debugEnemyHpMultiplier || 1.0);
+
         this.maxHp = this.hp;
         // 敵は精神力なし
         this.sp = 0;
