@@ -46,6 +46,7 @@ export class BattleEngine {
     }
 
     setup(config, chrData) {
+        const gs = GlobalState.getInstance();
         this.config = config || {};
         this.rule = this.config.rule || 0;
         this.enemyAttribute = this.config.attribute || 'red';
@@ -53,10 +54,11 @@ export class BattleEngine {
         // 味方が増えると敵も増える（主人公1人基準で+1人につき+15体）
         const partySize = (this.config.party || ['001']).length;
         this.enemyCountPerWave += Math.max(0, partySize - 1) * 15;
-        this.totalWaves = Math.max(1, (this.config.totalWaves || this.config.waveCount || 1) + gs.extraWaves);
+        this.totalWaves = Math.max(1, (this.config.totalWaves || this.config.waveCount || 1) + (gs.extraWaves || 0));
 
-        this.majoLevel = Math.max(0, this.config.majoLevel || 0);
-        this.enemyLevel = Math.max(1, (this.config.enemyLevel || 1) + gs.extraEnemyLevel);
+        this.majoLevel = Math.max(0, this.config.majoLevel !== undefined ? this.config.majoLevel : 0);
+        this.enemyLevel = Math.max(1, (this.config.enemyLevel !== undefined ? this.config.enemyLevel : 1) + (gs.extraEnemyLevel || 0));
+
 
 
         // 夜間戦闘フラグ判定 (この戦闘セッション限りの一時的適用)
