@@ -97,6 +97,9 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _onEventComplete() {
+        if (this.engine) {
+            this.engine.cleanup();
+        }
         if (this.explorationDrops && this.explorationDrops.length > 0) {
             this._showExplorationDrops();
         } else {
@@ -109,7 +112,7 @@ export default class EventScene extends Phaser.Scene {
         const drops = this.explorationDrops;
 
         // 暗転背景
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75).setDepth(200);
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85).setDepth(10000);
 
         let startY = height / 2 - (drops.length * 20);
 
@@ -124,7 +127,7 @@ export default class EventScene extends Phaser.Scene {
 
             const txt = this.add.text(width / 2, startY + (i * 38), nameText, {
                 fontFamily: 'sans-serif', fontSize: '22px', color: color
-            }).setOrigin(0.5).setDepth(201).setAlpha(0);
+            }).setOrigin(0.5).setDepth(10001).setAlpha(0);
 
             this.tweens.add({
                 targets: txt,
@@ -140,11 +143,12 @@ export default class EventScene extends Phaser.Scene {
         this.time.delayedCall(totalDelay, () => {
             this.add.text(width / 2, startY + (drops.length * 38) + 15, `${drops.length}個のレリクスを見つけた！`, {
                 fontFamily: 'sans-serif', fontSize: '26px', color: '#ffcc00', fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(201);
+            }).setOrigin(0.5).setDepth(10001);
 
             const continueText = this.add.text(width / 2, height - 90, 'tap to continue', {
                 fontFamily: 'sans-serif', fontSize: '28px', color: '#aaaaaa'
-            }).setOrigin(0.5).setAlpha(0).setDepth(201);
+            }).setOrigin(0.5).setAlpha(0).setDepth(10001);
+
 
             this.tweens.add({
                 targets: continueText,

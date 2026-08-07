@@ -444,9 +444,10 @@ export default class AdventureScene extends Phaser.Scene {
             this._isAdvancingTime = false; // シーン復帰時に時間経過ロックを必ず解除
             if (data && data.fromRest) {
                 this.inRestMode = false;
+                this.applyTutorialRestrictions();
                 SaveManager.saveGame(this);
-
             }
+
 
             
         // 撤退または全滅からの復帰

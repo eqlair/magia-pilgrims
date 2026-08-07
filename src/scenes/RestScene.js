@@ -317,6 +317,10 @@ export default class RestScene extends Phaser.Scene {
                 }
             });
         });
+        // 休息終了時にチュートリアルモード(操作制限)を完全終了
+        this.globalState.isTutorialMode = false;
+        SaveManager.saveGame();
+
         if (this.bgm && this.bgm.isPlaying) {
             this.tweens.add({
                 targets: this.bgm,
@@ -333,6 +337,7 @@ export default class RestScene extends Phaser.Scene {
             this.scene.resume('AdventureScene', { fromRest: true });
         }
     }
+
 
     showDialog(message, onYes) {
         const { width, height } = this.scale;
