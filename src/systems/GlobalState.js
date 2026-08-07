@@ -80,7 +80,9 @@ export class GlobalState {
         this.tutorialMorningSeen = false;
         this.tutorialAfternoonSeen = false;
         this.tutorialNightSeen = false;
+        this.tutorialTarotSeen = false;
         this.tutorialStep = 0;
+
 
 
 
@@ -828,7 +830,9 @@ export class GlobalState {
         this.tutorialMorningSeen = false;
         this.tutorialAfternoonSeen = false;
         this.tutorialNightSeen = false;
+        this.tutorialTarotSeen = false;
         this.tutorialStep = 0;
+
 
         // 日時・リソースのリセット (12月1日 午前)
         this.currentMonth = 12;

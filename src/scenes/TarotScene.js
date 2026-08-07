@@ -183,7 +183,9 @@ export default class TarotScene extends Phaser.Scene {
                         this.promptText.setText('どれか一枚を選んでください');
                         this.tweens.add({ targets: this.promptText, alpha: 1, duration: 500 });
                         this.canSelect = true;
+                        this.checkTarotTutorial();
                     }
+
                 }
             });
 
@@ -371,4 +373,63 @@ export default class TarotScene extends Phaser.Scene {
         };
         return map[tarotId] || null;
     }
+
+    /** タロットカード引き時のチュートリアル解説オーバーレイ表示 */
+    checkTarotTutorial() {
+        const gs = GlobalState.getInstance();
+        if (gs.isTutorialMode && !gs.tutorialTarotSeen) {
+            gs.tutorialTarotSeen = true;
+            this.canSelect = false; // 一時的にカードタップをロック
+
+            const width = this.scale.width;
+            const height = this.scale.height;
+
+            // 暗い画面オーバーレイ
+            const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
+                .setDepth(2000).setInteractive();
+
+            // システムデモの解説表示枠
+            const boxWidth = Math.min(width * 0.88, 640);
+            const boxHeight = 160;
+            const boxBg = this.add.rectangle(width / 2, height / 2, boxWidth, boxHeight, 0x111122, 0.95)
+                .setStrokeStyle(2, 0x00ffcc).setDepth(2001);
+
+            const titleLabel = this.add.text(width / 2 - boxWidth / 2 + 20, height / 2 - boxHeight / 2 + 15, '💡 システム解説', {
+                fontFamily: FONT_MAIN, fontSize: '16px', color: '#00ffcc', fontStyle: 'bold'
+            }).setDepth(2002);
+
+            const messages = [
+                "(巡礼者たちは神秘的な力によって一日に一度、奇跡を起こすチャンスがあります。)",
+                "(心の示すままカードを手に取ってください。)"
+            ];
+            let msgIdx = 0;
+
+            const bodyText = this.add.text(width / 2, height / 2 + 10, messages[0], {
+                fontFamily: FONT_MAIN, fontSize: '18px', color: '#ffffff',
+                align: 'center', stroke: '#000000', strokeThickness: 3,
+                wordWrap: { width: boxWidth - 40, useAdvancedWrap: true },
+                lineSpacing: 6
+            }).setOrigin(0.5, 0.5).setDepth(2002);
+
+            const hintText = this.add.text(width / 2, height / 2 + boxHeight / 2 - 20, 'タップして次へ', {
+                fontFamily: FONT_MAIN, fontSize: '13px', color: '#aaaaaa'
+            }).setOrigin(0.5, 0.5).setDepth(2002);
+
+            overlay.on('pointerdown', () => {
+                msgIdx++;
+                if (msgIdx < messages.length) {
+                    bodyText.setText(messages[msgIdx]);
+                } else {
+                    // タップでチュートリアル解説枠が消え、タロット選択が可能になる
+                    overlay.destroy();
+                    boxBg.destroy();
+                    titleLabel.destroy();
+                    bodyText.destroy();
+                    hintText.destroy();
+                    this.canSelect = true;
+                }
+            });
+        }
+    }
 }
+
