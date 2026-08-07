@@ -41,12 +41,15 @@ export class BattleRenderer {
                 this.spriteMap.delete(entity);
                 
                 if (this.uiMap.has(entity)) {
-                    ui.hpBg.destroy(); ui.hpBar.destroy(); 
-                    if (ui.ultBg) ui.ultBg.destroy(); if (ui.ultBar) ui.ultBar.destroy();
-                    ui.spBg.destroy(); ui.spBar.destroy(); 
+                    const ui = this.uiMap.get(entity);
+                    if (ui) {
+                        if (ui.hpBg) ui.hpBg.destroy(); if (ui.hpBar) ui.hpBar.destroy(); 
+                        if (ui.ultBg) ui.ultBg.destroy(); if (ui.ultBar) ui.ultBar.destroy();
+                        if (ui.spBg) ui.spBg.destroy(); if (ui.spBar) ui.spBar.destroy(); 
+                    }
                     this.uiMap.delete(entity);
-
                 }
+
             }
         }
 

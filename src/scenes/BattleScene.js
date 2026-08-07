@@ -171,7 +171,21 @@ export default class BattleScene extends Phaser.Scene {
             bg.setOrigin(0.5, 0.5);
             bg.setScale(Math.max(width / bg.width, height / bg.height));
             bg.setDepth(-100);
+
+            // 通常戦闘BGMの再生保証
+            const bgmIdx = Math.floor(Math.random() * 4) + 1;
+            const bKey = `bgm_battle${bgmIdx}`;
+            if (this.cache.audio.exists(bKey)) {
+                let isAnyPlaying = false;
+                if (this.sound.sounds) {
+                    isAnyPlaying = this.sound.sounds.some(s => s && s.isPlaying);
+                }
+                if (!isAnyPlaying) {
+                    this.sound.play(bKey, { loop: true, volume: 0.5 });
+                }
+            }
         }
+
 
         // 3. 描画レンダラーの初期化
         this.renderer = new BattleRenderer(this, this.engine, this.projector);
