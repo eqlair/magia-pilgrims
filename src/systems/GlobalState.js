@@ -946,7 +946,12 @@ export class GlobalState {
             }
         }
 
-        if (visitedHexes.length === 0) return;
+        // 踏破済みヘクスが3箇所未満の場合は効果が立ち消え（何も行わず終了）
+        if (visitedHexes.length < count) {
+            console.log(`[GlobalState] Not enough visited cells (${visitedHexes.length}/${count}), Hanged Man tarot effect fizzes out.`);
+            return;
+        }
+
 
         const shuffled = visitedHexes.sort(() => 0.5 - Math.random());
         const targets = shuffled.slice(0, count);
