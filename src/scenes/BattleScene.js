@@ -848,16 +848,25 @@ export default class BattleScene extends Phaser.Scene {
         const gs = GlobalState.getInstance();
         if (gs.hideBattleTips || this.isExiting) return;
 
-        // tipsB.json のみを使用
-        const tipsData = this.cache.json.get('tipsB');
-        if (!tipsData || !tipsData.tips || tipsData.tips.length === 0) return;
+        // tipsB.json または tips.json のデータを使用
+        let list = null;
+        const rawJson = this.cache.json.get('tipsB') || this.cache.json.get('tips');
+        if (rawJson) {
+            if (Array.isArray(rawJson)) {
+                list = rawJson;
+            } else if (Array.isArray(rawJson.tips)) {
+                list = rawJson.tips;
+            }
+        }
 
-        const list = tipsData.tips;
+        if (!list || list.length === 0) return;
+
         if (this.currentTipIndex === undefined) {
             this.currentTipIndex = 0;
         }
         const rawText = list[this.currentTipIndex % list.length];
         this.currentTipIndex = (this.currentTipIndex + 1) % list.length;
+
 
 
         // 全角スペースは改行として扱う。なければ25文字程度で折り返し

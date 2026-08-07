@@ -370,28 +370,37 @@ export class BattleEngine {
     }
 
     spawnTutorialWave() {
+        const isWave1 = (this.currentWave <= 1);
+        this.enemyCountPerWave = isWave1 ? 12 : 11;
+
         const spawnedEnemies = [];
-        let targets = [];
+        const targets = isWave1 ? [
+            { id: 1, count: 9 },
+            { id: 4, count: 3 }
+        ] : [
+            { id: 6, count: 8 },
+            { id: 8, count: 3 }
+        ];
 
-        if (this.currentWave <= 1) {
-            // ウェーブ 1: スウォーム(id:1) 9匹 + マノウォー(id:4) 3匹
-            targets = [
-                { id: 1, count: 9 },
-                { id: 4, count: 3 }
-            ];
+        const remaining = this.enemyCountPerWave - this.spawnedInWave;
+        if (remaining <= 0) return spawnedEnemies;
 
-        } else {
-            // ウェーブ 2: コボルド(id:6) 8匹 + オーガ(id:8) 3匹
-            targets = [
-                { id: 6, count: 8 },
-                { id: 8, count: 3 }
-            ];
-        }
+        // 1回のスポーンで最大3〜4匹ずつ順番に湧かせる
+        const batchSize = Math.min(remaining, 4);
+        let spawnedSoFar = 0;
 
         for (const item of targets) {
             const typeDef = ENEMY_TYPES.find(t => t.id === item.id);
             if (!typeDef) continue;
+
             for (let i = 0; i < item.count; i++) {
+                if (spawnedEnemies.length >= batchSize) break;
+
+                if (spawnedSoFar < this.spawnedInWave) {
+                    spawnedSoFar++;
+                    continue;
+                }
+
                 const isDrop = (i % 3 === 0);
                 const x = (Math.random() - 0.5) * 9.0;
                 const z = isDrop ? (11.0 + Math.random() * 2.0) : (20.0 + Math.random() * 3.0);
@@ -419,11 +428,15 @@ export class BattleEngine {
                 enemy.spawnDropTimer = isDrop ? 1.0 : 0;
                 this.enemies.push(enemy);
                 spawnedEnemies.push(enemy);
+                spawnedSoFar++;
             }
+
+            if (spawnedEnemies.length >= batchSize) break;
         }
 
         return spawnedEnemies;
     }
+
 
     spawnEnemy(x, z, typeIndex = null) {
         const group = this.spawnEnemyGroup(typeIndex);
