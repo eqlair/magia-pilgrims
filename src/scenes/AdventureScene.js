@@ -42,6 +42,8 @@ export default class AdventureScene extends Phaser.Scene {
         this.load.image('btn_tans', 'files/MAP/Btans.png'); // 探索ボタン
         this.load.image('btn_kyuu', 'files/MAP/Bkyuu.png'); // 休息ボタン
         this.load.image('btn_stat', 'files/MAP/Bstat.png'); // ステータスボタン
+        this.load.image('bg_date',   'files/MAP/date.png');  // 日付枠画像
+
 
         
         // ミニキャラ（全キャラ分, 600x300 = 4列×2行 = 150x150/フレーム）
@@ -696,21 +698,30 @@ export default class AdventureScene extends Phaser.Scene {
         this.events.on('resume', this._resumeHandler, this);
 
 
-        // --- UI: 日付と時間帯表示（ステータス・探索などのさらに上） ---
-        this.dateTimeText = this.add.text(width / 2, height - 150, `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`, {
-            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.5)', padding: { x: 10, y: 5 }
-        }).setOrigin(0.5, 1).setDepth(500).setScrollFactor(0);
+        // --- UI: 日付枠画像（date.png）と日付テキスト ---
+        const dateScale = 0.35;
+        this.dateBg = this.add.image(width / 2, height - 170, 'bg_date')
+            .setScale(dateScale)
+            .setDepth(500)
+            .setScrollFactor(0);
 
-
+        this.dateTimeText = this.add.text(width / 2, height - 170, `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`, {
+            fontFamily: 'sans-serif',
+            fontSize: '22px',
+            fontStyle: 'bold',
+            color: '#fffaee',
+            stroke: '#221100',
+            strokeThickness: 4
+        }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
 
         // --- UI: 探索ボタン（Btans.png） ---
-        const tansScale = 0.16;
-        this.exploreBtn = this.add.image(width / 2 - 110, height - 75, 'btn_tans')
+        const tansScale = 0.35;
+        this.exploreBtn = this.add.image(width / 2 - 125, height - 90, 'btn_tans')
             .setScale(tansScale)
             .setInteractive({ useHandCursor: true })
             .setDepth(500);
         this.exploreBtn.on('pointerdown', () => {
-            this.exploreBtn.setScale(tansScale * 0.9);
+            this.exploreBtn.setScale(tansScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) this._startExploration();
@@ -719,13 +730,13 @@ export default class AdventureScene extends Phaser.Scene {
         this.exploreBtn.on('pointerout', () => this.exploreBtn.setScale(tansScale));
 
         // --- UI: 休息ボタン（Bkyuu.png） ---
-        const kyuuScale = 0.16;
-        this.restBtn = this.add.image(width / 2 + 110, height - 75, 'btn_kyuu')
+        const kyuuScale = 0.35;
+        this.restBtn = this.add.image(width / 2 + 125, height - 90, 'btn_kyuu')
             .setScale(kyuuScale)
             .setInteractive({ useHandCursor: true })
             .setDepth(500);
         this.restBtn.on('pointerdown', () => {
-            this.restBtn.setScale(kyuuScale * 0.9);
+            this.restBtn.setScale(kyuuScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) {
@@ -739,13 +750,13 @@ export default class AdventureScene extends Phaser.Scene {
         this.restBtn.on('pointerout', () => this.restBtn.setScale(kyuuScale));
 
         // --- UI: ステータスボタン（Bstat.png） ---
-        const statScale = 0.18;
-        this.statusBtn = this.add.image(width / 2, height - 25, 'btn_stat')
+        const statScale = 0.38;
+        this.statusBtn = this.add.image(width / 2, height - 30, 'btn_stat')
             .setScale(statScale)
             .setInteractive({ useHandCursor: true })
             .setDepth(500);
         this.statusBtn.on('pointerdown', () => {
-            this.statusBtn.setScale(statScale * 0.9);
+            this.statusBtn.setScale(statScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.check1221NightForcedBreakthrough()) return;
             this.scene.pause();
@@ -755,6 +766,7 @@ export default class AdventureScene extends Phaser.Scene {
         });
         this.statusBtn.on('pointerup', () => this.statusBtn.setScale(statScale));
         this.statusBtn.on('pointerout', () => this.statusBtn.setScale(statScale));
+
 
 
 
@@ -834,12 +846,14 @@ export default class AdventureScene extends Phaser.Scene {
 
         this.uiContainer.add([
             wideBtn,
+            this.dateBg,
             this.dateTimeText,
             this.exploreBtn,
             this.restBtn,
             this.statusBtn,
             this.foodText,
         ]);
+
 
         // ── デバッグメニュー ──────────────────────────────────────────────
         const dbgBtn = this.add.text(20, height / 2, '🛠️DEBUG', {
@@ -1201,7 +1215,9 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     _setUIVisibilityForWideMap(isVisible) {
+        if (this.dateBg) this.dateBg.setVisible(isVisible);
         if (this.dateTimeText) this.dateTimeText.setVisible(isVisible);
+
         if (this.exploreBtn) this.exploreBtn.setVisible(isVisible);
         if (this.restBtn) this.restBtn.setVisible(isVisible);
         if (this.statusBtn) this.statusBtn.setVisible(isVisible);
