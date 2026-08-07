@@ -2611,15 +2611,34 @@ export default class AdventureScene extends Phaser.Scene {
 
             let eventData = this.cache.json.get('tutorial_morning');
             if (!eventData) {
+                const talkSion = this.cache.json.get('talk_001');
+                const morningLines = (talkSion && talkSion['チュートリアル(午前)']) ? talkSion['チュートリアル(午前)'] : [
+                    "ここは…東京駅だったはず…",
+                    "東京に遊びに来てたんだ、誰かと…",
+                    "他に何も思い出せない、なんなんだ…",
+                    "今日は…12月1日、まだ午前中かな",
+                    "誰か他に人はいないのかな……。会えても、うまく話せるかどうか",
+                    "…何か探しに行こうか…",
+                    "(どこかに移動してみてください。)"
+                ];
+
                 eventData = [
                     { cmd: "image", key: "ev001" },
-                    { cmd: "portrait", charId: "001" },
-                    { cmd: "text", name: "紫苑", body: "ふぅ……なんとか襲ってきた敵と魔女を退治できたみたい。でも、東京の街全体が異様な森に侵食されているわ……。" },
-                    { cmd: "text", name: "紫苑", body: "まずは周囲の状況を確認しながら、先へ進んでみよう。マップ上の隣接するヘクスをタップすれば、移動（探索）することができるわ。" },
-                    { cmd: "clearText" },
-                    { cmd: "end" }
+                    { cmd: "portrait", charId: "001" }
                 ];
+                for (let i = 0; i < morningLines.length; i++) {
+                    const text = morningLines[i];
+                    const isSystem = text.startsWith('(') && text.endsWith(')');
+                    eventData.push({
+                        cmd: "text",
+                        name: isSystem ? "" : "紫苑",
+                        body: text
+                    });
+                }
+                eventData.push({ cmd: "clearText" });
+                eventData.push({ cmd: "end" });
             }
+
 
             // イベント再生
             this.eventEngine = new EventEngine(this, eventData, () => {
