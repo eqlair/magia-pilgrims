@@ -706,8 +706,18 @@ export class BattleEngine {
 
         if (finalDamage > 0) {
             defender.hp -= finalDamage;
+
+            // チュートリアル戦闘時: 紫苑(プレイヤー)のHPは1/8以下にならない保護
+            if (this.config.isTutorial && defender.owner === 'player') {
+                const minHp = Math.max(1, Math.floor(defender.maxHp / 8));
+                if (defender.hp < minHp) {
+                    defender.hp = minHp;
+                }
+            }
+
             defender.lastDamagedTime = this.time;
             if (defender.triggerDamageTilt) defender.triggerDamageTilt();
+
             
             // プレイヤーが与えたダメージをDPS用に蓄積
             if (attacker && attacker.owner === 'player' && defender.owner === 'enemy') {
