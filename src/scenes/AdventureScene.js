@@ -2490,7 +2490,9 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1214Event() {
         const gs = GlobalState.getInstance();
-        if (this.currentDay === 15 && this.timePeriodIndex === 0 && !gs.event1214Played) {
+        // 12月14日の夜(timePeriodIndex === 2)またはそれ以降で未再生の場合に発動
+        if (this.currentDay >= 14 && !gs.event1214Played) {
+            if (this.currentDay === 14 && this.timePeriodIndex < 2) return false; // 12/14の午前・午後は夜まで待つ
             gs.event1214Played = true;
 
             const newGem = RelicGenerator.generateGem(1);
@@ -2511,6 +2513,7 @@ export default class AdventureScene extends Phaser.Scene {
         }
         return false;
     }
+
 
     check1221Event() {
         const gs = GlobalState.getInstance();
