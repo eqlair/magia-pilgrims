@@ -267,8 +267,16 @@ export default class AdventureScene extends Phaser.Scene {
             }).setOrigin(0.5, 1).setVisible(false);
             h.container.add(h.enemyText);
 
+            // 有利・不利表示用テキスト (敵LVの下に配置)
+            h.affinityText = this.add.text(0, 15, '', {
+                fontFamily: 'sans-serif', fontSize: '12px', color: '#ffffff',
+                stroke: '#000000', strokeThickness: 3, fontStyle: 'bold'
+            }).setOrigin(0.5, 0).setVisible(false);
+            h.container.add(h.affinityText);
+
             this.mapContainer.add(h.container);
         }
+
 
 
 
@@ -1205,6 +1213,8 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
         // 表示の更新
+        const partyAffinity = this.calcPartyElementAdvantage();
+
         for (const h of this.hexes) {
             const cell = h.cellData;
             
@@ -1267,6 +1277,7 @@ export default class AdventureScene extends Phaser.Scene {
                 if (h.text && h.text.visible) h.text.setVisible(false);
                 if (h.witchText && h.witchText.visible) h.witchText.setVisible(false);
                 if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
+                if (h.affinityText && h.affinityText.visible) h.affinityText.setVisible(false);
                 if (cell.witchLevel > 0 && isVisibleToPlayer) {
                     if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
                 } else {
@@ -1294,11 +1305,81 @@ export default class AdventureScene extends Phaser.Scene {
                 } else {
                     if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
                 }
+
+                // 進行可能な属性ヘクスに対する「有利」「不利」表示
+                if (h.affinityText) {
+                    const partyAffinity = this.calcPartyElementAdvantage();
+                    const enemyAttr = cell.enemyAttr;
+                    if (cell.isAdjacent && (cell.enemyLevel > 0 || cell.witchLevel > 0) && enemyAttr) {
+                        if (partyAffinity.strongAttrs.includes(enemyAttr)) {
+                            h.affinityText.setText('有利').setColor('#55ff55').setVisible(true);
+                        } else if (partyAffinity.weakAttrs.includes(enemyAttr)) {
+                            h.affinityText.setText('不利').setColor('#ff4444').setVisible(true);
+                        } else {
+                            h.affinityText.setVisible(false);
+                        }
+                    } else {
+                        h.affinityText.setVisible(false);
+                    }
+                }
             }
 
         }
 
     }
+
+    /** 現在の編成メンバーの属性防御力を平均し、最高・最低の有利・不利属性番号を割り出す */
+    calcPartyElementAdvantage() {
+        const gs = GlobalState.getInstance();
+        const party = this.party || ['001'];
+        if (party.length === 0) return { strongAttrs: [], weakAttrs: [] };
+
+        const charElementBase = {
+            '001': { strong: 'green', weak: 'red' },
+            '002': { strong: 'red', weak: 'yellow' },
+            '003': { strong: 'purple', weak: 'blue' },
+            '004': { strong: 'blue', weak: 'green' },
+            '005': { strong: 'yellow', weak: 'purple' }
+        };
+
+        const attrToNum = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
+        const elements = ['red', 'purple', 'green', 'yellow', 'blue'];
+
+        // 各属性ごとのパーティ平均被ダメージ％を算出 (数値が小さいほど高防御＝有利、大きいほど低防御＝不利)
+        const avgDef = {};
+        elements.forEach(elem => {
+            let sum = 0;
+            party.forEach(charId => {
+                const stats = gs.calcStats(charId, party);
+                const elemMods = (stats && stats.elemMods) ? stats.elemMods : {};
+                const rel = charElementBase[charId];
+                let base = 100;
+                if (rel && rel.strong === elem) base = 75;
+                if (rel && rel.weak === elem) base = 125;
+                const mod = elemMods[elem] || 0;
+                const defVal = Math.max(1, base - mod);
+                sum += defVal;
+            });
+            avgDef[elem] = sum / party.length;
+        });
+
+        let minVal = Infinity;
+        let maxVal = -Infinity;
+        elements.forEach(elem => {
+            if (avgDef[elem] < minVal) minVal = avgDef[elem];
+            if (avgDef[elem] > maxVal) maxVal = avgDef[elem];
+        });
+
+        const strongAttrs = [];
+        const weakAttrs = [];
+        elements.forEach(elem => {
+            if (avgDef[elem] === minVal) strongAttrs.push(attrToNum[elem]);
+            if (avgDef[elem] === maxVal && minVal !== maxVal) weakAttrs.push(attrToNum[elem]);
+        });
+
+        return { strongAttrs, weakAttrs };
+    }
+
 
     _setUIVisibilityForWideMap(isVisible) {
         if (this.dateBg) this.dateBg.setVisible(isVisible);
