@@ -172,18 +172,29 @@ export default class BattleScene extends Phaser.Scene {
             bg.setScale(Math.max(width / bg.width, height / bg.height));
             bg.setDepth(-100);
 
-            // 通常戦闘BGMの再生（チュートリアル指定等あれば優先再生）
+            // 通常戦闘BGMの再生（すでに戦闘BGMが再生中であればスキップしてシームレス引き継ぎ！）
             const bKey = this.battleConfig.bgmKey || `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
-            if (this.cache.audio.exists(bKey)) {
-                let isAnyPlaying = false;
-                if (this.sound.sounds) {
-                    isAnyPlaying = this.sound.sounds.some(s => s && s.isPlaying);
+            let isBattleBgmPlaying = false;
+            if (this.sound && this.sound.sounds) {
+                // すでに戦闘BGM(bgm_battle1~4)が再生中かチェック
+                isBattleBgmPlaying = this.sound.sounds.some(s => s && s.isPlaying && s.key && s.key.startsWith('bgm_battle'));
+            }
+
+            if (!isBattleBgmPlaying) {
+                // 戦闘BGM以外の音（マップBGMなど）が鳴っていれば停止
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying && !(s.key && s.key.startsWith('bgm_battle'))) {
+                            try { s.stop(); } catch (e) {}
+                        }
+                    });
                 }
-                if (!isAnyPlaying) {
+                if (this.cache.audio.exists(bKey)) {
                     this.sound.play(bKey, { loop: true, volume: 0.5 });
                 }
             }
         }
+
 
 
 

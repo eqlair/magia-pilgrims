@@ -169,9 +169,15 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _finishScene() {
-        if (this.sound) {
-            this.sound.stopAll();
+        if (this.sound && this.sound.sounds) {
+            // 戦闘BGM(bgm_battle1~4)以外のBGM/サウンドのみ停止し、戦闘BGMは鳴らしたまま引き継ぐ
+            this.sound.sounds.forEach(s => {
+                if (s && s.isPlaying && !(s.key && s.key.startsWith('bgm_battle'))) {
+                    try { s.stop(); } catch (e) {}
+                }
+            });
         }
+
         const { width, height } = this.scale;
 
         const whiteScreen = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
