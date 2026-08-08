@@ -450,7 +450,7 @@ export class BattleEngine {
                     debuffResist: typeDef.debuffResist,
                     textureKey: typeDef.textureKey,
                     frame: typeDef.frame,
-                    attribute: 'yellow',
+                    attribute: this.config.isTutorial ? 'green' : 'yellow',
                     level: 2
                 };
 
@@ -485,9 +485,10 @@ export class BattleEngine {
             name: '魔女',
             level: this.majoLevel,
             textureKey: textureKey,
-            attribute: this.config.isTutorial ? 'yellow' : (this.enemyAttribute || 'yellow'),
+            attribute: this.config.isTutorial ? 'green' : (this.enemyAttribute || 'green'),
             movePattern: this.config.isTutorial ? 1 : undefined // チュートリアルは通常タイプ(1)
         };
+
         const boss = new BossCharacter(x, z, bossData);
         if (this.isNightBattle) {
             boss.maxHp *= 2.0;

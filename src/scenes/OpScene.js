@@ -95,7 +95,8 @@ export default class OpScene extends Phaser.Scene {
                     totalWaves: 2,
                     waveCount: 2,
                     majoLevel: 1,
-                    attribute: 'yellow',
+                    attribute: 'green',
+
                     bgmKey: 'bgm_battle4',
                     bossBgmKey: 'bgm_boss3',
                     isTutorial: true,

@@ -171,10 +171,15 @@ export default class AdventureScene extends Phaser.Scene {
                 if (cellData.initialEnemyLevel === undefined) {
                     cellData.initialEnemyLevel = cellData.enemyLevel || 0;
                 }
-                // 敵の属性(1~5)をランダムに初期設定
+                // 敵の属性(1~5)をランダムに初期設定 (東京などの初期ヘクスは紫苑の得意属性である 3:緑 に固定)
                 if (cellData.enemyAttr === undefined) {
-                    cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
+                    if (cellData.name === '東京' || cellData.isTutorial) {
+                        cellData.enemyAttr = 3; // 3 = green (緑 / 調和)
+                    } else {
+                        cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
+                    }
                 }
+
 
                 
                 const xOffset = (row % 2 === 1) ? (this.hexWidth / 2) : 0;
