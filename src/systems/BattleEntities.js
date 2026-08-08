@@ -339,8 +339,8 @@ export class PlayerCharacter extends BattleEntity {
                     }
                 }
             } else if (this.charId === '003') {
-                // 紅華 (バリア)
-                const barrierVal = 0.3 * this.maxHp;
+                // 紅華 (バリア: 12秒に1回、耐久量 10 + wlv * 3、持続 8.0秒)
+                const barrierVal = 10 + (this.wlv * 3);
                 let targets = [];
                 if (this.isFront) {
                     targets.push(this);
@@ -351,17 +351,18 @@ export class PlayerCharacter extends BattleEntity {
                     if (frontAllies.length > 0) {
                         targets.push(...frontAllies);
                     } else {
-                        const backAllies = players.filter(p => !p.isFront && !p.isDead).slice(0, 3);
+                        const backAllies = players.filter(p => !p.isFront && !p.isDead).slice(0, 2);
                         targets.push(...backAllies);
                     }
                 }
                 for (const t of targets) {
                     t.barrierHp = barrierVal;
-                    t.barrierTimer = 10.0;
+                    t.barrierTimer = 8.0;
                     floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "BARRIER", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
                     effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
                 }
             }
+
         }
     }
 
