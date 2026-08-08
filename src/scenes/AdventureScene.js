@@ -1313,11 +1313,17 @@ export default class AdventureScene extends Phaser.Scene {
             } else {
                 if (h.text && h.text.visible !== showText) h.text.setVisible(showText);
 
+                const attrColors = {
+                    1: '#ff4444', 2: '#aa44ff', 3: '#44ff44', 4: '#ffff44', 5: '#44aaff'
+                };
+                const textColor = attrColors[cell.enemyAttr] || '#ffaa44';
+
                 // 魔女の表示更新（視界内または踏破済みのみ表示）
                 if (cell.witchLevel > 0 && isVisibleToPlayer) {
                     if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
                     const wText = `Witch LV.${cell.witchLevel}`;
                     if (h.witchText.text !== wText) h.witchText.setText(wText);
+                    if (h.witchText.color !== textColor) h.witchText.setColor(textColor);
                     if (!h.witchText.visible) h.witchText.setVisible(true); 
                 } else {
                     if (h.witchSprite && h.witchSprite.visible) h.witchSprite.setVisible(false);
@@ -1328,10 +1334,12 @@ export default class AdventureScene extends Phaser.Scene {
                 if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && isVisibleToPlayer) {
                     const eText = `Wasp LV.${cell.enemyLevel}`;
                     if (h.enemyText.text !== eText) h.enemyText.setText(eText);
+                    if (h.enemyText.color !== textColor) h.enemyText.setColor(textColor);
                     if (!h.enemyText.visible) h.enemyText.setVisible(true);
                 } else {
                     if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
                 }
+
 
                 // 進行可能な属性ヘクスに対する「有利」「不利」表示
                 if (h.affinityText) {
