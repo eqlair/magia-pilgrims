@@ -229,6 +229,37 @@ export class BattleEngine {
                         this.earnedSp = (this.earnedSp || 0) + maxMissingSp;
                     }
                 }
+                if (tarot.id === 16 && tarot.isUpright && this.players.length > 0) {
+                    // No.15 悪魔 (id: 16) 正位置: ランダム1人 攻撃力+50% & 毎秒1HP減少呪い
+                    const target = this.players[Math.floor(Math.random() * this.players.length)];
+                    target.devilBuff = true;
+                    target.devilCursed = true;
+                    target.devilCursedTimer = 0;
+                }
+                // No.6 恋人 (id: 7)
+                if (tarot.id === 7 && this.players.length > 0) {
+                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
+                    if (tarot.isUpright && totalAff >= 1) {
+                        this.players.forEach(p => { p.atkMultiplier = (p.atkMultiplier || 1.0) * 1.20; });
+                    } else if (!tarot.isUpright && totalAff <= 0) {
+                        this.players.forEach(p => { p.atkMultiplier = (p.atkMultiplier || 1.0) * 2.00; });
+                    }
+                }
+                // No.20 審判 (id: 21)
+                if (tarot.id === 21 && this.players.length > 0) {
+                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
+                    if (tarot.isUpright && totalAff >= 1) {
+                        this.players.forEach(p => {
+                            p.tarotCritRateBonus = (p.tarotCritRateBonus || 0) + 0.05;
+                            p.tarotCritMultBonus = (p.tarotCritMultBonus || 0) + 0.50;
+                        });
+                    } else if (!tarot.isUpright && totalAff <= 0) {
+                        this.players.forEach(p => {
+                            p.tarotCritRateBonus = (p.tarotCritRateBonus || 0) + 0.10;
+                            p.tarotCritMultBonus = (p.tarotCritMultBonus || 0) + 1.00;
+                        });
+                    }
+                }
                 if (tarot.id === 13 && tarot.isUpright && this.players.length > 0) {
                     // No.12 吊るされた男 (id: 13) 正位置: メンバーの誰か生命力10%を失い、他の誰か1人の攻撃力+20%
                     const targetDmg = this.players[Math.floor(Math.random() * this.players.length)];
@@ -531,19 +562,11 @@ export class BattleEngine {
                 if (tarot.id === 6 && !tarot.isUpright && attacker.owner === 'player') {
                     if (!attacker.isFront) finalDamage *= 1.30; // 後衛+30%
                 }
-                // No.6 恋人 (id: 7)
-                if (tarot.id === 7 && attacker.owner === 'player') {
-                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
-                    if (tarot.isUpright && totalAff >= 1) {
-                        finalDamage *= 1.20; // 親愛度1以上で+20%
-                    } else if (!tarot.isUpright && totalAff <= 0) {
-                        finalDamage *= 2.00; // 親愛度0以下で+100%
-                    }
-                }
                 // No.7 戦車 (id: 8)
                 if (tarot.id === 8 && !tarot.isUpright && attacker.owner === 'player') {
                     finalDamage *= 1.20; // 攻撃力+20%
                 }
+
                 // No.2 女教皇 逆位置 (攻撃力+10%)
                 if (tarot.id === 3 && !tarot.isUpright && attacker.owner === 'player') {
                     finalDamage *= 1.10;
