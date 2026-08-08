@@ -767,13 +767,21 @@ export class BattleRenderer {
                 obj.setDepth(1500);
             } else if (eff.type === 'grenade_explosion') {
                 obj = this.scene.add.sprite(0, 0, 'grenade_explosion');
-                obj.setFlip(Math.random() < 0.5, Math.random() < 0.5); // ランダムに左右・上下反転
+                const fx = Math.random() < 0.5;
+                const fy = Math.random() < 0.5;
+                obj.setFlip(fx, fy);
+                obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
                 obj.setDepth(1800);
             } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
                 obj = this.scene.add.sprite(0, 0, 'bomb');
-                obj.setFlip(Math.random() < 0.5, Math.random() < 0.5); // ランダムに左右・上下反転を織り交ぜて見た目に違いを出す
+                // 毎回「通常」「左右反転」「上下反転」「上下左右反転」の4パターン全種＋90度刻みの角度バリエーションをランダム付与
+                const fx = Math.random() < 0.5;
+                const fy = Math.random() < 0.5;
+                obj.setFlip(fx, fy);
+                obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
                 obj.setDepth(1800);
             } else {
+
 
                 obj = this.scene.add.graphics();
             }

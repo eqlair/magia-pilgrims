@@ -1471,24 +1471,25 @@ export class BattleEngine {
                 
                 if (e.isBoss) {
                     // 魔女の死亡演出進行（3段階）
-                    if (e.deathPhase === 0 && e.deathTimer >= 1.0) {
+                    if (e.deathPhase === 0 && e.deathTimer >= 0.5) {
                         e.deathPhase = 1;
-                        // 1と並行してランダムな位置に小爆発を3秒間発生（BattleRenderer側で毎フレームランダム円を描画するか、エフェクトを生成）
-                        for (let i = 0; i < 24; i++) { // 3秒間分一気に仕込む（手抜き）
+                        // 1と並行してランダムな位置に小爆発を順次発生（0.5秒早めて開始）
+                        for (let i = 0; i < 24; i++) {
                             setTimeout(() => {
                                 if (e.isDead) return;
-                                 const rx = e.x + (Math.random() - 0.5) * e.size * 1.32;
+                                const rx = e.x + (Math.random() - 0.5) * e.size * 1.32;
                                 const rz = e.z + (Math.random() - 0.5) * e.size * 1.32;
                                 this.effects.push(new EffectEntity(rx, rz, { type: 'majo_death_2', radius: e.size * 1.0, lifeTime: 0.5 }));
 
-                            }, 1000 + (3000 / 24) * i);
+                            }, 500 + (3000 / 24) * i);
                         }
-                    } else if (e.deathPhase === 1 && e.deathTimer >= 4.0) { // +3秒後
+                    } else if (e.deathPhase === 1 && e.deathTimer >= 3.5) {
                         e.deathPhase = 2;
                         this.effects.push(new EffectEntity(e.x, e.z, { type: 'majo_death_3', radius: 20.0, lifeTime: 1.0 }));
-                    } else if (e.deathPhase === 2 && e.deathTimer >= 5.0) { // さらに+1秒後
+                    } else if (e.deathPhase === 2 && e.deathTimer >= 4.5) {
                         e.isDead = true;
                     }
+
                 } else {
                     // 通常の敵は1秒かけて消滅する
                     if (e.deathTimer >= 1.0) {
