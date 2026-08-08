@@ -976,125 +976,9 @@ export default class AdventureScene extends Phaser.Scene {
 
 
 
-        // ── デバッグメニュー ──────────────────────────────────────────────
-        const dbgBtn = this.add.text(20, height / 2, '🛠️DEBUG', {
-            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffff00',
-            backgroundColor: '#333333', padding: { x: 8, y: 5 }
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-        this.dbgBtn = dbgBtn;
-
-        // デバッグパネル（コンテナ）
-        const dbgPanel = this.add.container(0, 0).setScrollFactor(0).setDepth(2100).setVisible(false);
-        this.dbgPanel = dbgPanel;
-
-
-        const panelBg = this.add.rectangle(130, height / 2, 240, 300, 0x111122, 0.95)
-            .setOrigin(0, 0.5).setStrokeStyle(1, 0x8888ff);
-        dbgPanel.add(panelBg);
-
-        // タイトル
-        const panelTitle = this.add.text(250, height / 2 - 135, 'デバッグメニュー', {
-            fontFamily: 'sans-serif', fontSize: '14px', color: '#aaaaff', fontStyle: 'bold'
-        }).setOrigin(0.5, 0);
-        dbgPanel.add(panelTitle);
-
-        // ── 日付セクション ──
-        const dayLabel = this.add.text(145, height / 2 - 108, '日付:', {
-            fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff'
-        }).setOrigin(0, 0);
-        dbgPanel.add(dayLabel);
-
-        const dayMinus = this.add.text(200, height / 2 - 108, '◀', {
-            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffdd88', backgroundColor: '#444444', padding: { x: 5, y: 2 }
-        }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-        dbgPanel.add(dayMinus);
-
-        const dayDisp = this.add.text(228, height / 2 - 108, `${this.currentDay}日`, {
-            fontFamily: 'sans-serif', fontSize: '14px', color: '#ffdd88'
-        }).setOrigin(0, 0);
-        dbgPanel.add(dayDisp);
-
-        const dayPlus = this.add.text(265, height / 2 - 108, '▶', {
-            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffdd88', backgroundColor: '#444444', padding: { x: 5, y: 2 }
-        }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-        dbgPanel.add(dayPlus);
-
-        dayMinus.on('pointerdown', () => {
-            this.currentDay = this.currentDay <= 1 ? 31 : this.currentDay - 1;
-            dayDisp.setText(`${this.currentDay}日`);
-            if (this.dateTimeText) this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-        });
-        dayPlus.on('pointerdown', () => {
-            this.currentDay = this.currentDay >= 31 ? 1 : this.currentDay + 1;
-            dayDisp.setText(`${this.currentDay}日`);
-            if (this.dateTimeText) this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-        });
-
-        // ── 時間帯セクション ──
-        const timeLabel = this.add.text(145, height / 2 - 68, '時間帯:', {
-            fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff'
-        }).setOrigin(0, 0);
-        dbgPanel.add(timeLabel);
-
-        const timePeriods = ['午前', '午後', '夜'];
-        const timeBtns = timePeriods.map((tp, idx) => {
-            const isActive = tp === this.timeOfDay;
-            const btn = this.add.text(145 + idx * 65, height / 2 - 44, tp, {
-                fontFamily: 'sans-serif', fontSize: '14px',
-                color: isActive ? '#000000' : '#aaaaaa',
-                backgroundColor: isActive ? '#ffdd88' : '#444444',
-                padding: { x: 8, y: 4 }
-            }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-            dbgPanel.add(btn);
-            btn.on('pointerdown', () => {
-                this.timeOfDay = tp;
-                this.timePeriodIndex = timePeriods.indexOf(tp);
-                // ボタンの見た目を更新
-                timeBtns.forEach((b, i) => {
-                    const active = timePeriods[i] === this.timeOfDay;
-                    b.setStyle({ color: active ? '#000000' : '#aaaaaa', backgroundColor: active ? '#ffdd88' : '#444444' });
-                });
-                this.nightOverlay?.setVisible(this.timeOfDay === '夜');
-                if (this.dateTimeText) this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-            });
-            return btn;
-        });
-
-        // ── 区切り線 ──
-        const divLine = this.add.rectangle(250, height / 2 + 5, 220, 1, 0x555577).setOrigin(0.5, 0);
-        dbgPanel.add(divLine);
-
-        // ── 食料補充ボタン ──
-        const foodFillBtn = this.add.text(250, height / 2 + 20, '🍖 食料を140に補充', {
-            fontFamily: 'sans-serif', fontSize: '14px', color: '#aaffaa',
-            backgroundColor: '#224422', padding: { x: 10, y: 6 }
-        }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-        dbgPanel.add(foodFillBtn);
-        foodFillBtn.on('pointerdown', () => {
-            GlobalState.getInstance().food = 140;
-            this._updateFoodDisplay();
-            const flash = this.add.text(250, height / 2 + 55, '食料 → 140 ✓', {
-                fontFamily: 'sans-serif', fontSize: '13px', color: '#00ff88'
-            }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(2200);
-            dbgPanel.add(flash);
-            this.time.delayedCall(1200, () => flash.destroy());
-        });
-
-        // ── 閉じるボタン ──
-        const closeBtn = this.add.text(350, height / 2 - 140, '✕', {
-            fontFamily: 'sans-serif', fontSize: '16px', color: '#ff8888',
-            backgroundColor: '#442222', padding: { x: 6, y: 3 }
-        }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-        dbgPanel.add(closeBtn);
-        closeBtn.on('pointerdown', () => dbgPanel.setVisible(false));
-
-        // デバッグボタンのトグル
-        dbgBtn.on('pointerdown', () => dbgPanel.setVisible(!dbgPanel.visible));
-
-        this.uiContainer.add([dbgBtn, dbgPanel]);
-
         // ── 突破テストボタン (時間経過無しでいつでも突破モードへ直接チャレンジ) ──
         const breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
+
             fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
             backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
@@ -1430,11 +1314,10 @@ export default class AdventureScene extends Phaser.Scene {
 
         if (this.tickerBg) this.tickerBg.setVisible(isVisible);
         if (this.tickerText) this.tickerText.setVisible(isVisible);
-        if (this.dbgBtn) this.dbgBtn.setVisible(isVisible);
-        if (this.dbgPanel) this.dbgPanel.setVisible(false);
         if (this.breakTestBtn) this.breakTestBtn.setVisible(isVisible);
         if (this.dpsTestBtn) this.dpsTestBtn.setVisible(isVisible);
     }
+
 
 
     moveToHex(hex, animate = true) {
@@ -2986,7 +2869,6 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.exploreBtn) this.exploreBtn.setVisible(true);
             if (this.restBtn) this.restBtn.setVisible(true);
             if (this.statusBtn) this.statusBtn.setVisible(true);
-            if (this.dbgBtn) this.dbgBtn.setVisible(true);
             return;
         }
 
@@ -2999,7 +2881,6 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.restBtn) this.restBtn.setVisible(false);
             if (this.exploreBtn) this.exploreBtn.setVisible(false);
             if (this.statusBtn) this.statusBtn.setVisible(false);
-            if (this.dbgBtn) this.dbgBtn.setVisible(false);
         } else if (gs.timePeriodIndex === 1) {
             // チュートリアル午後：探索のみ許可
             this.isMovementOnlyTutorial = false;
@@ -3009,7 +2890,6 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.exploreBtn) this.exploreBtn.setVisible(true);
             if (this.restBtn) this.restBtn.setVisible(false);
             if (this.statusBtn) this.statusBtn.setVisible(false);
-            if (this.dbgBtn) this.dbgBtn.setVisible(false);
         } else if (gs.timePeriodIndex === 2) {
             // チュートリアル夜：休息のみ許可
             this.isMovementOnlyTutorial = false;
@@ -3019,9 +2899,9 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.exploreBtn) this.exploreBtn.setVisible(false);
             if (this.restBtn) this.restBtn.setVisible(true);
             if (this.statusBtn) this.statusBtn.setVisible(false);
-            if (this.dbgBtn) this.dbgBtn.setVisible(false);
         }
     }
+
 
 
 }
