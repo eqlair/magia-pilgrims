@@ -195,8 +195,10 @@ export class EventEngine {
 
         const newBg = this.scene.add.image(this.W / 2, this.H / 2, key)
             .setDepth(this.DEPTH).setAlpha(0);
-        const scale = Math.max(this.W / newBg.width, this.H / newBg.height);
+        // 画面の縦サイズ(this.H)いっぱいに埋まるようアスペクト比保持で拡大（横方向は画面外へはみ出てもOK）
+        const scale = Math.max(this.W / (newBg.width || 1), this.H / (newBg.height || 1));
         newBg.setScale(scale);
+
 
 
         if (this.bgOverlay) {
