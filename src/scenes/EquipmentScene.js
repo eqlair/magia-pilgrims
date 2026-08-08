@@ -350,18 +350,18 @@ export default class EquipmentScene extends Phaser.Scene {
             return;
         }
 
-        // Scrollable list simulation
+        // Scrollable list simulation (WebGL対応マスク)
         const listHeight = this.height - 420 - 20;
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0x000000, 1);
-        graphics.fillRect(20, 420 + 30, this.width - 40, listHeight);
-        graphics.setVisible(false);
+        const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
+        maskShape.fillStyle(0xffffff, 1);
+        maskShape.fillRect(20, 420 + 30, this.width - 40, listHeight);
         
-        const mask = graphics.createGeometryMask();
+        const mask = maskShape.createGeometryMask();
         
         const scrollContainer = this.add.container(0, 40);
         this.bottomContainer.add(scrollContainer);
         scrollContainer.setMask(mask);
+
 
         let currentY = 0;
         const itemSpacing = 35;
