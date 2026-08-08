@@ -626,15 +626,53 @@ export default class AdventureScene extends Phaser.Scene {
             if (data && data.fromBattle) {
                 console.log(`[AdventureScene] fromBattle returned. globalWaveCount=${this.globalWaveCount}`);
 
-
                 // 現在のヘクスを制圧済みに（敵レベル・魔女レベルを0にして敵なしヘクスにする）
                 const currentHex = this.grid[this.playerRow]?.[this.playerCol];
                 if (currentHex && currentHex.cellData) {
+                    const oldEnemyLevel = currentHex.cellData.enemyLevel || 0;
+                    const oldWitchLevel = currentHex.cellData.witchLevel || 0;
+
                     currentHex.cellData.enemyLevel = 0;
                     currentHex.cellData.witchLevel = 0;
+
+                    // ① 雑魚を倒すたび、マップ上のどこかの雑魚のレベルが1上がる（上限13）
+                    if (oldEnemyLevel > 0 && oldWitchLevel === 0) {
+                        const targetHexes = [];
+                        for (let r = 0; r < this.grid.length; r++) {
+                            for (let c = 0; c < this.grid[r].length; c++) {
+                                const h = this.grid[r][c];
+                                if (h && h.cellData && h.cellData.enemyLevel > 0 && (h.cellData.witchLevel || 0) === 0) {
+                                    targetHexes.push(h);
+                                }
+                            }
+                        }
+                        if (targetHexes.length > 0) {
+                            const picked = targetHexes[Math.floor(Math.random() * targetHexes.length)];
+                            picked.cellData.enemyLevel = Math.min(13, picked.cellData.enemyLevel + 1);
+                        }
+                    }
+
+                    // ② 魔女を倒すとマップ上のどこかの魔女のレベルが1上がる（上限13）
+                    if (oldWitchLevel > 0) {
+                        const witchHexes = [];
+                        for (let r = 0; r < this.grid.length; r++) {
+                            for (let c = 0; c < this.grid[r].length; c++) {
+                                const h = this.grid[r][c];
+                                if (h && h.cellData && (h.cellData.witchLevel || 0) > 0) {
+                                    witchHexes.push(h);
+                                }
+                            }
+                        }
+                        if (witchHexes.length > 0) {
+                            const pickedWitch = witchHexes[Math.floor(Math.random() * witchHexes.length)];
+                            pickedWitch.cellData.witchLevel = Math.min(13, pickedWitch.cellData.witchLevel + 1);
+                        }
+                    }
+
                     console.log(`[AdventureScene] Hex (${this.playerCol}, ${this.playerRow}) cleared - enemies removed`);
-                    this.updateVisibility(); // マップ上の敵エフェクト表示を即時更新
+                    this.updateVisibility(); // マップ上の敵表示を即時更新
                 }
+
 
                 // マップBGMを再開
                 if (this.tweens && typeof this.tweens.getTweens === 'function') {
@@ -696,8 +734,9 @@ export default class AdventureScene extends Phaser.Scene {
                     attribute: attrStr,
                     enemyCount: this.globalEnemyCount,
                     waveCount: Math.ceil(this.globalWaveCount),
-                    enemyLevel: data.enemyLevel || 1,
-                    majoLevel: data.majoLevel || 0,
+                    enemyLevel: Math.min(13, data.enemyLevel || 1),
+                    majoLevel: Math.min(13, data.majoLevel || 0),
+
                     bgmKey: data.selectedBgmKey || null,
 
                     isOverlay: true,

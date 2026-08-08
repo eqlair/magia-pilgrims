@@ -103,6 +103,13 @@ export class BattleEngine {
             }
         }
 
+        // このマップでの最終絶対上限13にクランプ
+        this.enemyLevel = Math.min(13, this.enemyLevel);
+        if (this.majoLevel > 0) {
+            this.majoLevel = Math.min(13, this.majoLevel);
+        }
+
+
         this.earnedExp = 0;
         this.earnedSp = 0;
         this.totalDamage = 0;
