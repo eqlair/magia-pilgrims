@@ -1208,8 +1208,8 @@ export class BattleEngine {
                 const isKick = action.type === 'kick';
 
                 if (isKick) {
-                    // キックの射程距離（4.0m）内に敵がいるか確認（ノックバック後も踏み込み蹴りが繋がるように拡張）
-                    const kickRange = action.range !== undefined ? Math.max(action.range, 4.0) : 4.0;
+                    // キックの索敵判定距離（2.0m）内に敵がいるか確認
+                    const kickRange = action.range !== undefined ? action.range : 2.0;
                     let kickTarget = null;
                     let minKickDist = 999;
                     for (const e of this.enemies) {
@@ -1226,7 +1226,7 @@ export class BattleEngine {
                     }
 
                     if (!kickTarget) {
-                        // 射程内に目標の敵がいない場合はキックモーションも弾も発生させずリロードへ移行
+                        // 2m以内に目標の敵がいない場合はキックモーションも弾も発生させずリロードへ移行
                         p.isKickAttacking = false;
                         p.kickTimer = 0;
                         cs.cancelled = false;
@@ -1245,10 +1245,11 @@ export class BattleEngine {
                     const dirX = dx / dist;
                     const dirZ = dz / dist;
 
-                    // 0.5m 目標の敵に向かってスムーズに踏み込む！
-                    const stepDist = 0.5;
+                    // 75cm (0.75m) 目標の敵に向かってスムーズに踏み込む！
+                    const stepDist = 0.75;
                     p.targetOffsetX = (p.targetOffsetX || 0) + dirX * stepDist;
                     p.targetOffsetZ = (p.targetOffsetZ || 0) + dirZ * stepDist;
+
 
                     // キック時の発射方向角度を記憶（ターゲットが消滅しても向きを維持するため）
                     p.kickAngle = Math.atan2(dz, dx) * 180 / Math.PI;
