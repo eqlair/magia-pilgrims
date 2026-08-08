@@ -727,11 +727,18 @@ export default class AdventureScene extends Phaser.Scene {
 
                 if (this._pendingTarot) {
                     this._pendingTarot = false;
-                    this.scene.pause();
-                    this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
-                    // タロット起動 → タロットから戻った際のresumeでセーブされる
-                    return;
+                    this.enqueueEvent({
+                        type: 'tarot',
+                        data: { returnScene: 'AdventureScene', party: this.party }
+                    });
                 }
+
+                // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければセーブ）
+                const hasNextEvent = this.processEventQueue();
+                if (!hasNextEvent) {
+                    SaveManager.saveGame(this);
+                }
+
 
                 // 1221wildhuntイベント復帰時 -> 次のアクションで確定で突破戦が始まるフラグ
                 if (data && data.from1221WildhuntEvent) {
@@ -1769,42 +1776,40 @@ export default class AdventureScene extends Phaser.Scene {
     showTimeSignal(onComplete = null) {
         // TimeReporterを使って時報を表示。時報終了後にイベント起動およびタロット起動チェック
         TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
-            // 1. スケジュールイベントチェック（12/7イベント等）を最優先で発動！
-            const eventFired = this.checkScheduledEvents();
-            if (eventFired) {
-                // イベントが起動した場合はタロット等の重複起動を防止
-                return;
-            }
-
-            // 2. チュートリアルイベントチェック (午前・午後・夜等)
-            const tutFired = this.checkTutorialEvents();
-            if (tutFired) {
-                return;
-            }
-
-            // 3. 食料ゼロ等の特別イベントコールバック
+            // 1. 食料ゼロ等の特別イベントコールバックをキューに追加
             if (typeof onComplete === 'function') {
-                onComplete();
-                return;
+                this.enqueueEvent({
+                    type: 'custom',
+                    action: onComplete
+                });
             }
 
+            // 2. スケジュールイベントチェック（12/7, 12/14, 12/21 Wildhunt, 12/22朝など）を判定してキューに追加
+            this.checkScheduledEvents();
 
-            // 3. タロット引き（午前→午後の切り替えタイミング・未獲得カードが残っている場合のみ）
+            // 3. チュートリアルイベントチェック
+            this.checkTutorialEvents();
+
+            // 4. タロット引き（午前→午後の切り替えタイミング・未獲得カードが残っている場合のみ）
             const gs = GlobalState.getInstance();
             if (this._pendingTarot) {
                 this._pendingTarot = false;
                 if (!gs.drawnTarotCards || gs.drawnTarotCards.length < 22) {
-                    this.scene.pause();
-                    this.scene.launch('TarotScene', { returnScene: 'AdventureScene', party: this.party });
-                    return;
+                    this.enqueueEvent({
+                        type: 'tarot',
+                        data: { returnScene: 'AdventureScene', party: this.party }
+                    });
                 }
             }
 
-
-            // イベントが何も発動しなかった場合 = 入力待ち状態になったので自動保存
-            SaveManager.saveGame(this);
+            // 積まれたイベントキューを順に実行開始（何もなければ自動保存して入力待ちへ）
+            const hasStarted = this.processEventQueue();
+            if (!hasStarted) {
+                SaveManager.saveGame(this);
+            }
         });
     }
+
 
 
 
@@ -2360,13 +2365,47 @@ export default class AdventureScene extends Phaser.Scene {
         });
     }
 
+    /** イベントキューに登録して順次安全に再生する仕組み（入れ子・重なり対応） */
+    enqueueEvent(item) {
+        if (!this.eventQueue) this.eventQueue = [];
+        this.eventQueue.push(item);
+    }
+
+    processEventQueue() {
+        if (!this.eventQueue || this.eventQueue.length === 0) {
+            return false;
+        }
+
+        const next = this.eventQueue.shift();
+        if (!next) return false;
+
+        if (next.type === 'event') {
+            this.scene.pause();
+            this.scene.launch('EventScene', next.data);
+            return true;
+        } else if (next.type === 'tarot') {
+            this.scene.pause();
+            this.scene.launch('TarotScene', next.data);
+            return true;
+        } else if (next.type === 'battle') {
+            this.scene.pause();
+            this.scene.launch('BattleScene', next.data);
+            return true;
+        } else if (next.type === 'custom' && typeof next.action === 'function') {
+            next.action();
+            return true;
+        }
+        return false;
+    }
+
     checkScheduledEvents() {
-        // 各イベントが発動したかどうかをbooleanで返す
-        const e1 = this.check1207Event();
-        const e2 = this.check1214Event();
-        const e3 = this.check1221NightWildhunt();
-        const e4 = this.check1221Event();
-        return e1 || e2 || e3 || e4;
+        // 各イベントが発動したかどうかを判定してキューに追加
+        let fired = false;
+        if (this.check1207Event()) fired = true;
+        if (this.check1214Event()) fired = true;
+        if (this.check1221NightWildhunt()) fired = true;
+        if (this.check1221Event()) fired = true;
+        return fired;
     }
 
 
@@ -2378,13 +2417,15 @@ export default class AdventureScene extends Phaser.Scene {
             gs.event1207Played = true;
             const eventData = this.cache.json.get('event_1207');
             if (eventData) {
-                this.scene.pause();
-                this.scene.launch('EventScene', {
-                    events: eventData,
-                    returnScene: 'AdventureScene',
-                    from1207Event: true
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: eventData,
+                        returnScene: 'AdventureScene',
+                        from1207Event: true
+                    }
                 });
-                return true; // イベント発動
+                return true; // イベント登録
             }
         }
         return false;
@@ -2401,14 +2442,16 @@ export default class AdventureScene extends Phaser.Scene {
             gs.inventory.gems.push(newGem);
 
             const eventData = this.cache.json.get('event_1214');
-            this.scene.pause();
-            this.scene.launch('EventScene', {
-                events: eventData,
-                returnScene: 'AdventureScene',
-                from1214Event: true,
-                explorationDrops: [newGem]
+            this.enqueueEvent({
+                type: 'event',
+                data: {
+                    events: eventData,
+                    returnScene: 'AdventureScene',
+                    from1214Event: true,
+                    explorationDrops: [newGem]
+                }
             });
-            return true; // イベント発動した
+            return true;
         }
         return false;
     }
@@ -2420,13 +2463,15 @@ export default class AdventureScene extends Phaser.Scene {
 
             const eventData = this.cache.json.get('event_1221');
             if (eventData) {
-                this.scene.pause();
-                this.scene.launch('EventScene', {
-                    events: eventData,
-                    returnScene: 'AdventureScene',
-                    from1221Event: true
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: eventData,
+                        returnScene: 'AdventureScene',
+                        from1221Event: true
+                    }
                 });
-                return true; // イベント発動した
+                return true;
             }
         }
         return false;
@@ -2453,17 +2498,20 @@ export default class AdventureScene extends Phaser.Scene {
                 gs.event1221WildhuntPlayed = true;
 
                 const commands = build1221WildhuntCommands(this.party);
-                this.scene.pause();
-                this.scene.launch('EventScene', {
-                    events: commands,
-                    returnScene: 'AdventureScene',
-                    from1221WildhuntEvent: true
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: commands,
+                        returnScene: 'AdventureScene',
+                        from1221WildhuntEvent: true
+                    }
                 });
                 return true;
             }
         }
         return false;
     }
+
 
 
 
