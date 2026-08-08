@@ -171,14 +171,11 @@ export default class AdventureScene extends Phaser.Scene {
                 if (cellData.initialEnemyLevel === undefined) {
                     cellData.initialEnemyLevel = cellData.enemyLevel || 0;
                 }
-                // 敵の属性(1~5)をランダムに初期設定 (東京などの初期ヘクスは紫苑の得意属性である 3:緑 に固定)
+                // 敵の属性(1~5)をランダムに初期設定
                 if (cellData.enemyAttr === undefined) {
-                    if (cellData.name === '東京' || cellData.isTutorial) {
-                        cellData.enemyAttr = 3; // 3 = green (緑 / 調和)
-                    } else {
-                        cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
-                    }
+                    cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
                 }
+
 
 
                 
@@ -640,27 +637,47 @@ export default class AdventureScene extends Phaser.Scene {
                 }
 
                 // マップBGMを再開
+                this.tweens.getAllTweens().forEach(t => {
+                    if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
+                        t.stop();
+                    }
+                });
                 this.sound.stopAll();
                 if (this.cache.audio.exists('bgm_hexen')) {
                     const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
                     mapBgm.play();
-                    this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
+                    this.tweens.add({
+                        targets: mapBgm, volume: 0.5, duration: 1000,
+                        onUpdate: (tween, target) => {
+                            if (!target || !target.manager) tween.stop();
+                        }
+                    });
                 }
             }
 
-            // タロットからの徒明の後もマップBGMを再開
+            // タロットからの復帰時などもマップBGMを再開
             if (!data || (!data.fromBattle && !data.startBattle)) {
-                // 存在しないかしてない場合はマップBGM確認
                 const existing = this.sound.get('bgm_hexen');
                 if (!existing || !existing.isPlaying) {
+                    this.tweens.getAllTweens().forEach(t => {
+                        if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
+                            t.stop();
+                        }
+                    });
                     this.sound.stopAll();
                     if (this.cache.audio.exists('bgm_hexen')) {
                         const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
                         mapBgm.play();
-                        this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
+                        this.tweens.add({
+                            targets: mapBgm, volume: 0.5, duration: 1000,
+                            onUpdate: (tween, target) => {
+                                if (!target || !target.manager) tween.stop();
+                            }
+                        });
                     }
                 }
             }
+
 
             if (data && data.startBattle) {
                 console.log('Battle Started!', data);

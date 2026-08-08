@@ -101,14 +101,18 @@ export class EventEngine {
             this._currentBgm = null;
             this.scene.tweens.add({
                 targets: old, volume: 0, duration: 600,
-                onComplete: () => { old.stop(); old.destroy(); }
+                onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); },
+                onComplete: () => { try { old.stop(); old.destroy(); } catch(e){} }
             });
         }
         // 新しいBGMをフェードイン（キーが存在すれば）
         if (this.scene.cache.audio.exists(key)) {
             const bgm = this.scene.sound.add(key, { loop: true, volume: 0 });
             bgm.play();
-            this.scene.tweens.add({ targets: bgm, volume: 0.75, duration: 800 });
+            this.scene.tweens.add({
+                targets: bgm, volume: 0.75, duration: 800,
+                onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); }
+            });
             this._currentBgm = bgm;
         } else {
             console.warn(`EventEngine: BGMキー "${key}" が見つかりません`);
@@ -123,12 +127,14 @@ export class EventEngine {
             this._currentBgm = null;
             this.scene.tweens.add({
                 targets: old, volume: 0, duration: 600,
-                onComplete: () => { old.stop(); old.destroy(); cb(); }
+                onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); },
+                onComplete: () => { try { old.stop(); old.destroy(); } catch(e){} cb(); }
             });
         } else {
             cb();
         }
     }
+
 
     /** SEを再生（ノンブロッキング） */
     _playSe(key) {
