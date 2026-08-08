@@ -7,9 +7,8 @@ import { GlobalState } from '../systems/GlobalState';
 import { RelicGenerator } from '../systems/RelicGenerator';
 import { SaveManager } from '../systems/SaveManager';
 import { fontSize, FONT_MAIN } from '../config/GameFont';
-import { build1221WildhuntCommands } from '../data/wildhuntEvents';
-import { SpriteText } from '../utils/SpriteText';
-import { EventEngine } from '../systems/EventEngine';
+import { LOCATION_INFO_DATA } from '../data/location_info';
+
 
 
 
@@ -2119,13 +2118,19 @@ export default class AdventureScene extends Phaser.Scene {
             }
             this._isExploring = false;
 
-            // 食料を 140 に設定（探索完了直後に1コマ時間が進んで減っても100以上残るようにする）
             const gs = GlobalState.getInstance();
-            gs.food = 140;
+            const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+            const hexName = currentHex && currentHex.cellData ? currentHex.cellData.name : '';
+            const locInfo = LOCATION_INFO_DATA[hexName];
+            const isGeneric = !locInfo;
+
+            // ① 食料設定：地名ヘクスは 140、汎用ヘクスは半分（70）
+            const foodAmount = isGeneric ? 70 : 140;
+            gs.food = foodAmount;
             this._updateFoodDisplay();
 
-            // レリクス・宝石ドロップ生成（戦闘後と全く同じ処理）
-            const drops = RelicGenerator.generateBattleDrops();
+            // ② レリクス・宝石ドロップ：汎用ヘクスはレア出現率半分
+            const drops = RelicGenerator.generateExplorationDrops(isGeneric);
             if (!gs.inventory) {
                 gs.inventory = { relics: [], gems: [] };
             }
@@ -2134,19 +2139,56 @@ export default class AdventureScene extends Phaser.Scene {
                 else gs.inventory.relics.push(drop);
             });
 
+            // ③ 仲間遭遇判定 (1/5 = 20%) & 情報テキスト判定 (1/2 = 50%)
+            let triggeredJoinCharId = null;
+            let infoText = null;
+
+            if (locInfo) {
+                // まだ未遭遇の特定仲間がいる場合、1/5 (20%) の確率で遭遇
+                if (locInfo.charId && !this.party.includes(locInfo.charId)) {
+                    if (Math.random() < 0.20) {
+                        triggeredJoinCharId = locInfo.charId;
+                    }
+                }
+
+                // 1/2 (50%) の確率で断片的な情報テキストを拾う
+                if (locInfo.text && Math.random() < 0.50) {
+                    infoText = locInfo.text;
+                }
+            }
+
+            // イベントシーンの組み立て
+            const events = [
+                { cmd: 'bg', key: 'ev_expr' }
+            ];
+
+            const resultFoodText = isGeneric ? '探索を行い、一定量の食料を手に入れた。' : '探索を行い、充分な量の食料を手に入れた。';
+            events.push({ cmd: 'text', name: '', body: resultFoodText });
+
+            if (infoText) {
+                events.push({ cmd: 'text', name: '探索メモ', body: infoText });
+            }
+
+            // 仲間遭遇が発生した場合、join_eventsから立ち絵会話を追加
+            if (triggeredJoinCharId) {
+                const joinEvents = this.cache.json.get('join_events');
+                if (joinEvents && joinEvents[triggeredJoinCharId]) {
+                    events.push(...joinEvents[triggeredJoinCharId]);
+                }
+            }
+
             // EventSceneで結果表示
             this.scene.pause();
             this.scene.launch('EventScene', {
-                events: [
-                    { cmd: 'bg', key: 'ev_expr' },
-                    { cmd: 'text', name: '', body: '充分な量の食料を手に入れた。' }
-                ],
+                events: events,
                 returnScene: 'AdventureScene',
                 fromExploration: true,
-                explorationDrops: drops
+                explorationDrops: drops,
+                joinCharacterId: triggeredJoinCharId
             });
         });
     }
+
 
     setupBackground() {
         const { width, height } = this.scale;

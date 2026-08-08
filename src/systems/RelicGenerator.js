@@ -112,30 +112,32 @@ export class RelicGenerator {
         return drops;
     }
 
-    static generateExplorationDrops() {
+    static generateExplorationDrops(isGenericHex = false) {
         const drops = [];
         const gs = GlobalState.getInstance();
         const isFoolUpright = gs.activeTarots.some(t => t.id === 1 && t.isUpright);
-        const rareMult = isFoolUpright ? 2.0 : 1.0;
+        const genericMult = isGenericHex ? 0.5 : 1.0;
+        const rareMult = (isFoolUpright ? 2.0 : 1.0) * genericMult;
 
         // Rank 1: 2〜8個
         const numRank1 = 2 + Math.floor(Math.random() * 7);
         for (let i = 0; i < numRank1; i++) {
             drops.push(this.generateRelic(1));
         }
-        // Rank 2: 30%
+        // Rank 2: 30% (汎用時 15%)
         if (Math.random() < Math.min(1.0, 0.30 * rareMult)) {
             drops.push(this.generateRelic(2));
         }
-        // Rank 3: 10% (愚者時 20%)
+        // Rank 3: 10% (汎用時 5%, 愚者時 20%)
         if (Math.random() < Math.min(1.0, 0.10 * rareMult)) {
             drops.push(this.generateRelic(3));
         }
-        // Gem: 1% (愚者時 2%)
+        // Gem: 1% (汎用時 0.5%, 愚者時 2%)
         if (Math.random() < Math.min(1.0, 0.01 * rareMult)) {
             drops.push(this.generateGem(1));
         }
         return drops;
     }
+
 
 }
