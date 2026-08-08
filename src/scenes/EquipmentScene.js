@@ -163,26 +163,43 @@ export default class EquipmentScene extends Phaser.Scene {
         let btnY = 35;
 
         if (isEquipped) {
-            const btnRemove = this.add.text(btnX, btnY, 'はずす', { fontSize: '16px', backgroundColor: '#553333', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive();
+            const btnRemove = this.add.text(btnX, btnY, 'はずす', { fontSize: '16px', backgroundColor: '#553333', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
             btnRemove.on('pointerdown', () => { if(!this.enhanceMode) this.unequipItem(index); });
             container.add(btnRemove);
-            btnY += 40;
+            btnY += 38;
         } else if (!isTopSection && !this.enhanceMode) {
-            const btnEquip = this.add.text(btnX, btnY, '装備する', { fontSize: '16px', backgroundColor: '#335533', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive();
+            const btnEquip = this.add.text(btnX, btnY, '装備する', { fontSize: '16px', backgroundColor: '#335533', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
             btnEquip.on('pointerdown', () => { if(!this.enhanceMode) this.equipItem(index); });
             container.add(btnEquip);
-            btnY += 40;
+            btnY += 38;
         }
 
         if (item.rank < 8 && !this.enhanceMode) {
-            const btnEnhance = this.add.text(btnX, btnY, '強化', { fontSize: '16px', backgroundColor: '#333355', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive();
+            const btnEnhance = this.add.text(btnX, btnY, '強化', { fontSize: '16px', backgroundColor: '#333355', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
             btnEnhance.on('pointerdown', () => {
                 this.selectedItem = { item, isEquipped, index };
                 this.startEnhanceMode(item);
             });
             container.add(btnEnhance);
+            btnY += 38;
+        }
+
+        // 鍵ボタン（「装備する/はずす」「強化」の下に配置！詳細表示欄でのみロック・解除操作を行う）
+        if (!this.enhanceMode) {
+            const isLocked = !!item.isLocked;
+            const lockBtnColor = isLocked ? '#664400' : '#444444';
+            const lockBtnText = isLocked ? '🔒 ロック' : '🔓 解除';
+            const btnLock = this.add.text(btnX, btnY, lockBtnText, { fontSize: '15px', backgroundColor: lockBtnColor, color: '#ffffff', padding: { x: 8, y: 5 } }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+            
+            btnLock.on('pointerdown', () => {
+                item.isLocked = !item.isLocked;
+                SaveManager.saveGame();
+                this.drawUI();
+            });
+            container.add(btnLock);
         }
     }
+
 
     drawColoredItem(container, x, y, prefix, item, fontSizeStr, isExpanded = false) {
         let fontSize = parseInt(fontSizeStr);
@@ -363,13 +380,12 @@ export default class EquipmentScene extends Phaser.Scene {
             // Name
             this.drawColoredItem(scrollContainer, 30, currentY + 8, '', item, '16px', this.expandedLayout);
 
-            // Lock icon - 鍵アイコンが上半分隠れないように少し下へ配置(currentY + bgHeight / 2 + 2)
-            const lockY = currentY + Math.floor(bgHeight / 2) + 2;
-            const lockBg = this.add.rectangle(this.width - 90, lockY, 36, bgHeight - 4, 0x000000, 0.4).setOrigin(0.5, 0.5).setInteractive();
-            const lockTxt = this.add.text(this.width - 90, lockY + 1, item.isLocked ? '🔒' : '🔓', { fontSize: '16px' }).setOrigin(0.5, 0.5);
-
-            scrollContainer.add(lockBg);
-            scrollContainer.add(lockTxt);
+            // Lock icon - ロックのかかっているアイテムにのみ 🔒 アイコンを表示
+            if (item.isLocked) {
+                const lockY = currentY + Math.floor(bgHeight / 2);
+                const lockTxt = this.add.text(this.width - 65, lockY, '🔒', { fontSize: '18px' }).setOrigin(0.5, 0.5);
+                scrollContainer.add(lockTxt);
+            }
 
             // スワイプ判定用変数
             let touchStartY = 0;
@@ -377,13 +393,6 @@ export default class EquipmentScene extends Phaser.Scene {
             let touchStartScrollY = 0;
             let isSwiping = false;
 
-            lockBg.on('pointerdown', (pointer) => {
-                if (!this.enhanceMode) {
-                    item.isLocked = !item.isLocked;
-                    lockTxt.setText(item.isLocked ? '🔒' : '🔓');
-                    SaveManager.saveGame();
-                }
-            });
 
             bg.on('pointerdown', (pointer) => {
                 touchStartY = pointer.y;
