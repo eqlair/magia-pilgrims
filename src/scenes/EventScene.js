@@ -66,14 +66,16 @@ export default class EventScene extends Phaser.Scene {
             }
         });
 
-        // ランダムな戦闘BGMを選ぶ (1~4)
+        // ランダムな戦闘BGMを選ぶ (1~4) し、キーを記憶してBattleSceneへ引き継げるようにする
         const bgmIndex = Math.floor(Math.random() * 4) + 1;
-        const battleBgm = this.sound.add(`bgm_battle${bgmIndex}`, { loop: true, volume: 0 });
+        this.selectedBgmKey = `bgm_battle${bgmIndex}`;
+        const battleBgm = this.sound.add(this.selectedBgmKey, { loop: true, volume: 0 });
         battleBgm.play();
         this.tweens.add({ targets: battleBgm, volume: 0.5, duration: 1000 });
 
         if (cb) cb();
     }
+
 
     _showFog(cb) {
         if (this.enemyLevel > 0) {
@@ -201,8 +203,10 @@ export default class EventScene extends Phaser.Scene {
                         enemyAttr: this.enemyAttr,
                         majoLevel: this.majoLevel,
                         isNightExploration: this.isNightExploration,
-                        isNightBattle: this.isNightBattle || this.isNightExploration
+                        isNightBattle: this.isNightBattle || this.isNightExploration,
+                        selectedBgmKey: this.selectedBgmKey
                     });
+
                     this.time.delayedCall(100, () => {
                         this.scene.stop();
                     });

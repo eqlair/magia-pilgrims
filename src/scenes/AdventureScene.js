@@ -698,6 +698,7 @@ export default class AdventureScene extends Phaser.Scene {
                     waveCount: Math.ceil(this.globalWaveCount),
                     enemyLevel: data.enemyLevel || 1,
                     majoLevel: data.majoLevel || 0,
+                    bgmKey: data.selectedBgmKey || null,
 
                     isOverlay: true,
                     returnScene: 'AdventureScene',
@@ -705,6 +706,7 @@ export default class AdventureScene extends Phaser.Scene {
                     isNightExploration: data.isNightExploration || false,
                     isNightBattle: isNightBattle
                 };
+
 
                 this.scene.pause();
                 this.scene.launch('BattleScene', config);
