@@ -93,13 +93,19 @@ export default class OpScene extends Phaser.Scene {
 
             // ホワイトアウト後、東京背景での紫苑の会話イベント (EventScene) へ移行
             this.time.delayedCall(3500, () => {
+                // 戦闘BGM(bgm_battle4)をフェードラグなしで直接音量0.5で即時再生
+                if (this.cache.audio.exists('bgm_battle4')) {
+                    this.sound.stopAll();
+                    this.sound.play('bgm_battle4', { loop: true, volume: 0.5 });
+                }
+
                 const opTutorialEvents = [
-                    { cmd: 'image', key: 'bg_tokyo_d7' },
-                    { cmd: 'bgm', key: 'bgm_battle4' },
+                    { cmd: 'bg', key: 'bg_tokyo_d7' },
                     { cmd: 'chara', key: 'portrait_001', pos: 'right' },
                     { cmd: 'text', name: '紫苑', body: 'なに…これは生き物…？違う、こっちに近づいてくる…！' },
                     { cmd: 'text', name: '紫苑', body: '何か武器…け、拳銃！？なんでこんな…これで…やってみるしかない…！' }
                 ];
+
 
 
 

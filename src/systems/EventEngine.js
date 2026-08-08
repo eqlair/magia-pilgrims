@@ -193,11 +193,16 @@ export class EventEngine {
             overlayAlpha = 0.7;
         }
 
-        const newBg = this.scene.add.image(this.W / 2, this.H / 2, key)
-            .setDepth(this.DEPTH).setAlpha(0);
-        // 画面の縦サイズ(this.H)いっぱいに埋まるようアスペクト比保持で拡大（横方向は画面外へはみ出てもOK）
-        const scale = Math.max(this.W / (newBg.width || 1), this.H / (newBg.height || 1));
+        const screenH = Math.max(this.H, this.scene.scale ? this.scene.scale.height : 0);
+        const screenW = Math.max(this.W, this.scene.scale ? this.scene.scale.width : 0);
+        newBg.setPosition(screenW / 2, screenH / 2);
+
+        // 画面の縦サイズ(screenH)いっぱいに埋まるようアスペクト比保持で拡大（横方向は画面外へはみ出てもOK）
+        const bgW = newBg.width || 1;
+        const bgH = newBg.height || 1;
+        const scale = Math.max(screenW / bgW, screenH / bgH);
         newBg.setScale(scale);
+
 
 
 
