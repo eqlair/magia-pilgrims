@@ -13,6 +13,8 @@ export default class OpScene extends Phaser.Scene {
         this.load.image('ev002', 'files/OP/ev002.jpg');
         this.load.image('ev003', 'files/OP/ev003.jpg');
         this.load.image('evp001', 'files/OP/evp001.jpg');
+        this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
+        this.load.image('portrait_001', 'files/CHR/001001.png');
         
         this.load.audio('bgm_hoshi', 'files/BGM/003_hoshihuru.mp3');
         this.load.audio('bgm_mad', 'files/BGM/007_stage_mad.mp3');
@@ -24,6 +26,7 @@ export default class OpScene extends Phaser.Scene {
         // シナリオデータをロード
         this.load.json('op_event', 'files/OP/op_event.json');
     }
+
 
 
     create() {
@@ -89,11 +92,12 @@ export default class OpScene extends Phaser.Scene {
             // ホワイトアウト後、東京背景での紫苑の会話イベント (EventScene) へ移行
             this.time.delayedCall(3500, () => {
                 const opTutorialEvents = [
-                    { cmd: 'image', key: 'bg_1221a' },
-                    { cmd: 'chara', key: 'portrait_紫苑', pos: 'center' },
+                    { cmd: 'image', key: 'bg_tokyo_d7' },
+                    { cmd: 'chara', key: 'portrait_001', pos: 'right' },
                     { cmd: 'text', name: '紫苑', body: 'なに…これは生き物…？違う、こっちに近づいてくる…！' },
                     { cmd: 'text', name: '紫苑', body: '何か武器…け、拳銃！？なんでこんな…これで…やってみるしかない…！' }
                 ];
+
 
                 TransitionManager.transitionTo(this, 'EventScene', {
                     events: opTutorialEvents,
