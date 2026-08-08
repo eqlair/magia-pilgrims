@@ -986,15 +986,16 @@ export class BattleEngine {
             if (aliveEnemies.length === 0) {
                 this.waveState = 'cleared';
                 this.eventQueue.push('Silence returns...');
-                // 魔女撃破: stockSp加算 (majoLevel² × 100)
+                // 魔女撃破: stockSp加算 (majoLevel × 100)
                 if (this.majoLevel > 0) {
                     const gs = GlobalState.getInstance();
-                    let spGained = this.majoLevel * this.majoLevel * 100;
+                    let spGained = this.majoLevel * 100;
                     spGained = Math.floor(spGained * gs.spMultiplier);
                     gs.stockSp += spGained;
                     this.earnedSp = (this.earnedSp || 0) + spGained;
                     console.log(`[BattleEngine] Majo defeated, gained ${spGained} SP`);
                 }
+
             }
         }
 
