@@ -1692,12 +1692,21 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     advanceTime() {
+        const oldDay = this.currentDay;
+        const oldTimePeriodIndex = this.timePeriodIndex;
+
+        // 12/14の夜の行動(戦闘・探索・休息など)が終了した瞬間を検知
+        if (oldDay === 14 && oldTimePeriodIndex === 2) {
+            this._trigger1214NightActionEnd = true;
+        }
+
         this.timePeriodIndex++;
         if (this.timePeriodIndex >= this.timePeriods.length) {
             this.timePeriodIndex = 0;
             this.currentDay++;
         }
         this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+
 
         // GlobalState と即座に同期
         const gsInst = GlobalState.getInstance();
@@ -2490,9 +2499,15 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1214Event() {
         const gs = GlobalState.getInstance();
-        // 12月14日の夜(timePeriodIndex === 2)またはそれ以降で未再生の場合に発動
-        if (this.currentDay >= 14 && !gs.event1214Played) {
-            if (this.currentDay === 14 && this.timePeriodIndex < 2) return false; // 12/14の午前・午後は夜まで待つ
+        // 12/14の夜の行動(戦闘・探索・休息等)が終わった直後、または12/15以降未再生の場合に就寝前イベントとして発動！
+        const shouldTrigger = (!gs.event1214Played) && (
+            this._trigger1214NightActionEnd ||
+            this.currentDay > 14 ||
+            (this.currentDay === 14 && this.timePeriodIndex === 2)
+        );
+
+        if (shouldTrigger) {
+            this._trigger1214NightActionEnd = false;
             gs.event1214Played = true;
 
             const newGem = RelicGenerator.generateGem(1);
@@ -2513,6 +2528,7 @@ export default class AdventureScene extends Phaser.Scene {
         }
         return false;
     }
+
 
 
     check1221Event() {
