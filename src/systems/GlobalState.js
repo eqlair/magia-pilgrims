@@ -584,10 +584,15 @@ export class GlobalState {
                                 }
                             }
                             delete this.savedFormation[targetId];
+                            if (Array.isArray(this.party)) {
+                                this.party = this.party.filter(id => id !== targetId);
+                            }
+                            this.lastTowerRemovedCharId = targetId;
                             console.log(`[Tarot 17 Tower] Removed ${targetId} from party`);
                         }
                     }
                 } else {
+
                     this.boostRandomWitchCells(2);
                 }
                 break;

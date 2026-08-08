@@ -735,11 +735,26 @@ export default class AdventureScene extends Phaser.Scene {
                     });
                 }
 
+                // タロット復帰時：塔の正位置などで仲間が離脱した場合にマップパーティを最新同期
+                if (data && data.fromTarot) {
+                    const gs = GlobalState.getInstance();
+                    const updatedFormKeys = Object.keys(gs.savedFormation || {});
+                    if (updatedFormKeys.length > 0) {
+                        this.party = updatedFormKeys;
+                    }
+                    if (gs.lastTowerRemovedCharId) {
+                        const removedId = gs.lastTowerRemovedCharId;
+                        gs.lastTowerRemovedCharId = null;
+                        this.party = this.party.filter(id => id !== removedId);
+                    }
+                }
+
                 // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければセーブ）
                 const hasNextEvent = this.processEventQueue();
                 if (!hasNextEvent) {
                     SaveManager.saveGame(this);
                 }
+
 
 
                 // 1221wildhuntイベント復帰時 -> 次のアクションで確定で突破戦が始まるフラグ
