@@ -146,8 +146,9 @@ export default class CampScene extends Phaser.Scene {
                 this.showDetailView(charId, width, height);
             });
 
-            const textX = width * 0.25;
-            const barWidth = width * 0.56;
+            const textX = width * 0.32;
+            const barWidth = width * 0.50;
+
 
 
             // 名前 & Lv
