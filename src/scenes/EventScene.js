@@ -34,10 +34,12 @@ export default class EventScene extends Phaser.Scene {
         this.from1214Event = data.from1214Event || false;
         this.from1221Event = data.from1221Event || false;
         this.fromRespEvent = data.fromRespEvent || false;
-
+        this.fromOpTutorial = data.fromOpTutorial || false;
+        this.battleConfig = data.battleConfig || null;
 
         this.isNightExploration = data.isNightExploration || false;
     }
+
 
     create() {
         TransitionManager.fadeIn(this);
@@ -180,6 +182,11 @@ export default class EventScene extends Phaser.Scene {
             alpha: 1,
             duration: 800,
             onComplete: () => {
+                if (this.fromOpTutorial && this.battleConfig) {
+                    TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
+                    return;
+                }
+
                 if (this.enemyLevel > 0) {
                     console.log('Transition to Battle!');
                     this.scene.resume(this.returnScene, { 
@@ -196,7 +203,7 @@ export default class EventScene extends Phaser.Scene {
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.from1207Event && !this.from1214Event && !this.from1221Event && !this.fromRespEvent,
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.from1207Event && !this.from1214Event && !this.from1221Event && !this.fromRespEvent && !this.fromOpTutorial,
                         fromExploration: this.fromExploration,
                         isNotification: this.isNotification,
                         from1207Event: this.from1207Event,
@@ -204,10 +211,10 @@ export default class EventScene extends Phaser.Scene {
                         from1221Event: this.from1221Event,
                         fromRespEvent: this.fromRespEvent,
 
-
                         joinCharacterId: this.joinCharacterId 
                     });
                 }
+
             }
         });
     }

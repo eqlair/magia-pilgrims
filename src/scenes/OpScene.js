@@ -86,25 +86,37 @@ export default class OpScene extends Phaser.Scene {
                 ease: 'Quad.easeOut'
             });
 
-            // チュートリアル戦闘へ突入
+            // ホワイトアウト後、東京背景での紫苑の会話イベント (EventScene) へ移行
             this.time.delayedCall(3500, () => {
-                TransitionManager.transitionTo(this, 'BattleScene', {
-                    party: ['001'],
-                    rule: 1,
-                    enemyLevel: 2,
-                    totalWaves: 2,
-                    waveCount: 2,
-                    majoLevel: 1,
-                    attribute: 'green',
+                const opTutorialEvents = [
+                    { cmd: 'image', key: 'bg_1221a' },
+                    { cmd: 'chara', key: 'portrait_紫苑', pos: 'center' },
+                    { cmd: 'text', name: '紫苑', body: 'なに…これは生き物…？違う、こっちに近づいてくる…！' },
+                    { cmd: 'text', name: '紫苑', body: '何か武器…け、拳銃！？なんでこんな…これで…やってみるしかない…！' }
+                ];
 
-                    bgmKey: 'bgm_battle4',
-                    bossBgmKey: 'bgm_boss3',
-                    isTutorial: true,
-                    canRetreat: false,
-                    returnScene: 'AdventureScene'
+                TransitionManager.transitionTo(this, 'EventScene', {
+                    events: opTutorialEvents,
+                    returnScene: 'BattleScene',
+                    fromOpTutorial: true,
+                    battleConfig: {
+                        party: ['001'],
+                        rule: 1,
+                        enemyLevel: 2,
+                        totalWaves: 2,
+                        waveCount: 2,
+                        majoLevel: 1,
+                        attribute: 'green',
+                        bgmKey: 'bgm_battle4',
+                        bossBgmKey: 'bgm_boss3',
+                        isTutorial: true,
+                        canRetreat: false,
+                        returnScene: 'AdventureScene'
+                    }
                 });
             });
         };
+
 
         // ── 画面左上の隠しOPスキップボタン ──
         this.isSkipping = false;
