@@ -637,11 +637,13 @@ export default class AdventureScene extends Phaser.Scene {
                 }
 
                 // マップBGMを再開
-                this.tweens.getAllTweens().forEach(t => {
-                    if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
-                        t.stop();
-                    }
-                });
+                if (this.tweens && typeof this.tweens.getTweens === 'function') {
+                    this.tweens.getTweens().forEach(t => {
+                        if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
+                            t.stop();
+                        }
+                    });
+                }
                 this.sound.stopAll();
                 if (this.cache.audio.exists('bgm_hexen')) {
                     const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
@@ -659,12 +661,15 @@ export default class AdventureScene extends Phaser.Scene {
             if (!data || (!data.fromBattle && !data.startBattle)) {
                 const existing = this.sound.get('bgm_hexen');
                 if (!existing || !existing.isPlaying) {
-                    this.tweens.getAllTweens().forEach(t => {
-                        if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
-                            t.stop();
-                        }
-                    });
+                    if (this.tweens && typeof this.tweens.getTweens === 'function') {
+                        this.tweens.getTweens().forEach(t => {
+                            if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
+                                t.stop();
+                            }
+                        });
+                    }
                     this.sound.stopAll();
+
                     if (this.cache.audio.exists('bgm_hexen')) {
                         const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
                         mapBgm.play();
