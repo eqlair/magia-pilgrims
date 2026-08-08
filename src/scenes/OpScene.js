@@ -18,6 +18,7 @@ export default class OpScene extends Phaser.Scene {
         
         this.load.audio('bgm_hoshi', 'files/BGM/003_hoshihuru.mp3');
         this.load.audio('bgm_mad', 'files/BGM/007_stage_mad.mp3');
+        this.load.audio('bgm_battle4', 'files/BGM/battole_004.mp3');
         this.load.audio('se_bomb', 'files/OP/bomb.mp3');
 
         this.load.image('op_title', 'files/OP/title.png');
@@ -26,6 +27,7 @@ export default class OpScene extends Phaser.Scene {
         // シナリオデータをロード
         this.load.json('op_event', 'files/OP/op_event.json');
     }
+
 
 
 
@@ -93,10 +95,13 @@ export default class OpScene extends Phaser.Scene {
             this.time.delayedCall(3500, () => {
                 const opTutorialEvents = [
                     { cmd: 'image', key: 'bg_tokyo_d7' },
+                    { cmd: 'bgm', key: 'bgm_battle4' },
                     { cmd: 'chara', key: 'portrait_001', pos: 'right' },
                     { cmd: 'text', name: '紫苑', body: 'なに…これは生き物…？違う、こっちに近づいてくる…！' },
                     { cmd: 'text', name: '紫苑', body: '何か武器…け、拳銃！？なんでこんな…これで…やってみるしかない…！' }
                 ];
+
+
 
 
                 TransitionManager.transitionTo(this, 'EventScene', {
