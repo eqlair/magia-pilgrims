@@ -147,7 +147,8 @@ export default class CampScene extends Phaser.Scene {
             });
 
             const textX = width * 0.25;
-            const barWidth = width * 0.7;
+            const barWidth = width * 0.56;
+
 
             // 名前 & Lv
             const nameText = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {

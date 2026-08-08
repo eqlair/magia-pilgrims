@@ -141,7 +141,7 @@ export default class RestScene extends Phaser.Scene {
             const reqExp = this.globalState.getRequiredExp(charData.level);
             const cy = startY + index * rowHeight;
             const textX = width * 0.35;
-            const barWidth = width * 0.44;
+            const barWidth = width * 0.39;
 
             // 行全体のタップ領域（回復ボタン以外をタップすると詳細が開く）
             const rowHitZone = this.add.rectangle(textX, cy, width * 0.35, rowHeight * 0.8, 0x000000, 0.001).setInteractive({ useHandCursor: true });
@@ -201,7 +201,7 @@ export default class RestScene extends Phaser.Scene {
             const canHealHp = (charData.currentHp < stats.maxHp) && (charData.currentSp > 0);
             const hpBtnColor = canHealHp ? '#228822' : '#333333';
             const hpTextColor = canHealHp ? '#ffffff' : '#777777';
-            const hpBtn = this.add.text(textX + barWidth - 10, hpY, '回復', {
+            const hpBtn = this.add.text(textX + barWidth + 15, hpY, '回復', {
                 fontFamily: 'sans-serif', fontSize: '16px', color: hpTextColor, backgroundColor: hpBtnColor, padding: { x: 10, y: 3 }
             }).setOrigin(0, 0.5);
             if (canHealHp) {
@@ -214,7 +214,7 @@ export default class RestScene extends Phaser.Scene {
             const canHealSp = (charData.currentSp < stats.maxSp) && (this.globalState.stockSp > 0);
             const spBtnColor = canHealSp ? '#2255aa' : '#333333';
             const spTextColor = canHealSp ? '#ffffff' : '#777777';
-            const spBtn = this.add.text(textX + barWidth - 10, spY, '回復', {
+            const spBtn = this.add.text(textX + barWidth + 15, spY, '回復', {
                 fontFamily: 'sans-serif', fontSize: '16px', color: spTextColor, backgroundColor: spBtnColor, padding: { x: 10, y: 3 }
             }).setOrigin(0, 0.5);
             if (canHealSp) {
@@ -222,6 +222,7 @@ export default class RestScene extends Phaser.Scene {
                 spBtn.on('pointerdown', () => this.confirmHealSp(charId, stats.maxSp));
             }
             this.mainViewContainer.add(spBtn);
+
         });
 
         // 最下部「休息を終える」ボタン
