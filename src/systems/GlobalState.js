@@ -93,15 +93,13 @@ export class GlobalState {
 
         
         // 全キャラクターの永続データ
-        const byakurenData = this.createInitialCharData('010', '白蓮', 1);
         this.characters = {
             '001': this.createInitialCharData('001', '紫苑', 1),
             '002': this.createInitialCharData('002', '蒼樹', 1),
             '003': this.createInitialCharData('003', '紅華', 1),
             '004': this.createInitialCharData('004', '黄蘭', 1),
             '005': this.createInitialCharData('005', '李乃果', 1),
-            '010': byakurenData,
-            '10': byakurenData // '10'キーでもアクセス可能にエイリアスを設定
+            '010': this.createInitialCharData('010', '白蓮', 1)
         };
 
         GlobalState.instance = this;
@@ -118,6 +116,30 @@ export class GlobalState {
         if (str === '5' || str === '005' || str === '15') return '005';
         return str.padStart(3, '0');
     }
+
+    getCharacter(id) {
+        if (!id) return null;
+        const normId = this.normalizeCharId(id);
+        return this.characters[normId] || this.characters[id] || null;
+    }
+
+    getTotalAffection() {
+        let total = 0;
+        const uniqueChars = ['001', '002', '003', '004', '005', '010'];
+        for (const id of uniqueChars) {
+            const char = this.characters[id];
+            if (char) {
+                if (char.affection) total += char.affection;
+                if (char.friendships) {
+                    for (const val of Object.values(char.friendships)) {
+                        if (typeof val === 'number') total += val;
+                    }
+                }
+            }
+        }
+        return total;
+    }
+
 
 
     static getInstance() {

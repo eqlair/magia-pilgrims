@@ -245,28 +245,29 @@ export class BattleEngine {
                 }
                 // No.6 恋人 (id: 7)
                 if (tarot.id === 7 && this.players.length > 0) {
-                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
+                    const totalAff = gs.getTotalAffection();
                     if (tarot.isUpright && totalAff >= 1) {
                         this.players.forEach(p => { p.atkMultiplier = (p.atkMultiplier || 1.0) * 1.20; });
-                    } else if (!tarot.isUpright && totalAff <= 0) {
+                    } else if (!tarot.isUpright || totalAff <= 0) {
                         this.players.forEach(p => { p.atkMultiplier = (p.atkMultiplier || 1.0) * 2.00; });
                     }
                 }
                 // No.20 審判 (id: 21)
                 if (tarot.id === 21 && this.players.length > 0) {
-                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
-                    if (tarot.isUpright && totalAff >= 1) {
+                    const totalAff = gs.getTotalAffection();
+                    if (tarot.isUpright) {
                         this.players.forEach(p => {
-                            p.tarotCritRateBonus = (p.tarotCritRateBonus || 0) + 0.05;
-                            p.tarotCritMultBonus = (p.tarotCritMultBonus || 0) + 0.50;
+                            p.tarotCritRateBonus = (p.tarotCritRateBonus || 0) + (totalAff >= 1 ? 0.05 : 0.02);
+                            p.tarotCritMultBonus = (p.tarotCritMultBonus || 0) + (totalAff >= 1 ? 0.50 : 0.20);
                         });
-                    } else if (!tarot.isUpright && totalAff <= 0) {
+                    } else {
                         this.players.forEach(p => {
                             p.tarotCritRateBonus = (p.tarotCritRateBonus || 0) + 0.10;
                             p.tarotCritMultBonus = (p.tarotCritMultBonus || 0) + 1.00;
                         });
                     }
                 }
+
                 if (tarot.id === 13 && tarot.isUpright && this.players.length > 0) {
                     // No.12 吊るされた男 (id: 13) 正位置: メンバーの誰か生命力10%を失い、他の誰か1人の攻撃力+20%
                     const targetDmg = this.players[Math.floor(Math.random() * this.players.length)];
@@ -633,15 +634,16 @@ export class BattleEngine {
                 }
                 // No.20 審判 (id: 21)
                 if (tarot.id === 21 && attacker.owner === 'player') {
-                    const totalAff = Object.values(gs.characters).reduce((sum, c) => sum + (c.affection || 0), 0);
-                    if (tarot.isUpright && totalAff >= 1) {
-                        tarotCritRateBonus += 0.05;
-                        tarotCritMultBonus += 0.50;
-                    } else if (!tarot.isUpright && totalAff <= 0) {
+                    const totalAff = gs.getTotalAffection();
+                    if (tarot.isUpright) {
+                        tarotCritRateBonus += (totalAff >= 1 ? 0.05 : 0.02);
+                        tarotCritMultBonus += (totalAff >= 1 ? 0.50 : 0.20);
+                    } else {
                         tarotCritRateBonus += 0.10;
                         tarotCritMultBonus += 1.00;
                     }
                 }
+
 
             }
 
