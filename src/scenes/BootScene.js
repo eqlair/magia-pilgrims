@@ -59,6 +59,7 @@ export default class BootScene extends Phaser.Scene {
 
 
         }
+        this.load.image('face_010', 'files/CHR/011p.jpg');
         
         // キャラクター固有トークデータ(JSON)
         this.load.json('talk_001', 'files/CHR/talk_紫苑.json');
