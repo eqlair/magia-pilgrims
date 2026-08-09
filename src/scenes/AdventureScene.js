@@ -2173,8 +2173,23 @@ export default class AdventureScene extends Phaser.Scene {
                 events.push({ cmd: 'text', name: '探索メモ', body: infoText });
             }
 
-            // 仲間遭遇が発生した場合、join_eventsから立ち絵会話を追加
+            // 仲間遭遇が発生した場合、即座にパーティに追加して隊列割り当て・全回復・セーブし、join_eventsから立ち絵会話を追加
             if (triggeredJoinCharId) {
+                if (!this.party.includes(triggeredJoinCharId)) {
+                    this.party.push(triggeredJoinCharId);
+                    gs.assignFormationForNewMember(triggeredJoinCharId);
+                    const joinedChar = gs.characters[triggeredJoinCharId];
+                    if (joinedChar) {
+                        const stats = gs.calcStats(triggeredJoinCharId, this.party);
+                        if (stats) {
+                            joinedChar.currentHp = stats.maxHp;
+                            joinedChar.currentSp = stats.maxSp;
+                        }
+                    }
+                    SaveManager.saveGame(this);
+                    console.log('[AdventureScene] Immediate join & formation assigned for:', triggeredJoinCharId);
+                }
+
                 const joinEvents = this.cache.json.get('join_events');
                 if (joinEvents && joinEvents[triggeredJoinCharId]) {
                     events.push(...joinEvents[triggeredJoinCharId]);
@@ -2190,6 +2205,7 @@ export default class AdventureScene extends Phaser.Scene {
                 explorationDrops: drops,
                 joinCharacterId: triggeredJoinCharId
             });
+
         });
     }
 
