@@ -514,7 +514,7 @@ export class BattleEngine {
         if (defender.spawnDropTimer > 0 || defender.spawnAnimTimer > 0) return false;
 
         
-        let finalDamage = amount;
+        let finalDamage = (typeof amount === 'number' && !isNaN(amount)) ? amount : 1;
         let damageType = type;
 
         // --- 命中率とレベル差計算 ---
@@ -522,10 +522,13 @@ export class BattleEngine {
         let levelHitBonus = 0;
         let levelDmgBonusAmount = 0;
 
+        const isPlayerAttacker = !!(attacker && attacker.owner === 'player');
+
         if (attacker && defender) {
             // Playerの場合はWLV/2を仮のレベルとする。敵はlevelプロパティ
-            const atkLevel = attacker.owner === 'player' ? Math.floor((attacker.wlv || 2) / 2) : (attacker.level || 1);
-            const defLevel = defender.owner === 'player' ? Math.floor((defender.wlv || 2) / 2) : (defender.level || 1);
+            const atkLevel = isPlayerAttacker ? Math.floor(((attacker.wlv || 2)) / 2) : (attacker.level || 1);
+            const defLevel = defender.owner === 'player' ? Math.floor(((defender.wlv || 2)) / 2) : (defender.level || 1);
+
             const levelDiff = atkLevel - defLevel;
             // 距離による低下: 1mあたり2%
             let distDrop = distance * 0.02;
