@@ -91,11 +91,12 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).jpg`);
         }
         
-        // イベント一枚絵
-        for (let i = 2; i <= 6; i++) {
+        // イベント一枚絵 (evp002 ~ evp015)
+        for (let i = 2; i <= 15; i++) {
             const numStr = i.toString().padStart(3, '0');
             this.load.image(`evp${numStr}`, `files/event/evp${numStr}.jpg`);
         }
+
         // 探索・休息イベント画像
         this.load.image('ev_expr', 'files/event/ev_expr.jpg');
         this.load.image('ev_daycamp', 'files/event/ev_daycamp.jpg');
