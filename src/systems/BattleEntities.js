@@ -363,21 +363,25 @@ export class PlayerCharacter extends BattleEntity {
                 }
             } else if (this.charId === '010') {
                 // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径1mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
+                const specialBullet = new Bullet(this.x, this.z, {
+                    owner: 'player',
+                    vx: 0,
+                    vz: 0.5,
+                    damage: 0,
+                    knockback: 40,
+                    size: 1.0,
+                    lifeTime: 10.0,
+                    type: 'special_barrier_010',
+                    erasesEnemyBullets: true,
+                    bulletDurability: this.wlv
+                });
+                specialBullet.sourceEntity = this;
                 if (this.engine) {
-                    this.engine.bullets.push(new BulletEntity(this.x, this.z, {
-                        type: 'special_barrier_010',
-                        owner: 'player',
-                        sourceEntity: this,
-                        speed: 0.5,
-                        damage: 0,
-                        knockback: 40,
-                        radius: 0.5,
-                        bulletDurability: this.wlv,
-                        maxDistance: 20
-                    }));
+                    this.engine.bullets.push(specialBullet);
                 }
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "BARRIER BULLET", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             }
+
 
         }
     }
