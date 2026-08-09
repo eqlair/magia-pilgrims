@@ -94,13 +94,14 @@ export class BattleRenderer {
             if (textureKey) {
                 this._updateSprite(b, textureKey);
                 if (b.type === 'special_barrier_010' || b.type === 'ultimate_010' || b.type === 'barrier_010') {
-                    const sprite = this.bulletSprites.get(b);
+                    const sprite = this.spriteMap.get(b);
                     if (sprite) {
                         sprite.setTint(0x00ffff);
                         sprite.setBlendMode(Phaser.BlendModes.ADD);
                     }
                 }
             }
+
 
         }
 
