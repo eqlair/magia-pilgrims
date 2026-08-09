@@ -2243,7 +2243,7 @@ export default class AdventureScene extends Phaser.Scene {
                 });
             }
 
-            // ── ステップ③: 特定仲間の出会いストーリーイベント ──
+            // ── ステップ③: 特定仲間の出会いストーリーイベント (全キャラ共通) ──
             if (triggeredJoinCharId) {
                 steps.push((onNextStep) => {
                     const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
@@ -2262,48 +2262,31 @@ export default class AdventureScene extends Phaser.Scene {
                         ];
                     }
 
-                    // ストーリーイベントが終了した時点で正式加入処理を実行！
+                    // ストーリーイベントが終了した時点で正式加入・全回復・隊列登録・即時保存を実行し、そのままスムーズに次ステップへ
                     const onJoinStoryEnd = (data) => {
-                        this.events.off('resume', onJoinStoryEnd);
+                        if (data && data.fromExploration) {
+                            this.events.off('resume', onJoinStoryEnd);
 
-                        // 正式加入・全回復・隊列設定・即時保存
-                        const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
-                        if (!currentNormParty.includes(normJoinId)) {
-                            this.party.push(normJoinId);
-                        }
-                        gs.assignFormationForNewMember(normJoinId);
-                        const joinedChar = gs.getCharacter(normJoinId);
-                        if (joinedChar) {
-                            const stats = gs.calcStats(normJoinId, this.party);
-                            if (stats) {
-                                joinedChar.currentHp = stats.maxHp;
-                                joinedChar.currentSp = stats.maxSp;
+                            // 正式加入・全回復・隊列設定・即時保存
+                            const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+                            if (!currentNormParty.includes(normJoinId)) {
+                                this.party.push(normJoinId);
                             }
-                        }
-                        SaveManager.saveGame(this);
-                        console.log('[AdventureScene] Story completed -> Joined party & saved:', normJoinId);
-
-                        // 最後に「〇〇が仲間に加わった！」完了通知を出す
-                        const charName = joinedChar ? joinedChar.name : '新しい仲間';
-                        const confirmEvents = [
-                            { cmd: 'bg', key: 'ev_expr' },
-                            { cmd: 'text', name: 'システム', body: `🌸 ${charName}が正式に仲間に加わった！` }
-                        ];
-
-                        const onConfirmEnd = (cData) => {
-                            if (cData && cData.fromExploration) {
-                                this.events.off('resume', onConfirmEnd);
-                                onNextStep();
+                            gs.assignFormationForNewMember(normJoinId);
+                            const joinedChar = gs.getCharacter(normJoinId);
+                            if (joinedChar) {
+                                const stats = gs.calcStats(normJoinId, this.party);
+                                if (stats) {
+                                    joinedChar.currentHp = stats.maxHp;
+                                    joinedChar.currentSp = stats.maxSp;
+                                }
                             }
-                        };
-                        this.events.on('resume', onConfirmEnd);
+                            SaveManager.saveGame(this);
+                            console.log('[AdventureScene] Story completed -> Joined party & saved for:', normJoinId);
 
-                        this.scene.pause();
-                        this.scene.launch('EventScene', {
-                            events: confirmEvents,
-                            returnScene: 'AdventureScene',
-                            fromExploration: true
-                        });
+                            // 重複通知は挟まずスムーズに次ステップへ移行
+                            onNextStep();
+                        }
                     };
 
                     this.events.on('resume', onJoinStoryEnd);
@@ -2316,6 +2299,7 @@ export default class AdventureScene extends Phaser.Scene {
                     });
                 });
             }
+
 
             // ── シーケンスチェインの実行関数 ──
             const runSequence = () => {
