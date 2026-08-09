@@ -2197,9 +2197,15 @@ export default class AdventureScene extends Phaser.Scene {
                 }
 
                 const joinEvents = this.cache.json.get('join_events');
-                if (joinEvents && joinEvents[triggeredJoinCharId]) {
-                    events.push(...joinEvents[triggeredJoinCharId]);
+                if (joinEvents) {
+                    const charEvents = joinEvents[triggeredJoinCharId] || joinEvents[parseInt(triggeredJoinCharId, 10)];
+                    if (charEvents) {
+                        events.push(...charEvents);
+                    }
                 }
+                const charName = gs.characters[triggeredJoinCharId] ? gs.characters[triggeredJoinCharId].name : '新しい仲間';
+                events.push({ cmd: 'text', name: 'システム', body: `${charName}が仲間に加わった！` });
+
             }
 
             // EventSceneで結果表示
