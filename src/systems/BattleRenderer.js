@@ -773,11 +773,12 @@ export class BattleRenderer {
                 obj = this.scene.add.sprite(0, 0, 'slash');
                 obj.setOrigin(0.5, 1.0); // 横長だけどグラフィック上側が先端。下側が手前
                 obj.setDepth(2500);
-            } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {
+            } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit' || eff.type === 'ultimate_burst_010') {
                 obj = this.scene.add.sprite(0, 0, 'nrg');
                 obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で黒枠を完全透明化しエネルギー発光！
                 obj.setDepth(1500);
-            } else if (eff.type === 'grenade_explosion') {
+            }
+ else if (eff.type === 'grenade_explosion') {
                 obj = this.scene.add.sprite(0, 0, 'grenade_explosion');
                 const fx = Math.random() < 0.5;
                 const fy = Math.random() < 0.5;
