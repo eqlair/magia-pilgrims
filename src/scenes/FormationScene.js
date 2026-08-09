@@ -61,8 +61,34 @@ export default class FormationScene extends Phaser.Scene {
                 sprite: sprite
             });
         }
+
+        // 初期配置の重なり解消処理
+        const occupied = new Set();
+        for (const char of this.characters) {
+            const posKey = `${char.lane}_${char.isFront}`;
+            if (occupied.has(posKey)) {
+                const searchLanes = [0, -1, 1, -2, 2];
+                let resolved = false;
+                for (const isF of [false, true]) {
+                    for (const l of searchLanes) {
+                        const k = `${l}_${isF}`;
+                        if (!occupied.has(k)) {
+                            char.lane = l;
+                            char.isFront = isF;
+                            occupied.add(k);
+                            resolved = true;
+                            break;
+                        }
+                    }
+                    if (resolved) break;
+                }
+            } else {
+                occupied.add(posKey);
+            }
+        }
         
         this.updateCharacterPositions();
+
 
         // UI描画
         const saveBtn = this.add.text(width / 2, height * 0.05, '保存して戻る', {
@@ -246,14 +272,15 @@ export default class FormationScene extends Phaser.Scene {
         
         if (moved) {
             for (const otherChar of this.characters) {
-                // 同じレーンに配置される場合はスワップ（前後衛問わず同じX軸を禁止）
-                if (otherChar !== this.grabbedChar && otherChar.lane === this.grabbedChar.lane) {
+                // まったく同じ(lane, isFront)の位置に重なる場合はスワップ交換
+                if (otherChar !== this.grabbedChar && otherChar.lane === this.grabbedChar.lane && otherChar.isFront === this.grabbedChar.isFront) {
                     otherChar.lane = oldLane;
-                    // 他のキャラのisFrontはそのままにすることで純粋なレーン交換となる
+                    otherChar.isFront = oldIsFront;
                     break;
                 }
             }
         }
+
         
         this.updateCharacterPositions();
         this.grabbedChar = null;

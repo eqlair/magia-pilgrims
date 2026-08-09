@@ -192,7 +192,8 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="bc-party" value="002"> 2.蒼樹</label><br>
                 <label><input type="checkbox" class="bc-party" value="003"> 3.紅華</label><br>
                 <label><input type="checkbox" class="bc-party" value="004"> 4.黄蘭</label><br>
-                <label><input type="checkbox" class="bc-party" value="005"> 5.李乃果</label>
+                <label><input type="checkbox" class="bc-party" value="005"> 5.李乃果</label><br>
+                <label><input type="checkbox" class="bc-party" value="010"> 6.白蓮</label>
             </div>
             <div style="display:flex; justify-style:space-between;">
                 <button id="bc-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>
@@ -259,9 +260,11 @@ export default class DemoScene extends Phaser.Scene {
                 <label>参加メンバー:</label><br>
                 <label><input type="checkbox" class="ac-party" value="001" checked> 1.紫苑</label><br>
                 <label><input type="checkbox" class="ac-party" value="002"> 2.蒼樹</label><br>
-                <label><input type="checkbox" class="ac-party" value="003"> 3.黄蘭</label><br>
-                <label><input type="checkbox" class="ac-party" value="004"> 4.紅華</label><br>
-                <label><input type="checkbox" class="ac-party" value="005"> 5.李乃果</label>
+                <label><input type="checkbox" class="ac-party" value="003"> 3.紅華</label><br>
+                <label><input type="checkbox" class="ac-party" value="004"> 4.黄蘭</label><br>
+                <label><input type="checkbox" class="ac-party" value="005"> 5.李乃果</label><br>
+                <label><input type="checkbox" class="ac-party" value="010"> 6.白蓮</label>
+
             </div>
             <div style="display:flex; justify-content:space-between;">
                 <button id="ac-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>
