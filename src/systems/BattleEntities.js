@@ -361,10 +361,27 @@ export class PlayerCharacter extends BattleEntity {
                     floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "BARRIER", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
                     effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
                 }
+            } else if (this.charId === '010') {
+                // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径1mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
+                if (this.engine) {
+                    this.engine.bullets.push(new BulletEntity(this.x, this.z, {
+                        type: 'special_barrier_010',
+                        owner: 'player',
+                        sourceEntity: this,
+                        speed: 0.5,
+                        damage: 0,
+                        knockback: 40,
+                        radius: 0.5,
+                        bulletDurability: this.wlv,
+                        maxDistance: 20
+                    }));
+                }
+                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "BARRIER BULLET", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             }
 
         }
     }
+
 
     triggerUltimate(players, enemies, bullets, effects, floatingTexts, isLinked = false) {
         let spCostMultiplier = 1.0;
@@ -621,8 +638,60 @@ export class PlayerCharacter extends BattleEntity {
                     floatingTexts.push({ id: Math.random(), x: p.x, yOffset: 0, z: p.z, amount: Math.ceil(healPerPlayer), type: "heal", lifeTime: 1.0, maxLife: 1.0 });
                 }
             }
+        } else if (this.charId === '010') {
+            // 白蓮 必殺技:
+            // 消費SP: 10 + WLV, CD: 60 - WLV*2
+            // 前方に秒速2mで進む直径1mのバリア弾。攻撃力0, ノックバック40, 敵弾丸を消す。
+            // 15m進むと直径8mに拡大して破裂し、範囲内に基本攻撃力の (100 + 10 * WLV)% のダメージ！
+            const spCost = Math.floor((10 + this.wlv) * spCostMultiplier);
+            if (this.sp < spCost) return;
+            this.sp -= spCost;
+
+            const cdVal = Math.max(10, 60 - (this.wlv * 2));
+            this.ultimateCooldown = cdVal;
+            
+            const burstDmg = Math.floor(this.atk * (1.0 + (0.10 * this.wlv)) * ultimateDamageMultiplier);
+
+            const ultBullet = new Bullet(this.x, this.z, {
+                owner: 'player', isPiercing: true,
+                vx: 0, vz: 2.0, // 秒速2m前進
+                damage: 0, knockback: 40, size: 1.0, lifeTime: 10.0, type: 'ultimate_010'
+            });
+            ultBullet.sourceEntity = this;
+            ultBullet.travelDist = 0;
+
+            const self = this;
+            ultBullet.update = function(dt) {
+                this.x += this.vx * dt;
+                this.z += this.vz * dt;
+                this.travelDist += 2.0 * dt;
+                if (this.travelDist >= 15.0) {
+                    // 15m進んだら直径8m(半径4m)に大爆発！
+                    if (self.engine) {
+                        self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_010', radius: 4.0, lifeTime: 0.8 }));
+                        const targets = self.engine.enemies.filter(e => !e.isDead && !e.isDying);
+                        for (const t of targets) {
+                            const dx = t.x - this.x;
+                            const dz = t.z - this.z;
+                            if (dx*dx + dz*dz <= 16.0) { // 半径4m
+                                self.engine.applyDamage(self, t, burstDmg, 'critical', Math.sqrt(dx*dx + dz*dz), this.x, this.z);
+                                t.applyKnockback((40 * dx) / (Math.sqrt(dx*dx + dz*dz) || 1), (40 * dz) / (Math.sqrt(dx*dx + dz*dz) || 1));
+                            }
+                        }
+                    }
+                    this.isDead = true;
+                }
+            };
+
+            if (this.engine) {
+                this.engine.bullets.push(ultBullet);
+            } else {
+                bullets.push(ultBullet);
+            }
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "ULTIMATE!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
         }
     }
+
 
     hopBack() {
         if (this.animOffsetX !== 0 || this.animOffsetZ !== 0) {

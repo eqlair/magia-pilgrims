@@ -829,7 +829,19 @@ export class BattleRenderer {
 
 
 
+            if (eff.type === 'ultimate_burst_010') {
+                obj.setPosition(p.x, p.y - p.scale * 1.5);
+                obj.setTint(0x00ffff);
+                obj.setBlendMode(Phaser.BlendModes.ADD);
+                const currentRadius = (eff.radius || 4.0) * p.scale * (progress * 1.2);
+                const baseWidth = obj.width || 200;
+                obj.setScale((currentRadius * 2.5) / baseWidth);
+                obj.setAlpha(1.0 - progress);
+                return;
+            }
+
             if (eff.type === 'buff_circle' || eff.type === 'barrier_hit') {
+
 
                 // キャラクターを包むオーラ・リングエフェクト: nrg.png (200x200) スプライト
                 obj.setPosition(p.x, p.y - p.scale * 1.0); // 腰〜胸の高さ

@@ -98,8 +98,10 @@ export class GlobalState {
             '002': this.createInitialCharData('002', '蒼樹', 1),
             '003': this.createInitialCharData('003', '紅華', 1),
             '004': this.createInitialCharData('004', '黄蘭', 1),
-            '005': this.createInitialCharData('005', '李乃果', 1)
+            '005': this.createInitialCharData('005', '李乃果', 1),
+            '010': this.createInitialCharData('010', '白蓮', 1)
         };
+
         
         GlobalState.instance = this;
     }

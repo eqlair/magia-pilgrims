@@ -28,13 +28,19 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('portrait_003', 'files/CHR/003001.png');
         this.load.image('portrait_004', 'files/CHR/004001.png');
         this.load.image('portrait_005', 'files/CHR/005001.png');
+        this.load.image('portrait_010', 'files/CHR/011001.png');
 
-        // 2人目用立ち絵 (001001b.png ~ 005001b.png)
+        // 2人目用立ち絵 (001001b.png ~ 005001b.png, 011001b.png)
         this.load.image('portrait_001_b', 'files/CHR/001001b.png');
         this.load.image('portrait_002_b', 'files/CHR/002001b.png');
         this.load.image('portrait_003_b', 'files/CHR/003001b.png');
         this.load.image('portrait_004_b', 'files/CHR/004001b.png');
         this.load.image('portrait_005_b', 'files/CHR/005001b.png');
+        this.load.image('portrait_010_b', 'files/CHR/011001b.png');
+        this.load.spritesheet('mini_010', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_010', 'files/CHR/011003.png');
+        this.load.image('weapon_010b', 'files/CHR/011003b.png');
+
 
 
         // 属性アイコン
