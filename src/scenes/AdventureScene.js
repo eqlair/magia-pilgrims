@@ -366,14 +366,23 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
         
-        const partySet = new Set(initialParty || ['001']);
+        const partySet = new Set();
+        if (initialParty && Array.isArray(initialParty)) {
+            for (const rawId of initialParty) {
+                partySet.add(gs.normalizeCharId(rawId));
+            }
+        } else {
+            partySet.add('001');
+        }
+
         if (!this._initData.fromTitleNewGame && !this._initData.isTutorialStart && gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
             for (const cid of Object.keys(gs.savedFormation)) {
-                partySet.add(cid);
+                partySet.add(gs.normalizeCharId(cid));
             }
         }
         this.party = Array.from(partySet);
-        console.log('[AdventureScene] Restored party:', this.party);
+        console.log('[AdventureScene] Restored & normalized party:', this.party);
+
 
 
 
@@ -596,18 +605,19 @@ export default class AdventureScene extends Phaser.Scene {
 
 
             // GlobalState.savedFormation に存在するキャラクターを this.party に同期
-            // パーティ内の未登録キャラに自動隊列を割り当て
             for (const charId of this.party) {
-                gs.assignFormationForNewMember(charId);
+                gs.assignFormationForNewMember(gs.normalizeCharId(charId));
             }
             if (gs.savedFormation) {
-                for (const charId of Object.keys(gs.savedFormation)) {
-                    if (!this.party.includes(charId)) {
-                        this.party.push(charId);
-                        console.log('[AdventureScene] Synced missing character to party:', charId);
+                for (const rawCid of Object.keys(gs.savedFormation)) {
+                    const normCid = gs.normalizeCharId(rawCid);
+                    if (!this.party.includes(normCid)) {
+                        this.party.push(normCid);
+                        console.log('[AdventureScene] Synced missing character to party:', normCid);
                     }
                 }
             }
+
 
 
 
@@ -2150,15 +2160,18 @@ export default class AdventureScene extends Phaser.Scene {
             if (locInfo) {
                 // まだ未遭遇の特定仲間がいる場合、パーティ人数に応じた確率で遭遇
                 // 1人: 100%, 2人: 1/2(50%), 3人: 1/3(33.3%), 4人: 1/4(25%), 5人以上: 0%(発生しない)
-                if (locInfo.charId && !this.party.includes(locInfo.charId)) {
+                const targetCharId = locInfo.charId ? gs.normalizeCharId(locInfo.charId) : null;
+                const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+                if (targetCharId && !currentNormParty.includes(targetCharId)) {
                     const partySize = this.party ? this.party.length : 1;
                     if (partySize < 5) {
                         const encounterChance = 1.0 / partySize;
                         if (Math.random() < encounterChance) {
-                            triggeredJoinCharId = locInfo.charId;
+                            triggeredJoinCharId = targetCharId;
                         }
                     }
                 }
+
 
 
                 // 1/2 (50%) の確率で断片的な情報テキストを拾う
@@ -2181,20 +2194,23 @@ export default class AdventureScene extends Phaser.Scene {
 
             // 仲間遭遇が発生した場合、即座にパーティに追加して隊列割り当て・全回復・セーブし、join_eventsから立ち絵会話を追加
             if (triggeredJoinCharId) {
-                if (!this.party.includes(triggeredJoinCharId)) {
-                    this.party.push(triggeredJoinCharId);
-                    gs.assignFormationForNewMember(triggeredJoinCharId);
-                    const joinedChar = gs.characters[triggeredJoinCharId];
-                    if (joinedChar) {
-                        const stats = gs.calcStats(triggeredJoinCharId, this.party);
-                        if (stats) {
-                            joinedChar.currentHp = stats.maxHp;
-                            joinedChar.currentSp = stats.maxSp;
-                        }
-                    }
-                    SaveManager.saveGame(this);
-                    console.log('[AdventureScene] Immediate join & formation assigned for:', triggeredJoinCharId);
+                const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
+                const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+                if (!currentNormParty.includes(normJoinId)) {
+                    this.party.push(normJoinId);
                 }
+                gs.assignFormationForNewMember(normJoinId);
+                const joinedChar = gs.characters[normJoinId] || gs.characters[triggeredJoinCharId];
+                if (joinedChar) {
+                    const stats = gs.calcStats(normJoinId, this.party);
+                    if (stats) {
+                        joinedChar.currentHp = stats.maxHp;
+                        joinedChar.currentSp = stats.maxSp;
+                    }
+                }
+                SaveManager.saveGame(this);
+                console.log('[AdventureScene] Immediate join & formation assigned for:', normJoinId);
+
 
                 const joinEvents = this.cache.json.get('join_events');
                 if (joinEvents) {
