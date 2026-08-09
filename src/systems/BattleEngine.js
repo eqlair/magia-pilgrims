@@ -508,7 +508,7 @@ export class BattleEngine {
 
 
     applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null) {
-        if (defender.isDead || defender.isDying || defender.hp <= 0) return false;
+        if (!defender || defender.isDead || defender.isDying || defender.hp <= 0) return false;
         // 実体化前（スポーン演出中）は無敵
         if (defender.spawnDropTimer > 0 || defender.spawnAnimTimer > 0) return false;
 
@@ -518,6 +518,9 @@ export class BattleEngine {
 
         // --- 命中率とレベル差計算 ---
         let hitRate = 1.0;
+        let levelHitBonus = 0;
+        let levelDmgBonusAmount = 0;
+
         if (attacker && defender) {
             // Playerの場合はWLV/2を仮のレベルとする。敵はlevelプロパティ
             const atkLevel = attacker.owner === 'player' ? Math.floor((attacker.wlv || 2) / 2) : (attacker.level || 1);
@@ -527,8 +530,8 @@ export class BattleEngine {
             let distDrop = distance * 0.02;
             
             // レベル差による命中率補正: レベル差 * 5%
-            let levelHitBonus = levelDiff * 0.05;
-            let levelDmgBonusAmount = (levelDiff * 0.05 * finalDamage);
+            levelHitBonus = levelDiff * 0.05;
+            levelDmgBonusAmount = (levelDiff * 0.05 * finalDamage);
             
             // タロット効果(戦闘時)
             const activeTarots = GlobalState.getInstance().activeTarots || [];
