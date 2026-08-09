@@ -2180,59 +2180,157 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            // イベントシーンの組み立て
-            const events = [
-                { cmd: 'bg', key: 'ev_expr' }
-            ];
+            // ── 【入れ子構造シーケンスチェーンの構築】 ──
+            // ステップ順序:
+            // ① 探索結果表示 (食料入手 & 探索メモ)
+            // ② レリクス／宝箱ドロップ獲得表示
+            // ③ 特定仲間出会いストーリーイベント (遭遇時)
+            // ④ 正式仲間加入 (パーティ追加・全回復・隊列登録・即時保存)
+            // ⑤ 時間経過 & アドベンチャー復帰
 
-            const resultFoodText = isGeneric ? '探索を行い、一定量の食料を手に入れた。' : '探索を行い、充分な量の食料を手に入れた。';
-            events.push({ cmd: 'text', name: '', body: resultFoodText });
+            const steps = [];
 
-            if (infoText) {
-                events.push({ cmd: 'text', name: '探索メモ', body: infoText });
-            }
-
-            // 仲間遭遇が発生した場合、即座にパーティに追加して隊列割り当て・全回復・セーブし、join_eventsから立ち絵会話を追加
-            if (triggeredJoinCharId) {
-                const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
-                const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
-                if (!currentNormParty.includes(normJoinId)) {
-                    this.party.push(normJoinId);
+            // ── ステップ①: 探索結果ダイアログ (食料・探索メモ) ──
+            steps.push((onNextStep) => {
+                const exprEvents = [
+                    { cmd: 'bg', key: 'ev_expr' }
+                ];
+                const resultFoodText = isGeneric ? '探索を行い、一定量の食料を手に入れた。' : '探索を行い、充分な量の食料を手に入れた。';
+                exprEvents.push({ cmd: 'text', name: '', body: resultFoodText });
+                if (infoText) {
+                    exprEvents.push({ cmd: 'text', name: '探索メモ', body: infoText });
                 }
-                gs.assignFormationForNewMember(normJoinId);
-                const joinedChar = gs.characters[normJoinId] || gs.characters[triggeredJoinCharId];
-                if (joinedChar) {
-                    const stats = gs.calcStats(normJoinId, this.party);
-                    if (stats) {
-                        joinedChar.currentHp = stats.maxHp;
-                        joinedChar.currentSp = stats.maxSp;
+
+                const onEventEnd = (data) => {
+                    if (data && data.fromExploration) {
+                        this.events.off('resume', onEventEnd);
+                        onNextStep();
                     }
-                }
-                SaveManager.saveGame(this);
-                console.log('[AdventureScene] Immediate join & formation assigned for:', normJoinId);
+                };
+                this.events.on('resume', onEventEnd);
 
-
-                const joinEvents = this.cache.json.get('join_events');
-                if (joinEvents) {
-                    const charEvents = joinEvents[triggeredJoinCharId] || joinEvents[parseInt(triggeredJoinCharId, 10)];
-                    if (charEvents) {
-                        events.push(...charEvents);
-                    }
-                }
-                const charName = gs.characters[triggeredJoinCharId] ? gs.characters[triggeredJoinCharId].name : '新しい仲間';
-                events.push({ cmd: 'text', name: 'システム', body: `${charName}が仲間に加わった！` });
-
-            }
-
-            // EventSceneで結果表示
-            this.scene.pause();
-            this.scene.launch('EventScene', {
-                events: events,
-                returnScene: 'AdventureScene',
-                fromExploration: true,
-                explorationDrops: drops,
-                joinCharacterId: triggeredJoinCharId
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: exprEvents,
+                    returnScene: 'AdventureScene',
+                    fromExploration: true
+                });
             });
+
+            // ── ステップ②: レリクス・ドロップ表示 ──
+            if (drops && drops.length > 0) {
+                steps.push((onNextStep) => {
+                    const dropNames = drops.map(d => d.name || '珍しいアイテム').join('、');
+                    const dropEvents = [
+                        { cmd: 'bg', key: 'ev_expr' },
+                        { cmd: 'text', name: '探索成果', body: `探索の成果として【${dropNames}】を手に入れた！` }
+                    ];
+
+                    const onDropEnd = (data) => {
+                        if (data && data.fromExploration) {
+                            this.events.off('resume', onDropEnd);
+                            onNextStep();
+                        }
+                    };
+                    this.events.on('resume', onDropEnd);
+
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: dropEvents,
+                        returnScene: 'AdventureScene',
+                        fromExploration: true
+                    });
+                });
+            }
+
+            // ── ステップ③: 特定仲間の出会いストーリーイベント ──
+            if (triggeredJoinCharId) {
+                steps.push((onNextStep) => {
+                    const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
+                    const joinEventsJson = this.cache.json.get('join_events');
+                    let storyEvents = [];
+
+                    if (joinEventsJson) {
+                        storyEvents = joinEventsJson[normJoinId] || joinEventsJson[parseInt(normJoinId, 10)] || [];
+                    }
+
+                    if (!storyEvents || storyEvents.length === 0) {
+                        const charName = gs.getCharacter(normJoinId)?.name || '新しい仲間';
+                        storyEvents = [
+                            { cmd: 'bg', key: 'ev_expr' },
+                            { cmd: 'text', name: '遭遇', body: `${hexName}にて${charName}と出会った！` }
+                        ];
+                    }
+
+                    // ストーリーイベントが終了した時点で正式加入処理を実行！
+                    const onJoinStoryEnd = (data) => {
+                        this.events.off('resume', onJoinStoryEnd);
+
+                        // 正式加入・全回復・隊列設定・即時保存
+                        const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+                        if (!currentNormParty.includes(normJoinId)) {
+                            this.party.push(normJoinId);
+                        }
+                        gs.assignFormationForNewMember(normJoinId);
+                        const joinedChar = gs.getCharacter(normJoinId);
+                        if (joinedChar) {
+                            const stats = gs.calcStats(normJoinId, this.party);
+                            if (stats) {
+                                joinedChar.currentHp = stats.maxHp;
+                                joinedChar.currentSp = stats.maxSp;
+                            }
+                        }
+                        SaveManager.saveGame(this);
+                        console.log('[AdventureScene] Story completed -> Joined party & saved:', normJoinId);
+
+                        // 最後に「〇〇が仲間に加わった！」完了通知を出す
+                        const charName = joinedChar ? joinedChar.name : '新しい仲間';
+                        const confirmEvents = [
+                            { cmd: 'bg', key: 'ev_expr' },
+                            { cmd: 'text', name: 'システム', body: `🌸 ${charName}が正式に仲間に加わった！` }
+                        ];
+
+                        const onConfirmEnd = (cData) => {
+                            if (cData && cData.fromExploration) {
+                                this.events.off('resume', onConfirmEnd);
+                                onNextStep();
+                            }
+                        };
+                        this.events.on('resume', onConfirmEnd);
+
+                        this.scene.pause();
+                        this.scene.launch('EventScene', {
+                            events: confirmEvents,
+                            returnScene: 'AdventureScene',
+                            fromExploration: true
+                        });
+                    };
+
+                    this.events.on('resume', onJoinStoryEnd);
+
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: storyEvents,
+                        returnScene: 'AdventureScene',
+                        fromExploration: true
+                    });
+                });
+            }
+
+            // ── シーケンスチェインの実行関数 ──
+            const runSequence = () => {
+                if (steps.length === 0) {
+                    // 全ステップ完了！ 時間を経過させてアドベンチャーに戻る
+                    this._advanceTimeAfterExploration();
+                    return;
+                }
+                const nextStep = steps.shift();
+                nextStep(runSequence);
+            };
+
+            // シーケンス開始！
+            runSequence();
+
 
         });
     }
