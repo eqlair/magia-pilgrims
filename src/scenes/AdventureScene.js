@@ -2148,12 +2148,18 @@ export default class AdventureScene extends Phaser.Scene {
             let infoText = null;
 
             if (locInfo) {
-                // まだ未遭遇の特定仲間がいる場合、1/5 (20%) の確率で遭遇
+                // まだ未遭遇の特定仲間がいる場合、パーティ人数に応じた確率で遭遇
+                // 1人: 100%, 2人: 1/2(50%), 3人: 1/3(33.3%), 4人: 1/4(25%), 5人以上: 0%(発生しない)
                 if (locInfo.charId && !this.party.includes(locInfo.charId)) {
-                    if (Math.random() < 0.20) {
-                        triggeredJoinCharId = locInfo.charId;
+                    const partySize = this.party ? this.party.length : 1;
+                    if (partySize < 5) {
+                        const encounterChance = 1.0 / partySize;
+                        if (Math.random() < encounterChance) {
+                            triggeredJoinCharId = locInfo.charId;
+                        }
                     }
                 }
+
 
                 // 1/2 (50%) の確率で断片的な情報テキストを拾う
                 if (locInfo.text && Math.random() < 0.50) {
