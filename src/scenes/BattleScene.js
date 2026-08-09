@@ -47,7 +47,10 @@ export default class BattleScene extends Phaser.Scene {
         this.load.spritesheet('battle_005_b', '/files/CHR/005002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_005', '/files/CHR/005003.png');
 
-
+        this.load.spritesheet('battle_010', '/files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_010_b', '/files/CHR/011002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_010', '/files/CHR/011003.png');
+        this.load.image('weapon_010b', '/files/CHR/011003b.png');
 
         // 雑魚敵（画像全体の幅1200px, 高さ300px -> 4分割で300x300）
         for (let i = 1; i <= 3; i++) {

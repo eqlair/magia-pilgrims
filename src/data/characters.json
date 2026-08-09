@@ -2206,6 +2206,75 @@
           ]
         }
       }
+    },
+    "010": {
+      "name": "白蓮",
+      "baseHp": 750,
+      "baseSp": 1250,
+      "baseAtk": 100,
+      "weight": 41,
+      "patterns": {
+        "far": {
+          "1": [
+            { "name": "レーザー", "type": "laser_010", "power": 50, "reload": 0.1, "count": 1, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "2": [
+            { "name": "レーザー", "type": "laser_010", "power": 30, "reload": 0.1, "count": 2, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "3": [
+            { "name": "レーザー", "type": "laser_010", "power": 24, "reload": 0.1, "count": 3, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "4": [
+            { "name": "レーザー", "type": "laser_010", "power": 20, "reload": 0.1, "count": 4, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "5": [
+            { "name": "レーザー", "type": "laser_010", "power": 18, "reload": 0.1, "count": 5, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "6": [
+            { "name": "レーザー", "type": "laser_010", "power": 17, "reload": 0.1, "count": 6, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "7": [
+            { "name": "レーザー", "type": "laser_010", "power": 17, "reload": 0.1, "count": 7, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ]
+        },
+        "near": {
+          "1": [
+            { "name": "バリア", "type": "barrier_010", "power": 50, "reload": 0.3, "count": 1, "speed": 1, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
+            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 1.5, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+          ],
+          "2": [
+            { "name": "バリア", "type": "barrier_010", "power": 50, "reload": 0.3, "count": 1, "speed": 1, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
+            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 1.5, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+          ],
+          "3": [
+            { "name": "バリア", "type": "barrier_010", "power": 50, "reload": 0.3, "count": 1, "speed": 1, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
+            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 1.5, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+          ],
+          "4": [
+            { "name": "バリア", "type": "barrier_010", "power": 50, "reload": 0.3, "count": 2, "speed": 1, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
+            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 1.5, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+          ],
+          "5": [
+            { "name": "バリア", "type": "barrier_010", "power": 50, "reload": 0.3, "count": 2, "speed": 1, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
+            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 1.5, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+          ],
+          "6": [
+            { "name": "バリア", "type": "barrier_010", "power": 50, "reload": 0.3, "count": 2, "speed": 1, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
+            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 1.5, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+          ],
+          "7": [
+            { "name": "バリア", "type": "barrier_010", "power": 50, "reload": 0.3, "count": 3, "speed": 1, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
+            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 1.5, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+          ]
+        }
+      }
     }
   }
 }

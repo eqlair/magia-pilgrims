@@ -81,6 +81,9 @@ export class BattleRenderer {
             else if (b.type === 'weapon_004' || b.type === 'swing_004') textureKey = 'weapon_004';
             else if (b.type === 'weapon_005' || b.type === 'swing_005') textureKey = 'weapon_005';
             else if (b.type === 'swing_ultimate_002') textureKey = 'weapon_002';
+            else if (b.type === 'laser_010') textureKey = 'weapon_010';
+            else if (b.type === 'barrier_010') textureKey = 'weapon_010b';
+            else if (b.type === 'special_barrier_010' || b.type === 'ultimate_010') textureKey = 'nrg';
             // 汎用: swing_XXX 形式
             else if (b.type && b.type.startsWith('swing_')) {
                 const id = b.type.replace('swing_', '');
@@ -90,9 +93,17 @@ export class BattleRenderer {
 
             if (textureKey) {
                 this._updateSprite(b, textureKey);
+                if (b.type === 'special_barrier_010' || b.type === 'ultimate_010' || b.type === 'barrier_010') {
+                    const sprite = this.bulletSprites.get(b);
+                    if (sprite) {
+                        sprite.setTint(0x00ffff);
+                        sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    }
+                }
             }
 
         }
+
         
         // キック弾丸・爆発エフェクトの Graphics 描画
         if (!this.aoeGraphics) {
