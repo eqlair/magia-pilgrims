@@ -934,7 +934,6 @@ export default class AdventureScene extends Phaser.Scene {
         this.restBtn.on('pointerdown', () => {
             this.restBtn.setScale(kyuuScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
-            if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) {
                 this.inRestMode = true;
                 SaveManager.saveGame(this);
@@ -954,7 +953,6 @@ export default class AdventureScene extends Phaser.Scene {
         this.statusBtn.on('pointerdown', () => {
             this.statusBtn.setScale(statScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
-            if (this.check1221NightForcedBreakthrough()) return;
             this.scene.pause();
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
             const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_woods.jpg';
@@ -2921,26 +2919,28 @@ export default class AdventureScene extends Phaser.Scene {
         this.scene.launch('BattleScene', config);
     }
 
-    /** 12/21夜の地名なしヘクスでの行動チェック */
+    /** 12/21夜に名前付き土地も含め「探索」や「移動」などの行動を起こした時の強制作動（ワイルドハント発生／突破戦へ） */
     check1221NightForcedBreakthrough() {
         if (this.is1221WildhuntPendingBreakthrough) {
             this.is1221WildhuntPendingBreakthrough = false;
             this.start1221Breakthrough();
             return true;
         }
-        if (this.currentDay === 21 && this.timePeriodIndex === 2) {
-            const currentHex = this.grid[this.playerRow]?.[this.playerCol];
-            const GAME_NAMED_SPOTS = [
-                'スカイツリー', '品川', '京橋', '新宿', '東京城', '大手門', '東京',
-                '新大久保', '丸の内', '中野', '桜田筋', '中央筋', '青山筋', '上野',
-                '秋葉原', '水道橋', '池袋', '東京タワー', '舞浜', '山谷', 'リトル沖縄',
-                '葛西臨海公園', 'ティスティニーランド', '神田明神', '路面電車', '平和島',
-                'ニュートラム', 'ビッグサイト', 'シルバードーム'
-            ];
-            const rawName = (currentHex && currentHex.cellData && currentHex.cellData.name) ? currentHex.cellData.name.replace(/\n/g, '').trim() : '';
-            const isNamedSpot = (currentHex && currentHex.cellData && currentHex.cellData.isSpot) || GAME_NAMED_SPOTS.includes(rawName);
-
-            if (!isNamedSpot) {
+        if (this.currentMonth === 12 && this.currentDay === 21 && this.timePeriodIndex === 2) {
+            const gs = GlobalState.getInstance();
+            // ワイルドハント未体験であれば白画面フェード演出＋ワイルドハントイベントを発生
+            if (!gs.event1221WildhuntPlayed) {
+                gs.event1221WildhuntPlayed = true;
+                const commands = build1221WildhuntCommands(this.party);
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: commands,
+                    returnScene: 'AdventureScene',
+                    from1221WildhuntEvent: true
+                });
+                return true;
+            } else {
+                // すでにイベント閲覧済みならそのまま直接突破戦へ強制突入
                 this.start1221Breakthrough();
                 return true;
             }
