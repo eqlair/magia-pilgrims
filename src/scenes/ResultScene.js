@@ -38,6 +38,11 @@ export default class ResultScene extends Phaser.Scene {
             this.tweens.add({ targets: resultBgm, volume: 0.8, duration: 1000 });
         }
 
+        // 取得経験値の2倍ブースト計算（①過去最高記録以下なら2倍！）
+        const rawEarnedExp = data.earnedExp || 0;
+        this.isExpBoosted = (this.globalState.currentRunTotalExp || 0) < (this.globalState.maxPastExp || 0);
+        this.earnedExp = this.globalState.addRunExp(rawEarnedExp);
+
         // 取得経験値とストック経験値の更新
         this.globalState.stockExp += this.earnedExp;
         const stockExp = this.globalState.stockExp;
@@ -47,13 +52,15 @@ export default class ResultScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '48px', color: '#ffcc00', fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, 160, `獲得経験値：${this.earnedExp}　獲得SP：${this.earnedSp}`, {
-            fontFamily: 'sans-serif', fontSize: '25px', color: '#ffffff'
+        const boostText = this.isExpBoosted ? ' 🔥[2倍ボーナス発動中!]' : '';
+        this.add.text(width / 2, 160, `獲得経験値：${this.earnedExp}${boostText}　獲得SP：${this.earnedSp}`, {
+            fontFamily: 'sans-serif', fontSize: '23px', color: this.isExpBoosted ? '#ffdd00' : '#ffffff', fontStyle: this.isExpBoosted ? 'bold' : 'normal'
         }).setOrigin(0.5);
 
         this.add.text(width / 2, 210, `ストック経験値：${stockExp}　ストックSP：${this.globalState.stockSp}`, {
             fontFamily: 'sans-serif', fontSize: '25px', color: '#aaaaff'
         }).setOrigin(0.5);
+
 
         const expPerMember = Math.floor(this.earnedExp / this.party.length);
         const startY = 320;

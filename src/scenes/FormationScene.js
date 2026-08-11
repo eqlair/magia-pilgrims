@@ -138,6 +138,30 @@ export default class FormationScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold'
         }).setOrigin(0.5, 0.5).setAlpha(0.6);
 
+        // ── 画面最下部：周回経験値ボーナス情報の常時表示 ──
+        const maxExp = this.globalState.maxPastExp || 0;
+        const curExp = this.globalState.currentRunTotalExp || 0;
+        const isBoost = curExp < maxExp;
+
+        const maxExpStr = maxExp.toLocaleString();
+        const curExpStr = curExp.toLocaleString();
+
+        const bgBox = this.add.rectangle(width / 2, height - 42, width - 30, 56, 0x000000, 0.8)
+            .setStrokeStyle(2, isBoost ? 0xffcc00 : 0x556688)
+            .setOrigin(0.5, 0.5);
+
+        const statusTag = isBoost ? '🔥 [2倍ブースト中!]' : '✨ [通常倍率]';
+        const statusColor = isBoost ? '#ffdd00' : '#88aaff';
+
+        this.add.text(width / 2, height - 56, `🏆 過去最高EXP: ${maxExpStr}`, {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5, 0.5);
+
+        this.add.text(width / 2, height - 28, `🏃 今周獲得EXP: ${curExpStr} / ${maxExpStr}  ${statusTag}`, {
+            fontFamily: 'sans-serif', fontSize: '14px', color: statusColor, fontStyle: 'bold'
+        }).setOrigin(0.5, 0.5);
+
+
         // スワイプ操作の実装
         this.input.on('pointerdown', this.onPointerDown, this);
         this.input.on('pointerup', this.onPointerUp, this);

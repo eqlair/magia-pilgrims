@@ -85,6 +85,11 @@ export class GlobalState {
         this.tutorialGameOverSeen = false;
         this.tutorialStep = 0;
 
+        // ── 周回経験値ブーストシステム ──
+        this.maxPastExp = 0;           // ① 過去最高獲得経験値 (1周での歴代最大)
+        this.currentRunTotalExp = 0;   // ② 今周の総獲得経験値
+
+
 
 
 
@@ -751,6 +756,9 @@ export class GlobalState {
             event1214Played: this.event1214Played,
             event1221Played: this.event1221Played,
 
+            maxPastExp: this.maxPastExp || 0,
+            currentRunTotalExp: this.currentRunTotalExp || 0,
+
             characters: JSON.parse(JSON.stringify(this.characters))
         };
     }
@@ -759,6 +767,27 @@ export class GlobalState {
         if (!data) return;
         Object.assign(this, JSON.parse(JSON.stringify(data)));
     }
+
+    // 周回経験値の加算処理（①過去最高記録以下なら2倍ブースト！）
+    addRunExp(baseExp) {
+        const rawAmount = Math.max(0, Math.floor(baseExp || 0));
+        if (rawAmount <= 0) return 0;
+
+        // ②が①未満なら2倍ブースト適用！
+        const isBoostActive = (this.currentRunTotalExp || 0) < (this.maxPastExp || 0);
+        const finalExp = isBoostActive ? (rawAmount * 2) : rawAmount;
+
+        this.currentRunTotalExp = (this.currentRunTotalExp || 0) + finalExp;
+        return finalExp;
+    }
+
+    // 周回終了・ゲームオーバー/クリアリセット時の処理
+    finishCurrentRun() {
+        this.maxPastExp = Math.max(this.maxPastExp || 0, this.currentRunTotalExp || 0);
+        this.currentRunTotalExp = 0;
+        this.save();
+    }
+
 
     rollAttackLevelGacha(charId, isFront) {
         const char = this.characters[charId];
