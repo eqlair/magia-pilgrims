@@ -368,6 +368,7 @@ export default class TarotScene extends Phaser.Scene {
         const map = {
             4: '004',   // 黄蘭
             9: '003',   // 紅華
+            10: '010',  // 白蓮
             12: '002',  // 蒼樹
             15: '005'   // 李乃果
         };
