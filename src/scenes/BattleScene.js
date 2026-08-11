@@ -145,10 +145,16 @@ export default class BattleScene extends Phaser.Scene {
 
         // 背景設定（突破モード: rule===2 の場合は floor_a を疑似3D平面メッシュ化して舞台と同じ角度に傾斜）
         if (this.battleConfig.rule === 2) {
-            // 既存BGMを停止して突破専用BGM (toppa.mp3) をループ再生
-            this.sound.stopAll();
-            if (this.cache.audio.exists('bgm_toppa')) {
-                this.sound.play('bgm_toppa', { loop: true, volume: 0.6 });
+            // 既にBGMが再生中（ワイルドハントBGM等）であればそれを引き続き再生し、新たにBGMは再生しない
+            let isAnyBgmPlaying = false;
+            if (this.sound && this.sound.sounds) {
+                isAnyBgmPlaying = this.sound.sounds.some(s => s && s.isPlaying);
+            }
+
+            if (!isAnyBgmPlaying) {
+                if (this.cache.audio.exists('bgm_toppa')) {
+                    this.sound.play('bgm_toppa', { loop: true, volume: 0.6 });
+                }
             }
 
             this.initGroundMesh();

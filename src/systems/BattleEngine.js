@@ -128,6 +128,9 @@ export class BattleEngine {
         this.breakthroughTarget = this.config.breakthroughTarget || 42195;
         this.advanceSpeed = 8.0; // 初期速度 (8.0m/s)
 
+        this.isWildhunt = (this.config.isWildhunt || this.config.is1221Breakthrough) || false;
+        this.wildhuntElapsedSec = 0;
+
         if (this.rule === 2) {
             // テスト突入などで値が指定されていない場合のデフォルト値: LV1, 数量50, 出現頻度1.0秒
             this.enemyLevel = this.config.enemyLevel !== undefined ? Math.max(1, (this.config.enemyLevel || 1) + gs.extraEnemyLevel) : 1;
@@ -707,6 +710,12 @@ export class BattleEngine {
                 finalDamage *= 2.0;
             }
 
+            // ワイルドハント突破戦限定デバフ: メンバー全員の攻撃力が1秒ごとに0.1%ずつ減少 (0.001 * 秒数)
+            if (attacker.owner === 'player' && this.isWildhunt) {
+                const wildhuntDebuffFactor = Math.max(0, 1.0 - (this.wildhuntElapsedSec * 0.001));
+                finalDamage *= wildhuntDebuffFactor;
+            }
+
 
             if (finalDamage < 1) finalDamage = 1;
             finalDamage = Math.ceil(finalDamage);
@@ -870,6 +879,9 @@ export class BattleEngine {
 
     update(dt) {
         this.time += dt;
+        if (this.isWildhunt && this.waveState !== 'gameover' && this.waveState !== 'cleared') {
+            this.wildhuntElapsedSec += dt;
+        }
 
         // 全滅判定
         if (this.waveState === 'playing' || this.waveState === 'boss' || this.waveState === 'intermission') {

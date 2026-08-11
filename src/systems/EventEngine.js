@@ -77,6 +77,7 @@ export class EventEngine {
             case 'chara':     this._showChara(cmd.key, cmd.pos, () => this._processNext()); break;
             case 'text':      this._showText(cmd.name, cmd.body || cmd.text);             break; // タップ待ち
             case 'clearText': this._clearText(() => this._processNext());                 break;
+            case 'fadeWhite': this._fadeWhite(cmd.duration || 1000, () => this._processNext()); break;
             case 'bgm':       this._changeBgm(cmd.key, () => this._processNext());        break;
             case 'bgmStop':   this._stopBgm(() => this._processNext());                   break; // フェード完了を待つ
             case 'se':        this._playSe(cmd.key); this._processNext();                 break; // ノンブロッキング
@@ -87,6 +88,23 @@ export class EventEngine {
                 console.warn(`EventEngine: 不明なコマンド "${cmd.cmd}"`);
                 this._processNext();
         }
+    }
+
+    /** 画面を白くフェードインさせる演出 */
+    _fadeWhite(duration, cb) {
+        const { width, height } = this.scene.scale;
+        const rect = this.scene.add.rectangle(width / 2, height / 2, width * 2, height * 2, 0xffffff)
+            .setAlpha(0)
+            .setDepth(50);
+
+        this.scene.tweens.add({
+            targets: rect,
+            alpha: 1,
+            duration: duration,
+            onComplete: () => {
+                if (cb) cb();
+            }
+        });
     }
 
     // ─────────────────────────────────────────────────────

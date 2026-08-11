@@ -31,6 +31,7 @@ export default class EventScene extends Phaser.Scene {
         this.from1207Event = data.from1207Event || false;
         this.from1214Event = data.from1214Event || false;
         this.from1221Event = data.from1221Event || false;
+        this.from1221WildhuntEvent = data.from1221WildhuntEvent || false;
         this.fromRespEvent = data.fromRespEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
@@ -195,6 +196,15 @@ export default class EventScene extends Phaser.Scene {
             onComplete: () => {
                 if (this.fromOpTutorial && this.battleConfig) {
                     TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
+                    return;
+                }
+
+                if (this.from1221WildhuntEvent) {
+                    const advScene = this.scene.get('AdventureScene');
+                    this.scene.stop();
+                    if (advScene && typeof advScene.start1221Breakthrough === 'function') {
+                        advScene.start1221Breakthrough();
+                    }
                     return;
                 }
 

@@ -27,6 +27,7 @@ export function build1221WildhuntCommands(party = ['001']) {
     };
 
     const commands = [
+        { cmd: 'fadeWhite', duration: 1000 },
         { cmd: 'image', key: 'bg_wildhunt' },
         { cmd: 'bgm', key: 'bgm_wildhunt' },
         { cmd: 'text', name: '', text: '12月21日、夜。' },
