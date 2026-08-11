@@ -2229,8 +2229,11 @@ export default class AdventureScene extends Phaser.Scene {
                     exprEvents.push({ cmd: 'text', name: '探索メモ', body: infoText });
                 }
 
+                let stepDone = false;
                 const onEventEnd = (data) => {
                     if (data && data.fromExploration) {
+                        if (stepDone) return;
+                        stepDone = true;
                         this.events.off('resume', onEventEnd);
                         onNextStep();
                     }
@@ -2254,8 +2257,11 @@ export default class AdventureScene extends Phaser.Scene {
                         { cmd: 'text', name: '探索成果', body: `探索の成果として【${dropNames}】を手に入れた！` }
                     ];
 
+                    let dropDone = false;
                     const onDropEnd = (data) => {
                         if (data && data.fromExploration) {
+                            if (dropDone) return;
+                            dropDone = true;
                             this.events.off('resume', onDropEnd);
                             onNextStep();
                         }
@@ -2266,7 +2272,8 @@ export default class AdventureScene extends Phaser.Scene {
                     this.scene.launch('EventScene', {
                         events: dropEvents,
                         returnScene: 'AdventureScene',
-                        fromExploration: true
+                        fromExploration: true,
+                        explorationDrops: drops
                     });
                 });
             }
@@ -2342,7 +2349,10 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
                 const nextStep = steps.shift();
-                nextStep(runSequence);
+                // 10msの微小ディレイを挟んで、前ステップのresumeイベント伝播との同期干渉を完全に防ぐ
+                this.time.delayedCall(10, () => {
+                    nextStep(runSequence);
+                });
             };
 
             // シーケンス開始！
