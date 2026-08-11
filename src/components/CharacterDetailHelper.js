@@ -232,6 +232,13 @@ export class CharacterDetailHelper {
         ry += lineSpacing * 1.0;
 
 
+        // 所持インベントリに未装備のレリクス・宝石があるかチェック
+        const availableRelicsCount = (globalState.inventory && globalState.inventory.relics) ? globalState.inventory.relics.length : 0;
+        const availableGemsCount = (globalState.inventory && globalState.inventory.gems) ? globalState.inventory.gems.length : 0;
+        const hasAvailableRelic = availableRelicsCount > 0;
+        const hasAvailableGem = availableGemsCount > 0;
+
+
         // 8行目: 宝石
         targetContainer.add(scene.add.text(rx, ry, '装備中の宝石', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
         ry += 25;
@@ -239,14 +246,24 @@ export class CharacterDetailHelper {
         let gemText = '装備なし';
         let gemColor = '#777777';
         let gemBgHeight = 30;
+        let gemBgColor = 0x222222;
+        let isGemAlert = false;
         
         if (charData.equipGem) {
             gemColor = CharacterDetailHelper.getRankColor(charData.equipGem.rank);
             const rankStr = CharacterDetailHelper.getRankString(charData.equipGem.rank);
             gemText = `[${rankStr}] ${charData.equipGem.name}`;
+        } else if (hasAvailableGem) {
+            isGemAlert = true;
+            gemBgColor = 0x441111;
+            gemText = '装備なし (装備可能!)';
+            gemColor = '#ff6666';
         }
         
-        const gemBg = scene.add.rectangle(rx, ry, width * 0.45, gemBgHeight, 0x222222).setOrigin(0, 0).setInteractive();
+        const gemBg = scene.add.rectangle(rx, ry, width * 0.45, gemBgHeight, gemBgColor).setOrigin(0, 0).setInteractive();
+        if (isGemAlert) {
+            gemBg.setStrokeStyle(2, 0xff3333); // 赤枠線でアピール！
+        }
         gemBg.on('pointerdown', () => {
             scene.scene.pause();
             scene.scene.launch('EquipmentScene', { charId, itemType: 'gem', slotIndex: 0, parentScene: parentSceneName });
@@ -271,8 +288,21 @@ export class CharacterDetailHelper {
         for (let i = 0; i < 5; i++) {
             const requiredLevel = 1 + i * 4;
             const isUnlocked = (charData.level >= requiredLevel);
+            const isEquipped = !!(charData.equipRelics && charData.equipRelics[i]);
 
-            const relicBg = scene.add.rectangle(relicStartX, ry, relicWidth, 30, 0x111111, 0.8).setOrigin(0, 0);
+            let relicBgColor = 0x111111;
+            let isRelicAlert = false;
+
+            if (isUnlocked && !isEquipped && hasAvailableRelic) {
+                isRelicAlert = true;
+                relicBgColor = 0x441111;
+            }
+
+            const relicBg = scene.add.rectangle(relicStartX, ry, relicWidth, 30, relicBgColor, 0.9).setOrigin(0, 0);
+            if (isRelicAlert) {
+                relicBg.setStrokeStyle(2, 0xff3333); // 赤枠線でアピール！
+            }
+
             if (isUnlocked) {
                 relicBg.setInteractive();
                 relicBg.on('pointerdown', () => {
@@ -291,7 +321,7 @@ export class CharacterDetailHelper {
                 rColor = '#ffffff';
                 const rEmptyText = scene.add.text(relicStartX + 10, ry + 5, relicText, { stroke: '#000000', strokeThickness: 3, fontFamily: FONT_MAIN, fontSize: fontSize.body(width), color: rColor });
                 targetContainer.add(rEmptyText);
-            } else if (charData.equipRelics && charData.equipRelics[i]) {
+            } else if (isEquipped) {
                 const r = charData.equipRelics[i];
                 rColor = CharacterDetailHelper.getRankColor(r.rank);
                 
@@ -301,6 +331,10 @@ export class CharacterDetailHelper {
                 rNameText.on('pointerdown', () => relicBg.emit('pointerdown'));
                 targetContainer.add(rNameText);
             } else {
+                if (isRelicAlert) {
+                    relicText = `${i+1}. 装備なし (装備可能!)`;
+                    rColor = '#ff6666';
+                }
                 const rEmptyText = scene.add.text(relicStartX + 10, ry + 5, relicText, { stroke: '#000000', strokeThickness: 3, fontFamily: FONT_MAIN, fontSize: fontSize.body(width), color: rColor }).setInteractive();
                 rEmptyText.on('pointerdown', () => relicBg.emit('pointerdown'));
                 targetContainer.add(rEmptyText);
@@ -308,6 +342,7 @@ export class CharacterDetailHelper {
             
             ry += 35;
         }
+
 
         // ストック経験値を右下に配置
         const stockExpText = scene.add.text(width - 20, height - 20, `ストックSP: ${globalState.stockSp}　ストックEXP: ${globalState.stockExp}`, { stroke: '#000000', strokeThickness: 3, fontSize: '20px', color: '#ffffaa' }).setOrigin(1, 1);

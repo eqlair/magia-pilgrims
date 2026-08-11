@@ -213,9 +213,13 @@ export default class EquipmentScene extends Phaser.Scene {
         }
 
         if (!item) {
-            container.add(this.add.text(x, y, `${prefix}--- 空き ---`, { fontSize: nameFontSize, color: '#555555' }));
+            const hasItems = this.getInventoryItems().length > 0;
+            const textStr = hasItems ? `${prefix}--- 未装備 (装備可能!) ---` : `${prefix}--- 空き ---`;
+            const textColor = hasItems ? '#ff6666' : '#555555';
+            container.add(this.add.text(x, y, textStr, { fontSize: nameFontSize, color: textColor, fontStyle: hasItems ? 'bold' : 'normal' }));
             return;
         }
+
         let currentX = x;
         if (prefix) {
             const pTxt = this.add.text(currentX, y, prefix, { fontSize: nameFontSize, color: '#aaaaaa' });
