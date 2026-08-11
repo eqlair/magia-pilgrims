@@ -91,16 +91,17 @@ export class EventEngine {
         }
     }
 
-    /** 画面を白くフェードインさせる演出（白くなった後、スムーズにフェードアウトしてイベント絵を見せる） */
+    /** 画面を白くフェードインさせる演出（マップ背景を真っ白に塗りつぶし、その上にイベントCGを描画させる） */
     _fadeWhite(duration, cb) {
         const { width, height } = this.scene.scale;
         if (this.whiteRect) {
             this.whiteRect.destroy();
             this.whiteRect = null;
         }
+        // 背景(5000)の上、イベントCG(5005)の下のレイヤー(5001)にホワイトアウト背景を作成
         this.whiteRect = this.scene.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
             .setAlpha(0)
-            .setDepth(6000);
+            .setDepth(5001);
 
         this.scene.tweens.add({
             targets: this.whiteRect,
@@ -108,19 +109,6 @@ export class EventEngine {
             duration: duration,
             onComplete: () => {
                 if (cb) cb();
-                if (this.whiteRect) {
-                    this.scene.tweens.add({
-                        targets: this.whiteRect,
-                        alpha: 0,
-                        duration: 1000,
-                        onComplete: () => {
-                            if (this.whiteRect) {
-                                this.whiteRect.destroy();
-                                this.whiteRect = null;
-                            }
-                        }
-                    });
-                }
             }
         });
     }

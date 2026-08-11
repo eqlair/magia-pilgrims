@@ -593,6 +593,12 @@ export default class AdventureScene extends Phaser.Scene {
 
         if (this.player) this.player.setVisible(true);
 
+        // 1221wildhuntイベント復帰時 -> マップ画面の復帰・BGM上書き・フェードインを一切挟まず即座に突破戦へ直行！
+        if (data && data.from1221WildhuntEvent) {
+            this.start1221Breakthrough();
+            return;
+        }
+
             // タロット復帰時：塔の正位置などで仲間が離脱した場合にマップパーティを最新同期
             if (data && data.fromTarot) {
                 if (gs.lastTowerRemovedCharId) {
