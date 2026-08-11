@@ -12,6 +12,7 @@ export default class ResultScene extends Phaser.Scene {
 
     init(data) {
         this.party = data.party || ['001'];
+        this.rawEarnedExp = data.earnedExp || 0;
         this.earnedExp = data.earnedExp || 0;
         this.earnedSp = data.earnedSp || 0;
         this.returnScene = data.returnScene || 'AdventureScene';
@@ -39,9 +40,10 @@ export default class ResultScene extends Phaser.Scene {
         }
 
         // 取得経験値の2倍ブースト計算（①過去最高記録以下なら2倍！）
-        const rawEarnedExp = data.earnedExp || 0;
+        const rawEarnedExp = this.rawEarnedExp || 0;
         this.isExpBoosted = (this.globalState.currentRunTotalExp || 0) < (this.globalState.maxPastExp || 0);
         this.earnedExp = this.globalState.addRunExp(rawEarnedExp);
+
 
         // 取得経験値とストック経験値の更新
         this.globalState.stockExp += this.earnedExp;
