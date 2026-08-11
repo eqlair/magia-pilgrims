@@ -2218,7 +2218,7 @@ export default class AdventureScene extends Phaser.Scene {
 
             const steps = [];
 
-            // ── ステップ①: 探索結果ダイアログ (食料・探索メモ) ──
+            // ── ステップ①: 探索結果ダイアログ (食料・探索メモ) + そのままレリクス一覧表示 ──
             steps.push((onNextStep) => {
                 const exprEvents = [
                     { cmd: 'bg', key: 'ev_expr' }
@@ -2244,33 +2244,11 @@ export default class AdventureScene extends Phaser.Scene {
                 this.scene.launch('EventScene', {
                     events: exprEvents,
                     returnScene: 'AdventureScene',
-                    fromExploration: true
+                    fromExploration: true,
+                    // ドロップがある場合は食料テキスト表示後、そのまま同シーン内でレリクス一覧を表示する
+                    explorationDrops: (drops && drops.length > 0) ? drops : null
                 });
             });
-
-            // ── ステップ②: レリクス・ドロップ表示 (中間テキスト不要 → 直接一覧表示) ──
-            if (drops && drops.length > 0) {
-                steps.push((onNextStep) => {
-                    let dropDone = false;
-                    const onDropEnd = (scene, data) => {
-                        if (data && data.fromExploration) {
-                            if (dropDone) return;
-                            dropDone = true;
-                            this.events.off('resume', onDropEnd);
-                            onNextStep();
-                        }
-                    };
-                    this.events.on('resume', onDropEnd);
-
-                    this.scene.pause();
-                    this.scene.launch('EventScene', {
-                        events: [],
-                        returnScene: 'AdventureScene',
-                        fromExploration: true,
-                        explorationDrops: drops
-                    });
-                });
-            }
 
             // ── ステップ③: 特定仲間の出会いストーリーイベント (全キャラ共通) ──
             if (triggeredJoinCharId) {
