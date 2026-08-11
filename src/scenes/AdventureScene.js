@@ -2168,9 +2168,27 @@ export default class AdventureScene extends Phaser.Scene {
                         const encounterChance = 1.0 / partySize;
                         if (Math.random() < encounterChance) {
                             triggeredJoinCharId = targetCharId;
+
+                            // 遭遇決定の瞬間に即座にパーティ追加・全回復・隊列配置・セーブ保存（絶対保証！）
+                            const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
+                            if (!this.party.map(id => gs.normalizeCharId(id)).includes(normJoinId)) {
+                                this.party.push(normJoinId);
+                            }
+                            gs.assignFormationForNewMember(normJoinId);
+                            const joinedChar = gs.getCharacter(normJoinId);
+                            if (joinedChar) {
+                                const stats = gs.calcStats(normJoinId, this.party);
+                                if (stats) {
+                                    joinedChar.currentHp = stats.maxHp;
+                                    joinedChar.currentSp = stats.maxSp;
+                                }
+                            }
+                            SaveManager.saveGame(this);
+                            console.log('[AdventureScene] Immediate Encounter Join & Saved for:', normJoinId);
                         }
                     }
                 }
+
 
 
 
@@ -2263,31 +2281,30 @@ export default class AdventureScene extends Phaser.Scene {
                     }
 
                     // ストーリーイベントが終了した時点で正式加入・全回復・隊列登録・即時保存を実行し、そのままスムーズに次ステップへ
-                    const onJoinStoryEnd = (data) => {
-                        if (data && data.fromExploration) {
-                            this.events.off('resume', onJoinStoryEnd);
+                    const onJoinStoryEnd = () => {
+                        this.events.off('resume', onJoinStoryEnd);
 
-                            // 正式加入・全回復・隊列設定・即時保存
-                            const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
-                            if (!currentNormParty.includes(normJoinId)) {
-                                this.party.push(normJoinId);
-                            }
-                            gs.assignFormationForNewMember(normJoinId);
-                            const joinedChar = gs.getCharacter(normJoinId);
-                            if (joinedChar) {
-                                const stats = gs.calcStats(normJoinId, this.party);
-                                if (stats) {
-                                    joinedChar.currentHp = stats.maxHp;
-                                    joinedChar.currentSp = stats.maxSp;
-                                }
-                            }
-                            SaveManager.saveGame(this);
-                            console.log('[AdventureScene] Story completed -> Joined party & saved for:', normJoinId);
-
-                            // 重複通知は挟まずスムーズに次ステップへ移行
-                            onNextStep();
+                        // 正式加入・全回復・隊列設定・即時保存
+                        const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+                        if (!currentNormParty.includes(normJoinId)) {
+                            this.party.push(normJoinId);
                         }
+                        gs.assignFormationForNewMember(normJoinId);
+                        const joinedChar = gs.getCharacter(normJoinId);
+                        if (joinedChar) {
+                            const stats = gs.calcStats(normJoinId, this.party);
+                            if (stats) {
+                                joinedChar.currentHp = stats.maxHp;
+                                joinedChar.currentSp = stats.maxSp;
+                            }
+                        }
+                        SaveManager.saveGame(this);
+                        console.log('[AdventureScene] Story completed -> Joined party & saved for:', normJoinId);
+
+                        // 重複通知は挟まずスムーズに次ステップへ移行
+                        onNextStep();
                     };
+
 
                     this.events.on('resume', onJoinStoryEnd);
 
