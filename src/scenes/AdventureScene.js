@@ -472,6 +472,12 @@ export default class AdventureScene extends Phaser.Scene {
         this._resumeHandler = (scene, data) => {
             this._isAdvancingTime = false; // シーン復帰時に時間経過ロックを必ず解除
             this._updateFoodDisplay(); // タロット等で変更されたSP・食料表示をリアルタイム更新
+
+            // EventSceneがsleep状態で残っていたら確実に止める（BattleScene経由復帰時の残骸クリーンアップ）
+            if (this.scene.isSleeping('EventScene')) {
+                this.scene.stop('EventScene');
+            }
+
             if (data && data.fromRest) {
                 this.inRestMode = false;
                 this.applyTutorialRestrictions();

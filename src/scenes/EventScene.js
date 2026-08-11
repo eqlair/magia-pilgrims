@@ -227,7 +227,7 @@ export default class EventScene extends Phaser.Scene {
                     };
 
                     if (this.engine) this.engine.cleanup();
-                    this.scene.stop();
+                    this.scene.sleep();
                     this.scene.launch('BattleScene', config);
                     return;
                 }
@@ -251,7 +251,7 @@ export default class EventScene extends Phaser.Scene {
                     };
 
                     if (this.engine) this.engine.cleanup();
-                    this.scene.stop();
+                    this.scene.sleep();
                     this.scene.launch('BattleScene', config);
                     return;
                 } else {
