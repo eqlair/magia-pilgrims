@@ -201,8 +201,28 @@ export default class EventScene extends Phaser.Scene {
                 }
 
                 if (this.from1221WildhuntEvent) {
-                    this.scene.resume(this.returnScene, { from1221WildhuntEvent: true });
+                    const advScene = this.scene.get('AdventureScene');
+                    let party = ['001'];
+                    if (advScene && advScene.party) party = advScene.party;
+
+                    const config = {
+                        rule: 2, // 突破戦
+                        attribute: 'red',
+                        enemyCount: 200,
+                        breakthroughTarget: 12010,
+                        spawnInterval: 0.5,
+                        enemyLevel: 5,
+                        majoLevel: 0,
+                        isOverlay: false,
+                        returnScene: 'AdventureScene',
+                        party: party,
+                        canRetreat: false,
+                        is1221NightBattle: true
+                    };
+
+                    if (this.engine) this.engine.cleanup();
                     this.scene.stop();
+                    this.scene.launch('BattleScene', config);
                     return;
                 }
 

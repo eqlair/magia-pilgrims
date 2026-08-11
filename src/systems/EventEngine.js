@@ -91,7 +91,7 @@ export class EventEngine {
         }
     }
 
-    /** 画面を白くフェードインさせる演出 */
+    /** 画面を白くフェードインさせる演出（白くなった後、スムーズにフェードアウトしてイベント絵を見せる） */
     _fadeWhite(duration, cb) {
         const { width, height } = this.scene.scale;
         if (this.whiteRect) {
@@ -100,7 +100,7 @@ export class EventEngine {
         }
         this.whiteRect = this.scene.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
             .setAlpha(0)
-            .setDepth(5002);
+            .setDepth(6000);
 
         this.scene.tweens.add({
             targets: this.whiteRect,
@@ -108,6 +108,19 @@ export class EventEngine {
             duration: duration,
             onComplete: () => {
                 if (cb) cb();
+                if (this.whiteRect) {
+                    this.scene.tweens.add({
+                        targets: this.whiteRect,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => {
+                            if (this.whiteRect) {
+                                this.whiteRect.destroy();
+                                this.whiteRect = null;
+                            }
+                        }
+                    });
+                }
             }
         });
     }
