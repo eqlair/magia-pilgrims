@@ -119,6 +119,20 @@ export class EventEngine {
 
     /** BGMをクロスフェードで切り替え（即座に次へ進む・ノンブロッキング） */
     _changeBgm(key, cb) {
+        console.log(`[EventEngine._changeBgm] key="${key}" / cache存在: ${this.scene.cache.audio.exists(key)} / 現在_currentBgm: ${this._currentBgm?.key || 'null'}`);
+
+        // EventEngine管理外のBGM（bgm_hexenなど）も含めて全て止める
+        if (this.scene.sound && this.scene.sound.sounds) {
+            this.scene.sound.sounds.forEach(s => {
+                if (s && s.isPlaying && s !== this._currentBgm) {
+                    console.log(`[EventEngine._changeBgm] 管理外BGMを停止: ${s.key}`);
+                    try {
+                        this.scene.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
+                    } catch(e) {}
+                }
+            });
+        }
+
         // 現在のBGMをフェードアウト
         if (this._currentBgm) {
             const old = this._currentBgm;
@@ -133,6 +147,7 @@ export class EventEngine {
         if (this.scene.cache.audio.exists(key)) {
             const bgm = this.scene.sound.add(key, { loop: true, volume: 0 });
             bgm.play();
+            console.log(`[EventEngine._changeBgm] "${key}" 再生開始 ✓`);
             this.scene.tweens.add({
                 targets: bgm, volume: 0.75, duration: 800,
                 onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); }
