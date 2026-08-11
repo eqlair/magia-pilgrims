@@ -1284,9 +1284,9 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
 
-            // 広域表示時は軽量化のため地名・敵LV・魔女LVなどの文字テキストを非表示にする
+            // 広域表示時は軽量化のため敵LV・有利不利テキスト等は非表示にし、踏破済みの固有地名(showText)と魔女アイコンのみ表示
             if (this.isWideMap) {
-                if (h.text && h.text.visible) h.text.setVisible(false);
+                if (h.text && h.text.visible !== showText) h.text.setVisible(showText);
                 if (h.witchText && h.witchText.visible) h.witchText.setVisible(false);
                 if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
                 if (h.affinityText && h.affinityText.visible) h.affinityText.setVisible(false);
