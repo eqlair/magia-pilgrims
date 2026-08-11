@@ -2694,13 +2694,15 @@ export default class AdventureScene extends Phaser.Scene {
         // 12/14の夜の行動(戦闘・探索・休息等)が終わった直後、または12/15以降未再生の場合に就寝前イベントとして発動！
         const shouldTrigger = (!gs.event1214Played) && (
             this._trigger1214NightActionEnd ||
-            this.currentDay > 14 ||
-            (this.currentDay === 14 && this.timePeriodIndex === 2)
+            this.currentDay > 14
         );
 
         if (shouldTrigger) {
             this._trigger1214NightActionEnd = false;
             gs.event1214Played = true;
+
+            // 再生されている可能性のあるBGMをすべて停止
+            this.sound.stopAll();
 
             const newGem = RelicGenerator.generateGem(1);
             if (!gs.inventory) gs.inventory = { relics: [], gems: [] };

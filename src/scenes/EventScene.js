@@ -41,6 +41,12 @@ export default class EventScene extends Phaser.Scene {
     create() {
         TransitionManager.fadeIn(this);
 
+        if (this.from1214Event) {
+            if (this.sound && this.sound.stopAll) {
+                this.sound.stopAll();
+            }
+        }
+
         this.engine = new EventEngine(this, this.eventData, () => {
             this._onEventComplete();
         });
