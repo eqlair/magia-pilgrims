@@ -19,7 +19,48 @@ import RestScene from './scenes/RestScene';
 import FormationScene from './scenes/FormationScene';
 import { DebugMenuScene } from './scenes/DebugMenuScene';
 
+// --- 画面上エラーオーバーレイシステム ---
+
+window.__DEBUG_ERRORS__ = [];
+window.showOnScreenError = function(msg, stack) {
+    try {
+        console.warn("[ON-SCREEN-ERROR]", msg, stack);
+        window.__DEBUG_ERRORS__.push({ msg: String(msg), stack: String(stack || ''), time: new Date().toLocaleTimeString() });
+        
+        let el = document.getElementById('debug-error-overlay');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'debug-error-overlay';
+            el.style.cssText = 'position:fixed;top:0;left:0;width:100%;max-height:60vh;overflow-y:auto;background:rgba(180,0,0,0.95);color:#fff;font-family:monospace;font-size:11px;padding:10px;z-index:9999999;box-sizing:border-box;border-bottom:4px solid #ff8888;word-break:break-all;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+            document.body.appendChild(el);
+        }
+        
+        let html = '<div style="font-weight:bold;font-size:13px;">🚨 [実機画面エラーログ表示] <button onclick="document.getElementById(\'debug-error-overlay\').remove()" style="float:right;background:#fff;color:#d00;font-weight:bold;border:none;padding:2px 8px;border-radius:4px;">閉じる</button></div><hr style="border-color:#ffaaaa;margin:4px 0;">';
+        window.__DEBUG_ERRORS__.slice(-5).reverse().forEach(err => {
+            html += `<div style="margin-bottom:8px;border-bottom:1px dashed #ffaaaa;padding-bottom:4px;">
+                <span style="color:#ffff88;font-weight:bold;">[${err.time}]</span> <b style="color:#ffffff;">${err.msg}</b><br>
+                <pre style="margin:2px 0;font-size:10px;color:#ffdddd;white-space:pre-wrap;background:rgba(0,0,0,0.4);padding:4px;border-radius:3px;">${err.stack || ''}</pre>
+            </div>`;
+        });
+        el.innerHTML = html;
+    } catch (e) {
+        // fallback
+    }
+};
+
+window.onerror = function(message, source, lineno, colno, error) {
+    const stack = error && error.stack ? error.stack : `${source}:${lineno}:${colno}`;
+    window.showOnScreenError(message, stack);
+};
+
+window.addEventListener('unhandledrejection', function(e) {
+    const msg = e.reason ? (e.reason.message || e.reason) : 'Unhandled Rejection';
+    const stack = e.reason && e.reason.stack ? e.reason.stack : '';
+    window.showOnScreenError(msg, stack);
+});
+
 const config = {
+
     type: Phaser.AUTO,
     parent: 'game-container',
     width: 540,

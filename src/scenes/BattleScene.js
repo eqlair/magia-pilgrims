@@ -410,15 +410,17 @@ export default class BattleScene extends Phaser.Scene {
     update(time, delta) {
         if (this.isPaused) return;
 
-        const dt = delta / 1000; // 秒に変換
+        try {
+            const dt = delta / 1000; // 秒に変換
 
-        // 背景エフェクトの更新
-        if (this.fogEffect) {
-            this.fogEffect.update(dt);
-        }
+            // 背景エフェクトの更新
+            if (this.fogEffect) {
+                this.fogEffect.update(dt);
+            }
 
-        // 論理更新
-        this.engine.update(dt);
+            // 論理更新
+            this.engine.update(dt);
+
 
         // ── Tips更新 (戦闘開始2秒後初回表示、以降18秒周期で確実に順次表示) ──
         const gs = GlobalState.getInstance();
@@ -646,7 +648,12 @@ export default class BattleScene extends Phaser.Scene {
                 `DPS ${Math.floor(oneSec)} 10S ${Math.floor(tenSecDps)} MAX ${Math.floor(this.engine.maxDps)}`
             );
         }
-
+        } catch (err) {
+            console.error("[BattleScene Update Exception]", err);
+            if (window.showOnScreenError) {
+                window.showOnScreenError(err.message || err, err.stack);
+            }
+        }
     }
 
     drawGrid() {

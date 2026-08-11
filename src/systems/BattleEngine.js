@@ -509,13 +509,14 @@ export class BattleEngine {
 
 
     applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null) {
-        if (!defender || defender.isDead || defender.isDying || defender.hp <= 0) return false;
-        // 実体化前（スポーン演出中）は無敵
-        if (defender.spawnDropTimer > 0 || defender.spawnAnimTimer > 0) return false;
+        try {
+            if (!defender || defender.isDead || defender.isDying || defender.hp <= 0) return false;
+            // 実体化前（スポーン演出中）は無敵
+            if (defender.spawnDropTimer > 0 || defender.spawnAnimTimer > 0) return false;
 
-        
-        let finalDamage = (typeof amount === 'number' && !isNaN(amount)) ? amount : 1;
-        let damageType = type;
+            let finalDamage = (typeof amount === 'number' && !isNaN(amount)) ? amount : 1;
+            let damageType = type;
+
 
         // --- 命中率とレベル差計算 ---
         let hitRate = 1.0;
@@ -854,7 +855,15 @@ export class BattleEngine {
         }
 
         return true;
+        } catch (err) {
+            console.error("[applyDamage Exception]", err);
+            if (window.showOnScreenError) {
+                window.showOnScreenError("Damage Apply Error: " + (err.message || err), err.stack);
+            }
+            return false;
+        }
     }
+
 
     update(dt) {
         this.time += dt;
