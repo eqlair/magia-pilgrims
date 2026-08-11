@@ -177,9 +177,9 @@ export default class EventScene extends Phaser.Scene {
 
     _finishScene() {
         if (this.sound && this.sound.sounds) {
-            // 戦闘BGM(bgm_battle1~4)以外のBGM/サウンドのみ停止し、戦闘BGMは鳴らしたまま引き継ぐ
+            // 戦闘BGM(bgm_battle1~4)とワイルドハントBGM(bgm_wildhunt)は鳴らしたまま引き継ぐ
             this.sound.sounds.forEach(s => {
-                if (s && s.isPlaying && !(s.key && s.key.startsWith('bgm_battle'))) {
+                if (s && s.isPlaying && !(s.key && (s.key.startsWith('bgm_battle') || s.key === 'bgm_wildhunt'))) {
                     try { s.stop(); } catch (e) {}
                 }
             });
