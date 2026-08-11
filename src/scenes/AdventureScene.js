@@ -599,6 +599,9 @@ export default class AdventureScene extends Phaser.Scene {
             return;
         }
 
+        // マップ画面への復帰時のみマップビジュアル(描画・カメラ)を再表示！
+        this.showMapVisuals();
+
             // タロット復帰時：塔の正位置などで仲間が離脱した場合にマップパーティを最新同期
             if (data && data.fromTarot) {
                 if (gs.lastTowerRemovedCharId) {
@@ -2693,6 +2696,18 @@ export default class AdventureScene extends Phaser.Scene {
         });
     }
 
+    /** マップ画面の全描画（カメラ・背景・ヘクス・UI）をズバッと完全に非表示にする */
+    hideMapVisuals() {
+        if (this.cameras && this.cameras.main) this.cameras.main.setVisible(false);
+        if (this.uiCamera) this.uiCamera.setVisible(false);
+    }
+
+    /** マップ画面の描画（カメラ・背景・ヘクス・UI）を再表示する */
+    showMapVisuals() {
+        if (this.cameras && this.cameras.main) this.cameras.main.setVisible(true);
+        if (this.uiCamera) this.uiCamera.setVisible(true);
+    }
+
     /** イベントキューに登録して順次安全に再生する仕組み（入れ子・重なり対応） */
     enqueueEvent(item) {
         if (!this.eventQueue) this.eventQueue = [];
@@ -2708,14 +2723,17 @@ export default class AdventureScene extends Phaser.Scene {
         if (!next) return false;
 
         if (next.type === 'event') {
+            this.hideMapVisuals();
             this.scene.pause();
             this.scene.launch('EventScene', next.data);
             return true;
         } else if (next.type === 'tarot') {
+            this.hideMapVisuals();
             this.scene.pause();
             this.scene.launch('TarotScene', next.data);
             return true;
         } else if (next.type === 'battle') {
+            this.hideMapVisuals();
             this.scene.pause();
             this.scene.launch('BattleScene', next.data);
             return true;
@@ -2923,6 +2941,7 @@ export default class AdventureScene extends Phaser.Scene {
             is1221NightBattle: true
         };
 
+        this.hideMapVisuals();
         this.scene.pause();
         this.scene.launch('BattleScene', config);
     }
