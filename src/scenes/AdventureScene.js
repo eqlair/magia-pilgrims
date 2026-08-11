@@ -586,27 +586,43 @@ export default class AdventureScene extends Phaser.Scene {
 
         if (this.player) this.player.setVisible(true);
 
+            // タロット復帰時：塔の正位置などで仲間が離脱した場合にマップパーティを最新同期
+            if (data && data.fromTarot) {
+                if (gs.lastTowerRemovedCharId) {
+                    const removedId = gs.normalizeCharId(gs.lastTowerRemovedCharId);
+                    gs.lastTowerRemovedCharId = null;
+                    if (gs.savedFormation) {
+                        delete gs.savedFormation[removedId];
+                    }
+                    this.party = this.party.filter(id => gs.normalizeCharId(id) !== removedId);
+                    console.log('[AdventureScene] Tower removed char processed:', removedId);
+                }
+                const updatedFormKeys = Object.keys(gs.savedFormation || {});
+                if (updatedFormKeys.length > 0) {
+                    this.party = updatedFormKeys;
+                }
+            }
+
             if (data && data.joinCharacterId) {
-                if (!this.party.includes(data.joinCharacterId)) {
-                    this.party.push(data.joinCharacterId);
-                    gs.assignFormationForNewMember(data.joinCharacterId);
+                const normJoinId = gs.normalizeCharId(data.joinCharacterId);
+                if (!this.party.includes(normJoinId)) {
+                    this.party.push(normJoinId);
+                    gs.assignFormationForNewMember(normJoinId);
 
                     // 加入キャラのHP・SPをその時点のmaxHp/maxSpで100%全回復・満タン状態で加入させる
-                    const joinedChar = gs.characters[data.joinCharacterId];
+                    const joinedChar = gs.characters[normJoinId];
                     if (joinedChar) {
-                        const stats = gs.calcStats(data.joinCharacterId, this.party);
+                        const stats = gs.calcStats(normJoinId, this.party);
                         if (stats) {
                             joinedChar.currentHp = stats.maxHp;
                             joinedChar.currentSp = stats.maxSp;
                         }
                     }
 
-                    console.log('Joined party & updated savedFormation & healed:', data.joinCharacterId);
+                    console.log('Joined party & updated savedFormation & healed:', normJoinId);
                     SaveManager.saveGame(this);
                 }
             }
-
-
 
             // GlobalState.savedFormation に存在するキャラクターを this.party に同期
             for (const charId of this.party) {
@@ -791,20 +807,6 @@ export default class AdventureScene extends Phaser.Scene {
                         type: 'tarot',
                         data: { returnScene: 'AdventureScene', party: this.party }
                     });
-                }
-
-                // タロット復帰時：塔の正位置などで仲間が離脱した場合にマップパーティを最新同期
-                if (data && data.fromTarot) {
-                    const gs = GlobalState.getInstance();
-                    const updatedFormKeys = Object.keys(gs.savedFormation || {});
-                    if (updatedFormKeys.length > 0) {
-                        this.party = updatedFormKeys;
-                    }
-                    if (gs.lastTowerRemovedCharId) {
-                        const removedId = gs.lastTowerRemovedCharId;
-                        gs.lastTowerRemovedCharId = null;
-                        this.party = this.party.filter(id => id !== removedId);
-                    }
                 }
 
                 // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければセーブ）
