@@ -176,10 +176,11 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _finishScene() {
-        if (this.sound && this.sound.sounds) {
-            // 戦闘BGM(bgm_battle1~4)とワイルドハントBGM(bgm_wildhunt)は鳴らしたまま引き継ぐ
+        // ワイルドハント突破戦への遷移時はBGMを一切止めない（bgm_wildhuntをそのまま引き継ぐ）
+        if (!this.from1221WildhuntEvent && this.sound && this.sound.sounds) {
+            // 戦闘BGM(bgm_battle1~4)は鳴らしたまま引き継ぐ。それ以外は停止
             this.sound.sounds.forEach(s => {
-                if (s && s.isPlaying && !(s.key && (s.key.startsWith('bgm_battle') || s.key === 'bgm_wildhunt'))) {
+                if (s && s.isPlaying && !(s.key && s.key.startsWith('bgm_battle'))) {
                     try { s.stop(); } catch (e) {}
                 }
             });
