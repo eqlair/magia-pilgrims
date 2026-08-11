@@ -2857,6 +2857,22 @@ export default class AdventureScene extends Phaser.Scene {
             if (!isNamedSpot) {
                 gs.event1221WildhuntPlayed = true;
 
+                // bgm_hexenをフェードアウトしてbgm_wildhuntを直接再生（EventEngine経由だと途中で消されるため）
+                if (this.sound) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying) {
+                            try {
+                                this.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
+                            } catch(e) {}
+                        }
+                    });
+                }
+                if (this.cache.audio.exists('bgm_wildhunt')) {
+                    const wh = this.sound.add('bgm_wildhunt', { loop: true, volume: 0 });
+                    wh.play();
+                    this.tweens.add({ targets: wh, volume: 0.75, duration: 800 });
+                }
+
                 const commands = build1221WildhuntCommands(this.party);
                 this.enqueueEvent({
                     type: 'event',
@@ -2963,6 +2979,22 @@ export default class AdventureScene extends Phaser.Scene {
             // ワイルドハント未体験であれば白画面フェード演出＋ワイルドハントイベントを発生
             if (!gs.event1221WildhuntPlayed) {
                 gs.event1221WildhuntPlayed = true;
+
+                // bgm_hexenをフェードアウトしてbgm_wildhuntを直接再生（EventEngine経由だと途中で消されるため）
+                if (this.sound) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying) {
+                            try {
+                                this.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
+                            } catch(e) {}
+                        }
+                    });
+                }
+                if (this.cache.audio.exists('bgm_wildhunt')) {
+                    const wh = this.sound.add('bgm_wildhunt', { loop: true, volume: 0 });
+                    wh.play();
+                    this.tweens.add({ targets: wh, volume: 0.75, duration: 800 });
+                }
 
                 const commands = build1221WildhuntCommands(this.party);
                 this.scene.pause();

@@ -29,7 +29,7 @@ export function build1221WildhuntCommands(party = ['001']) {
     const commands = [
         { cmd: 'fadeWhite', duration: 1000 },
         { cmd: 'image', key: 'bg_wildhunt' },
-        { cmd: 'bgm', key: 'bgm_wildhunt' },
+        // bgmはAdventureScene側で直接制御するためここでは指定しない
         { cmd: 'text', name: '', text: '12月21日、夜。' },
         { cmd: 'text', name: '', text: 'それは「ワイルドハント」と呼ばれる、この世の終わりそのものだった。' },
         { cmd: 'text', name: '', text: '数千、数万――いや、もはや数えることすら無意味なほどの化け物の群れが、雪に沈む廃墟を黒く染め上げていく。' },
