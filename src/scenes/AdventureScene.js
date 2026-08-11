@@ -2411,10 +2411,10 @@ export default class AdventureScene extends Phaser.Scene {
             .setVisible(false);
         
         // 背景はメインカメラに描画（UIカメラから無視）
-        this.nightOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.6)
+        this.nightOverlay = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0x000000, 0.6)
             .setScrollFactor(0)
-            .setDepth(-98)
-            .setOrigin(0, 0)
+            .setDepth(-95)
+            .setOrigin(0.5, 0.5)
             .setVisible(false);
             
         this.uiCamera.ignore([this.bgCurrent, this.bgNext, this.baseBg, this.nightOverlay]);
@@ -2578,6 +2578,8 @@ export default class AdventureScene extends Phaser.Scene {
                 this.dec21Effect = null;
             }
         }
+
+        this.updateNightOverlay();
     }
 
     resetIdleTime() {
@@ -3007,9 +3009,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.dateTimeText) {
             this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
         }
-        if (this.nightOverlay) {
-            this.nightOverlay.setVisible(this.timeOfDay === '夜');
-        }
+        this.updateNightOverlay();
         console.log('[AdventureScene] Restored state from save data!');
     }
 
