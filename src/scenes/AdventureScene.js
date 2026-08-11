@@ -2230,7 +2230,7 @@ export default class AdventureScene extends Phaser.Scene {
                 }
 
                 let stepDone = false;
-                const onEventEnd = (data) => {
+                const onEventEnd = (scene, data) => {
                     if (data && data.fromExploration) {
                         if (stepDone) return;
                         stepDone = true;
@@ -2258,7 +2258,7 @@ export default class AdventureScene extends Phaser.Scene {
                     ];
 
                     let dropDone = false;
-                    const onDropEnd = (data) => {
+                    const onDropEnd = (scene, data) => {
                         if (data && data.fromExploration) {
                             if (dropDone) return;
                             dropDone = true;
@@ -2300,7 +2300,7 @@ export default class AdventureScene extends Phaser.Scene {
                     // ストーリーイベントが終了した時点で正式加入・全回復・隊列登録・即時保存を実行し、そのままスムーズに次ステップへ
                     // joinDoneフラグで誤爆（二重発火）を防ぐ
                     let joinDone = false;
-                    const onJoinStoryEnd = (data) => {
+                    const onJoinStoryEnd = (scene, data) => {
                         // fromExploration フラグがついた resume のみ受け付ける（誤爆防止）
                         if (!data || !data.fromExploration) return;
                         if (joinDone) return;
