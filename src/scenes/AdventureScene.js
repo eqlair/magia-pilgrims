@@ -835,9 +835,10 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
-                // 1221wildhuntイベント復帰時 -> 次のアクションで確定で突破戦が始まるフラグ
+                // 1221wildhuntイベント復帰時 -> マップ画面のワンクリック猶予を挟まず即座に突破戦へ突入！
                 if (data && data.from1221WildhuntEvent) {
-                    this.is1221WildhuntPendingBreakthrough = true;
+                    this.start1221Breakthrough();
+                    return;
                 }
 
                 // 12/21イベント完了時 -> 周回イベント(event_resp)の連続起動
@@ -2826,6 +2827,7 @@ export default class AdventureScene extends Phaser.Scene {
             if (!isNamedSpot) {
                 gs.event1221WildhuntPlayed = true;
 
+                if (this.sound) this.sound.stopAll();
                 const commands = build1221WildhuntCommands(this.party);
                 this.enqueueEvent({
                     type: 'event',
@@ -2931,6 +2933,8 @@ export default class AdventureScene extends Phaser.Scene {
             // ワイルドハント未体験であれば白画面フェード演出＋ワイルドハントイベントを発生
             if (!gs.event1221WildhuntPlayed) {
                 gs.event1221WildhuntPlayed = true;
+
+                if (this.sound) this.sound.stopAll();
                 const commands = build1221WildhuntCommands(this.party);
                 this.scene.pause();
                 this.scene.launch('EventScene', {

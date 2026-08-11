@@ -94,12 +94,16 @@ export class EventEngine {
     /** 画面を白くフェードインさせる演出 */
     _fadeWhite(duration, cb) {
         const { width, height } = this.scene.scale;
-        const rect = this.scene.add.rectangle(width / 2, height / 2, width * 2, height * 2, 0xffffff)
+        if (this.whiteRect) {
+            this.whiteRect.destroy();
+            this.whiteRect = null;
+        }
+        this.whiteRect = this.scene.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
             .setAlpha(0)
-            .setDepth(50);
+            .setDepth(5002);
 
         this.scene.tweens.add({
-            targets: rect,
+            targets: this.whiteRect,
             alpha: 1,
             duration: duration,
             onComplete: () => {
@@ -404,6 +408,7 @@ export class EventEngine {
     /** 全リソースを破棄（シーン終了・明転前に呼ぶ） */
     cleanup() {
         if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
+        if (this.whiteRect)   { this.scene.tweens.killTweensOf(this.whiteRect); this.whiteRect.destroy(); this.whiteRect = null; }
         if (this.bgImage)     { this.bgImage.destroy();     this.bgImage     = null; }
         if (this.bgOverlay)   { this.bgOverlay.destroy();   this.bgOverlay   = null; }
         if (this.illustImage) { this.illustImage.destroy(); this.illustImage = null; }
