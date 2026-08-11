@@ -518,31 +518,34 @@ export class BattleEngine {
             let damageType = type;
 
 
-        // --- 命中率とレベル差計算 ---
-        let hitRate = 1.0;
-        let levelHitBonus = 0;
-        let levelDmgBonusAmount = 0;
+            const gs = GlobalState.getInstance();
 
-        const isPlayerAttacker = !!(attacker && attacker.owner === 'player');
+            // --- 命中率とレベル差計算 ---
+            let hitRate = 1.0;
+            let levelHitBonus = 0;
+            let levelDmgBonusAmount = 0;
 
-        if (attacker && defender) {
-            // Playerの場合はWLV/2を仮のレベルとする。敵はlevelプロパティ
-            const atkLevel = isPlayerAttacker ? Math.floor(((attacker.wlv || 2)) / 2) : (attacker.level || 1);
-            const defLevel = defender.owner === 'player' ? Math.floor(((defender.wlv || 2)) / 2) : (defender.level || 1);
+            const isPlayerAttacker = !!(attacker && attacker.owner === 'player');
 
-            const levelDiff = atkLevel - defLevel;
-            // 距離による低下: 1mあたり2%
-            let distDrop = distance * 0.02;
-            
-            // レベル差による命中率補正: レベル差 * 5%
-            levelHitBonus = levelDiff * 0.05;
-            levelDmgBonusAmount = (levelDiff * 0.05 * finalDamage);
-            
-            // タロット効果(戦闘時)
-            const activeTarots = GlobalState.getInstance().activeTarots || [];
-            let isFoolReversedActive = false;
-            let tarotCritRateBonus = 0;
-            let tarotCritMultBonus = 0;
+            if (attacker && defender) {
+                // Playerの場合はWLV/2を仮のレベルとする。敵はlevelプロパティ
+                const atkLevel = isPlayerAttacker ? Math.floor(((attacker.wlv || 2)) / 2) : (attacker.level || 1);
+                const defLevel = defender.owner === 'player' ? Math.floor(((defender.wlv || 2)) / 2) : (defender.level || 1);
+
+                const levelDiff = atkLevel - defLevel;
+                // 距離による低下: 1mあたり2%
+                let distDrop = distance * 0.02;
+                
+                // レベル差による命中率補正: レベル差 * 5%
+                levelHitBonus = levelDiff * 0.05;
+                levelDmgBonusAmount = (levelDiff * 0.05 * finalDamage);
+                
+                // タロット効果(戦闘時)
+                const activeTarots = gs ? (gs.activeTarots || []) : [];
+                let isFoolReversedActive = false;
+                let tarotCritRateBonus = 0;
+                let tarotCritMultBonus = 0;
+
 
             
             for (const tarot of activeTarots) {
