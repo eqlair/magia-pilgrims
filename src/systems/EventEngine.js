@@ -119,13 +119,10 @@ export class EventEngine {
 
     /** BGMをクロスフェードで切り替え（即座に次へ進む・ノンブロッキング） */
     _changeBgm(key, cb) {
-        console.log(`[EventEngine._changeBgm] key="${key}" / cache存在: ${this.scene.cache.audio.exists(key)} / 現在_currentBgm: ${this._currentBgm?.key || 'null'}`);
-
         // EventEngine管理外のBGM（bgm_hexenなど）も含めて全て止める
         if (this.scene.sound && this.scene.sound.sounds) {
             this.scene.sound.sounds.forEach(s => {
                 if (s && s.isPlaying && s !== this._currentBgm) {
-                    console.log(`[EventEngine._changeBgm] 管理外BGMを停止: ${s.key}`);
                     try {
                         this.scene.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
                     } catch(e) {}
@@ -147,7 +144,6 @@ export class EventEngine {
         if (this.scene.cache.audio.exists(key)) {
             const bgm = this.scene.sound.add(key, { loop: true, volume: 0 });
             bgm.play();
-            console.log(`[EventEngine._changeBgm] "${key}" 再生開始 ✓`);
             this.scene.tweens.add({
                 targets: bgm, volume: 0.75, duration: 800,
                 onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); }
@@ -423,7 +419,6 @@ export class EventEngine {
 
     /** 全リソースを破棄（シーン終了・明転前に呼ぶ）。keepBgm=trueのとき再生中BGMはそのまま引き継ぐ */
     cleanup(keepBgm = false) {
-        console.log(`[EventEngine.cleanup] keepBgm=${keepBgm} / _currentBgm=${this._currentBgm?.key || 'null'} / isPlaying=${this._currentBgm?.isPlaying}`);
         if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
         if (this.whiteRect)   { this.scene.tweens.killTweensOf(this.whiteRect); this.whiteRect.destroy(); this.whiteRect = null; }
         if (this.bgImage)     { this.bgImage.destroy();     this.bgImage     = null; }
@@ -435,12 +430,9 @@ export class EventEngine {
         this._clearText(() => {});
 
         if (this._currentBgm && !keepBgm) {
-            console.log(`[EventEngine.cleanup] BGMを停止: ${this._currentBgm.key}`);
             if (this._currentBgm.isPlaying) this._currentBgm.stop();
             this._currentBgm.destroy();
             this._currentBgm = null;
-        } else if (this._currentBgm && keepBgm) {
-            console.log(`[EventEngine.cleanup] BGMを保持（引き継ぎ）: ${this._currentBgm.key} ✓`);
         }
     }
 
