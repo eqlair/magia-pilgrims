@@ -14,9 +14,6 @@ export default class EventScene extends Phaser.Scene {
     }
 
     init(data) {
-        // data.events: EventEngineに渡すJSON配列
-        // data.onComplete: 完了時のコールバック名または処理フラグ
-        // data.returnScene: イベント終了後に戻るシーン
         this.eventData = data.events || [];
         this.returnScene = data.returnScene || 'AdventureScene';
         this.callbacks = data.callbacks || {};
@@ -28,6 +25,7 @@ export default class EventScene extends Phaser.Scene {
         this.isNightBattle = data.isNightBattle || false;
         this.fromTarot = data.fromTarot || false;
         this.fromExploration = data.fromExploration || false;
+        this.fromNightExploration = data.fromNightExploration || false; // 夜探索専用フラグ
         this.explorationDrops = data.explorationDrops || null;
         this.isNotification = data.isNotification || false;
         this.from1207Event = data.from1207Event || false;
@@ -36,9 +34,8 @@ export default class EventScene extends Phaser.Scene {
         this.fromRespEvent = data.fromRespEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
-
-        this.isNightExploration = data.isNightExploration || false;
     }
+
 
 
     create() {
@@ -213,8 +210,9 @@ export default class EventScene extends Phaser.Scene {
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.from1207Event && !this.from1214Event && !this.from1221Event && !this.fromRespEvent && !this.fromOpTutorial,
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1221Event && !this.fromRespEvent && !this.fromOpTutorial,
                         fromExploration: this.fromExploration,
+                        fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
                         isNotification: this.isNotification,
                         from1207Event: this.from1207Event,
                         from1214Event: this.from1214Event,

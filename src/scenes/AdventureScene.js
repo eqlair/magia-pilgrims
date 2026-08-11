@@ -563,7 +563,7 @@ export default class AdventureScene extends Phaser.Scene {
                     { cmd: 'text', name: '', body: '夜の危険な探索を乗り越え、\n充分な量の食料を手に入れた！' }
                 ],
                 returnScene: 'AdventureScene',
-                fromExploration: true,
+                fromNightExploration: true,  // 夜探索専用フラグ（fromExplorationとは別管理）
                 explorationDrops: drops
             });
             return;
@@ -628,7 +628,8 @@ export default class AdventureScene extends Phaser.Scene {
             // 休息・戦闘完了時のみ時間を1コマ進める
             // ※ fromExploration は除外！探索の時間進行は全ステップ完了後に
             //   _advanceTimeAfterExploration() が advanceTime() を呼ぶので、ここでは呼ばない
-            if (data && (data.fromRest || data.fromBattle) && !data.fromTarot && !data.isNotification) {
+            // ※ fromNightExploration は夜探索専用フラグ。こちらはここで時間を進める
+            if (data && (data.fromRest || data.fromBattle || data.fromNightExploration) && !data.fromTarot && !data.isNotification) {
                 if (!advancedTimeThisResume) {
                     this.advanceTime();
                     advancedTimeThisResume = true;
