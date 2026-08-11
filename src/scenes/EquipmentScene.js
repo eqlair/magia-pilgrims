@@ -317,12 +317,42 @@ export default class EquipmentScene extends Phaser.Scene {
         });
         this.midContainer.add(btnCancel);
 
+        // 「自動」選択ボタン（キャンセルの下に配置）
+        const btnAuto = this.add.text(this.width - 120, 75, '自動', { fontSize: '18px', backgroundColor: '#225588', color: '#ffffff', padding: { x: 22, y: 5 } }).setInteractive();
+        btnAuto.on('pointerdown', () => {
+            this.autoSelectEnhanceMaterials();
+            this.drawUI();
+        });
+        this.midContainer.add(btnAuto);
+
         if (this.enhanceMaterials.length === 4) {
-            const btnExec = this.add.text(this.width - 120, 80, '強化実行', { fontSize: '20px', backgroundColor: '#880000', color: '#ffffff', padding: { x: 10, y: 5 }, fontStyle: 'bold' }).setInteractive();
+            const btnExec = this.add.text(this.width - 120, 120, '強化実行', { fontSize: '18px', backgroundColor: '#880000', color: '#ffffff', padding: { x: 10, y: 5 }, fontStyle: 'bold' }).setInteractive();
             btnExec.on('pointerdown', () => this.executeEnhance());
             this.midContainer.add(btnExec);
         }
     }
+
+    autoSelectEnhanceMaterials() {
+        if (!this.enhanceBaseItem) return;
+        
+        const inventory = this.getInventoryItems();
+        const validMaterials = inventory.filter(item => {
+            if (!item) return false;
+            if (item === this.enhanceBaseItem) return false;
+            if (item.isLocked) return false; // ロックされたアイテムは除外
+            if (item.rank !== this.enhanceBaseItem.rank) return false; // 同ランクのみ
+            return true;
+        });
+
+        this.enhanceMaterials = validMaterials.slice(0, 4);
+        
+        if (this.enhanceMaterials.length < 4) {
+            this.showToast(`適正な非ロック素材が${this.enhanceMaterials.length}個選択されました`);
+        } else {
+            this.showToast('素材を自動選択しました (4/4)');
+        }
+    }
+
 
     drawBottomSection() {
         // インベントリ一覧 (3/5)
