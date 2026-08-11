@@ -226,7 +226,8 @@ export default class EventScene extends Phaser.Scene {
                         is1221NightBattle: true
                     };
 
-                    if (this.engine) this.engine.cleanup();
+                    // BGMを止めずにBattleSceneへ引き継ぐ（keepBgm=true）
+                    if (this.engine) this.engine.cleanup(true);
                     this.scene.sleep();
                     this.scene.launch('BattleScene', config);
                     return;

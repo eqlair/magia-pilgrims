@@ -406,8 +406,8 @@ export class EventEngine {
         cb();
     }
 
-    /** 全リソースを破棄（シーン終了・明転前に呼ぶ） */
-    cleanup() {
+    /** 全リソースを破棄（シーン終了・明転前に呼ぶ）。keepBgm=trueのとき再生中BGMはそのまま引き継ぐ */
+    cleanup(keepBgm = false) {
         if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
         if (this.whiteRect)   { this.scene.tweens.killTweensOf(this.whiteRect); this.whiteRect.destroy(); this.whiteRect = null; }
         if (this.bgImage)     { this.bgImage.destroy();     this.bgImage     = null; }
@@ -418,7 +418,7 @@ export class EventEngine {
         if (this.locationLabel) { this.locationLabel.destroy(); this.locationLabel = null; }
         this._clearText(() => {});
 
-        if (this._currentBgm) {
+        if (this._currentBgm && !keepBgm) {
             if (this._currentBgm.isPlaying) this._currentBgm.stop();
             this._currentBgm.destroy();
             this._currentBgm = null;
