@@ -2168,23 +2168,8 @@ export default class AdventureScene extends Phaser.Scene {
                         const encounterChance = 1.0 / partySize;
                         if (Math.random() < encounterChance) {
                             triggeredJoinCharId = targetCharId;
-
-                            // 遭遇決定の瞬間に即座にパーティ追加・全回復・隊列配置・セーブ保存（絶対保証！）
-                            const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
-                            if (!this.party.map(id => gs.normalizeCharId(id)).includes(normJoinId)) {
-                                this.party.push(normJoinId);
-                            }
-                            gs.assignFormationForNewMember(normJoinId);
-                            const joinedChar = gs.getCharacter(normJoinId);
-                            if (joinedChar) {
-                                const stats = gs.calcStats(normJoinId, this.party);
-                                if (stats) {
-                                    joinedChar.currentHp = stats.maxHp;
-                                    joinedChar.currentSp = stats.maxSp;
-                                }
-                            }
-                            SaveManager.saveGame(this);
-                            console.log('[AdventureScene] Immediate Encounter Join & Saved for:', normJoinId);
+                            // 加入処理はストーリーイベント完了後(onJoinStoryEnd)に行う
+                            console.log('[AdventureScene] Encounter triggered for:', triggeredJoinCharId);
                         }
                     }
                 }
@@ -2281,7 +2266,13 @@ export default class AdventureScene extends Phaser.Scene {
                     }
 
                     // ストーリーイベントが終了した時点で正式加入・全回復・隊列登録・即時保存を実行し、そのままスムーズに次ステップへ
-                    const onJoinStoryEnd = () => {
+                    // joinDoneフラグで誤爆（二重発火）を防ぐ
+                    let joinDone = false;
+                    const onJoinStoryEnd = (data) => {
+                        // fromExploration フラグがついた resume のみ受け付ける（誤爆防止）
+                        if (!data || !data.fromExploration) return;
+                        if (joinDone) return;
+                        joinDone = true;
                         this.events.off('resume', onJoinStoryEnd);
 
                         // 正式加入・全回復・隊列設定・即時保存
@@ -2301,7 +2292,7 @@ export default class AdventureScene extends Phaser.Scene {
                         SaveManager.saveGame(this);
                         console.log('[AdventureScene] Story completed -> Joined party & saved for:', normJoinId);
 
-                        // 重複通知は挟まずスムーズに次ステップへ移行
+                        // スムーズに次ステップへ移行
                         onNextStep();
                     };
 
