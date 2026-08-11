@@ -985,10 +985,20 @@ export default class AdventureScene extends Phaser.Scene {
             this.isWideMap = !this.isWideMap;
             wideBtn.setText(this.isWideMap ? '通常表示に戻す' : '広域表示にする');
             
-            // ── 順序①: いろんなものが消失（UI・文字テキストの即時非表示化） ──
+            // ── 順序①: UIの即時非表示化 ──
             if (this.isWideMap) {
                 this._setUIVisibilityForWideMap(false);
-                this.updateVisibility();
+            }
+
+            // ── 最適化: アニメーション中はマップチップ(bgSprite)とテキストを全非表示にする ──
+            // outline(六角枠)だけを残すことで毎フレームの重いsetScale処理を省きスマホ負荷を激減
+            for (const h of this.hexes) {
+                if (h.bgSprite) h.bgSprite.setVisible(false);
+                if (h.text) h.text.setVisible(false);
+                if (h.witchText) h.witchText.setVisible(false);
+                if (h.enemyText) h.enemyText.setVisible(false);
+                if (h.affinityText) h.affinityText.setVisible(false);
+                if (h.witchSprite) h.witchSprite.setVisible(false);
             }
 
             // ── 順序②: 地形変化（ズームアウト・カメラ角度の切り替え） ──
@@ -1010,29 +1020,38 @@ export default class AdventureScene extends Phaser.Scene {
                 duration: 400,
                 ease: 'Cubic.easeInOut',
                 onUpdate: () => {
+                    // カメラ・tilt・Y位置・outline(枠)のみ更新。bgSpriteのsetScaleは省略して軽量化
                     this.cameras.main.setZoom(tweenObj.zoom);
                     this.cameras.main.setFollowOffset(0, tweenObj.offsetY);
                     this.mapTiltY = tweenObj.tilt;
-                    
-                    // ヘクス位置と縦潰れ補正を滑らかに更新
+
                     for (const h of this.hexes) {
                         h.py = h.row * this.hexVertSpacing * this.mapTiltY;
                         h.container.setY(h.py);
                         if (h.outline) h.outline.scaleY = this.mapTiltY;
-                        if (h.bgSprite && h.bgSprite.width > 0) {
-                            h.bgSprite.setScale(this.hexWidth / h.bgSprite.width, (this.hexWidth / h.bgSprite.width) * this.mapTiltY);
-                        }
+                        // bgSpriteは非表示中なのでsetScaleをスキップ（軽量化）
                     }
                     
                     const currentHex = this.grid[this.playerRow][this.playerCol];
                     if (currentHex) this.player.setY(currentHex.py - this.CHAR_OFFSET_Y);
                 },
                 onComplete: () => {
+                    // アニメーション完了後にbgSpriteのスケールをまとめて1回だけ更新して再表示
+                    for (const h of this.hexes) {
+                        if (h.bgSprite && h.bgSprite.width > 0) {
+                            h.bgSprite.setScale(
+                                this.hexWidth / h.bgSprite.width,
+                                (this.hexWidth / h.bgSprite.width) * this.mapTiltY
+                            );
+                        }
+                        if (h.bgSprite) h.bgSprite.setVisible(true);
+                    }
+
                     this.isTransitioningMode = false;
                     if (!this.isWideMap) {
-                        // 通常表示に戻ったタイミングでUI表示を復帰
                         this._setUIVisibilityForWideMap(true);
                     }
+                    // updateVisibility()でテキスト・敵表示などを正しい状態に反映
                     this.updateVisibility();
                 }
             });
