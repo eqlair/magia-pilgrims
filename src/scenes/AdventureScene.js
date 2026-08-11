@@ -2435,7 +2435,8 @@ export default class AdventureScene extends Phaser.Scene {
     
     updateNightOverlay() {
         if (this.nightOverlay) {
-            this.nightOverlay.setVisible(this.timeOfDay === '夜');
+            const isDec21 = (this.currentMonth === 12 && this.currentDay === 21);
+            this.nightOverlay.setVisible(this.timeOfDay === '夜' || isDec21);
         }
     }
 

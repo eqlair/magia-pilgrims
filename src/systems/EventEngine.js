@@ -1,4 +1,5 @@
 import { FONT_MAIN, fontSize } from '../config/GameFont';
+import { GlobalState } from '../systems/GlobalState';
 
 /**
  * シナリオ・イベント再生用の汎用エンジン「イベント」
@@ -209,6 +210,12 @@ export class EventEngine {
             overlayAlpha = darkOverlay;
         } else if (darkOverlay === true) {
             overlayAlpha = 0.7;
+        }
+
+        // 12月21日は午前・午後に関わらず夜と同じ暗転オーバーレイ(0.7)を対話背景に適用
+        const gs = GlobalState.getInstance();
+        if (gs && gs.currentMonth === 12 && gs.currentDay === 21) {
+            overlayAlpha = Math.max(overlayAlpha, 0.7);
         }
 
         const screenH = Math.max(this.H, this.scene.scale ? this.scene.scale.height : 0);
