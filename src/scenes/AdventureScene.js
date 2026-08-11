@@ -752,8 +752,8 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            // タロットからの復帰時などもマップBGMを再開
-            if (!data || (!data.fromBattle && !data.startBattle)) {
+            // タロットからの復帰時などもマップBGMを再開（ワイルドハントイベント経由の場合はスキップ）
+            if ((!data || (!data.fromBattle && !data.startBattle)) && !data?.from1221WildhuntEvent) {
                 const existing = this.sound.get('bgm_hexen');
                 if (!existing || !existing.isPlaying) {
                     if (this.tweens && typeof this.tweens.getTweens === 'function') {
@@ -2857,7 +2857,6 @@ export default class AdventureScene extends Phaser.Scene {
             if (!isNamedSpot) {
                 gs.event1221WildhuntPlayed = true;
 
-                if (this.sound) this.sound.stopAll();
                 const commands = build1221WildhuntCommands(this.party);
                 this.enqueueEvent({
                     type: 'event',
@@ -2965,7 +2964,6 @@ export default class AdventureScene extends Phaser.Scene {
             if (!gs.event1221WildhuntPlayed) {
                 gs.event1221WildhuntPlayed = true;
 
-                if (this.sound) this.sound.stopAll();
                 const commands = build1221WildhuntCommands(this.party);
                 this.scene.pause();
                 this.scene.launch('EventScene', {
