@@ -513,7 +513,7 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
             const msg = data.isGameOver ? '部隊は全滅した…' : '戦闘から撤退した。';
-            // メッセージ表示 (1つのみ単一管理)
+            // メッセージ表示 (1つのみ単一管理・uiContainerに追加してカメラ二重描画を防止)
             this._retreatMsgText = this.add.text(this.scale.width/2, this.scale.height/2, msg, {
                 fontFamily: 'sans-serif',
                 fontSize: '28px',
@@ -523,6 +523,10 @@ export default class AdventureScene extends Phaser.Scene {
                 stroke: '#000000',
                 strokeThickness: 4
             }).setOrigin(0.5).setDepth(3000).setScrollFactor(0);
+
+            if (this.uiContainer) {
+                this.uiContainer.add(this._retreatMsgText);
+            }
 
             this.time.delayedCall(2500, () => {
                 if (this._retreatMsgText) {
