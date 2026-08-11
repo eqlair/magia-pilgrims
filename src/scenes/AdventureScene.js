@@ -815,6 +815,12 @@ export default class AdventureScene extends Phaser.Scene {
 
 
 
+                // 12/14就寝前イベント完了時 -> 時間を12/15午前へ進めて時報を表示
+                if (data && data.from1214Event) {
+                    this.advanceTime();
+                    return;
+                }
+
                 // 1221wildhuntイベント復帰時 -> 次のアクションで確定で突破戦が始まるフラグ
                 if (data && data.from1221WildhuntEvent) {
                     this.is1221WildhuntPendingBreakthrough = true;
@@ -1732,10 +1738,29 @@ export default class AdventureScene extends Phaser.Scene {
     advanceTime() {
         const oldDay = this.currentDay;
         const oldTimePeriodIndex = this.timePeriodIndex;
+        const gsInst = GlobalState.getInstance();
 
-        // 12/14の夜の行動(戦闘・探索・休息など)が終了した瞬間を検知
-        if (oldDay === 14 && oldTimePeriodIndex === 2) {
-            this._trigger1214NightActionEnd = true;
+        // 12/14の夜の行動(戦闘・探索・休息など)が終了した瞬間：
+        // 12/15朝の時報が表示される前に12/14就寝前イベントを発動させる
+        if (this.currentMonth === 12 && oldDay === 14 && oldTimePeriodIndex === 2 && !gsInst.event1214Played) {
+            gsInst.event1214Played = true;
+
+            // BGM全停止
+            this.sound.stopAll();
+
+            const newGem = RelicGenerator.generateGem(1);
+            if (!gsInst.inventory) gsInst.inventory = { relics: [], gems: [] };
+            gsInst.inventory.gems.push(newGem);
+
+            const eventData = this.cache.json.get('event_1214');
+            this.scene.pause();
+            this.scene.launch('EventScene', {
+                events: eventData,
+                returnScene: 'AdventureScene',
+                from1214Event: true,
+                explorationDrops: [newGem]
+            });
+            return;
         }
 
         this.timePeriodIndex++;
@@ -1747,7 +1772,6 @@ export default class AdventureScene extends Phaser.Scene {
 
 
         // GlobalState と即座に同期
-        const gsInst = GlobalState.getInstance();
         gsInst.currentMonth = this.currentMonth;
         gsInst.currentDay = this.currentDay;
         gsInst.timePeriodIndex = this.timePeriodIndex;
@@ -2691,14 +2715,10 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1214Event() {
         const gs = GlobalState.getInstance();
-        // 12/14の夜の行動(戦闘・探索・休息等)が終わった直後、または12/15以降未再生の場合に就寝前イベントとして発動！
-        const shouldTrigger = (!gs.event1214Played) && (
-            this._trigger1214NightActionEnd ||
-            this.currentDay > 14
-        );
+        // 12/15以降で未再生の場合のフォールバック用
+        const shouldTrigger = (!gs.event1214Played) && (this.currentDay > 14);
 
         if (shouldTrigger) {
-            this._trigger1214NightActionEnd = false;
             gs.event1214Played = true;
 
             // 再生されている可能性のあるBGMをすべて停止
