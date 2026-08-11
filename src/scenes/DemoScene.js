@@ -254,8 +254,16 @@ export default class DemoScene extends Phaser.Scene {
             panel.addEventListener(evt, (e) => e.stopPropagation());
         });
 
+        const dayOptions = Array.from({ length: 20 }, (_, i) => `<option value="${i + 1}">12月${i + 1}日</option>`).join('');
+
         panel.innerHTML = `
             <h2 style="margin-top:0; text-align:center; color:#ffdd77;">Adventure Config</h2>
+            <div style="margin-bottom: 15px;">
+                <label>開始日付 (1～20日):</label><br>
+                <select id="ac-start-day" style="width:100%; margin-top:5px; padding:6px; background:#222; color:#fff; border:1px solid #5a5a2a; border-radius:4px; font-size:14px;">
+                    ${dayOptions}
+                </select>
+            </div>
             <div style="margin-bottom: 20px;">
                 <label>参加メンバー:</label><br>
                 <label><input type="checkbox" class="ac-party" value="001" checked> 1.紫苑</label><br>
@@ -264,7 +272,6 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="ac-party" value="004"> 4.黄蘭</label><br>
                 <label><input type="checkbox" class="ac-party" value="005"> 5.李乃果</label><br>
                 <label><input type="checkbox" class="ac-party" value="010"> 6.白蓮</label>
-
             </div>
             <div style="display:flex; justify-content:space-between;">
                 <button id="ac-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>
@@ -285,9 +292,11 @@ export default class DemoScene extends Phaser.Scene {
             const partySelect = Array.from(document.querySelectorAll('.ac-party'))
                                     .filter(cb => cb.checked)
                                     .map(cb => cb.value);
+            const startDayVal = parseInt(document.getElementById('ac-start-day').value, 10) || 1;
 
             const config = {
                 party: partySelect.length > 0 ? partySelect : ['001'],
+                startDay: startDayVal,
                 isNewGame: true // デモ起動時は全データ・日付・マップをリセット起動
             };
             closePanel();

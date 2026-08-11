@@ -92,7 +92,13 @@ export default class AdventureScene extends Phaser.Scene {
         const _savedForDate = SaveManager.loadGameData();
         const _adv = _savedForDate && _savedForDate.adventureState ? _savedForDate.adventureState : null;
         
-        if (isNewGame) {
+        const startDayInput = (this._initData && this._initData.startDay) ? Math.min(20, Math.max(1, parseInt(this._initData.startDay, 10))) : null;
+
+        if (startDayInput !== null) {
+            this.currentMonth = 12;
+            this.currentDay   = startDayInput;
+            this.timePeriodIndex = 0;
+        } else if (isNewGame) {
             this.currentMonth = 12;
             this.currentDay   = 1;
             this.timePeriodIndex = 0;
