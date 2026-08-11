@@ -83,8 +83,7 @@ export default class BattleScene extends Phaser.Scene {
 
 
 
-        // 突破BGMと背景画像
-        this.load.audio('bgm_toppa', '/files/BGM/toppa.mp3');
+        // 突破用背景画像
         this.load.image('toppa_bg_1', '/files/BG_battle/yuka_enkin02.jpg');
         this.load.image('toppa_bg_2', '/files/BG_battle/road_enkin02.jpg');
         this.load.image('toppa_bg_3', '/files/BG_battle/grat_bg01.png');
@@ -145,18 +144,6 @@ export default class BattleScene extends Phaser.Scene {
 
         // 背景設定（突破モード: rule===2 の場合は floor_a を疑似3D平面メッシュ化して舞台と同じ角度に傾斜）
         if (this.battleConfig.rule === 2) {
-            // 既にBGMが再生中（ワイルドハントBGM等）であればそれを引き続き再生し、新たにBGMは再生しない
-            let isAnyBgmPlaying = false;
-            if (this.sound && this.sound.sounds) {
-                isAnyBgmPlaying = this.sound.sounds.some(s => s && s.isPlaying);
-            }
-
-            if (!isAnyBgmPlaying) {
-                if (this.cache.audio.exists('bgm_toppa')) {
-                    this.sound.play('bgm_toppa', { loop: true, volume: 0.6 });
-                }
-            }
-
             this.initGroundMesh();
             this.initBreakthroughDebugUI();
             

@@ -201,11 +201,8 @@ export default class EventScene extends Phaser.Scene {
                 }
 
                 if (this.from1221WildhuntEvent) {
-                    const advScene = this.scene.get('AdventureScene');
+                    this.scene.resume(this.returnScene, { from1221WildhuntEvent: true });
                     this.scene.stop();
-                    if (advScene && typeof advScene.start1221Breakthrough === 'function') {
-                        advScene.start1221Breakthrough();
-                    }
                     return;
                 }
 
