@@ -15,6 +15,7 @@ export default class BootScene extends Phaser.Scene {
         for (let i = 1; i <= 5; i++) {
             this.load.image(`map_eff${i}`, `files/MAP/map_eff${i}.jpg`);
         }
+        this.load.image('bg_dec21_effect', 'files/BG_battle/BG_06.png');
 
         // 文字・数字スプライトフォント (13列x3行, 30x60px)
         this.load.spritesheet('letterS', 'files/CHR/letterS.png', { frameWidth: 30, frameHeight: 60 });

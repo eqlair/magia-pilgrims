@@ -11,6 +11,7 @@ import { LOCATION_INFO_DATA } from '../data/location_info';
 import { build1221WildhuntCommands } from '../data/wildhuntEvents';
 import { SpriteText } from '../utils/SpriteText';
 import { EventEngine } from '../systems/EventEngine';
+import { Dec21Effect } from '../systems/Dec21Effect';
 
 
 
@@ -2559,6 +2560,22 @@ export default class AdventureScene extends Phaser.Scene {
             this.startTicker();
         } else if (this.idleTime < 10000 && this.isTickerActive) {
             this.stopTicker();
+        }
+
+        // 12月21日の間はずっとBG_06.pngのゆらゆらエフェクト(Dec21Effect)を表示・更新
+        const isDec21 = (this.currentMonth === 12 && this.currentDay === 21);
+        if (isDec21) {
+            if (!this.dec21Effect) {
+                this.dec21Effect = new Dec21Effect(this, 12);
+            }
+            if (this.dec21Effect) {
+                this.dec21Effect.update(delta / 1000);
+            }
+        } else {
+            if (this.dec21Effect) {
+                this.dec21Effect.fadeOut(1500);
+                this.dec21Effect = null;
+            }
         }
     }
 
