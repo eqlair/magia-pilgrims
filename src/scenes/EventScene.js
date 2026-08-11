@@ -48,6 +48,20 @@ export default class EventScene extends Phaser.Scene {
             }
         }
 
+        // ワイルドハントイベント時：既存のマップBGM(bgm_hexenなど)をstopAll()で完全消去し、bgm_wildhuntを直接再生
+        if (this.from1221WildhuntEvent) {
+            if (this.sound) {
+                this.sound.stopAll();
+            }
+            if (this.cache.audio.exists('bgm_wildhunt')) {
+                const wh = this.sound.add('bgm_wildhunt', { loop: true, volume: 0.75 });
+                wh.play();
+                console.log('[EventScene] bgm_wildhunt 強行再生成功 ✓');
+            } else {
+                console.warn('[EventScene] bgm_wildhunt キーが見つかりません');
+            }
+        }
+
         this.engine = new EventEngine(this, this.eventData, () => {
             this._onEventComplete();
         });
