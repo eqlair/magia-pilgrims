@@ -83,7 +83,8 @@ export default class EventScene extends Phaser.Scene {
 
     _showFog(cb) {
         if (this.enemyLevel > 0) {
-            this.fogEffect = new FogEffect(this, this.enemyAttr, 150); // キャラクターの手前(150)に表示
+            // 背景(5000)とダークオーバーレイ(5001)の上、立ち絵(5010)の下のレイヤー(5002)に表示
+            this.fogEffect = new FogEffect(this, this.enemyAttr, 5002);
             
             // 少しずつフェードインさせるため、FogEffect側で管理する変数を上書き
             this.fogEffect.bgEffect.setAlpha(0);
