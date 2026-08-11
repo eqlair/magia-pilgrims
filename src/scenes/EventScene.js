@@ -200,28 +200,60 @@ export default class EventScene extends Phaser.Scene {
                     return;
                 }
 
+                const advScene = this.scene.get('AdventureScene');
+                let party = ['001'];
+                if (advScene && advScene.party) party = advScene.party;
+
                 if (this.from1221WildhuntEvent) {
+                    let maxLvl = 5;
+                    if (advScene && advScene.grid && advScene.playerRow !== undefined && advScene.playerCol !== undefined) {
+                        const currentHex = advScene.grid[advScene.playerRow]?.[advScene.playerCol];
+                        maxLvl = currentHex?.cellData?.enemyLevel || 5;
+                    }
+
+                    const config = {
+                        rule: 2, // 突破戦
+                        attribute: 'red',
+                        enemyCount: 200,
+                        breakthroughTarget: 12010,
+                        spawnInterval: 0.5,
+                        enemyLevel: maxLvl,
+                        majoLevel: 0,
+                        isOverlay: false,
+                        returnScene: 'AdventureScene',
+                        party: party,
+                        canRetreat: false,
+                        is1221NightBattle: true
+                    };
+
                     if (this.engine) this.engine.cleanup();
-                    this.scene.resume(this.returnScene, { from1221WildhuntEvent: true });
                     this.scene.stop();
+                    this.scene.launch('BattleScene', config);
                     return;
                 }
 
                 if (this.enemyLevel > 0) {
-                    console.log('Transition to Battle!');
-                    this.scene.resume(this.returnScene, { 
-                        startBattle: true,
-                        enemyLevel: this.enemyLevel,
-                        enemyAttr: this.enemyAttr,
-                        majoLevel: this.majoLevel,
-                        isNightExploration: this.isNightExploration,
-                        isNightBattle: this.isNightBattle || this.isNightExploration,
-                        selectedBgmKey: this.selectedBgmKey
-                    });
+                    console.log('[EventScene] Direct transition to BattleScene (No map resume intermediate)');
+                    const config = {
+                        rule: 0,
+                        attribute: this.enemyAttr || 1,
+                        enemyAttr: this.enemyAttr || 1,
+                        enemyCount: 10 + (this.enemyLevel || 1) * 3,
+                        waveCount: 2,
+                        enemyLevel: this.enemyLevel || 1,
+                        majoLevel: this.majoLevel || 0,
+                        bgmKey: this.selectedBgmKey,
+                        isOverlay: true,
+                        returnScene: 'AdventureScene',
+                        party: party,
+                        canRetreat: true,
+                        isNightBattle: this.isNightBattle || this.isNightExploration || false
+                    };
 
-                    this.time.delayedCall(100, () => {
-                        this.scene.stop();
-                    });
+                    if (this.engine) this.engine.cleanup();
+                    this.scene.stop();
+                    this.scene.launch('BattleScene', config);
+                    return;
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
