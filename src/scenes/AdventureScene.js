@@ -815,10 +815,15 @@ export default class AdventureScene extends Phaser.Scene {
                     });
                 }
 
-                // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければセーブ）
+                // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければ時報またはセーブ）
                 const hasNextEvent = this.processEventQueue();
                 if (!hasNextEvent) {
-                    SaveManager.saveGame(this);
+                    if (this._pendingTimeSignal) {
+                        this._pendingTimeSignal = false;
+                        this.showTimeSignalOnly();
+                    } else {
+                        SaveManager.saveGame(this);
+                    }
                 }
 
 
@@ -1900,7 +1905,7 @@ export default class AdventureScene extends Phaser.Scene {
             };
         }
 
-        this.showTimeSignal(timeSignalCb);
+        this.handlePostTimeAdvance(timeSignalCb);
         this.updateNightOverlay();
         
         if (this.dateTimeText) {
@@ -1908,40 +1913,49 @@ export default class AdventureScene extends Phaser.Scene {
         }
     }
 
-    showTimeSignal(onComplete = null) {
-        // TimeReporterを使って時報を表示。時報終了後にイベント起動およびタロット起動チェック
-        TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
-            // 1. 食料ゼロ等の特別イベントコールバックをキューに追加
-            if (typeof onComplete === 'function') {
+    /** 時間経過後の各種イベント・タロットチェックと時報の優先度制御 */
+    handlePostTimeAdvance(onComplete = null) {
+        // 1. 食料ゼロ等の特別イベントコールバックをキューに追加
+        if (typeof onComplete === 'function') {
+            this.enqueueEvent({
+                type: 'custom',
+                action: onComplete
+            });
+        }
+
+        // 2. スケジュールイベントチェック（12/7, 12/14, 12/21 Wildhuntなど）
+        this.checkScheduledEvents();
+
+        // 3. チュートリアルイベントチェック
+        this.checkTutorialEvents();
+
+        // 4. タロット引き（午前→午後の切り替えタイミング・未獲得カードが残っている場合のみ）
+        const gs = GlobalState.getInstance();
+        if (this._pendingTarot) {
+            this._pendingTarot = false;
+            if (!gs.drawnTarotCards || gs.drawnTarotCards.length < 22) {
                 this.enqueueEvent({
-                    type: 'custom',
-                    action: onComplete
+                    type: 'tarot',
+                    data: { returnScene: 'AdventureScene', party: this.party }
                 });
             }
+        }
 
-            // 2. スケジュールイベントチェック（12/7, 12/14, 12/21 Wildhunt, 12/22朝など）を判定してキューに追加
-            this.checkScheduledEvents();
+        // イベントやタロットがキューに存在する場合は他を優先して先に実行！
+        if (this.eventQueue && this.eventQueue.length > 0) {
+            this._pendingTimeSignal = true; // 全イベント消化後に時報を表示するフラグ
+            this.processEventQueue();
+        } else {
+            // 他に何もイベントが無い場合のみ、その場で時報を表示
+            this.showTimeSignalOnly();
+        }
+    }
 
-            // 3. チュートリアルイベントチェック
-            this.checkTutorialEvents();
-
-            // 4. タロット引き（午前→午後の切り替えタイミング・未獲得カードが残っている場合のみ）
-            const gs = GlobalState.getInstance();
-            if (this._pendingTarot) {
-                this._pendingTarot = false;
-                if (!gs.drawnTarotCards || gs.drawnTarotCards.length < 22) {
-                    this.enqueueEvent({
-                        type: 'tarot',
-                        data: { returnScene: 'AdventureScene', party: this.party }
-                    });
-                }
-            }
-
-            // 積まれたイベントキューを順に実行開始（何もなければ自動保存して入力待ちへ）
-            const hasStarted = this.processEventQueue();
-            if (!hasStarted) {
-                SaveManager.saveGame(this);
-            }
+    /** 時報のみを再生して完了時に保存する処理 */
+    showTimeSignalOnly(onDone = null) {
+        TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
+            SaveManager.saveGame(this);
+            if (typeof onDone === 'function') onDone();
         });
     }
 
