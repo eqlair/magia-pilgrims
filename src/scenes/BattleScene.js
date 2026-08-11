@@ -201,7 +201,22 @@ export default class BattleScene extends Phaser.Scene {
                     this.sound.play(bKey, { loop: true, volume: 0.5 });
                 }
             }
+        }
 
+        // 敵の属性に応じた霧エフェクト(FogEffect)の生成
+        const attrMap = { red: 1, purple: 2, green: 3, yellow: 4, blue: 5 };
+        let attrNum = 1;
+        if (typeof this.battleConfig.enemyAttr === 'number') {
+            attrNum = this.battleConfig.enemyAttr;
+        } else if (typeof this.battleConfig.attribute === 'number') {
+            attrNum = this.battleConfig.attribute;
+        } else if (typeof this.battleConfig.attribute === 'string') {
+            attrNum = attrMap[this.battleConfig.attribute] || 1;
+        }
+
+        // 突破モード(rule === 2)以外の場合にFogEffectを生成
+        if (this.battleConfig.rule !== 2) {
+            this.fogEffect = new FogEffect(this, attrNum, 100);
         }
 
 
@@ -529,13 +544,17 @@ export default class BattleScene extends Phaser.Scene {
 
         }
 
-        // 魔女死亡時のSE
+        // 魔女死亡時のSEとモヤエフェクト消去
         if (!this.isBossDeadSEPlayed) {
             const boss = this.engine.enemies.find(e => e.isBoss && e.hp <= 0);
             if (boss) {
                 this.isBossDeadSEPlayed = true;
                 if (this.cache.audio.exists('se_bossbomb')) {
                     this.sound.play('se_bossbomb', { volume: 1.0 });
+                }
+                // 魔女の爆発とともにフェードアウトして消える
+                if (this.fogEffect) {
+                    this.fogEffect.fadeOut(2000);
                 }
             }
         }
