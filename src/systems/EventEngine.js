@@ -408,6 +408,7 @@ export class EventEngine {
 
     /** 全リソースを破棄（シーン終了・明転前に呼ぶ）。keepBgm=trueのとき再生中BGMはそのまま引き継ぐ */
     cleanup(keepBgm = false) {
+        console.log(`[EventEngine.cleanup] keepBgm=${keepBgm} / _currentBgm=${this._currentBgm?.key || 'null'} / isPlaying=${this._currentBgm?.isPlaying}`);
         if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
         if (this.whiteRect)   { this.scene.tweens.killTweensOf(this.whiteRect); this.whiteRect.destroy(); this.whiteRect = null; }
         if (this.bgImage)     { this.bgImage.destroy();     this.bgImage     = null; }
@@ -419,9 +420,12 @@ export class EventEngine {
         this._clearText(() => {});
 
         if (this._currentBgm && !keepBgm) {
+            console.log(`[EventEngine.cleanup] BGMを停止: ${this._currentBgm.key}`);
             if (this._currentBgm.isPlaying) this._currentBgm.stop();
             this._currentBgm.destroy();
             this._currentBgm = null;
+        } else if (this._currentBgm && keepBgm) {
+            console.log(`[EventEngine.cleanup] BGMを保持（引き継ぎ）: ${this._currentBgm.key} ✓`);
         }
     }
 

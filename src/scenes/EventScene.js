@@ -176,14 +176,32 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _finishScene() {
+        // ===== BGMデバッグ: 鳴っているBGMを全て記録 =====
+        const playingSounds = this.sound && this.sound.sounds
+            ? this.sound.sounds.filter(s => s && s.isPlaying).map(s => s.key)
+            : [];
+        console.log(`[_finishScene] from1221WildhuntEvent=${this.from1221WildhuntEvent} / 再生中BGM:`, playingSounds);
+
+        // デバッグ: 画面上にも状態を表示（ワイルドハント確認用）
+        if (this.from1221WildhuntEvent) {
+            const dbgText = this.add.text(10, 10,
+                `[DEBUG] _finishScene: wildhunt=true\nBGM playing: ${playingSounds.join(', ') || 'none'}`,
+                { fontSize: '14px', color: '#ffff00', backgroundColor: '#000000aa', padding: {x:6, y:4} }
+            ).setDepth(99999).setScrollFactor(0);
+            this.time.delayedCall(5000, () => { if (dbgText && dbgText.active) dbgText.destroy(); });
+        }
+
         // ワイルドハント突破戦への遷移時はBGMを一切止めない（bgm_wildhuntをそのまま引き継ぐ）
         if (!this.from1221WildhuntEvent && this.sound && this.sound.sounds) {
             // 戦闘BGM(bgm_battle1~4)は鳴らしたまま引き継ぐ。それ以外は停止
             this.sound.sounds.forEach(s => {
                 if (s && s.isPlaying && !(s.key && s.key.startsWith('bgm_battle'))) {
+                    console.log(`[_finishScene] stopping sound: ${s.key}`);
                     try { s.stop(); } catch (e) {}
                 }
             });
+        } else if (this.from1221WildhuntEvent) {
+            console.log('[_finishScene] wildhuntイベントのため音止め処理を完全スキップ ✓');
         }
 
         const { width, height } = this.scale;
