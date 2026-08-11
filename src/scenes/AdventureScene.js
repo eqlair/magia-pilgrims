@@ -2248,15 +2248,9 @@ export default class AdventureScene extends Phaser.Scene {
                 });
             });
 
-            // ── ステップ②: レリクス・ドロップ表示 ──
+            // ── ステップ②: レリクス・ドロップ表示 (中間テキスト不要 → 直接一覧表示) ──
             if (drops && drops.length > 0) {
                 steps.push((onNextStep) => {
-                    const dropNames = drops.map(d => d.name || '珍しいアイテム').join('、');
-                    const dropEvents = [
-                        { cmd: 'bg', key: 'ev_expr' },
-                        { cmd: 'text', name: '探索成果', body: `探索の成果として【${dropNames}】を手に入れた！` }
-                    ];
-
                     let dropDone = false;
                     const onDropEnd = (scene, data) => {
                         if (data && data.fromExploration) {
@@ -2270,7 +2264,7 @@ export default class AdventureScene extends Phaser.Scene {
 
                     this.scene.pause();
                     this.scene.launch('EventScene', {
-                        events: dropEvents,
+                        events: [],
                         returnScene: 'AdventureScene',
                         fromExploration: true,
                         explorationDrops: drops
