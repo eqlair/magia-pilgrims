@@ -843,12 +843,10 @@ export default class AdventureScene extends Phaser.Scene {
                     SaveManager.saveGame(this);
                 }
 
-                // 12/14就寝前イベント完了時 -> 視聴フラグをONにして、時間を12/15午前へ進めて時報を表示
+                // 12/14就寝前イベント完了時 -> 視聴フラグをONにして15日午前の時報へ
                 if (data && data.from1214Event) {
                     GlobalState.getInstance().event1214Played = true;
                     SaveManager.saveGame(this);
-                    this.advanceTime();
-                    return;
                 }
 
                 // 1221wildhuntイベント復帰時 -> マップ画面のワンクリック猶予を挟まず即座に突破戦へ突入！
