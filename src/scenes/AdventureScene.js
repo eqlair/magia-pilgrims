@@ -1458,8 +1458,14 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     moveToHex(hex, animate = true) {
-        if (animate && this.check1221NightForcedBreakthrough()) {
-            return;
+        if (animate) {
+            if (this.currentDay >= 22) {
+                this.check1221Event();
+                return;
+            }
+            if (this.check1221NightForcedBreakthrough()) {
+                return;
+            }
         }
         const isUnexplored = (hex.cellData.visited !== 1 && hex.cellData.name !== '水域' && hex.cellData.name !== '密林');
         
@@ -2504,6 +2510,28 @@ export default class AdventureScene extends Phaser.Scene {
         });
     }
 
+    check1221Event() {
+        // 12/22以降（午前・午後・夜・23日以降問わず）に生存している場合は、過去に再生済みか否かに関わらず無条件で即座に強制発火！
+        if (this.currentDay >= 22) {
+            const gs = GlobalState.getInstance();
+            gs.event1221Played = true;
+
+            const eventData = this.cache.json.get('event_1221');
+            if (eventData) {
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: eventData,
+                        returnScene: 'AdventureScene',
+                        from1221Event: true
+                    }
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+
     playHappyAction() {
         if (this.isJumping || this.isHappyJumping) return;
         this.isHappyJumping = true;
@@ -2818,27 +2846,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
 
-    check1221Event() {
-        const gs = GlobalState.getInstance();
-        // 12/22以降（午前・午後・夜問わず）で未再生ならいつでも即座に発火！
-        if (this.currentDay >= 22 && !gs.event1221Played) {
-            gs.event1221Played = true;
 
-            const eventData = this.cache.json.get('event_1221');
-            if (eventData) {
-                this.enqueueEvent({
-                    type: 'event',
-                    data: {
-                        events: eventData,
-                        returnScene: 'AdventureScene',
-                        from1221Event: true
-                    }
-                });
-                return true;
-            }
-        }
-        return false;
-    }
 
     check1221NightWildhunt() {
         const gs = GlobalState.getInstance();
