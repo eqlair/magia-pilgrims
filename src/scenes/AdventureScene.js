@@ -823,27 +823,8 @@ export default class AdventureScene extends Phaser.Scene {
                     TransitionManager.fadeIn(this);
                 }
 
-                if (this._pendingTarot) {
-                    this._pendingTarot = false;
-                    this.enqueueEvent({
-                        type: 'tarot',
-                        data: { returnScene: 'AdventureScene', party: this.party }
-                    });
-                }
-
-                // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければ時報またはセーブ）
-                const hasNextEvent = this.processEventQueue();
-                if (!hasNextEvent) {
-                    if (this._pendingTimeSignal) {
-                        this._pendingTimeSignal = false;
-                        this.showTimeSignalOnly();
-                    } else {
-                        SaveManager.saveGame(this);
-                    }
-                }
-
-
-
+                // ★ 専用イベント復帰判定を最優先で処理（古い時報やイベントキューの誤爆を防止）
+                
                 // 12/14就寝前イベント完了時 -> 時間を12/15午前へ進めて時報を表示
                 if (data && data.from1214Event) {
                     this.advanceTime();
@@ -858,7 +839,6 @@ export default class AdventureScene extends Phaser.Scene {
 
                 // 12/21イベント完了時 -> 周回イベント(event_resp)の連続起動
                 if (data && data.from1221Event) {
-
                     const respData = this.cache.json.get('event_resp');
                     if (respData) {
                         this.scene.pause();
@@ -875,6 +855,9 @@ export default class AdventureScene extends Phaser.Scene {
                 if (data && data.fromRespEvent) {
                     const gs = GlobalState.getInstance();
                     gs.resetForNewLoop();
+
+                    this.eventQueue = []; // 残存イベントキューを完全クリア
+                    this._pendingTimeSignal = false; // 古い時報フラグを完全消去！
 
                     this.party = ['001']; // 紫苑を残してみんなお別れ（初期メンバーのみ）
                     this.currentMonth = 12;
@@ -896,6 +879,25 @@ export default class AdventureScene extends Phaser.Scene {
                     SaveManager.saveGame(this);
                     TransitionManager.fadeIn(this);
                     return;
+                }
+
+                if (this._pendingTarot) {
+                    this._pendingTarot = false;
+                    this.enqueueEvent({
+                        type: 'tarot',
+                        data: { returnScene: 'AdventureScene', party: this.party }
+                    });
+                }
+
+                // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければ時報またはセーブ）
+                const hasNextEvent = this.processEventQueue();
+                if (!hasNextEvent) {
+                    if (this._pendingTimeSignal) {
+                        this._pendingTimeSignal = false;
+                        this.showTimeSignalOnly();
+                    } else {
+                        SaveManager.saveGame(this);
+                    }
                 }
 
                 // タロット/イベント/戦闘いずれも発動せず → 入力待ち状態なのでセーブ
