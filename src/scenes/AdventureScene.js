@@ -1802,34 +1802,11 @@ export default class AdventureScene extends Phaser.Scene {
         this.player.setPosition(hex.px, hex.py - this.CHAR_OFFSET_Y);
     }
 
+
     advanceTime() {
         const oldDay = this.currentDay;
         const oldTimePeriodIndex = this.timePeriodIndex;
         const gsInst = GlobalState.getInstance();
-
-        // 12/14の夜の行動(戦闘・探索・休息など)が終了した瞬間：
-        // 12/15朝の時報が表示される前に12/14就寝前イベントを発動させる
-        if (this.currentMonth === 12 && oldDay === 14 && oldTimePeriodIndex === 2 && !gsInst.event1214Played) {
-            gsInst.event1214Played = true;
-
-            // BGM全停止
-            this.sound.stopAll();
-
-            const newGem = RelicGenerator.generateGem(1);
-            if (!gsInst.inventory) gsInst.inventory = { relics: [], gems: [] };
-            gsInst.inventory.gems.push(newGem);
-
-            const eventData = this.cache.json.get('event_1214');
-            this.scene.pause();
-            this.scene.launch('EventScene', {
-                events: eventData,
-                returnScene: 'AdventureScene',
-                from1214Event: true,
-                explorationDrops: [newGem]
-            });
-            return;
-        }
-
         const oldMonth = this.currentMonth;
 
         this.timePeriodIndex++;
