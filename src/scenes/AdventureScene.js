@@ -454,11 +454,16 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
         // ── チュートリアル・日付イベント（12/22強制作動含む）の発動チェック ──
+        console.log('[DEBUG_TUTORIAL] AdventureScene create() checking tutorial & scheduled events...', {
+            isTutorialMode: gs.isTutorialMode,
+            tutorialMorningSeen: gs.tutorialMorningSeen,
+            currentDay: this.currentDay,
+            timePeriodIndex: this.timePeriodIndex
+        });
         this.checkTutorialEvents();
-        this.checkScheduledEvents();
+        this.checkScheduledEvents('after_time_signal');
+        this.processEventQueue();
 
-
-        
         // アイドル時間計測用
         this.idleTime = 0;
         this.input.on('pointerdown', () => this.resetIdleTime());
@@ -897,6 +902,9 @@ export default class AdventureScene extends Phaser.Scene {
                         data: { returnScene: 'AdventureScene', party: this.party }
                     });
                 }
+
+                // 復帰時のチュートリアルイベントチェック
+                this.checkTutorialEvents();
 
                 // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければ時報またはセーブ）
                 const hasNextEvent = this.processEventQueue();
@@ -3138,8 +3146,17 @@ export default class AdventureScene extends Phaser.Scene {
         const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
         const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
 
+        console.log('[DEBUG_TUTORIAL] checkTutorialEvents eval:', {
+            isTutorialMode: gs.isTutorialMode,
+            tutorialMorningSeen: gs.tutorialMorningSeen,
+            month: gs.currentMonth,
+            day: gs.currentDay,
+            period: gs.timePeriodIndex
+        });
+
         // ── チュートリアル午前 ──
         if (gs.isTutorialMode && !gs.tutorialMorningSeen && gs.currentMonth === 12 && gs.currentDay === 1 && gs.timePeriodIndex === 0) {
+            console.log('[DEBUG_TUTORIAL] Triggering 12/1 Morning Tutorial!');
             let eventData = this.cache.json.get('tutorial_morning');
             if (eventData) {
                 eventData = JSON.parse(JSON.stringify(eventData));
