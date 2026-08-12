@@ -654,8 +654,7 @@ export class PlayerCharacter extends BattleEntity {
             const cdVal = Math.max(10, 60 - (this.wlv * 2));
             this.ultimateCooldown = cdVal;
             
-            const burstDmg = Math.floor(this.atk * (1.0 + (0.10 * this.wlv)) * ultimateDamageMultiplier);
-
+            // 白蓮 (必殺技: 前方8m進んだ地点で直径8mの大爆発を発生。5秒+(WLV/2)秒間持続し、敵に毎秒(攻撃力の10%+WLV%)の継続ダメージを与え、敵弾を連続吸い込み消去する)
             const ultBullet = new Bullet(this.x, this.z, {
                 owner: 'player', isPiercing: true,
                 vx: 0, vz: 2.0, // 秒速2m前進
@@ -670,21 +669,26 @@ export class PlayerCharacter extends BattleEntity {
                 this.x += this.vx * dt;
                 this.z += this.vz * dt;
                 this.travelDist += 2.0 * dt;
-                if (this.travelDist >= 15.0) {
-                    // 15m進んだら直径8m(半径4m)に大爆発！
-                    if (self.engine) {
-                        self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_010', radius: 4.0, lifeTime: 0.8 }));
-                        const targets = self.engine.enemies.filter(e => !e.isDead && !e.isDying);
-                        for (const t of targets) {
-                            const dx = t.x - this.x;
-                            const dz = t.z - this.z;
-                            if (dx*dx + dz*dz <= 16.0) { // 半径4m
-                                self.engine.applyDamage(self, t, burstDmg, 'critical', Math.sqrt(dx*dx + dz*dz), this.x, this.z);
-                                t.applyKnockback((40 * dx) / (Math.sqrt(dx*dx + dz*dz) || 1), (40 * dz) / (Math.sqrt(dx*dx + dz*dz) || 1));
-                            }
-                        }
-                    }
+                if (this.travelDist >= 8.0) {
+                    // 8m進んだ地点で消滅し、持続型の爆発フィールドを生成！
                     this.isDead = true;
+                    if (self.engine) {
+                        const duration = 5.0 + (self.wlv / 2.0); // 5秒 + (WLV/2)秒 持続
+                        const burstField = new Bullet(this.x, this.z, {
+                            owner: 'player',
+                            vx: 0, vz: 0,
+                            damage: 0,
+                            size: 8.0, // 直径8m (半径4m)
+                            lifeTime: duration,
+                            type: 'ultimate_burst_field_010',
+                            erasesEnemyBullets: true
+                        });
+                        burstField.sourceEntity = self;
+                        burstField.burstDuration = duration;
+
+                        self.engine.bullets.push(burstField);
+                        self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_010', radius: 4.0, lifeTime: duration }));
+                    }
                 }
             };
 

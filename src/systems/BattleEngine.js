@@ -2078,6 +2078,27 @@ export class BattleEngine {
                 b.size = 0.5 + (2.0 * expandProgress); // 直径0.5m -> 2.5mへ拡大！
             }
 
+            // 白蓮(010)の必殺技持続爆発フィールド (ultimate_burst_field_010): 範囲内の敵全員に毎秒(攻撃力の10%+WLV%)の継続ダメージ
+            if (b.type === 'ultimate_burst_field_010' && b.sourceEntity) {
+                const owner = b.sourceEntity;
+                b.damageTimer = (b.damageTimer || 0) + dt;
+                if (b.damageTimer >= 0.2) { // 0.2秒ごとに判定（毎秒 攻撃力の10%+WLV% ダメージ）
+                    b.damageTimer -= 0.2;
+                    const dpsPct = 0.10 + (owner.wlv * 0.01);
+                    const tickDmg = Math.max(1, Math.floor(((owner.atk || 100) * dpsPct) * 0.2));
+                    
+                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                    for (const t of targets) {
+                        const dx = t.x - b.x;
+                        const dz = t.z - b.z;
+                        if (dx * dx + dz * dz <= 16.0) { // 半径4m (直径8m)
+                            this.applyDamage(owner, t, tickDmg, 'normal', Math.sqrt(dx * dx + dz * dz), b.x, b.z);
+                            t.applyKnockback((10 * dx) / (Math.sqrt(dx * dx + dz * dz) || 1), (10 * dz) / (Math.sqrt(dx * dx + dz * dz) || 1));
+                        }
+                    }
+                }
+            }
+
 
             // 敵弾消去属性の処理（キック弾など）
             if (b.erasesEnemyBullets && b.owner === 'player') {
