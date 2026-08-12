@@ -909,9 +909,6 @@ export default class AdventureScene extends Phaser.Scene {
                     });
                 }
 
-                // 復帰時のチュートリアルイベントチェック
-                this.checkTutorialEvents();
-
                 // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければ時報またはセーブ）
                 const hasNextEvent = this.processEventQueue();
                 if (!hasNextEvent) {
