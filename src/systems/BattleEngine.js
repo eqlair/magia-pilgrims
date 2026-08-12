@@ -1011,7 +1011,7 @@ export class BattleEngine {
 
 
 
-                // 前衛キャラと重い敵の正面衝突判定 → 後衛に押し戻される
+                // 前衛キャラと重い敵の正面衝突判定 → 衝突ダメージを与え、生きていれば押される
                 for (const p of this.players) {
                     if (p.isFront && !p.isDead) {
                         for (const e of aliveEnemies) {
@@ -1019,14 +1019,33 @@ export class BattleEngine {
                                 const dx = Math.abs(e.x - p.x);
                                 const dz = Math.abs(e.z - p.z);
                                 if (dx < 1.0 && dz < 1.0) {
-                                    p.isFront = false;
-                                    p.targetZ = 1.0;
-                                    this.eventQueue.push(`${p.name} pushed back by heavy enemy!`);
-                                    this.floatingTexts.push({
-                                        id: ++this.floatingTextIdCounter,
-                                        x: p.x, yOffset: 0.5, z: p.z,
-                                        amount: "PUSHED!", type: "miss", lifeTime: 1.5, maxLife: 1.5
-                                    });
+                                    // 1. 体当たり（衝突）ダメージ＝キャラクターの（攻撃力 + 体重）
+                                    const ramAtk = p.atk || 10;
+                                    const ramWeight = p.weight || 50;
+                                    const ramDamage = Math.floor(ramAtk + ramWeight);
+
+                                    // 2. ダメージ適用とキックヒットエフェクト(kick_hit)を衝突位置に発生
+                                    this.applyDamage(p, e, ramDamage, 'normal', 0, e.x, e.z);
+                                    this.effects.push(new EffectEntity(e.x, e.z, { type: 'kick_hit', lifeTime: 0.6 }));
+
+                                    // 3. 相手が生きていれば押される（後衛へ）
+                                    if (!e.isDead && !e.isDying && e.hp > 0) {
+                                        p.isFront = false;
+                                        p.targetZ = 1.0;
+                                        this.eventQueue.push(`${p.name} pushed back by heavy enemy!`);
+                                        this.floatingTexts.push({
+                                            id: ++this.floatingTextIdCounter,
+                                            x: p.x, yOffset: 0.5, z: p.z,
+                                            amount: "PUSHED!", type: "miss", lifeTime: 1.5, maxLife: 1.5
+                                        });
+                                    } else {
+                                        // 体当たりで敵を倒した場合はそのまま前衛を維持！
+                                        this.floatingTexts.push({
+                                            id: ++this.floatingTextIdCounter,
+                                            x: p.x, yOffset: 0.5, z: p.z,
+                                            amount: "RAM CRUSH!", type: "critical", lifeTime: 1.5, maxLife: 1.5
+                                        });
+                                    }
                                     break;
                                 }
                             }
