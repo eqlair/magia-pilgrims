@@ -2935,11 +2935,12 @@ export default class AdventureScene extends Phaser.Scene {
 
         const config = {
             rule: 2, // 突破戦
+            bgKey: 'road_enkin02',
             attribute: 'red',
             enemyCount: 200,
             breakthroughTarget: 12010,
             spawnInterval: 0.5,
-            enemyLevel: maxLevel,
+            enemyLevel: 5,
             majoLevel: 0,
             isOverlay: false,
             returnScene: 'AdventureScene',

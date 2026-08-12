@@ -710,10 +710,19 @@ export class BattleEngine {
                 finalDamage *= 2.0;
             }
 
-            // ワイルドハント突破戦限定デバフ: メンバー全員の攻撃力が1秒ごとに0.1%ずつ減少 (0.001 * 秒数)
-            if (attacker.owner === 'player' && this.isWildhunt) {
-                const wildhuntDebuffFactor = Math.max(0, 1.0 - (this.wildhuntElapsedSec * 0.001));
-                finalDamage *= wildhuntDebuffFactor;
+            // 12/21夜ワイルドハント突破戦限定の時間経過デバフ
+            const isWildhuntBattle = !!(this.config && this.config.is1221NightBattle);
+            if (isWildhuntBattle) {
+                // ① 味方の攻撃力ダウン: 1秒ごとに0.1%減 (0.001 * 秒数)
+                if (attacker.owner === 'player') {
+                    const wildhuntAtkFactor = Math.max(0.05, 1.0 - ((this.wildhuntElapsedSec || 0) * 0.001));
+                    finalDamage *= wildhuntAtkFactor;
+                }
+                // ② 味方の被ダメージ増加 (属性防御低下): 1秒ごとに+2% (0.02 * 秒数)、50秒で被ダメージ2倍
+                if (defender.owner === 'player') {
+                    const wildhuntDmgFactor = 1.0 + ((this.wildhuntElapsedSec || 0) * 0.02);
+                    finalDamage *= wildhuntDmgFactor;
+                }
             }
 
 
@@ -945,6 +954,19 @@ export class BattleEngine {
             
             if (this.rule === 2) {
                 // ── 突破モード (rule=2) ──
+                if (this.config && this.config.is1221NightBattle) {
+                    this.wildhuntElapsedSec = (this.wildhuntElapsedSec || 0) + dt;
+                    // 10秒ごとに敵レベルが1上がる (Lv.5スタート)
+                    this.enemyLevel = 5 + Math.floor(this.wildhuntElapsedSec / 10);
+                }
+
+                // 倒れたキャラクター（isDead）を画面下のスクロールに合わせて後方へ流す演出
+                for (const p of this.players) {
+                    if (p.isDead) {
+                        p.z -= (this.advanceSpeed || 8.0) * dt;
+                    }
+                }
+
                 const alivePlayers = this.players.filter(p => !p.isDead);
                 const rearCount = alivePlayers.filter(p => !p.isFront).length;
 
