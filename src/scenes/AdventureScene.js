@@ -843,9 +843,14 @@ export default class AdventureScene extends Phaser.Scene {
                     SaveManager.saveGame(this);
                 }
 
-                // 12/14就寝前イベント完了時 -> 視聴フラグをONにして15日午前の時報へ
+                // 12/14就寝前イベント完了時 -> 視聴フラグをONにし、進んだ日時(15日午前)を確実に同期して保存
                 if (data && data.from1214Event) {
-                    GlobalState.getInstance().event1214Played = true;
+                    const gsInst = GlobalState.getInstance();
+                    gsInst.event1214Played = true;
+                    this.currentMonth = gsInst.currentMonth;
+                    this.currentDay = gsInst.currentDay;
+                    this.timePeriodIndex = gsInst.timePeriodIndex;
+                    this.timeOfDay = this.timePeriods[this.timePeriodIndex];
                     SaveManager.saveGame(this);
                 }
 
