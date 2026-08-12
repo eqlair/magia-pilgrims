@@ -2885,9 +2885,9 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1207Event() {
         const gs = GlobalState.getInstance();
-        // 12月7日の夜(timePeriodIndex === 2)またはそれ以降で未再生の場合に発動
+        // 12月7日の午後(timePeriodIndex === 1)の時報直後またはそれ以降で未再生の場合に発動
         if (this.currentDay >= 7 && !gs.event1207Played) {
-            if (this.currentDay === 7 && this.timePeriodIndex < 2) return false; // 12/7の午前・午後は夜まで待つ
+            if (this.currentDay === 7 && this.timePeriodIndex < 1) return false; // 12/7午前は午後の時報まで待つ
             const eventData = this.cache.json.get('event_1207');
             if (eventData) {
                 this.enqueueEvent({
