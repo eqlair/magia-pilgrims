@@ -25,11 +25,6 @@ export class BattleRenderer {
         if (this.beamGraphics) {
             this.beamGraphics.clear();
         }
-        if (!this.debugGraphics) {
-            this.debugGraphics = this.scene.add.graphics();
-            this.debugGraphics.setDepth(100);
-        }
-        this.debugGraphics.clear();
 
         // 描画更新の最初に、削除されたエンティティのスプライトを消去する
         for (const [entity, sprite] of this.spriteMap.entries()) {
@@ -106,12 +101,7 @@ export class BattleRenderer {
         }
 
         
-        // キック弾丸・爆発エフェクトの Graphics 描画
-        if (!this.aoeGraphics) {
-            this.aoeGraphics = this.scene.add.graphics();
-        }
-        this.aoeGraphics.clear();
-        this.aoeGraphics.setDepth(1200);
+
 
         // キック弾の範囲描画は不要になったため消去
 
