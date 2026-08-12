@@ -467,6 +467,9 @@ export default class AdventureScene extends Phaser.Scene {
             this.processEventQueue();
         }
 
+        // ── チュートリアル操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ）の再適用 ──
+        this.applyTutorialRestrictions();
+
         // アイドル時間計測用
         this.idleTime = 0;
         this.input.on('pointerdown', () => this.resetIdleTime());
@@ -920,9 +923,9 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                 }
 
-                // タロット/イベント/戦闘いずれも発動せず → 入力待ち状態なのでセーブ
+                // タロット/イベント/戦闘いずれも発動せず → 入力待ち状態なのでセーブ＆操作制限の維持
                 if (!advancedTimeThisResume) {
-                    // advanceTimeを経由していない復帰（キャンプ・装備・隊列など）
+                    this.applyTutorialRestrictions();
                     SaveManager.saveGame(this);
                 }
                 // advanceTimeを経由した場合はshowTimeSignal内でセーブ済み
