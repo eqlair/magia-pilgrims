@@ -914,7 +914,11 @@ export class BattleRenderer {
 
                 const scaleFactor = 0.4 + progress * 1.2;
                 obj.setScale((radiusPx * sizeMult * scaleFactor) / baseWidth);
-                obj.setAlpha(Math.max(0, (1.0 - progress) * 0.95));
+                
+                // 魔女の爆発時（majo_death / witch_bomb）は最大不透明度を70% (0.7) に設定
+                const isWitchExplosion = (eff.type && eff.type.startsWith('majo_death')) || eff.type === 'witch_bomb';
+                const maxAlpha = isWitchExplosion ? 0.7 : 0.95;
+                obj.setAlpha(Math.max(0, (1.0 - progress) * maxAlpha));
                 obj.clearTint(); // 着色しない
                 return;
             }
