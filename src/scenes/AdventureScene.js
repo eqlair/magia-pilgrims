@@ -454,15 +454,18 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
         // ── チュートリアル・日付イベント（12/22強制作動含む）の発動チェック ──
-        console.log('[DEBUG_TUTORIAL] AdventureScene create() checking tutorial & scheduled events...', {
-            isTutorialMode: gs.isTutorialMode,
-            tutorialMorningSeen: gs.tutorialMorningSeen,
-            currentDay: this.currentDay,
-            timePeriodIndex: this.timePeriodIndex
-        });
-        this.checkTutorialEvents();
-        this.checkScheduledEvents('after_time_signal');
-        this.processEventQueue();
+        if (this._initData.isTutorialStart || (gs.isTutorialMode && !gs.tutorialMorningSeen && this.currentDay === 1 && this.timePeriodIndex === 0)) {
+            // チュートリアル戦闘後 ➔ マップ呼び出し ➔ 午前の時報 ➔ 12/1午前チュートリアル会話
+            this.showTimeSignalOnly(() => {
+                this.checkTutorialEvents();
+                this.checkScheduledEvents('after_time_signal');
+                this.processEventQueue();
+            });
+        } else {
+            this.checkTutorialEvents();
+            this.checkScheduledEvents('after_time_signal');
+            this.processEventQueue();
+        }
 
         // アイドル時間計測用
         this.idleTime = 0;
