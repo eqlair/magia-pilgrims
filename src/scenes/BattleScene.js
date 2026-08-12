@@ -609,6 +609,7 @@ export default class BattleScene extends Phaser.Scene {
                     party: this.battleConfig.party || ['001'],
                     earnedExp: this.engine.earnedExp || 0,
                     earnedSp: this.engine.earnedSp || 0,
+                    isBoss: !!(this.battleConfig.isBoss || this.engine.waveState === 'boss' || (this.battleConfig.majoLevel && this.battleConfig.majoLevel > 0)),
                     isTutorial: this.battleConfig.isTutorial || false,
                     returnScene: this.battleConfig.returnScene || 'AdventureScene'
                 });

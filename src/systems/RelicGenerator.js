@@ -82,29 +82,31 @@ export class RelicGenerator {
         };
     }
 
-    static generateBattleDrops() {
+    static generateBattleDrops(isBoss = false) {
         const drops = [];
         const gs = GlobalState.getInstance();
         const isFoolUpright = gs.activeTarots.some(t => t.id === 1 && t.isUpright);
-        const rareMult = isFoolUpright ? 2.0 : 1.0;
+        const bossMult = isBoss ? 2.0 : 1.0;
+        const rareMult = (isFoolUpright ? 2.0 : 1.0) * bossMult;
         
-        // Rank 1: 2 to 6 drops
-        const numRank1 = 2 + Math.floor(Math.random() * 5); // 2, 3, 4, 5, 6
+        // Rank 1: 2 to 6 drops (ボス時は4〜8個)
+        const minDrops = isBoss ? 4 : 2;
+        const numRank1 = minDrops + Math.floor(Math.random() * 5);
         for (let i = 0; i < numRank1; i++) {
             drops.push(this.generateRelic(1));
         }
         
-        // Rank 2: 20% chance
+        // Rank 2: 20% chance (ボス時 40%)
         if (Math.random() < Math.min(1.0, 0.20 * rareMult)) {
             drops.push(this.generateRelic(2));
         }
         
-        // Rank 3: 5% chance (愚者時 10%)
+        // Rank 3: 5% chance (ボス時 10%)
         if (Math.random() < Math.min(1.0, 0.05 * rareMult)) {
             drops.push(this.generateRelic(3));
         }
         
-        // Gem: 1% chance (愚者時 2%)
+        // Gem: 1% chance (ボス時 2%)
         if (Math.random() < Math.min(1.0, 0.01 * rareMult)) {
             drops.push(this.generateGem(1));
         }

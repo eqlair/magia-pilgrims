@@ -17,6 +17,7 @@ export default class ResultScene extends Phaser.Scene {
         this.earnedSp = data.earnedSp || 0;
         this.returnScene = data.returnScene || 'AdventureScene';
         this.isTutorial = data.isTutorial || false;
+        this.isBoss = data.isBoss || false;
         this.isRelicScreen = false;
 
         this.relicAnimationPlaying = false;
@@ -218,7 +219,7 @@ export default class ResultScene extends Phaser.Scene {
         // 半透明の黒背景
         this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7).setDepth(100);
 
-        const drops = RelicGenerator.generateBattleDrops();
+        const drops = RelicGenerator.generateBattleDrops(this.isBoss);
         
         if (this.globalState.debugForceGemDrop) {
             drops.push(RelicGenerator.generateGem(1));
