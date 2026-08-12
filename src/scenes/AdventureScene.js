@@ -3107,16 +3107,10 @@ export default class AdventureScene extends Phaser.Scene {
                 eventData.push({ cmd: "end" });
             }
 
-            this.eventEngine = new EventEngine(this, eventData, () => {
-                TransitionManager.meitenInPlace(this, () => {
-                    if (this.eventEngine) {
-                        this.eventEngine.cleanup();
-                        this.eventEngine = null;
-                    }
-                    this.applyTutorialRestrictions();
-                }, 800);
+            this.enqueueEvent({
+                type: 'event',
+                data: { events: eventData, returnScene: 'AdventureScene' }
             });
-            this.eventEngine.start();
             return true;
         }
 
@@ -3157,16 +3151,10 @@ export default class AdventureScene extends Phaser.Scene {
                 eventData.push({ cmd: "end" });
             }
 
-            this.eventEngine = new EventEngine(this, eventData, () => {
-                TransitionManager.meitenInPlace(this, () => {
-                    if (this.eventEngine) {
-                        this.eventEngine.cleanup();
-                        this.eventEngine = null;
-                    }
-                    this.applyTutorialRestrictions();
-                }, 800);
+            this.enqueueEvent({
+                type: 'event',
+                data: { events: eventData, returnScene: 'AdventureScene' }
             });
-            this.eventEngine.start();
             return true;
         }
 
@@ -3207,16 +3195,10 @@ export default class AdventureScene extends Phaser.Scene {
                 eventData.push({ cmd: "end" });
             }
 
-            this.eventEngine = new EventEngine(this, eventData, () => {
-                TransitionManager.meitenInPlace(this, () => {
-                    if (this.eventEngine) {
-                        this.eventEngine.cleanup();
-                        this.eventEngine = null;
-                    }
-                    this.applyTutorialRestrictions();
-                }, 800);
+            this.enqueueEvent({
+                type: 'event',
+                data: { events: eventData, returnScene: 'AdventureScene' }
             });
-            this.eventEngine.start();
             return true;
         }
 

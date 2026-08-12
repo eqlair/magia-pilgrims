@@ -75,8 +75,8 @@ export class GlobalState {
         this.debugEnemySizeMultiplier = 1.0;   // 1.0
         this.hideBattleTips = false;           // 戦闘中Tips表示OFFフラグ
 
-        // チュートリアル関連フラグ
-        this.isTutorialMode = false;
+        // チュートリアル関連フラグ (初期値は有効)
+        this.isTutorialMode = true;
         this.tutorialMorningSeen = false;
         this.tutorialAfternoonSeen = false;
         this.tutorialNightSeen = false;
@@ -973,6 +973,16 @@ export class GlobalState {
         this.currentDay = 1;
         this.timePeriodIndex = 0;
         this.savedFormation = { '001': { lane: 0, isFront: false } };
+
+        // チュートリアルフラグの完全初期化
+        this.isTutorialMode = true;
+        this.tutorialMorningSeen = false;
+        this.tutorialAfternoonSeen = false;
+        this.tutorialNightSeen = false;
+        this.tutorialTarotSeen = false;
+        this.tutorialRestSeen = false;
+        this.tutorialGameOverSeen = false;
+        this.tutorialStep = 0;
     }
 
 
