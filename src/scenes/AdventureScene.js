@@ -843,7 +843,7 @@ export default class AdventureScene extends Phaser.Scene {
                     SaveManager.saveGame(this);
                 }
 
-                // 12/14就寝前イベント完了時 -> 視聴フラグをONにし、進んだ日時(15日午前)を確実に同期して保存
+                // 12/14就寝前イベント完了時 -> 視聴フラグ確定・日時同期後、15日午前の時報を1回だけ鳴らしてreturn
                 if (data && data.from1214Event) {
                     const gsInst = GlobalState.getInstance();
                     gsInst.event1214Played = true;
@@ -851,7 +851,11 @@ export default class AdventureScene extends Phaser.Scene {
                     this.currentDay = gsInst.currentDay;
                     this.timePeriodIndex = gsInst.timePeriodIndex;
                     this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+                    this._pendingTimeSignal = false;
+                    this.eventQueue = [];
                     SaveManager.saveGame(this);
+                    this.triggerNextTimePeriodSequence();
+                    return;
                 }
 
                 // 1221wildhuntイベント復帰時 -> マップ画面のワンクリック猶予を挟まず即座に突破戦へ突入！
