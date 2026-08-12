@@ -961,6 +961,7 @@ export default class AdventureScene extends Phaser.Scene {
         this.exploreBtn.on('pointerdown', () => {
             this.exploreBtn.setScale(tansScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
+            if (this.isMovementOnlyTutorial || this.isRestOnlyTutorial) return; // チュートリアル午前・夜は不可！
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) this._startExploration();
         });
@@ -975,6 +976,7 @@ export default class AdventureScene extends Phaser.Scene {
         this.restBtn.on('pointerdown', () => {
             this.restBtn.setScale(kyuuScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
+            if (this.isMovementOnlyTutorial || this.isExploreOnlyTutorial) return; // チュートリアル午前・午後は不可！
             if (!this.isJumping) {
                 this.inRestMode = true;
                 SaveManager.saveGame(this);
@@ -994,6 +996,8 @@ export default class AdventureScene extends Phaser.Scene {
         this.statusBtn.on('pointerdown', () => {
             this.statusBtn.setScale(statScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
+            const gs = GlobalState.getInstance();
+            if (gs.isTutorialMode) return; // チュートリアル初日はステータス画面不可！
             this.scene.pause();
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
             const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_woods.jpg';
@@ -3358,8 +3362,9 @@ export default class AdventureScene extends Phaser.Scene {
     /** チュートリアル中の操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ） */
     applyTutorialRestrictions() {
         const gs = GlobalState.getInstance();
-        if (!gs.isTutorialMode) {
-            // チュートリアルモード終了：すべての操作ロックを解除し全ボタンを表示
+        if (!gs.isTutorialMode || gs.currentDay > 1 || gs.currentMonth !== 12) {
+            // チュートリアルモード終了（12/2以降など）：すべての操作ロックを解除し全ボタンを表示
+            gs.isTutorialMode = false;
             this.isMovementOnlyTutorial = false;
             this.isExploreOnlyTutorial = false;
             this.isRestOnlyTutorial = false;
@@ -3370,7 +3375,7 @@ export default class AdventureScene extends Phaser.Scene {
             return;
         }
 
-        if (gs.timePeriodIndex === 0) {
+        if (gs.currentDay === 1 && gs.timePeriodIndex === 0) {
             // チュートリアル午前：移動のみ許可
             this.isMovementOnlyTutorial = true;
             this.isExploreOnlyTutorial = false;
@@ -3379,7 +3384,7 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.restBtn) this.restBtn.setVisible(false);
             if (this.exploreBtn) this.exploreBtn.setVisible(false);
             if (this.statusBtn) this.statusBtn.setVisible(false);
-        } else if (gs.timePeriodIndex === 1) {
+        } else if (gs.currentDay === 1 && gs.timePeriodIndex === 1) {
             // チュートリアル午後：探索のみ許可
             this.isMovementOnlyTutorial = false;
             this.isExploreOnlyTutorial = true;
@@ -3388,7 +3393,7 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.exploreBtn) this.exploreBtn.setVisible(true);
             if (this.restBtn) this.restBtn.setVisible(false);
             if (this.statusBtn) this.statusBtn.setVisible(false);
-        } else if (gs.timePeriodIndex === 2) {
+        } else if (gs.currentDay === 1 && gs.timePeriodIndex === 2) {
             // チュートリアル夜：休息のみ許可
             this.isMovementOnlyTutorial = false;
             this.isExploreOnlyTutorial = false;
