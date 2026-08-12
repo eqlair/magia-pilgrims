@@ -204,6 +204,13 @@ export default class BattleScene extends Phaser.Scene {
         // 突破モード(rule === 2)以外の場合にFogEffectを生成
         if (this.battleConfig.rule !== 2) {
             this.fogEffect = new FogEffect(this, attrNum, 100);
+
+            // 戦闘突入後、Wave表示時（1.5秒後）から1.5秒かけてスーッと自動フェードアウト消去＆完全破棄（激戦時の端末過負荷を完全防止）
+            this.time.delayedCall(1500, () => {
+                if (this.fogEffect) {
+                    this.fogEffect.fadeOut(1500);
+                }
+            });
         }
 
 
