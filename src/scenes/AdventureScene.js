@@ -1808,12 +1808,32 @@ export default class AdventureScene extends Phaser.Scene {
             return;
         }
 
+        const oldMonth = this.currentMonth;
+
         this.timePeriodIndex++;
         if (this.timePeriodIndex >= this.timePeriods.length) {
             this.timePeriodIndex = 0;
             this.currentDay++;
         }
         this.timeOfDay = this.timePeriods[this.timePeriodIndex];
+
+        // ── ユーザー定義：その時間を越えた瞬間にチュートリアル完了フラグを確定 ──
+        if (gsInst.isTutorialMode) {
+            // 1. 12/1 午前 ➔ 午後になった瞬間に 12/1午前フラグ完了！
+            if (oldMonth === 12 && oldDay === 1 && oldTimePeriodIndex === 0) {
+                gsInst.tutorialMorningSeen = true;
+            }
+            // 2. 12/1 午後 ➔ 夜になった瞬間に 12/1午後フラグ完了！
+            if (oldMonth === 12 && oldDay === 1 && oldTimePeriodIndex === 1) {
+                gsInst.tutorialAfternoonSeen = true;
+            }
+            // 3. 12/1 夜 ➔ 12/2 午前になった瞬間に 12/1夜・休息フラグ完了！
+            if (oldMonth === 12 && oldDay === 1 && oldTimePeriodIndex === 2) {
+                gsInst.tutorialNightSeen = true;
+                gsInst.tutorialRestSeen = true;
+            }
+            SaveManager.saveGame(this);
+        }
 
 
         // GlobalState と即座に同期
@@ -3120,9 +3140,6 @@ export default class AdventureScene extends Phaser.Scene {
 
         // ── チュートリアル午前 ──
         if (gs.isTutorialMode && !gs.tutorialMorningSeen && gs.currentMonth === 12 && gs.currentDay === 1 && gs.timePeriodIndex === 0) {
-            gs.tutorialMorningSeen = true;
-            SaveManager.saveGame(this);
-
             let eventData = this.cache.json.get('tutorial_morning');
             if (eventData) {
                 eventData = JSON.parse(JSON.stringify(eventData));
@@ -3167,9 +3184,6 @@ export default class AdventureScene extends Phaser.Scene {
 
         // ── チュートリアル午後 ──
         if (gs.isTutorialMode && !gs.tutorialAfternoonSeen && gs.timePeriodIndex === 1) {
-            gs.tutorialAfternoonSeen = true;
-            SaveManager.saveGame(this);
-
             let eventData = this.cache.json.get('tutorial_afternoon');
             if (eventData) {
                 eventData = JSON.parse(JSON.stringify(eventData));
@@ -3211,9 +3225,6 @@ export default class AdventureScene extends Phaser.Scene {
 
         // ── チュートリアル夜 ──
         if (gs.isTutorialMode && !gs.tutorialNightSeen && gs.timePeriodIndex === 2) {
-            gs.tutorialNightSeen = true;
-            SaveManager.saveGame(this);
-
             let eventData = this.cache.json.get('tutorial_night');
             if (eventData) {
                 eventData = JSON.parse(JSON.stringify(eventData));
