@@ -2905,8 +2905,8 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1214Event() {
         const gs = GlobalState.getInstance();
-        // 12/14の夜(14日夜)または12/15以降で未再生の場合に発動
-        const isTargetTime = (this.currentDay === 14 && this.timePeriodIndex === 2) || (this.currentDay > 14);
+        // 12/14の夜の行動が終了した瞬間(15日午前になる直前の時報前)またはそれ以降で未再生の場合に発動
+        const isTargetTime = (this.currentDay === 15 && this.timePeriodIndex === 0) || (this.currentDay > 15);
         if (isTargetTime && !gs.event1214Played) {
             this.sound.stopAll();
 
