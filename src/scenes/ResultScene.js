@@ -45,8 +45,13 @@ export default class ResultScene extends Phaser.Scene {
         this.earnedExp = this.globalState.addRunExp(rawEarnedExp);
 
 
-        // 取得経験値とストック経験値の更新
-        this.globalState.stockExp += this.earnedExp;
+        // 取得経験値の分配計算（パーティ人数 N + 1 で均等分配。ストックを+1人目のメンバーとする）
+        const partySize = this.party.length || 1;
+        const totalDivisor = partySize + 1; // メンバー + ストック(1人分)
+        const expPerMember = Math.floor(this.earnedExp / totalDivisor);
+        const stockExpAdd = this.earnedExp - (expPerMember * partySize); // 1人分（端数込み）をストック経験値へ加算
+
+        this.globalState.stockExp += stockExpAdd;
         const stockExp = this.globalState.stockExp;
 
         // 上部テキスト
@@ -59,12 +64,11 @@ export default class ResultScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '23px', color: this.isExpBoosted ? '#ffdd00' : '#ffffff', fontStyle: this.isExpBoosted ? 'bold' : 'normal'
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, 210, `ストック経験値：${stockExp}　ストックSP：${this.globalState.stockSp}`, {
+        this.add.text(width / 2, 210, `ストック加算：+${stockExpAdd} (累計:${stockExp})　ストックSP：${this.globalState.stockSp}`, {
             fontFamily: 'sans-serif', fontSize: '25px', color: '#aaaaff'
         }).setOrigin(0.5);
 
 
-        const expPerMember = Math.floor(this.earnedExp / this.party.length);
         const startY = 320;
         const spacingY = 120;
 
