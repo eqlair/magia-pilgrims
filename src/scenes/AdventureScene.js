@@ -627,7 +627,7 @@ export default class AdventureScene extends Phaser.Scene {
 
             if (data && data.joinCharacterId) {
                 const normJoinId = gs.normalizeCharId(data.joinCharacterId);
-                if (!this.party.includes(normJoinId)) {
+                if (!this.party.includes(normJoinId) && this.party.length < 5) {
                     this.party.push(normJoinId);
                     gs.assignFormationForNewMember(normJoinId);
 
@@ -2342,7 +2342,7 @@ export default class AdventureScene extends Phaser.Scene {
 
                         // 正式加入・全回復・隊列設定・即時保存
                         const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
-                        if (!currentNormParty.includes(normJoinId)) {
+                        if (!currentNormParty.includes(normJoinId) && (this.party || []).length < 5) {
                             this.party.push(normJoinId);
                         }
                         gs.assignFormationForNewMember(normJoinId);

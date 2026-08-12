@@ -341,12 +341,13 @@ export default class TarotScene extends Phaser.Scene {
                     this.bgm.destroy();
                 }
 
-                // Check for join events
+                // Check for join events (パーティが5人以上の場合は出会いイベントを不発にして6人目加入を防ぐ)
                 const joinEvents = this.cache.json.get('join_events');
                 const joinCharId = this.getCharacterId(drawnCardId);
                 const alreadyInParty = joinCharId && this.party.includes(joinCharId);
+                const isPartyFull = this.party && this.party.length >= 5;
                 
-                if (joinEvents && joinEvents[drawnCardId] && !alreadyInParty) {
+                if (joinEvents && joinEvents[drawnCardId] && !alreadyInParty && !isPartyFull) {
                     this.scene.stop();
                     const script = joinEvents[drawnCardId];
                     this.scene.start('EventScene', { 
