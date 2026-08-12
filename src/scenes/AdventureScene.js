@@ -826,8 +826,16 @@ export default class AdventureScene extends Phaser.Scene {
 
                 // ★ 専用イベント復帰判定を最優先で処理（古い時報やイベントキューの誤爆を防止）
                 
-                // 12/14就寝前イベント完了時 -> 時間を12/15午前へ進めて時報を表示
+                // 12/7イベント視聴完了時 -> 視聴フラグをONに更新
+                if (data && data.from1207Event) {
+                    GlobalState.getInstance().event1207Played = true;
+                    SaveManager.saveGame(this);
+                }
+
+                // 12/14就寝前イベント完了時 -> 視聴フラグをONにして、時間を12/15午前へ進めて時報を表示
                 if (data && data.from1214Event) {
+                    GlobalState.getInstance().event1214Played = true;
+                    SaveManager.saveGame(this);
                     this.advanceTime();
                     return;
                 }
@@ -895,7 +903,7 @@ export default class AdventureScene extends Phaser.Scene {
                 if (!hasNextEvent) {
                     if (this._pendingTimeSignal) {
                         this._pendingTimeSignal = false;
-                        this.showTimeSignalOnly();
+                        this.triggerNextTimePeriodSequence();
                     } else {
                         SaveManager.saveGame(this);
                     }
@@ -1939,21 +1947,9 @@ export default class AdventureScene extends Phaser.Scene {
 
     /** 時間経過後の各種イベント・タロットチェックと時報の優先度制御 */
     handlePostTimeAdvance(onComplete = null) {
-        // 1. 食料ゼロ等の特別イベントコールバックをキューに追加
-        if (typeof onComplete === 'function') {
-            this.enqueueEvent({
-                type: 'custom',
-                action: onComplete
-            });
-        }
-
-        // 2. スケジュールイベントチェック（12/7, 12/14, 12/21 Wildhuntなど）
-        this.checkScheduledEvents();
-
-        // 3. チュートリアルイベントチェック
-        this.checkTutorialEvents();
-
-        // 4. タロット引き（午前→午後の切り替えタイミング・未獲得カードが残っている場合のみ）
+        // ── 【行動後・時報前設定】 ──
+        
+        // 1. タロットカード引き（午前→午後切り替え時）
         const gs = GlobalState.getInstance();
         if (this._pendingTarot) {
             this._pendingTarot = false;
@@ -1965,14 +1961,46 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
 
-        // イベントやタロットがキューに存在する場合は他を優先して先に実行！
+        // 2.【時報前に発火するイベント】(例: 12/14夜就寝前)
+        this.checkScheduledEvents('before_time_signal');
+
+        // 食料ゼロ等の特別イベントコールバックがある場合はキューに追加
+        if (typeof onComplete === 'function') {
+            this._pendingOnComplete = onComplete;
+        }
+
+        // キューに【時報前】イベントやタロットが残っている場合はそれを先に消化
         if (this.eventQueue && this.eventQueue.length > 0) {
-            this._pendingTimeSignal = true; // 全イベント消化後に時報を表示するフラグ
+            this._pendingTimeSignal = true; // イベント消化後に時報を表示するフラグ
             this.processEventQueue();
         } else {
-            // 他に何もイベントが無い場合のみ、その場で時報を表示
-            this.showTimeSignalOnly();
+            // 他に何もイベントが無い場合、そのまま時報シークエンスへ
+            this.triggerNextTimePeriodSequence();
         }
+    }
+
+    /** ＞時報＜ を再生し、その後の【１.時報後システム通知】【２.時報後イベント】を連続実行する */
+    triggerNextTimePeriodSequence() {
+        this.showTimeSignalOnly(() => {
+            // １【時報後システム通知】(食料ゼロ等)
+            if (typeof this._pendingOnComplete === 'function') {
+                const cb = this._pendingOnComplete;
+                this._pendingOnComplete = null;
+                cb();
+            }
+
+            // ２【時報後に発火するイベント】(12/7夜, 12/21野外ワイルドハント, 12/22魔女狩りなど)
+            this.checkScheduledEvents('after_time_signal');
+
+            // チュートリアルイベントチェック
+            this.checkTutorialEvents();
+
+            // キューにイベントがあれば消化、無ければセーブして【３.行動可能】へ
+            const hasNext = this.processEventQueue();
+            if (!hasNext) {
+                SaveManager.saveGame(this);
+            }
+        });
     }
 
     /** 時報のみを再生して完了時に保存する処理 */
@@ -2781,13 +2809,41 @@ export default class AdventureScene extends Phaser.Scene {
         return false;
     }
 
-    checkScheduledEvents() {
-        // 各イベントが発動したかどうかを判定してキューに追加
+    checkScheduledEvents(targetTiming = 'after_time_signal') {
+        const gs = GlobalState.getInstance();
         let fired = false;
-        if (this.check1207Event()) fired = true;
-        if (this.check1214Event()) fired = true;
-        if (this.check1221NightWildhunt()) fired = true;
-        if (this.check1221Event()) fired = true;
+
+        // 拡張可能イベントテーブル（今後のイベント追加時もここに1行追加するだけで自動対応可能）
+        const SCHEDULED_EVENTS = [
+            {
+                id: 'event_1207',
+                timing: 'after_time_signal',
+                check: () => this.check1207Event()
+            },
+            {
+                id: 'event_1214',
+                timing: 'before_time_signal',
+                check: () => this.check1214Event()
+            },
+            {
+                id: 'event_1221_wildhunt',
+                timing: 'after_time_signal',
+                check: () => this.check1221NightWildhunt()
+            },
+            {
+                id: 'event_1222_witch',
+                timing: 'after_time_signal',
+                check: () => this.check1221Event()
+            }
+        ];
+
+        for (const ev of SCHEDULED_EVENTS) {
+            if (ev.timing === targetTiming) {
+                if (ev.check()) {
+                    fired = true;
+                }
+            }
+        }
         return fired;
     }
 
@@ -2797,7 +2853,6 @@ export default class AdventureScene extends Phaser.Scene {
         // 12月7日の夜(timePeriodIndex === 2)またはそれ以降で未再生の場合に発動
         if (this.currentDay >= 7 && !gs.event1207Played) {
             if (this.currentDay === 7 && this.timePeriodIndex < 2) return false; // 12/7の午前・午後は夜まで待つ
-            gs.event1207Played = true;
             const eventData = this.cache.json.get('event_1207');
             if (eventData) {
                 this.enqueueEvent({
@@ -2817,13 +2872,9 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1214Event() {
         const gs = GlobalState.getInstance();
-        // 12/15以降で未再生の場合のフォールバック用
-        const shouldTrigger = (!gs.event1214Played) && (this.currentDay > 14);
-
-        if (shouldTrigger) {
-            gs.event1214Played = true;
-
-            // 再生されている可能性のあるBGMをすべて停止
+        // 12/14の夜(14日夜)または12/15以降で未再生の場合に発動
+        const isTargetTime = (this.currentDay === 14 && this.timePeriodIndex === 2) || (this.currentDay > 14);
+        if (isTargetTime && !gs.event1214Played) {
             this.sound.stopAll();
 
             const newGem = RelicGenerator.generateGem(1);
