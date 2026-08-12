@@ -453,8 +453,9 @@ export default class AdventureScene extends Phaser.Scene {
             SaveManager.saveGame(this);
         }
 
-        // ── チュートリアル午前イベントの発動チェック ──
+        // ── チュートリアル・日付イベント（12/22強制作動含む）の発動チェック ──
         this.checkTutorialEvents();
+        this.checkScheduledEvents();
 
 
         
