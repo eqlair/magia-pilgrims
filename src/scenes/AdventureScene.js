@@ -2820,7 +2820,8 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1221Event() {
         const gs = GlobalState.getInstance();
-        if (this.currentDay === 22 && this.timePeriodIndex === 0 && !gs.event1221Played) {
+        // 12/22以降（午前・午後・夜問わず）で未再生ならいつでも即座に発火！
+        if (this.currentDay >= 22 && !gs.event1221Played) {
             gs.event1221Played = true;
 
             const eventData = this.cache.json.get('event_1221');
