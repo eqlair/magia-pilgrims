@@ -362,14 +362,14 @@ export class PlayerCharacter extends BattleEntity {
                     effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
                 }
             } else if (this.charId === '010') {
-                // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径1mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
+                // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径2.5mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
                 const specialBullet = new Bullet(this.x, this.z, {
                     owner: 'player',
                     vx: 0,
                     vz: 0.5,
                     damage: 0,
                     knockback: 40,
-                    size: 1.0,
+                    size: 2.5, // 直径2.5mの判定エリアで広範囲の敵弾を吸収！
                     lifeTime: 10.0,
                     type: 'special_barrier_010',
                     erasesEnemyBullets: true,
@@ -659,7 +659,8 @@ export class PlayerCharacter extends BattleEntity {
             const ultBullet = new Bullet(this.x, this.z, {
                 owner: 'player', isPiercing: true,
                 vx: 0, vz: 2.0, // 秒速2m前進
-                damage: 0, knockback: 40, size: 1.0, lifeTime: 10.0, type: 'ultimate_010'
+                damage: 0, knockback: 40, size: 2.5, lifeTime: 10.0, type: 'ultimate_010',
+                erasesEnemyBullets: true
             });
             ultBullet.sourceEntity = this;
             ultBullet.travelDist = 0;

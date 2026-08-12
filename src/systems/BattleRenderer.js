@@ -130,15 +130,16 @@ export class BattleRenderer {
     _updateSprite(entity, textureKey) {
         let sprite = this.spriteMap.get(entity);
         if (!sprite) {
-            // 弾丸や手りゅう弾は画像の中心を基準点に。キャラは基本足元(1.0)だが、魔女は表示を1/3下げるため0.666にする
-            const isProjectile = textureKey === 'bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey.startsWith('weapon_');
+            // 弾丸・バリア弾・手りゅう弾は画像の中心(0.5, 0.5)を基準点に。キャラは基本足元(1.0)だが、魔女は表示を1/3下げるため0.666にする
+            const isBarrier = (entity.type && (entity.type.includes('barrier') || entity.type.includes('010')));
+            const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || isBarrier;
             let originY = 1.0;
             if (isProjectile) {
                 // スイングの場合は持ち手(1.0)を軸にする
                 if ((entity.type && entity.type.startsWith('swing_')) || entity.type === 'ultimate_003') {
                     originY = 1.0;
                 } else {
-                    originY = 0.5;
+                    originY = 0.5; // バリア弾を含む各種飛び道具は画像中心(0.5)を中心点にする！
                 }
             } else if (entity.isBoss) {
                 originY = 0.666; // Z軸方向（画面下方向）に1/3下げる
@@ -153,7 +154,8 @@ export class BattleRenderer {
             sprite.setVisible(true);
             
             // 弾丸や手りゅう弾はキャラの足元(Y)ではなく、腰の高さ（おおよそ1.0mの高さ）に表示する
-            const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey.startsWith('weapon_');
+            const isBarrier = (entity.type && (entity.type.includes('barrier') || entity.type.includes('010')));
+            const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || isBarrier;
             let heightOffset = isProjectile ? p.scale * 1.0 : 0;
             if (entity.animY) {
                 heightOffset += p.scale * entity.animY;

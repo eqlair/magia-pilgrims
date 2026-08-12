@@ -2067,7 +2067,7 @@ export class BattleEngine {
             if (b.isDead) continue;
             b.update(dt);
 
-            // 白蓮(010)の近接バリア (barrier_010): 0.5秒間で直径0.5mから2.0mへ滑らかに拡大
+            // 白蓮(010)の近接バリア (barrier_010): 0.5秒間で直径0.5mから2.5mへ滑らかに拡大
             if (b.type === 'barrier_010') {
                 if (b.expandTimer === undefined) {
                     b.expandTimer = 0;
@@ -2075,7 +2075,7 @@ export class BattleEngine {
                 }
                 b.expandTimer += dt;
                 const expandProgress = Math.min(1.0, b.expandTimer / 0.5); // 0.5秒
-                b.size = 0.5 + (1.5 * expandProgress); // 直径0.5m -> 2.0mへ拡大！
+                b.size = 0.5 + (2.0 * expandProgress); // 直径0.5m -> 2.5mへ拡大！
             }
 
 
