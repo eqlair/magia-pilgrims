@@ -848,6 +848,10 @@ export class GlobalState {
 
     /** 周回（ループ）用リセット処理 */
     resetForNewLoop() {
+        // ① 今回の周回で獲得した経験値を集計して過去最高獲得経験値(maxPastExp)を記録・保存
+        const runExpTotal = (this.currentRunTotalExp || 0) + (this.stockExp || 0);
+        this.maxPastExp = Math.max(this.maxPastExp || 0, runExpTotal);
+        this.currentRunTotalExp = 0;
 
         // 全キャラクターのステータス・装備リセット（友好度は維持）
         for (const id in this.characters) {
@@ -870,13 +874,6 @@ export class GlobalState {
                 }
             }
 
-            // レベルアップに消費した必要経験値と現在の経験値をストック経験値に回収
-            let expToReturn = char.exp || 0;
-            for (let lvl = 1; lvl < (char.level || 1); lvl++) {
-                expToReturn += this.getRequiredExp(lvl);
-            }
-            this.stockExp += expToReturn;
-
             // レベル・能力値・攻撃レベルを初期値に戻す
             const initial = this.createInitialCharData(id, char.name, 1);
             char.level = 1;
@@ -893,6 +890,9 @@ export class GlobalState {
             // 友好度（friendships, friendshipPoints, metCharacters, affection）は保持
         }
 
+        // ② 集計を終えたのでストック経験値は0にリセット！
+        this.stockExp = 0;
+
         // 編成のリセット（紫苑のみを残してみんな離脱）
         this.savedFormation = {
             '001': { lane: 0, isFront: true }
@@ -904,23 +904,13 @@ export class GlobalState {
         this.event1221Played = false;
         this.event1221WildhuntPlayed = false;
 
-
         // タロット関係のリセット
         this.activeTarots = [];
         this.drawnTarotCards = [];
         this.tarot13_targetHp = null;
         this.tarot13_targetAtk = null;
 
-
-        // チュートリアルフラグのリセット
-        this.isTutorialMode = true;
-        this.tutorialMorningSeen = false;
-        this.tutorialAfternoonSeen = false;
-        this.tutorialNightSeen = false;
-        this.tutorialTarotSeen = false;
-        this.tutorialRestSeen = false;
-        this.tutorialGameOverSeen = false;
-        this.tutorialStep = 0;
+        // ※ チュートリアルフラグはリセットしない！（一度閲覧したら2周目以降は二度と再発火させない）
 
 
 
