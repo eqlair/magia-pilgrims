@@ -48,6 +48,10 @@ export default class EquipmentScene extends Phaser.Scene {
         this.enhanceMode = false;
         this.enhanceMaterials = [];
         this.enhanceBaseItem = null;
+        // 合成確認モード
+        this.synthConfirmMode = false;
+        this.synthConsumed = null;
+        this.synthTargetRank = -1;
 
         // Initialize inventory structure if missing
         if (!this.globalState.inventory) {
@@ -294,6 +298,11 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     drawMidSection() {
+        if (this.synthConfirmMode) {
+            this.showSynthesisConfirmUI();
+            return;
+        }
+
         if (this.enhanceMode) {
             this.midContainer.add(this.add.text(20, 0, '【強化モード：素材選択中】', { fontSize: '20px', color: '#ffcc00', padding: { top: 4, bottom: 4 } }));
             this.drawEnhanceModeUI();
@@ -645,7 +654,7 @@ export default class EquipmentScene extends Phaser.Scene {
 
         // 装備中、ロック中のアイテムを除外
         const items = this.getInventoryItems().filter(i => !i.isLocked && !i.isEquipped);
-        
+
         // ランク別にグループ化
         const byRank = {};
         items.forEach(i => {
@@ -668,26 +677,116 @@ export default class EquipmentScene extends Phaser.Scene {
             return;
         }
 
-        // 対象ランクから5個消費
+        // 消費対象5個を確定してから確認ダイアログへ
         const consumed = byRank[targetRank].slice(0, 5);
+        this.synthConsumed = consumed;
+        this.synthTargetRank = targetRank;
+        this.synthConfirmMode = true;
+        this.drawUI();
+    }
+
+    doSynthesis() {
+        const consumed = this.synthConsumed;
+        const targetRank = this.synthTargetRank;
+
+        // 5個をインベントリから除去
         this.globalState.inventory.relics = this.globalState.inventory.relics.filter(r => !consumed.includes(r));
 
         // 1ランク上のレリクスを生成
         const newRelic = RelicGenerator.generateRelic(targetRank + 1);
-        
         this.globalState.inventory.relics.push(newRelic);
         SaveManager.saveGame();
 
-
-        this.showToast(`『${newRelic.name}』のメモリアを合成した`);
-        
         if (this.cache.audio.exists('se_powerup')) {
             this.sound.play('se_powerup');
         }
 
-        // 再描画のため選択状態をリセット
+        this.showToast(`『${newRelic.name}』のメモリアを合成した`);
+
+        // 確認モードを解除して再描画
+        this.synthConsumed = null;
+        this.synthTargetRank = -1;
+        this.synthConfirmMode = false;
         this.selectedItem = null;
         this.enhanceMode = false;
         this.drawUI();
+    }
+
+    showSynthesisConfirmUI() {
+        const consumed = this.synthConsumed;
+        const targetRank = this.synthTargetRank;
+        const rankStr = this.getRankString(targetRank);
+        const nextRankStr = this.getRankString(targetRank + 1);
+        const rColor = this.getRankColor(targetRank);
+        const nextColor = this.getRankColor(targetRank + 1);
+
+        // タイトル
+        this.midContainer.add(
+            this.add.text(20, 0, '【合成確認】', { fontSize: '20px', color: '#ffcc44', padding: { top: 4, bottom: 4 } })
+        );
+        this.midContainer.add(
+            this.add.text(20, 28, `${rankStr}レリクス × 5 → ${nextRankStr}レリクス × 1`, {
+                fontSize: '16px', color: '#aaaaaa'
+            })
+        );
+
+        // 消費レリクス4点を2列で表示（5個目は「+1個」で省略）
+        const display4 = consumed.slice(0, 4);
+        const colW = Math.floor((this.width - 40) / 2);
+        display4.forEach((item, idx) => {
+            const col = idx % 2;
+            const row = Math.floor(idx / 2);
+            const bx = 20 + col * colW;
+            const by = 58 + row * 50;
+
+            const bg = this.add.rectangle(bx, by, colW - 10, 44, 0x221133).setOrigin(0, 0);
+            this.midContainer.add(bg);
+
+            const iRankStr = this.getRankString(item.rank);
+            const iColor = this.getRankColor(item.rank);
+            const label = this.add.text(bx + 6, by + 4, `[${iRankStr}] ${item.name || 'Unknown'}`, {
+                fontSize: '14px', color: iColor, wordWrap: { width: colW - 20 }
+            });
+            this.midContainer.add(label);
+
+            // 特性1個目だけ小さく表示
+            const firstTrait = item.traits && item.traits.find(t => t && t.level > 0);
+            if (firstTrait) {
+                const tName = firstTrait.name ? firstTrait.name.replace(/(\(%\))/, '') : '';
+                const tLabel = this.add.text(bx + 6, by + 24, `${tName}+${firstTrait.level}`, {
+                    fontSize: '12px', color: '#888888'
+                });
+                this.midContainer.add(tLabel);
+            }
+        });
+
+        // 5個目は「+ 残り1個」と表示
+        if (consumed.length >= 5) {
+            const plusLabel = this.add.text(20, 158, `＋ 残り1個（計5個）を消費します`, {
+                fontSize: '13px', color: '#888888'
+            });
+            this.midContainer.add(plusLabel);
+        }
+
+        // はい / いいえ ボタン
+        const btnY = 178;
+        const btnYes = this.add.text(this.width / 2 - 90, btnY, '  はい  ', {
+            fontSize: '20px', backgroundColor: '#226622', color: '#ffffff',
+            padding: { x: 14, y: 8 }, fontStyle: 'bold'
+        }).setInteractive({ useHandCursor: true });
+        btnYes.on('pointerdown', () => this.doSynthesis());
+        this.midContainer.add(btnYes);
+
+        const btnNo = this.add.text(this.width / 2 + 10, btnY, 'いいえ', {
+            fontSize: '20px', backgroundColor: '#662222', color: '#ffffff',
+            padding: { x: 14, y: 8 }
+        }).setInteractive({ useHandCursor: true });
+        btnNo.on('pointerdown', () => {
+            this.synthConsumed = null;
+            this.synthTargetRank = -1;
+            this.synthConfirmMode = false;
+            this.drawUI();
+        });
+        this.midContainer.add(btnNo);
     }
 }
