@@ -676,7 +676,11 @@ export default class EquipmentScene extends Phaser.Scene {
         }
 
         if (targetRank === -1) {
+            this.synthConsumed = null;
+            this.synthTargetRank = -1;
+            this.synthConfirmMode = false;
             this.showToast('合成できる同ランクのロックされていないレリクスが5個ありません');
+            this.drawUI();
             return;
         }
 
@@ -750,6 +754,20 @@ export default class EquipmentScene extends Phaser.Scene {
                 container.add(noTrait);
             }
         }
+
+        // 右端に「🔒 ロック」ボタン（タップでロックして別アイテムに再選定）
+        const lockBtn = this.add.text(x + itemW - 75, y + 8, '🔒 ロック', {
+            fontSize: '12px', color: '#ffffff', backgroundColor: '#664400',
+            padding: { x: 6, y: 4 }
+        }).setInteractive({ useHandCursor: true });
+
+        lockBtn.on('pointerdown', () => {
+            item.isLocked = true;
+            SaveManager.saveGame();
+            this.showToast(`『${item.name}』をロックしました`);
+            this.executeSynthesis();
+        });
+        container.add(lockBtn);
     }
 
     showSynthesisConfirmUI() {
