@@ -730,10 +730,9 @@ export default class EquipmentScene extends Phaser.Scene {
             })
         );
 
-        // 消費レリクス4点を2列で表示（5個目は「+1個」で省略）
-        const display4 = consumed.slice(0, 4);
+        // 消費レリクス5点を2列で表示
         const colW = Math.floor((this.width - 40) / 2);
-        display4.forEach((item, idx) => {
+        consumed.forEach((item, idx) => {
             const col = idx % 2;
             const row = Math.floor(idx / 2);
             const bx = 20 + col * colW;
@@ -760,16 +759,8 @@ export default class EquipmentScene extends Phaser.Scene {
             }
         });
 
-        // 5個目は「+ 残り1個」と表示
-        if (consumed.length >= 5) {
-            const plusLabel = this.add.text(20, 158, `＋ 残り1個（計5個）を消費します`, {
-                fontSize: '13px', color: '#888888'
-            });
-            this.midContainer.add(plusLabel);
-        }
-
-        // はい / いいえ ボタン
-        const btnY = 178;
+        // はい / いいえ ボタン（5点表示で3行分=150px + 58px起点 = 208px下）
+        const btnY = 218;
         const btnYes = this.add.text(this.width / 2 - 90, btnY, '  はい  ', {
             fontSize: '20px', backgroundColor: '#226622', color: '#ffffff',
             padding: { x: 14, y: 8 }, fontStyle: 'bold'
