@@ -545,7 +545,6 @@ export class GlobalState {
                 }
                 break;
             case 11:
-
                 if (isUpright) {
                     // 平均レベルの算出
                     let totalLevel = 0;
@@ -555,7 +554,8 @@ export class GlobalState {
                     }
                     const avgLevel = Math.floor(totalLevel / party.length) || 1;
                     const reqExp = this.getRequiredExp(avgLevel);
-                    console.log(`[Tarot 11] Added ${reqExp} stock EXP`);
+                    this.addDirectStockExp(reqExp);
+                    console.log(`[Tarot 11] Added ${reqExp} stock EXP (and directly added to currentRunTotalExp without 2x boost)`);
                 }
                 break;
 
@@ -779,6 +779,15 @@ export class GlobalState {
 
         this.currentRunTotalExp = (this.currentRunTotalExp || 0) + finalExp;
         return finalExp;
+    }
+
+    // タロット等で直接ストック経験値を獲得した際の加算処理（※2倍ブーストは適用せずそのまま今周獲得EXPにも加算）
+    addDirectStockExp(amount) {
+        const rawAmount = Math.max(0, Math.floor(amount || 0));
+        if (rawAmount <= 0) return 0;
+        this.stockExp = (this.stockExp || 0) + rawAmount;
+        this.currentRunTotalExp = (this.currentRunTotalExp || 0) + rawAmount;
+        return rawAmount;
     }
 
     // 周回終了・ゲームオーバー/クリアリセット時の処理
