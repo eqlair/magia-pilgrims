@@ -734,28 +734,35 @@ export default class EquipmentScene extends Phaser.Scene {
         });
         container.add(label);
 
-        // 特性一覧
+        // 特性一覧 (開花済み ＋ 未開花)
         let traitX = x + 8;
         const traitY = y + 21;
         if (item.traits && Array.isArray(item.traits)) {
-            const activeTraits = item.traits.filter(t => t && t.level > 0);
-            if (activeTraits.length > 0) {
-                activeTraits.forEach(t => {
-                    const tName = t.name ? t.name.replace(/(\(%\))/, '') : '';
-                    const tColor = this.getRankColor(this.getTraitRank(t.level));
-                    const tLabel = this.add.text(traitX, traitY, `${tName}+${t.level}`, {
-                        fontSize: '12px', color: tColor
-                    });
-                    container.add(tLabel);
-                    traitX += tLabel.width + 12;
+            // ① 開花済み
+            item.traits.filter(t => t && t.level > 0).forEach(t => {
+                const tName = t.name ? t.name.replace(/(\(%\))/, '') : '';
+                const tColor = this.getRankColor(this.getTraitRank(t.level));
+                const tLabel = this.add.text(traitX, traitY, `${tName}+${t.level}`, {
+                    fontSize: '12px', color: tColor
                 });
-            } else {
-                const noTrait = this.add.text(traitX, traitY, '特性なし', {
+                container.add(tLabel);
+                traitX += tLabel.width + 8;
+            });
+            // ② 未開花
+            item.traits.filter(t => t && t.level === 0).forEach(t => {
+                const tName = t.name ? t.name.replace(/(\(%\))/, '') : '';
+                const tLabel = this.add.text(traitX, traitY, tName, {
                     fontSize: '12px', color: '#666666'
                 });
-                container.add(noTrait);
-                traitX += noTrait.width + 12;
-            }
+                container.add(tLabel);
+                traitX += tLabel.width + 2;
+
+                const badge = this.add.text(traitX, traitY + 1, '未開花', {
+                    fontSize: '10px', color: '#888888', backgroundColor: '#333333', padding: { x: 2, y: 1 }
+                });
+                container.add(badge);
+                traitX += badge.width + 8;
+            });
         }
         if (item.type === 'gem' && typeof gemEffects !== 'undefined' && gemEffects[item.name]) {
             const unique = gemEffects[item.name]?.effects?.[item.rank];
@@ -765,16 +772,20 @@ export default class EquipmentScene extends Phaser.Scene {
             }
         }
 
-        // 右端に「🔒 ロック」ボタン（タップでロックして別アイテムに再選定）
-        const lockBtn = this.add.text(x + itemW - 75, y + 8, '🔒 ロック', {
-            fontSize: '12px', color: '#ffffff', backgroundColor: '#664400',
+        // 右端に鍵ボタン（解除状態の表記「🔓 解除」で統一。タップでロック保護＋別アイテムに再選定）
+        const isLocked = !!item.isLocked;
+        const lockBtnColor = isLocked ? '#664400' : '#444444';
+        const lockBtnText = isLocked ? '🔒 ロック' : '🔓 解除';
+
+        const lockBtn = this.add.text(x + itemW - 75, y + 8, lockBtnText, {
+            fontSize: '12px', color: '#ffffff', backgroundColor: lockBtnColor,
             padding: { x: 6, y: 4 }
         }).setInteractive({ useHandCursor: true });
 
         lockBtn.on('pointerdown', () => {
             item.isLocked = true;
             SaveManager.saveGame();
-            this.showToast(`『${item.name}』をロックしました`);
+            this.showToast(`『${item.name}』をロック保護しました`);
             this.executeSynthesis();
         });
         container.add(lockBtn);
