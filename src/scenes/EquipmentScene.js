@@ -292,6 +292,10 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     drawTopSection() {
+        if (this.synthConfirmMode) {
+            this.showSynthesisConfirmUI();
+            return;
+        }
         const equipped = this.getEquippedItems();
         const item = equipped[this.slotIndex];
         this.drawItemDetail(this.topContainer, '【装備中アイテム詳細】', item, true, this.slotIndex, true);
@@ -299,8 +303,7 @@ export default class EquipmentScene extends Phaser.Scene {
 
     drawMidSection() {
         if (this.synthConfirmMode) {
-            this.showSynthesisConfirmUI();
-            return;
+            return; // showSynthesisConfirmUIでtopContainerとmidContainerの両方を描画済み
         }
 
         if (this.enhanceMode) {
@@ -712,58 +715,88 @@ export default class EquipmentScene extends Phaser.Scene {
         this.drawUI();
     }
 
+    drawConfirmRelicItem(container, x, y, item) {
+        const itemW = this.width - 40;
+        const itemH = 40;
+        const bg = this.add.rectangle(x, y, itemW, itemH, 0x221133).setOrigin(0, 0);
+        container.add(bg);
+
+        const iRankStr = this.getRankString(item.rank);
+        const iColor = this.getRankColor(item.rank);
+        const label = this.add.text(x + 8, y + 3, `[${iRankStr}] ${item.name || 'Unknown'}`, {
+            fontSize: '14px', color: iColor
+        });
+        container.add(label);
+
+        // 特性一覧
+        let traitX = x + 8;
+        const traitY = y + 21;
+        if (item.traits && Array.isArray(item.traits)) {
+            const activeTraits = item.traits.filter(t => t && t.level > 0);
+            if (activeTraits.length > 0) {
+                activeTraits.forEach(t => {
+                    const tName = t.name ? t.name.replace(/(\(%\))/, '') : '';
+                    const tColor = this.getRankColor(this.getTraitRank(t.level));
+                    const tLabel = this.add.text(traitX, traitY, `${tName}+${t.level}`, {
+                        fontSize: '12px', color: tColor
+                    });
+                    container.add(tLabel);
+                    traitX += tLabel.width + 12;
+                });
+            } else {
+                const noTrait = this.add.text(traitX, traitY, '特性なし', {
+                    fontSize: '12px', color: '#666666'
+                });
+                container.add(noTrait);
+            }
+        }
+    }
+
     showSynthesisConfirmUI() {
         const consumed = this.synthConsumed;
         const targetRank = this.synthTargetRank;
         const rankStr = this.getRankString(targetRank);
         const nextRankStr = this.getRankString(targetRank + 1);
 
-        // タイトル（1行目: 0px）
-        this.midContainer.add(
+        // --- topContainer (y=70〜) ---
+        // タイトル
+        this.topContainer.add(
             this.add.text(20, 0, '【合成確認】', { fontSize: '18px', color: '#ffcc44' })
         );
-        // サブタイトル（2行目: 22px）
-        this.midContainer.add(
+        this.topContainer.add(
             this.add.text(20, 22, `${rankStr}レリクス × 5 → ${nextRankStr}レリクス × 1`, {
                 fontSize: '14px', color: '#aaaaaa'
             })
         );
 
-        // 消費レリクス5点を2列・コンパクト表示（性能なし、名前とランクのみ）
-        // 1行あたり28px、3行分 = 84px、起点44px → 終端128px
-        const colW = Math.floor((this.width - 40) / 2);
-        const itemH = 26;
-        const listStartY = 44;
-        consumed.forEach((item, idx) => {
-            const col = idx % 2;
-            const row = Math.floor(idx / 2);
-            const bx = 20 + col * colW;
-            const by = listStartY + row * itemH;
+        // 1〜3個目を topContainer に縦並びで表示
+        const itemH = 44;
+        const topStartY = 42;
+        consumed.slice(0, 3).forEach((item, idx) => {
+            const by = topStartY + idx * itemH;
+            this.drawConfirmRelicItem(this.topContainer, 20, by, item);
+        });
 
-            const bg = this.add.rectangle(bx, by, colW - 8, itemH - 2, 0x221133).setOrigin(0, 0);
-            this.midContainer.add(bg);
-
-            const iRankStr = this.getRankString(item.rank);
-            const iColor = this.getRankColor(item.rank);
-            const label = this.add.text(bx + 5, by + 4, `[${iRankStr}] ${item.name || 'Unknown'}`, {
-                fontSize: '13px', color: iColor, wordWrap: { width: colW - 18 }
-            });
-            this.midContainer.add(label);
+        // --- midContainer (y=260〜) ---
+        // 4〜5個目を midContainer に縦並びで表示
+        const midStartY = 0;
+        consumed.slice(3, 5).forEach((item, idx) => {
+            const by = midStartY + idx * itemH;
+            this.drawConfirmRelicItem(this.midContainer, 20, by, item);
         });
 
         // はい / いいえ ボタン
-        // 5個 → 3行: listStartY(44) + 3行×26px = 44+78 = 122px 以降
-        const btnY = listStartY + Math.ceil(consumed.length / 2) * itemH + 8;
-        const btnYes = this.add.text(this.width / 2 - 90, btnY, '  はい  ', {
+        const btnY = midStartY + 2 * itemH + 8;
+        const btnYes = this.add.text(this.width / 2 - 95, btnY, '  はい  ', {
             fontSize: '20px', backgroundColor: '#226622', color: '#ffffff',
-            padding: { x: 14, y: 8 }, fontStyle: 'bold'
+            padding: { x: 16, y: 8 }, fontStyle: 'bold'
         }).setInteractive({ useHandCursor: true });
         btnYes.on('pointerdown', () => this.doSynthesis());
         this.midContainer.add(btnYes);
 
-        const btnNo = this.add.text(this.width / 2 + 10, btnY, 'いいえ', {
+        const btnNo = this.add.text(this.width / 2 + 15, btnY, ' いいえ ', {
             fontSize: '20px', backgroundColor: '#662222', color: '#ffffff',
-            padding: { x: 14, y: 8 }
+            padding: { x: 16, y: 8 }
         }).setInteractive({ useHandCursor: true });
         btnNo.on('pointerdown', () => {
             this.synthConsumed = null;
