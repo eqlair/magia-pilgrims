@@ -55,10 +55,10 @@ export class RelicGenerator {
         };
     }
 
-    static generateGem() {
+    static generateGem(targetRank = null) {
         const gemNames = Object.keys(gemEffects);
         const name = gemNames[Math.floor(Math.random() * gemNames.length)];
-        const rank = gemEffects[name]?.minRank || 1;
+        const rank = targetRank !== null ? targetRank : (gemEffects[name]?.minRank || 1);
         
         // 3つの異なる特性を選ぶ
         const shuffled = [...this.TRAIT_LIST].sort(() => 0.5 - Math.random());
@@ -76,7 +76,7 @@ export class RelicGenerator {
             id: 'gem_' + Date.now() + '_' + Math.floor(Math.random() * 100000),
             type: 'gem',
             name: name,
-            rank: rank,
+            rank: Math.min(8, rank),
             traits: traits,
             isLocked: false
         };

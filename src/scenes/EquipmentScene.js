@@ -383,12 +383,10 @@ export default class EquipmentScene extends Phaser.Scene {
         });
         this.bottomContainer.add(layoutBtn);
 
-        // 合成ボタン（レリクスのみ）
-        if (this.itemType === 'relic') {
-            const synthBtn = this.add.text(320, headerY, '合成', { fontSize: '18px', backgroundColor: '#552288', padding: { x: 8, y: 4 } }).setInteractive();
-            synthBtn.on('pointerdown', () => this.executeSynthesis());
-            this.bottomContainer.add(synthBtn);
-        }
+        // 合成ボタン（レリクス・宝石共通）
+        const synthBtn = this.add.text(320, headerY, '合成', { fontSize: '18px', backgroundColor: '#552288', padding: { x: 8, y: 4 } }).setInteractive();
+        synthBtn.on('pointerdown', () => this.executeSynthesis());
+        this.bottomContainer.add(synthBtn);
 
         const items = this.getInventoryItems();
         if (items.length === 0) {
@@ -610,7 +608,6 @@ export default class EquipmentScene extends Phaser.Scene {
             // 新しいランクの冠詞を取得して入れ替える
             const pList = relicWords.prefixes[this.enhanceBaseItem.rank] || relicWords.prefixes[1];
             const newPrefix = pList[Math.floor(Math.random() * pList.length)] || '';
-            
             let baseName = this.enhanceBaseItem.name;
             // 長い冠詞から順に前方一致判定し、古い冠詞をきれいに除去して入れ替える
             const allPrefixes = Object.values(relicWords.prefixes).flat().sort((a, b) => b.length - a.length);
@@ -653,8 +650,6 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     executeSynthesis() {
-        if (this.itemType !== 'relic') return;
-
         // 装備中、ロック中のアイテムを除外
         const items = this.getInventoryItems().filter(i => !i.isLocked && !i.isEquipped);
 
@@ -675,11 +670,13 @@ export default class EquipmentScene extends Phaser.Scene {
             }
         }
 
+        const typeLabel = this.itemType === 'relic' ? 'レリクス' : '宝石';
+
         if (targetRank === -1) {
             this.synthConsumed = null;
             this.synthTargetRank = -1;
             this.synthConfirmMode = false;
-            this.showToast('合成できる同ランクのロックされていないレリクスが5個ありません');
+            this.showToast(`合成できる同ランクのロックされていない${typeLabel}が5個ありません`);
             this.drawUI();
             return;
         }
@@ -696,19 +693,24 @@ export default class EquipmentScene extends Phaser.Scene {
         const consumed = this.synthConsumed;
         const targetRank = this.synthTargetRank;
 
-        // 5個をインベントリから除去
-        this.globalState.inventory.relics = this.globalState.inventory.relics.filter(r => !consumed.includes(r));
+        if (this.itemType === 'relic') {
+            this.globalState.inventory.relics = this.globalState.inventory.relics.filter(r => !consumed.includes(r));
+            const newRelic = RelicGenerator.generateRelic(targetRank + 1);
+            this.globalState.inventory.relics.push(newRelic);
+            this.showToast(`『${newRelic.name}』のメモリアを合成した`);
+        } else {
+            if (!this.globalState.inventory.gems) this.globalState.inventory.gems = [];
+            this.globalState.inventory.gems = this.globalState.inventory.gems.filter(g => !consumed.includes(g));
+            const newGem = RelicGenerator.generateGem(targetRank + 1);
+            this.globalState.inventory.gems.push(newGem);
+            this.showToast(`『${newGem.name}』の宝石を合成した`);
+        }
 
-        // 1ランク上のレリクスを生成
-        const newRelic = RelicGenerator.generateRelic(targetRank + 1);
-        this.globalState.inventory.relics.push(newRelic);
         SaveManager.saveGame();
 
         if (this.cache.audio.exists('se_powerup')) {
             this.sound.play('se_powerup');
         }
-
-        this.showToast(`『${newRelic.name}』のメモリアを合成した`);
 
         // 確認モードを解除して再描画
         this.synthConsumed = null;
@@ -752,6 +754,14 @@ export default class EquipmentScene extends Phaser.Scene {
                     fontSize: '12px', color: '#666666'
                 });
                 container.add(noTrait);
+                traitX += noTrait.width + 12;
+            }
+        }
+        if (item.type === 'gem' && typeof gemEffects !== 'undefined' && gemEffects[item.name]) {
+            const unique = gemEffects[item.name]?.effects?.[item.rank];
+            if (unique && unique !== 'なし') {
+                const uTxt = this.add.text(traitX, traitY, `【${unique}】`, { fontSize: '12px', color: iColor });
+                container.add(uTxt);
             }
         }
 
@@ -775,6 +785,7 @@ export default class EquipmentScene extends Phaser.Scene {
         const targetRank = this.synthTargetRank;
         const rankStr = this.getRankString(targetRank);
         const nextRankStr = this.getRankString(targetRank + 1);
+        const typeLabel = this.itemType === 'relic' ? 'レリクス' : '宝石';
 
         // --- topContainer (y=70〜) ---
         // タイトル
@@ -782,7 +793,7 @@ export default class EquipmentScene extends Phaser.Scene {
             this.add.text(20, 0, '【合成確認】', { fontSize: '18px', color: '#ffcc44' })
         );
         this.topContainer.add(
-            this.add.text(20, 22, `${rankStr}レリクス × 5 → ${nextRankStr}レリクス × 1`, {
+            this.add.text(20, 22, `${rankStr}${typeLabel} × 5 → ${nextRankStr}${typeLabel} × 1`, {
                 fontSize: '14px', color: '#aaaaaa'
             })
         );
