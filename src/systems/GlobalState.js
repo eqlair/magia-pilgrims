@@ -849,8 +849,7 @@ export class GlobalState {
     /** 周回（ループ）用リセット処理 */
     resetForNewLoop() {
         // ① 今回の周回で獲得した経験値を集計して過去最高獲得経験値(maxPastExp)を記録・保存
-        const runExpTotal = (this.currentRunTotalExp || 0) + (this.stockExp || 0);
-        this.maxPastExp = Math.max(this.maxPastExp || 0, runExpTotal);
+        this.maxPastExp = Math.max(this.maxPastExp || 0, this.currentRunTotalExp || 0);
         this.currentRunTotalExp = 0;
 
         // 全キャラクターのステータス・装備リセット（友好度は維持）

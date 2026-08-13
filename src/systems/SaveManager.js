@@ -27,6 +27,8 @@ export class SaveManager {
             const globalData = {
                 stockExp: gs.stockExp,
                 stockSp: gs.stockSp,
+                maxPastExp: gs.maxPastExp || 0,
+                currentRunTotalExp: gs.currentRunTotalExp || 0,
                 food: gs.food,
                 currentMonth: gs.currentMonth,
                 currentDay: gs.currentDay,
@@ -159,6 +161,8 @@ export class SaveManager {
 
         if (d.stockExp !== undefined) gs.stockExp = d.stockExp;
         if (d.stockSp !== undefined) gs.stockSp = d.stockSp;
+        if (d.maxPastExp !== undefined) gs.maxPastExp = d.maxPastExp;
+        if (d.currentRunTotalExp !== undefined) gs.currentRunTotalExp = d.currentRunTotalExp;
         if (d.food !== undefined) gs.food = d.food;
         if (d.currentMonth !== undefined) gs.currentMonth = d.currentMonth;
         if (d.currentDay !== undefined) gs.currentDay = d.currentDay;
