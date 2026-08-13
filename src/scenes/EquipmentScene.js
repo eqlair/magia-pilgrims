@@ -717,50 +717,43 @@ export default class EquipmentScene extends Phaser.Scene {
         const targetRank = this.synthTargetRank;
         const rankStr = this.getRankString(targetRank);
         const nextRankStr = this.getRankString(targetRank + 1);
-        const rColor = this.getRankColor(targetRank);
-        const nextColor = this.getRankColor(targetRank + 1);
 
-        // タイトル
+        // タイトル（1行目: 0px）
         this.midContainer.add(
-            this.add.text(20, 0, '【合成確認】', { fontSize: '20px', color: '#ffcc44', padding: { top: 4, bottom: 4 } })
+            this.add.text(20, 0, '【合成確認】', { fontSize: '18px', color: '#ffcc44' })
         );
+        // サブタイトル（2行目: 22px）
         this.midContainer.add(
-            this.add.text(20, 28, `${rankStr}レリクス × 5 → ${nextRankStr}レリクス × 1`, {
-                fontSize: '16px', color: '#aaaaaa'
+            this.add.text(20, 22, `${rankStr}レリクス × 5 → ${nextRankStr}レリクス × 1`, {
+                fontSize: '14px', color: '#aaaaaa'
             })
         );
 
-        // 消費レリクス5点を2列で表示
+        // 消費レリクス5点を2列・コンパクト表示（性能なし、名前とランクのみ）
+        // 1行あたり28px、3行分 = 84px、起点44px → 終端128px
         const colW = Math.floor((this.width - 40) / 2);
+        const itemH = 26;
+        const listStartY = 44;
         consumed.forEach((item, idx) => {
             const col = idx % 2;
             const row = Math.floor(idx / 2);
             const bx = 20 + col * colW;
-            const by = 58 + row * 50;
+            const by = listStartY + row * itemH;
 
-            const bg = this.add.rectangle(bx, by, colW - 10, 44, 0x221133).setOrigin(0, 0);
+            const bg = this.add.rectangle(bx, by, colW - 8, itemH - 2, 0x221133).setOrigin(0, 0);
             this.midContainer.add(bg);
 
             const iRankStr = this.getRankString(item.rank);
             const iColor = this.getRankColor(item.rank);
-            const label = this.add.text(bx + 6, by + 4, `[${iRankStr}] ${item.name || 'Unknown'}`, {
-                fontSize: '14px', color: iColor, wordWrap: { width: colW - 20 }
+            const label = this.add.text(bx + 5, by + 4, `[${iRankStr}] ${item.name || 'Unknown'}`, {
+                fontSize: '13px', color: iColor, wordWrap: { width: colW - 18 }
             });
             this.midContainer.add(label);
-
-            // 特性1個目だけ小さく表示
-            const firstTrait = item.traits && item.traits.find(t => t && t.level > 0);
-            if (firstTrait) {
-                const tName = firstTrait.name ? firstTrait.name.replace(/(\(%\))/, '') : '';
-                const tLabel = this.add.text(bx + 6, by + 24, `${tName}+${firstTrait.level}`, {
-                    fontSize: '12px', color: '#888888'
-                });
-                this.midContainer.add(tLabel);
-            }
         });
 
-        // はい / いいえ ボタン（5点表示で3行分=150px + 58px起点 = 208px下）
-        const btnY = 218;
+        // はい / いいえ ボタン
+        // 5個 → 3行: listStartY(44) + 3行×26px = 44+78 = 122px 以降
+        const btnY = listStartY + Math.ceil(consumed.length / 2) * itemH + 8;
         const btnYes = this.add.text(this.width / 2 - 90, btnY, '  はい  ', {
             fontSize: '20px', backgroundColor: '#226622', color: '#ffffff',
             padding: { x: 14, y: 8 }, fontStyle: 'bold'
