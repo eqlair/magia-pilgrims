@@ -503,24 +503,25 @@ export default class AdventureScene extends Phaser.Scene {
 
             
         // 撤退または全滅からの復帰
-
         if (data && (data.isGameOver || data.isRetreated)) {
             // イベントシーンが残っていれば終了
             if (this.scene.isActive('EventScene')) {
                 this.scene.stop('EventScene');
             }
 
-            // 12/21の全滅時はリスポーンイベントへ突入
-            if (data.isGameOver && (data.is1221NightBattle || this.currentDay === 21)) {
+            // 12/21の全滅、または12/21以降(一度も全滅・撤退したことがない場合含む)の全滅時は周回リセット(event_resp)へ突入
+            const isDec21Defeat = data.isGameOver && (data.is1221NightBattle || this.currentDay >= 21 || (this.currentMonth === 12 && this.currentDay >= 21));
+            if (isDec21Defeat) {
                 const respData = this.cache.json.get('event_resp');
                 if (respData) {
+                    GlobalState.getInstance().addLog(`💀 [GameOver] 12/21+ Defeat -> Launching event_resp loop reset!`);
                     this.scene.pause();
                     this.scene.launch('EventScene', {
                         events: respData,
                         returnScene: 'AdventureScene',
                         fromRespEvent: true
                     });
-                    return;
+                    return; // ★ 後続の全滅メッセージや時報・セーブ処理を完全ブロック！
                 }
             }
 
@@ -867,8 +868,10 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
-                // 12/21イベント完了時 -> 周回イベント(event_resp)の連続起動
+                // 12/21魔女襲来イベント完了時 -> 視聴完了フラグ確定＆周回イベント(event_resp)の連続起動
                 if (data && data.from1221Event) {
+                    GlobalState.getInstance().event1221Played = true;
+                    SaveManager.saveGame(this);
                     const respData = this.cache.json.get('event_resp');
                     if (respData) {
                         this.scene.pause();
@@ -2562,11 +2565,9 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     check1221Event() {
-        // 12/22以降（午前・午後・夜・23日以降問わず）に生存している場合は、過去に再生済みか否かに関わらず無条件で即座に強制発火！
-        if (this.currentDay >= 22) {
-            const gs = GlobalState.getInstance();
-            gs.event1221Played = true;
-
+        const gs = GlobalState.getInstance();
+        // 12/22以降に生存している場合は未再生時に最優先で即座に強制発火！
+        if (this.currentDay >= 22 && !gs.event1221Played) {
             const eventData = this.cache.json.get('event_1221');
             if (eventData) {
                 this.enqueueEvent({
