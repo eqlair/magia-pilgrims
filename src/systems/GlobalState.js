@@ -99,6 +99,17 @@ export class GlobalState {
         // ── オンデマンド・デバッグログシステム ──
         this.debugLogs = [];
         this.onLogCallback = null;
+
+        this.characters = {
+            '001': this.createInitialCharData('001', '紫苑', 1),
+            '002': this.createInitialCharData('002', '蒼樹', 1),
+            '003': this.createInitialCharData('003', '紅華', 1),
+            '004': this.createInitialCharData('004', '黄蘭', 1),
+            '005': this.createInitialCharData('005', '李乃果', 1),
+            '010': this.createInitialCharData('010', '白蓮', 1)
+        };
+
+        GlobalState.instance = this;
     }
 
     addLog(msg) {
@@ -111,17 +122,6 @@ export class GlobalState {
         if (typeof this.onLogCallback === 'function') {
             try { this.onLogCallback(this.debugLogs); } catch(e){}
         }
-    }
-        this.characters = {
-            '001': this.createInitialCharData('001', '紫苑', 1),
-            '002': this.createInitialCharData('002', '蒼樹', 1),
-            '003': this.createInitialCharData('003', '紅華', 1),
-            '004': this.createInitialCharData('004', '黄蘭', 1),
-            '005': this.createInitialCharData('005', '李乃果', 1),
-            '010': this.createInitialCharData('010', '白蓮', 1)
-        };
-
-        GlobalState.instance = this;
     }
 
     normalizeCharId(id) {

@@ -206,6 +206,10 @@ export default class EventScene extends Phaser.Scene {
                 this.input.off('pointerdown', clickHandler);
                 this._finishScene();
             };
+            this.input.on('pointerdown', clickHandler);
+        });
+    }
+
     _finishScene() {
         GlobalState.getInstance().addLog(`🚪 [_finishScene] leaving EventScene (from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
         // ワイルドハント突破戦への遷移時はBGMを一切止めない（bgm_wildhuntをそのまま引き継ぐ）
