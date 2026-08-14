@@ -35,12 +35,32 @@ export default class EventScene extends Phaser.Scene {
         this.fromRespEvent = data.fromRespEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
+
+        const gs = GlobalState.getInstance();
+        gs.addLog(`🎬 [EventScene init] from1207=${this.from1207Event}, from1214=${this.from1214Event}, eventLen=${this.eventData ? this.eventData.length : 0}`);
     }
 
+    setupDebugOverlay() {
+        const gs = GlobalState.getInstance();
+        const logBox = this.add.text(10, 10, '', {
+            fontSize: '11px', color: '#00ffcc', backgroundColor: '#000000bb',
+            padding: { x: 6, y: 4 }, wordWrap: { width: this.scale.width - 20 }
+        }).setScrollFactor(0).setDepth(999999);
 
+        const updateText = (logs) => {
+            if (logBox && logBox.active) {
+                logBox.setText('【Debug Log】\n' + (logs || []).join('\n'));
+            }
+        };
+
+        gs.onLogCallback = updateText;
+        updateText(gs.debugLogs);
+    }
 
     create() {
         TransitionManager.fadeIn(this);
+        this.setupDebugOverlay();
+        GlobalState.getInstance().addLog(`🎬 [EventScene create] starting EventEngine...`);
 
         if (this.from1214Event) {
             if (this.sound && this.sound.stopAll) {
@@ -120,6 +140,7 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _onEventComplete() {
+        GlobalState.getInstance().addLog(`🏁 [EventScene] _onEventComplete (from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
         if (this.engine) {
             this.engine.cleanup();
         }
@@ -185,11 +206,8 @@ export default class EventScene extends Phaser.Scene {
                 this.input.off('pointerdown', clickHandler);
                 this._finishScene();
             };
-            this.input.on('pointerdown', clickHandler);
-        });
-    }
-
     _finishScene() {
+        GlobalState.getInstance().addLog(`🚪 [_finishScene] leaving EventScene (from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
         // ワイルドハント突破戦への遷移時はBGMを一切止めない（bgm_wildhuntをそのまま引き継ぐ）
         if (!this.from1221WildhuntEvent && this.sound && this.sound.sounds) {
             // 戦闘BGM(bgm_battle1~4)は鳴らしたまま引き継ぐ。それ以外は停止

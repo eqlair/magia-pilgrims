@@ -470,6 +470,9 @@ export default class AdventureScene extends Phaser.Scene {
         // ── チュートリアル操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ）の再適用 ──
         this.applyTutorialRestrictions();
 
+        // スマホ画面用リアルタイム・デバッグオーバーレイの配置
+        this.setupDebugOverlay();
+
         // アイドル時間計測用
         this.idleTime = 0;
         this.input.on('pointerdown', () => this.resetIdleTime());
@@ -2796,6 +2799,8 @@ export default class AdventureScene extends Phaser.Scene {
     enqueueEvent(item) {
         if (!this.eventQueue) this.eventQueue = [];
         this.eventQueue.push(item);
+        const name = item.data?.from1207Event ? '1207' : item.data?.from1214Event ? '1214' : item.type;
+        GlobalState.getInstance().addLog(`📌 [enqueueEvent] ${name} (QueueLen: ${this.eventQueue.length})`);
     }
 
     processEventQueue() {
@@ -2805,6 +2810,9 @@ export default class AdventureScene extends Phaser.Scene {
 
         const next = this.eventQueue.shift();
         if (!next) return false;
+
+        const name = next.data?.from1207Event ? '1207' : next.data?.from1214Event ? '1214' : next.type;
+        GlobalState.getInstance().addLog(`🚀 [processEventQueue] Launching ${next.type}:${name}`);
 
         if (next.type === 'event') {
             this.hideMapVisuals();
@@ -2831,6 +2839,7 @@ export default class AdventureScene extends Phaser.Scene {
     checkScheduledEvents(targetTiming = 'after_time_signal') {
         const gs = GlobalState.getInstance();
         let fired = false;
+        gs.addLog(`⏰ [checkScheduledEvents] timing=${targetTiming} (Day:${this.currentDay}, TimeIdx:${this.timePeriodIndex})`);
 
         // 拡張可能イベントテーブル（今後のイベント追加時もここに1行追加するだけで自動対応可能）
         const SCHEDULED_EVENTS = [
@@ -2869,6 +2878,7 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1207Event() {
         const gs = GlobalState.getInstance();
+        gs.addLog(`🔍 [check1207Event] Day=${this.currentDay}, timeIdx=${this.timePeriodIndex}, played=${gs.event1207Played}`);
         // 12月7日の午後(timePeriodIndex === 1)の時報直後またはそれ以降で未再生の場合に発動
         if (this.currentDay >= 7 && !gs.event1207Played) {
             if (this.currentDay === 7 && this.timePeriodIndex < 1) return false; // 12/7午前は午後の時報まで待つ
@@ -2891,8 +2901,8 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1214Event() {
         const gs = GlobalState.getInstance();
-        // 12/14の夜の行動が終了した瞬間(15日午前になる直前の時報前)またはそれ以降で未再生の場合に発動
         const isTargetTime = (this.currentDay === 15 && this.timePeriodIndex === 0) || (this.currentDay > 15);
+        gs.addLog(`🔍 [check1214Event] Day=${this.currentDay}, timeIdx=${this.timePeriodIndex}, isTargetTime=${isTargetTime}, played=${gs.event1214Played}`);
         if (isTargetTime && !gs.event1214Played) {
             gs.event1214Played = true;
             SaveManager.saveGame(this);
@@ -3390,8 +3400,22 @@ export default class AdventureScene extends Phaser.Scene {
         }
     }
 
+    setupDebugOverlay() {
+        const gs = GlobalState.getInstance();
+        const logBox = this.add.text(10, 10, '', {
+            fontSize: '11px', color: '#00ffcc', backgroundColor: '#000000bb',
+            padding: { x: 6, y: 4 }, wordWrap: { width: this.scale.width - 20 }
+        }).setScrollFactor(0).setDepth(999999);
 
+        const updateText = (logs) => {
+            if (logBox && logBox.active) {
+                logBox.setText('【Debug Log】\n' + (logs || []).join('\n'));
+            }
+        };
 
+        gs.onLogCallback = updateText;
+        updateText(gs.debugLogs);
+    }
 }
 
 

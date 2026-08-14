@@ -96,8 +96,22 @@ export class GlobalState {
 
 
 
-        
-        // 全キャラクターの永続データ
+        // ── オンデマンド・デバッグログシステム ──
+        this.debugLogs = [];
+        this.onLogCallback = null;
+    }
+
+    addLog(msg) {
+        const timestamp = new Date().toLocaleTimeString('ja-JP', { hour12: false });
+        const logLine = `[${timestamp}] ${msg}`;
+        if (!this.debugLogs) this.debugLogs = [];
+        this.debugLogs.push(logLine);
+        if (this.debugLogs.length > 12) this.debugLogs.shift();
+        console.log(`[EVENT_DEBUG] ${logLine}`);
+        if (typeof this.onLogCallback === 'function') {
+            try { this.onLogCallback(this.debugLogs); } catch(e){}
+        }
+    }
         this.characters = {
             '001': this.createInitialCharData('001', '紫苑', 1),
             '002': this.createInitialCharData('002', '蒼樹', 1),
