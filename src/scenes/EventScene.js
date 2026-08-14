@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { EventEngine } from '../systems/EventEngine';
 import { TransitionManager } from '../systems/TransitionManager';
 import { FogEffect } from '../systems/FogEffect';
+import { GlobalState } from '../systems/GlobalState';
 
 /**
  * 汎用イベント再生用シーン
