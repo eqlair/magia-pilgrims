@@ -110,6 +110,7 @@ export class CharacterDetailHelper {
                 case '003': return 'em_1'; // 情熱
                 case '004': return 'em_4'; // 犠牲
                 case '005': return 'em_3'; // 調和
+                case '010': return 'em_5'; // 統制 (白蓮)
                 default: return 'em_1';
             }
         };
@@ -120,6 +121,15 @@ export class CharacterDetailHelper {
                 CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
             });
         });
+
+        const charElementBase = {
+            '001': { strong: 'green', weak: 'red' },
+            '002': { strong: 'red', weak: 'yellow' },
+            '003': { strong: 'purple', weak: 'blue' },
+            '004': { strong: 'blue', weak: 'green' },
+            '005': { strong: 'yellow', weak: 'purple' },
+            '010': { strong: 'red', weak: 'yellow' }
+        };
 
         targetContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
         

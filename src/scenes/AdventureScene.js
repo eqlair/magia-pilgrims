@@ -486,6 +486,9 @@ export default class AdventureScene extends Phaser.Scene {
         }
         this._resumeHandler = (scene, data) => {
             this._isAdvancingTime = false; // シーン復帰時に時間経過ロックを必ず解除
+            this.isTransitioningMode = false; // 画面・イベント遷移のロックを必ず解除
+            this.isJumping = false; // ジャンプ動作ロックを必ず解除
+            this.isHappyJumping = false;
             this._updateFoodDisplay(); // タロット等で変更されたSP・食料表示をリアルタイム更新
 
             // EventSceneがsleep状態で残っていたら確実に止める（BattleScene経由復帰時の残骸クリーンアップ）
@@ -1432,7 +1435,8 @@ export default class AdventureScene extends Phaser.Scene {
             '002': { strong: 'red', weak: 'yellow' },
             '003': { strong: 'purple', weak: 'blue' },
             '004': { strong: 'blue', weak: 'green' },
-            '005': { strong: 'yellow', weak: 'purple' }
+            '005': { strong: 'yellow', weak: 'purple' },
+            '010': { strong: 'red', weak: 'yellow' }
         };
 
         const attrToNum = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };

@@ -188,7 +188,8 @@ export class BattleEngine {
                 '002': 'blue',
                 '003': 'red',
                 '004': 'yellow',
-                '005': 'green'
+                '005': 'green',
+                '010': 'blue'
             };
             pc.attribute = charIdToAttr[charId] || 'red';
             
