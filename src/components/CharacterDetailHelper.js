@@ -55,6 +55,13 @@ export class CharacterDetailHelper {
 
         const globalState = GlobalState.getInstance();
         const party = scene.party || ['001'];
+
+        // レベル低下によるスロット不足のレリクスを事前に自動パージ
+        const purgedRelics = globalState.validateEquippedRelics(charId, party);
+        if (purgedRelics.length > 0 && scene.showToast) {
+            scene.showToast(`レベル不足のため『${purgedRelics.join(', ')}』が外れました`);
+        }
+
         const charData = globalState.characters[charId];
         if (!charData) {
             console.warn(`[CharacterDetailHelper] Character not found: ${charId}`);
@@ -285,9 +292,10 @@ export class CharacterDetailHelper {
         const relicStartX = width * 0.05;
         const relicWidth = width * 0.9;
         
+        const effLevel = stats.level || (charData.level + (stats.charLevelBonus || 0));
         for (let i = 0; i < 5; i++) {
             const requiredLevel = 1 + i * 4;
-            const isUnlocked = (charData.level >= requiredLevel);
+            const isUnlocked = (effLevel >= requiredLevel);
             const isEquipped = !!(charData.equipRelics && charData.equipRelics[i]);
 
             let relicBgColor = 0x111111;

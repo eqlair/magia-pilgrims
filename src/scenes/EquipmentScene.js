@@ -544,6 +544,13 @@ export default class EquipmentScene extends Phaser.Scene {
         }
         
         SaveManager.saveGame();
+        
+        // レベル上昇装備の着脱等によるレベル低下時のスロット不足レリクスを自動解除
+        const purged = this.globalState.validateEquippedRelics(this.charId);
+        if (purged.length > 0) {
+            this.showToast(`レベル不足のため『${purged.join(', ')}』が外れました`);
+        }
+
         this.selectedItem = null;
         this.drawUI();
     }
@@ -563,6 +570,13 @@ export default class EquipmentScene extends Phaser.Scene {
         }
         
         SaveManager.saveGame();
+
+        // レベル上昇装備の着脱等によるレベル低下時のスロット不足レリクスを自動解除
+        const purged = this.globalState.validateEquippedRelics(this.charId);
+        if (purged.length > 0) {
+            this.showToast(`レベル不足のため『${purged.join(', ')}』が外れました`);
+        }
+
         this.selectedItem = null;
         this.drawUI();
     }

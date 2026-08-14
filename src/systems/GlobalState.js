@@ -536,8 +536,49 @@ export class GlobalState {
             meleeLevel: effectiveMeleeLevel,
             rangedLevel: effectiveRangedLevel,
             charLevelBonus,
-            expBonus: totalExpBonus
+            expBonus: totalExpBonus,
+            level: char.level + charLevelBonus
         };
+    }
+
+    /**
+     * レベル上昇装備の着脱等によるレベル変動時、必要レベルに満たなくなったスロットのレリクスを自動解除(パージ)する
+     * @param {string} charId 
+     * @param {Array} party 
+     * @returns {Array} パージされたレリクスの名前一覧
+     */
+    validateEquippedRelics(charId, party = null) {
+        const char = this.characters[charId];
+        if (!char || !char.equipRelics) return [];
+
+        const p = party || (Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : [charId]);
+        const purgedNames = [];
+
+        let changed = true;
+        while (changed) {
+            changed = false;
+            const stats = this.calcStats(charId, p);
+            const effLevel = char.level + (stats.charLevelBonus || 0);
+
+            for (let i = 0; i < 5; i++) {
+                const requiredLevel = 1 + i * 4;
+                if (effLevel < requiredLevel && char.equipRelics[i]) {
+                    const relic = char.equipRelics[i];
+                    if (!this.inventory) this.inventory = { relics: [], gems: [] };
+                    if (!this.inventory.relics) this.inventory.relics = [];
+                    this.inventory.relics.push(relic);
+                    char.equipRelics[i] = null;
+                    purgedNames.push(relic.name || 'レリクス');
+                    changed = true;
+                    console.log(`[Relic Purge] Level insufficient (${effLevel} < ${requiredLevel}). Purged ${relic.name} from slot ${i}`);
+                }
+            }
+        }
+
+        if (purgedNames.length > 0) {
+            SaveManager.saveGame();
+        }
+        return purgedNames;
     }
 
 
