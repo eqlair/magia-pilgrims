@@ -153,8 +153,14 @@ export class CharacterDetailHelper {
         
         levelUpBtn.on('pointerdown', () => {
             if (canLevelUp) {
-                if (globalState.levelUp(charId)) {
+                const res = globalState.levelUp(charId, party);
+                if (res && res.success) {
                     SaveManager.saveGame();
+                    if (res.targetName && scene.showToast) {
+                        scene.showToast(`Lv.UP！ 『${res.targetName}』への友好度が+1上昇！`);
+                    } else if (scene.showToast) {
+                        scene.showToast(`Lv.UP！ レベルが${globalState.characters[charId].level}になりました`);
+                    }
                     CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
                 }
             }

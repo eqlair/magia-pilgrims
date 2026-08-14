@@ -745,9 +745,9 @@ export class GlobalState {
 
 
     // レベルを上げる処理
-    levelUp(charId) {
+    levelUp(charId, party = null) {
         const char = this.characters[charId];
-        if (!char) return false;
+        if (!char) return null;
 
         const reqExp = this.getRequiredExp(char.level);
         const totalAvailable = char.exp + this.stockExp;
@@ -773,18 +773,32 @@ export class GlobalState {
             // レベルアップ後の最大HP
             const newStats = this.calcStats(charId);
 
-            // レベルアップで友好度ボーナスポイントを1獲得
-            char.friendshipPoints = (char.friendshipPoints || 0) + 1;
+            // 現在編成中の仲間からランダムに1人選んで友好度+1
+            const p = party || (Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : [charId]);
+            const otherMembers = p.filter(id => id !== charId && this.characters[id]);
+
+            let targetName = null;
+            let targetCharId = null;
+
+            if (otherMembers.length > 0) {
+                targetCharId = otherMembers[Math.floor(Math.random() * otherMembers.length)];
+                if (!char.friendships) char.friendships = {};
+                char.friendships[targetCharId] = (char.friendships[targetCharId] || 0) + 1;
+                
+                const targetChar = this.characters[targetCharId];
+                targetName = targetChar ? targetChar.name : `Char ${targetCharId}`;
+                console.log(`[LevelUp Affection] ${char.name} (+1 friendship towards ${targetName})`);
+            }
 
             // 上昇分を現在HPにも加算
             char.currentHp += (newStats.maxHp - oldStats.maxHp);
             char.currentSp += (newStats.maxSp - oldStats.maxSp);
             
             this.save();
-            return true;
+            return { success: true, targetCharId, targetName };
         }
         
-        return false;
+        return null;
     }
 
     // キャラクターの配置を受け取って攻撃レベル上昇ガチャを回す
