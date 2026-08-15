@@ -773,21 +773,29 @@ export class GlobalState {
             // レベルアップ後の最大HP
             const newStats = this.calcStats(charId);
 
-            // 現在編成中の仲間からランダムに1人選んで友好度+1
+            // 現在編成中の仲間からランダムに1人選んで友好度+1（一人旅や全員上限の場合はボーナスポイント獲得）
             const p = party || (Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : [charId]);
-            const otherMembers = p.filter(id => id !== charId && this.characters[id]);
+            const availableMembers = p.filter(id => id !== charId && this.characters[id] && ((char.friendships?.[id] || 0) < 25));
 
             let targetName = null;
             let targetCharId = null;
+            let isBonus = false;
 
-            if (otherMembers.length > 0) {
-                targetCharId = otherMembers[Math.floor(Math.random() * otherMembers.length)];
+            if (availableMembers.length > 0) {
+                targetCharId = availableMembers[Math.floor(Math.random() * availableMembers.length)];
                 if (!char.friendships) char.friendships = {};
                 char.friendships[targetCharId] = (char.friendships[targetCharId] || 0) + 1;
                 
+                if (!char.metCharacters) char.metCharacters = [];
+                if (!char.metCharacters.includes(targetCharId)) char.metCharacters.push(targetCharId);
+
                 const targetChar = this.characters[targetCharId];
                 targetName = targetChar ? targetChar.name : `Char ${targetCharId}`;
                 console.log(`[LevelUp Affection] ${char.name} (+1 friendship towards ${targetName})`);
+            } else {
+                char.friendshipPoints = (char.friendshipPoints || 0) + 1;
+                isBonus = true;
+                console.log(`[LevelUp Affection] ${char.name} gained +1 friendship bonus point`);
             }
 
             // 上昇分を現在HPにも加算
@@ -795,7 +803,7 @@ export class GlobalState {
             char.currentSp += (newStats.maxSp - oldStats.maxSp);
             
             this.save();
-            return { success: true, targetCharId, targetName };
+            return { success: true, targetCharId, targetName, isBonus };
         }
         
         return null;

@@ -166,7 +166,9 @@ export class CharacterDetailHelper {
                 const res = globalState.levelUp(charId, party);
                 if (res && res.success) {
                     SaveManager.saveGame();
-                    if (res.targetName && scene.showToast) {
+                    if (res.isBonus && scene.showToast) {
+                        scene.showToast(`Lv.UP！ 友好度ボーナスポイント+1を獲得！`);
+                    } else if (res.targetName && scene.showToast) {
                         scene.showToast(`Lv.UP！ 『${res.targetName}』への友好度が+1上昇！`);
                     } else if (scene.showToast) {
                         scene.showToast(`Lv.UP！ レベルが${globalState.characters[charId].level}になりました`);
@@ -537,13 +539,18 @@ export class CharacterDetailHelper {
         targetContainer.add(bonusText);
         ry += 50;
 
-        // リスト描画
-        const metChars = charData.metCharacters || [];
-        if (metChars.length === 0) {
-            targetContainer.add(scene.add.text(width * 0.1, ry, '一緒に編成したキャラクターがいません', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
+        // リスト描画（過去の遭遇履歴・友好度データが存在する全キャラ、または登録キャラを一覧表示）
+        const knownCharIds = new Set([
+            ...(charData.metCharacters || []),
+            ...Object.keys(charData.friendships || {}),
+            ...Object.keys(globalState.characters).filter(id => id !== charId)
+        ]);
+        const displayCharIds = Array.from(knownCharIds).filter(id => id !== charId && globalState.characters[id]);
+
+        if (displayCharIds.length === 0) {
+            targetContainer.add(scene.add.text(width * 0.1, ry, 'キャラクターが存在しません', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
         } else {
-            for (const otherId of metChars) {
-                if (otherId === charId) continue;
+            for (const otherId of displayCharIds) {
                 const otherChar = globalState.characters[otherId];
                 if (!otherChar) continue;
 
@@ -552,13 +559,16 @@ export class CharacterDetailHelper {
                 const rowText = scene.add.text(width * 0.1, ry, `${otherChar.name}  友好度: ${fVal}`, { stroke: '#000000', strokeThickness: 3, fontSize: '22px' });
                 targetContainer.add(rowText);
 
-                // ハートボタン
+                // ハートボタン（ボーナスポイントで控えのキャラにも自由に手動割振り可能！）
                 const heartBtn = scene.add.text(width * 0.6, ry, '❤️', { stroke: '#000000', strokeThickness: 3, fontSize: '24px' }).setInteractive();
                 heartBtn.on('pointerdown', () => {
                     if ((charData.friendshipPoints || 0) > 0 && fVal < 25) {
                         charData.friendshipPoints--;
                         if (!charData.friendships) charData.friendships = {};
                         charData.friendships[otherId] = fVal + 1;
+                        if (!charData.metCharacters) charData.metCharacters = [];
+                        if (!charData.metCharacters.includes(otherId)) charData.metCharacters.push(otherId);
+                        globalState.save();
                         CharacterDetailHelper.showFriendshipView(scene, charId, parentSceneName, targetContainer, onBack);
                     }
                 });
