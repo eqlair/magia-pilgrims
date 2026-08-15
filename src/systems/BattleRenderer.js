@@ -396,7 +396,12 @@ export class BattleRenderer {
                         sprite.setAngle(Math.sin(this.scene.time.now / 300 + entity.z) * 5);
                     }
                 } else {
-                    sprite.setAngle(0);
+                    // ボス(魔女)撃破時の小爆発振動角度
+                    if (entity.isDying && entity.bossShakeTimer > 0 && entity.bossShakeAngle !== undefined) {
+                        sprite.setAngle(entity.bossShakeAngle);
+                    } else {
+                        sprite.setAngle(0);
+                    }
                 }
             }
 
@@ -550,13 +555,27 @@ export class BattleRenderer {
                     }
                 }
 
+                if (entity.isBoss && entity.isDying && entity.bossShakeTimer > 0 && entity.bossShakeScale !== undefined) {
+                    scaleAnim *= entity.bossShakeScale;
+                }
+
                 sprite.setScale(finalScale * scaleAnim);
             }
 
             // 死亡演出（透過）や特殊エフェクト透過
             if (entity.isDying) {
-                // エクセル設定の「1秒かけて透明に消えてゆく」に合わせて1.0 - (timer / 1.0)
-                sprite.setAlpha(Math.max(0, 1.0 - (entity.deathTimer / 1.0)));
+                if (entity.isBoss) {
+                    // ボス(魔女)の場合：第3段階(deathTimer 3.5s〜4.5s)で1秒かけてフェードアウト！
+                    if (entity.deathTimer < 3.5) {
+                        sprite.setAlpha(1.0);
+                    } else {
+                        const fadeProgress = Math.min(1.0, (entity.deathTimer - 3.5) / 1.0);
+                        sprite.setAlpha(Math.max(0, 1.0 - fadeProgress));
+                    }
+                } else {
+                    // 通常の敵：1.0秒かけて透明に消えてゆく
+                    sprite.setAlpha(Math.max(0, 1.0 - (entity.deathTimer / 1.0)));
+                }
             } else if (textureKey === 'hit_effect6') {
                 sprite.setAlpha(0.7); // 半透明キック弾
 

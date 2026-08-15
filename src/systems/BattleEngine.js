@@ -1550,6 +1550,9 @@ export class BattleEngine {
 
             if (e.isDying) {
                 e.deathTimer += enemyDt;
+                if (e.bossShakeTimer > 0) {
+                    e.bossShakeTimer -= enemyDt;
+                }
                 
                 if (e.isBoss) {
                     // 魔女の死亡演出進行（3段階）
@@ -1563,6 +1566,10 @@ export class BattleEngine {
                                 const rz = e.z + (Math.random() - 0.5) * e.size * 1.32;
                                 this.effects.push(new EffectEntity(rx, rz, { type: 'majo_death_2', radius: e.size * 1.0, lifeTime: 0.5 }));
 
+                                // 小爆発が起きるたびに震え、大きさをランダムに-10〜+10%、角度を-5〜5°回転
+                                e.bossShakeTimer = 0.12;
+                                e.bossShakeScale = 0.9 + Math.random() * 0.2;
+                                e.bossShakeAngle = (Math.random() * 10 - 5);
                             }, 500 + (3000 / 24) * i);
                         }
                     } else if (e.deathPhase === 1 && e.deathTimer >= 3.5) {
