@@ -470,8 +470,8 @@ export default class AdventureScene extends Phaser.Scene {
         // ── チュートリアル操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ）の再適用 ──
         this.applyTutorialRestrictions();
 
-        // スマホ画面用リアルタイム・デバッグオーバーレイの配置
-        this.setupDebugOverlay();
+        // スマホ画面用リアルタイム・デバッグオーバーレイの配置 (非表示化)
+        // this.setupDebugOverlay();
 
         // アイドル時間計測用
         this.idleTime = 0;

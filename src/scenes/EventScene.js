@@ -60,7 +60,7 @@ export default class EventScene extends Phaser.Scene {
 
     create() {
         TransitionManager.fadeIn(this);
-        this.setupDebugOverlay();
+        // this.setupDebugOverlay();
         GlobalState.getInstance().addLog(`🎬 [EventScene create] starting EventEngine...`);
 
         if (this.from1214Event) {
