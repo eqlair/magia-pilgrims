@@ -429,7 +429,8 @@ export class CharacterDetailHelper {
             '002': { strong: 'red', weak: 'yellow' },
             '003': { strong: 'purple', weak: 'blue' },
             '004': { strong: 'blue', weak: 'green' },
-            '005': { strong: 'yellow', weak: 'purple' }
+            '005': { strong: 'yellow', weak: 'purple' },
+            '010': { strong: 'red', weak: 'yellow' }
         };
 
         const elements = [
