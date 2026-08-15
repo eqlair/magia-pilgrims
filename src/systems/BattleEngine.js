@@ -711,6 +711,8 @@ export class BattleEngine {
                 finalDamage *= 2.0;
             }
 
+            const attrMap = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
+
             // 12/21夜ワイルドハント突破戦限定の時間経過デバフ
             const isWildhuntBattle = !!(this.config && this.config.is1221NightBattle);
             if (isWildhuntBattle) {
@@ -826,7 +828,6 @@ export class BattleEngine {
             });
             
             // 属性ヒットエフェクトの発生（攻撃者の属性カラーを使用）
-            const attrMap = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
             const atkAttr = (attacker && attacker.attribute) ? attacker.attribute : ((defender && defender.attribute) ? defender.attribute : 'red');
             if (atkAttr && attrMap[atkAttr]) {
                 const effId = attrMap[atkAttr];
