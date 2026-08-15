@@ -540,16 +540,12 @@ export class CharacterDetailHelper {
         targetContainer.add(bonusText);
         ry += 50;
 
-        // リスト描画（過去の遭遇履歴・友好度データが存在する全キャラ、または登録キャラを一覧表示）
-        const knownCharIds = new Set([
-            ...(charData.metCharacters || []),
-            ...Object.keys(charData.friendships || {}),
-            ...Object.keys(globalState.characters).filter(id => id !== charId)
-        ]);
-        const displayCharIds = Array.from(knownCharIds).filter(id => id !== charId && globalState.characters[id]);
+        // リスト描画（これまでに一度でも一緒に編成された同伴履歴 metCharacters に含まれるキャラのみ表示）
+        const metCharIds = new Set(charData.metCharacters || []);
+        const displayCharIds = Array.from(metCharIds).filter(id => id !== charId && globalState.characters[id]);
 
         if (displayCharIds.length === 0) {
-            targetContainer.add(scene.add.text(width * 0.1, ry, 'キャラクターが存在しません', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
+            targetContainer.add(scene.add.text(width * 0.1, ry, '過去に一緒に編成された仲間がいません', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
         } else {
             for (const otherId of displayCharIds) {
                 const otherChar = globalState.characters[otherId];
