@@ -584,34 +584,58 @@ export class CharacterDetailHelper {
     }
 
     /**
-     * タロットの影響表示ダイアログを表示
+     * タロットの影響表示ダイアログを表示（スクロール・上下ボタン対応）
      */
     static showEffectView(scene) {
         const { width, height } = scene.scale;
         const globalState = GlobalState.getInstance();
-        const container = scene.add.container(0, 0);
-        container.setDepth(2000);
+        const mainContainer = scene.add.container(0, 0);
+        mainContainer.setDepth(2000);
         
-        const bg = scene.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0, 0).setInteractive();
-        container.add(bg);
+        // 背景（背景タップでクローズ）
+        const bg = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
+        mainContainer.add(bg);
         
-        bg.on('pointerdown', () => {
-            container.destroy();
-        });
-        
-        const padding = 20;
-        let y = padding;
-        const fontSizePx = Math.floor(width / 25);
-        
-        const titleText = scene.add.text(width/2, y, '現在受けているタロットの影響', { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#ffffff' }).setOrigin(0.5, 0);
-        container.add(titleText);
-        y += 50;
+        // タイトル
+        const titleText = scene.add.text(width / 2, 20, '現在受けているタロットの影響', {
+            stroke: '#000000', strokeThickness: 4, fontSize: '26px', color: '#ffffaa', fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+        mainContainer.add(titleText);
+
+        // 閉じるボタン
+        const closeBtn = scene.add.text(width - 20, 20, '✕ 閉じる', {
+            stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#ffffff', backgroundColor: '#444444', padding: { x: 8, y: 4 }
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerdown', () => mainContainer.destroy());
+        mainContainer.add(closeBtn);
+
+        // 表示枠・スクロール用設定
+        const viewY = 70;
+        const viewH = height - 140;
+        const padding = 25;
+        const fontSizePx = Math.max(16, Math.floor(width / 26));
+
+        // Geometry Mask (表示エリア外の溢れをカット)
+        const maskGraphics = scene.make.graphics({ x: 0, y: 0, add: false });
+        maskGraphics.fillStyle(0xffffff, 1);
+        maskGraphics.fillRect(0, viewY, width, viewH);
+        const mask = maskGraphics.createGeometryMask();
+
+        // スクロール内包コンテナ
+        const listContainer = scene.add.container(0, viewY);
+        listContainer.setMask(mask);
+        mainContainer.add(listContainer);
 
         const tarotData = scene.cache.json.get('tarot_data');
         const activeTarots = globalState.activeTarots || [];
-        
+        let listY = 10;
+
         if (activeTarots.length === 0) {
-            container.add(scene.add.text(padding, y, '現在受けている影響はありません。', { stroke: '#000000', strokeThickness: 3, fontSize: `${fontSizePx}px`, color: '#aaaaaa' }));
+            const noEffectText = scene.add.text(padding, listY, '現在受けている影響はありません。', {
+                stroke: '#000000', strokeThickness: 3, fontSize: `${fontSizePx}px`, color: '#aaaaaa'
+            });
+            listContainer.add(noEffectText);
+            listY += 40;
         } else {
             for (const tarot of activeTarots) {
                 let cardInfo = null;
@@ -627,14 +651,85 @@ export class CharacterDetailHelper {
                 const posStr = tarot.isUpright ? '正位置' : '逆位置';
                 const effectText = tarot.isUpright ? cardInfo.upright : cardInfo.reversed;
                 
-                const nameText = scene.add.text(padding, y, `No.${tarot.id} ${cardInfo.name} (${posStr})`, { stroke: '#000000', strokeThickness: 3, fontSize: `${fontSizePx}px`, color: tarot.isUpright ? '#aaffaa' : '#ffaaaa', fontStyle: 'bold' });
-                container.add(nameText);
-                y += fontSizePx * 1.5;
+                const nameText = scene.add.text(padding, listY, `No.${tarot.id} ${cardInfo.name} (${posStr})`, {
+                    stroke: '#000000', strokeThickness: 3, fontSize: `${fontSizePx + 2}px`,
+                    color: tarot.isUpright ? '#77ff77' : '#ff7777', fontStyle: 'bold'
+                });
+                listContainer.add(nameText);
+                listY += fontSizePx * 1.5;
                 
-                const descText = scene.add.text(padding, y, effectText, { stroke: '#000000', strokeThickness: 3, fontSize: `${fontSizePx}px`, color: '#ffffff', wordWrap: { width: width - padding * 2 } });
-                container.add(descText);
-                y += descText.height + fontSizePx * 1.2;
+                const descText = scene.add.text(padding, listY, effectText, {
+                    stroke: '#000000', strokeThickness: 3, fontSize: `${fontSizePx}px`, color: '#ffffff',
+                    wordWrap: { width: width - padding * 2 - 60 }
+                });
+                listContainer.add(descText);
+                listY += descText.height + fontSizePx * 1.2;
             }
         }
+
+        // スクロール限界
+        const contentHeight = listY;
+        const maxScrollY = viewY;
+        const minScrollY = Math.min(viewY, viewY - (contentHeight - viewH));
+
+        const clampY = (y) => Math.max(minScrollY, Math.min(maxScrollY, y));
+
+        const updateScroll = (targetY) => {
+            const newY = clampY(targetY);
+            scene.tweens.add({
+                targets: listContainer,
+                y: newY,
+                duration: 200,
+                ease: 'Cubic.out'
+            });
+        };
+
+        // ドラッグスクロールタッチエリア
+        let isDragging = false;
+        let dragStartY = 0;
+        let containerStartY = 0;
+
+        const touchZone = scene.add.rectangle(0, viewY, width - 60, viewH, 0x000000, 0.001).setOrigin(0, 0).setInteractive();
+        mainContainer.add(touchZone);
+
+        touchZone.on('pointerdown', (pointer) => {
+            isDragging = true;
+            dragStartY = pointer.y;
+            containerStartY = listContainer.y;
+        });
+
+        touchZone.on('pointermove', (pointer) => {
+            if (isDragging) {
+                const dy = pointer.y - dragStartY;
+                listContainer.y = clampY(containerStartY + dy);
+            }
+        });
+
+        const stopDrag = () => { isDragging = false; };
+        touchZone.on('pointerup', stopDrag);
+        touchZone.on('pointerout', stopDrag);
+
+        // 「▲ 上」「▼ 下」スクロールボタン（右端に固定配置）
+        const btnX = width - 20;
+        
+        const btnUp = scene.add.text(btnX, viewY + 30, '▲\n上', {
+            stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#ffffff',
+            backgroundColor: '#335588', padding: { x: 10, y: 8 }, align: 'center'
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+
+        btnUp.on('pointerdown', () => {
+            updateScroll(listContainer.y + 160);
+        });
+        mainContainer.add(btnUp);
+
+        const btnDown = scene.add.text(btnX, viewY + viewH - 30, '▼\n下', {
+            stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#ffffff',
+            backgroundColor: '#335588', padding: { x: 10, y: 8 }, align: 'center'
+        }).setOrigin(1, 1).setInteractive({ useHandCursor: true });
+
+        btnDown.on('pointerdown', () => {
+            updateScroll(listContainer.y - 160);
+        });
+        mainContainer.add(btnDown);
     }
 }
