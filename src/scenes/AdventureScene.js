@@ -2909,25 +2909,27 @@ export default class AdventureScene extends Phaser.Scene {
         const isTargetTime = (this.currentDay === 15 && this.timePeriodIndex === 0) || (this.currentDay > 15);
         gs.addLog(`🔍 [check1214Event] Day=${this.currentDay}, timeIdx=${this.timePeriodIndex}, isTargetTime=${isTargetTime}, played=${gs.event1214Played}`);
         if (isTargetTime && !gs.event1214Played) {
-            gs.event1214Played = true;
-            SaveManager.saveGame(this);
-            this.sound.stopAll();
-
-            const newGem = RelicGenerator.generateGem(1);
-            if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
-            gs.inventory.gems.push(newGem);
-
             const eventData = this.cache.json.get('event_1214');
-            this.enqueueEvent({
-                type: 'event',
-                data: {
-                    events: eventData,
-                    returnScene: 'AdventureScene',
-                    from1214Event: true,
-                    explorationDrops: [newGem]
-                }
-            });
-            return true;
+            if (eventData && eventData.length > 0) {
+                gs.event1214Played = true;
+                SaveManager.saveGame(this);
+                this.sound.stopAll();
+
+                const newGem = RelicGenerator.generateGem(1);
+                if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                gs.inventory.gems.push(newGem);
+
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: eventData,
+                        returnScene: 'AdventureScene',
+                        from1214Event: true,
+                        explorationDrops: [newGem]
+                    }
+                });
+                return true;
+            }
         }
         return false;
     }
