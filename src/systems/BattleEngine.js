@@ -514,6 +514,7 @@ export class BattleEngine {
 
     applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null) {
         try {
+            const attrMap = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
             if (!defender || defender.isDead || defender.isDying || defender.hp <= 0) return false;
             // 実体化前（スポーン演出中）は無敵
             if (defender.spawnDropTimer > 0 || defender.spawnAnimTimer > 0) return false;
@@ -710,8 +711,6 @@ export class BattleEngine {
             if (defender.owner === 'player' && this.isNightBattle) {
                 finalDamage *= 2.0;
             }
-
-            const attrMap = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
 
             // 12/21夜ワイルドハント突破戦限定の時間経過デバフ
             const isWildhuntBattle = !!(this.config && this.config.is1221NightBattle);
