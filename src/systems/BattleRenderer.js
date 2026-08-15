@@ -773,12 +773,21 @@ export class BattleRenderer {
         
         let obj = this.effectMap.get(eff);
         if (!obj) {
-            if (eff.type && eff.type.startsWith('element_hit_')) {
-                const effId = eff.type.split('_')[2];
+            if (eff.type && (eff.type.startsWith('element_hit_') || eff.type.startsWith('enemy_death_'))) {
+                const effId = eff.type.split('_')[2] || '1';
                 obj = this.scene.add.sprite(0, 0, `hit_effect${effId}`);
+                // 生成ごとに上下左右反転＆角度のランダム付与
+                const fx = Math.random() < 0.5;
+                const fy = Math.random() < 0.5;
+                obj.setFlip(fx, fy);
+                obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
                 obj.setDepth(2000);
             } else if (eff.type === 'kick_hit') {
                 obj = this.scene.add.sprite(0, 0, 'hit_effect6');
+                const fx = Math.random() < 0.5;
+                const fy = Math.random() < 0.5;
+                obj.setFlip(fx, fy);
+                obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
                 obj.setDepth(2000);
             } else if (eff.type === 'slash_hit') {
                 obj = this.scene.add.sprite(0, 0, 'slash');
@@ -796,7 +805,7 @@ export class BattleRenderer {
                 obj.setFlip(fx, fy);
                 obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
                 obj.setDepth(1800);
-            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && eff.type.startsWith('majo_death'))) {
+            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
                 obj = this.scene.add.sprite(0, 0, 'bomb');
                 // 毎回「通常」「左右反転」「上下反転」「上下左右反転」の4パターン全種＋90度刻みの角度バリエーションをランダム付与
                 const fx = Math.random() < 0.5;
@@ -944,7 +953,7 @@ export class BattleRenderer {
             }
 
             
-            if ((eff.type && eff.type.startsWith('element_hit_')) || eff.type === 'kick_hit') {
+            if ((eff.type && (eff.type.startsWith('element_hit_') || eff.type.startsWith('enemy_death_'))) || eff.type === 'kick_hit') {
 
                 obj.setPosition(p.x, p.y - p.scale * 1.0); // 衝突点(腰の高さ)
                 
@@ -952,11 +961,11 @@ export class BattleRenderer {
                 let alpha = 0.8;
                 const phase1Prog = 0.1 / 0.6; // 0.1秒の割合
                 const custom = eff.customData || {};
-                const isFatal = custom.isFatal || false;
+                const isFatal = custom.isFatal || (eff.type && eff.type.startsWith('enemy_death_'));
                 
-                let startSize = isFatal ? 0.05 : 0.2 / 3.0;
-                let midSize = isFatal ? ((custom.targetSize || 1.0) * 0.5) : 0.75 / 3.0;
-                let endSize = isFatal ? midSize * 1.2 : 1.0 / 3.0;
+                let startSize = isFatal ? 0.1 : 0.2 / 3.0;
+                let midSize = isFatal ? ((eff.radius || 1.5) * 0.7) : 0.75 / 3.0;
+                let endSize = isFatal ? midSize * 1.4 : 1.0 / 3.0;
                 
                 if (eff.type === 'kick_hit') {
                     startSize = 0.13;

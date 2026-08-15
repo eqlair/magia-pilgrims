@@ -825,11 +825,11 @@ export class BattleEngine {
                 maxLife: 1.0
             });
             
-            // 属性ヒットエフェクトの発生
+            // 属性ヒットエフェクトの発生（攻撃者の属性カラーを使用）
             const attrMap = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
-            const attr = (defender && defender.attribute) ? defender.attribute : (attacker && attacker.attribute ? attacker.attribute : null);
-            if (attr && attrMap[attr]) {
-                const effId = attrMap[attr];
+            const atkAttr = (attacker && attacker.attribute) ? attacker.attribute : ((defender && defender.attribute) ? defender.attribute : 'red');
+            if (atkAttr && attrMap[atkAttr]) {
+                const effId = attrMap[atkAttr];
                 let effX = defender.x;
                 let effZ = defender.z;
                 if (hitX !== null && hitZ !== null) {
@@ -869,9 +869,11 @@ export class BattleEngine {
                 this.earnedExp += Math.floor(baseExp * GlobalState.getInstance().expMultiplier);
 
                 if (!defender.isBoss) {
-                    // 雑魚敵撃破時の小爆発・消滅エフェクト
+                    const defAttr = defender.attribute || 'red';
+                    const effId = attrMap[defAttr] || 1;
+                    // 雑魚敵撃破時の小爆発・消滅エフェクト（敵自身の属性カラーを使用）
                     this.effects.push(new EffectEntity(defender.x, defender.z, {
-                        type: 'enemy_death',
+                        type: `enemy_death_${effId}`,
                         radius: Math.max(1.0, (defender.size || 1.0) * 1.5),
                         lifeTime: 0.5
                     }));
