@@ -800,14 +800,14 @@ export class EnemyCharacter extends BattleEntity {
         this.sp = 0;
         this.maxSp = 0;
 
-        // 基準速度100
-        let baseSpeed = data.speed || 100;
+        // 基準速度 (m/s)
+        let baseSpeed = data.speed !== undefined ? data.speed : 3;
         let atkFreq = data.atkFreq || 0.5;
         if (gs.enemySpeedHalf) {
             baseSpeed /= 2;
             atkFreq *= 2;
         }
-        this.speed = baseSpeed * 0.03; // m/sに変換
+        this.speed = baseSpeed; // m/s直接使用
 
         this.weight = data.weight || 5;
         this.debuffResist = data.debuffResist !== undefined ? data.debuffResist : 0;
