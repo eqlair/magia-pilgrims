@@ -276,18 +276,50 @@ export class GlobalState {
         let expBonusMod = 0; // 追加: 経験値取得量UPボーナス(%)
         let elemMods = { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
 
-        // 装備品の集計 (ロック中のスロットおよび未装着を除外)
-        const validEquips = [];
-        if (char.equipRelics && Array.isArray(char.equipRelics)) {
-            char.equipRelics.forEach((relic, slotIdx) => {
-                if (!relic) return;
-                const reqLevel = 1 + slotIdx * 4;
-                if ((char.level || 1) < reqLevel) return; // ロック中スロットのレリクスは無効
-                validEquips.push(relic);
+        // 装備品からのレベルボーナス(charLevelBonus)を考慮した実効レベルでスロット解禁判定を行う
+        // （宝石や先行スロットの「レベルUP」特性が次スロットを連鎖解禁する）
+        const rawLevel = char.level || 1;
+        let effectiveLevel = rawLevel;
+        let validEquips = [];
+
+        for (let pass = 0; pass < 5; pass++) {
+            let tempLevelBonus = 0;
+            const currentValid = [];
+
+            if (char.equipGem) {
+                currentValid.push(char.equipGem);
+            }
+            if (char.equipRelics && Array.isArray(char.equipRelics)) {
+                char.equipRelics.forEach((relic, slotIdx) => {
+                    if (!relic) return;
+                    const reqLevel = 1 + slotIdx * 4;
+                    if (effectiveLevel >= reqLevel) {
+                        currentValid.push(relic);
+                    }
+                });
+            }
+
+            // 有効スロットのアイテムからレベルUPボーナスを集計して実効レベルを更新
+            currentValid.forEach(equip => {
+                const traits = equip.traits || (equip.trait ? [equip.trait] : []);
+                traits.forEach(trait => {
+                    if (!trait) return;
+                    const tLevel = Number(trait.level || trait.val || 0);
+                    if (tLevel <= 0) return;
+                    const tName = (trait.name || trait.type || '').toString().trim();
+                    if (tName.includes('レベルUP') || tName.includes('レベル+') || tName.includes('キャラLV+')) {
+                        tempLevelBonus += tLevel;
+                    }
+                });
             });
-        }
-        if (char.equipGem) {
-            validEquips.push(char.equipGem);
+
+            const newEffectiveLevel = rawLevel + tempLevelBonus;
+            validEquips = currentValid;
+
+            if (newEffectiveLevel === effectiveLevel) {
+                break; // レベル変化が収束したら終了
+            }
+            effectiveLevel = newEffectiveLevel;
         }
 
         validEquips.forEach(equip => {
