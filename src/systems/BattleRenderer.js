@@ -796,7 +796,7 @@ export class BattleRenderer {
                 obj.setFlip(fx, fy);
                 obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
                 obj.setDepth(1800);
-            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
+            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && eff.type.startsWith('majo_death'))) {
                 obj = this.scene.add.sprite(0, 0, 'bomb');
                 // 毎回「通常」「左右反転」「上下反転」「上下左右反転」の4パターン全種＋90度刻みの角度バリエーションをランダム付与
                 const fx = Math.random() < 0.5;
@@ -918,15 +918,16 @@ export class BattleRenderer {
                 return;
             }
 
-            if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
+            if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && eff.type.startsWith('majo_death'))) {
 
-                // 爆発エフェクト (魔女死亡時含む): bomb.png (300x300) を使用。着色なしで急拡大＆フェードアウト
+                // 爆発エフェクト (魔女死亡・雑魚死亡時含む): bomb.png (300x300) を使用。着色なしで急拡大＆フェードアウト
                 obj.setPosition(p.x, p.y - p.scale * 0.5);
                 const radiusPx = (eff.radius || 1.5) * p.scale;
                 const baseWidth = obj.width || 300;
                 
                 // 魔女死亡時の小爆発(majo_death_2)はサイズ2倍、最終大爆発(majo_death_3)は超巨大に拡大
                 let sizeMult = 2.5;
+                if (eff.type === 'enemy_death') sizeMult = 1.5;
                 if (eff.type === 'majo_death_2') sizeMult = 5.0;
                 if (eff.type === 'majo_death_3') sizeMult = 8.0;
 

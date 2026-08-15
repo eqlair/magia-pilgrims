@@ -867,6 +867,15 @@ export class BattleEngine {
                 // 雑魚敵の経験値はレベルの2倍(lv * 2)、魔女(isBoss)は変更なし
                 const baseExp = defender.isBoss ? Math.pow(lv, 2) * 200 : (lv * 2);
                 this.earnedExp += Math.floor(baseExp * GlobalState.getInstance().expMultiplier);
+
+                if (!defender.isBoss) {
+                    // 雑魚敵撃破時の小爆発・消滅エフェクト
+                    this.effects.push(new EffectEntity(defender.x, defender.z, {
+                        type: 'enemy_death',
+                        radius: Math.max(1.0, (defender.size || 1.0) * 1.5),
+                        lifeTime: 0.5
+                    }));
+                }
             }
 
 
