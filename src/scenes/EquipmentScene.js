@@ -296,20 +296,18 @@ export default class EquipmentScene extends Phaser.Scene {
             this.showSynthesisConfirmUI();
             return;
         }
+        if (this.enhanceMode) {
+            this.showEnhanceConfirmUI();
+            return;
+        }
         const equipped = this.getEquippedItems();
         const item = equipped[this.slotIndex];
         this.drawItemDetail(this.topContainer, '【装備中アイテム詳細】', item, true, this.slotIndex, true);
     }
 
     drawMidSection() {
-        if (this.synthConfirmMode) {
-            return; // showSynthesisConfirmUIでtopContainerとmidContainerの両方を描画済み
-        }
-
-        if (this.enhanceMode) {
-            this.midContainer.add(this.add.text(20, 0, '【強化モード：素材選択中】', { fontSize: '20px', color: '#ffcc00', padding: { top: 4, bottom: 4 } }));
-            this.drawEnhanceModeUI();
-            return;
+        if (this.synthConfirmMode || this.enhanceMode) {
+            return; // showSynthesisConfirmUI または showEnhanceConfirmUI で topContainer と midContainer の両方を描画済み
         }
 
         const item = this.selectedItem ? this.selectedItem.item : null;
@@ -735,16 +733,28 @@ export default class EquipmentScene extends Phaser.Scene {
         this.drawUI();
     }
 
-    drawConfirmRelicItem(container, x, y, item) {
+    drawConfirmRelicItem(container, x, y, item, isBase = false, onLockToggle = null) {
         const itemW = this.width - 40;
         const itemH = 40;
-        const bg = this.add.rectangle(x, y, itemW, itemH, 0x221133).setOrigin(0, 0);
+        
+        // 強化ベースの場合はゴールドハイライト枠・背景色を変更！
+        const bgColor = isBase ? 0x443311 : 0x221133;
+        const strokeColor = isBase ? 0xffaa00 : 0x444466;
+
+        const bg = this.add.rectangle(x, y, itemW, itemH, bgColor).setOrigin(0, 0);
+        if (isBase) {
+            bg.setStrokeStyle(2, strokeColor);
+        }
         container.add(bg);
 
         const iRankStr = this.getRankString(item.rank);
         const iColor = this.getRankColor(item.rank);
-        const label = this.add.text(x + 8, y + 3, `[${iRankStr}] ${item.name || 'Unknown'}`, {
-            fontSize: '14px', color: iColor
+        
+        const labelText = isBase ? `[${iRankStr}] ${item.name || 'Unknown'}` : `[${iRankStr}] ${item.name || 'Unknown'}`;
+        const labelColor = isBase ? '#ffdd66' : iColor;
+
+        const label = this.add.text(x + 8, y + 3, labelText, {
+            fontSize: '14px', color: labelColor, fontStyle: isBase ? 'bold' : 'normal'
         });
         container.add(label);
 
@@ -786,23 +796,144 @@ export default class EquipmentScene extends Phaser.Scene {
             }
         }
 
-        // 右端に鍵ボタン（解除状態の表記「🔓 解除」で統一。タップでロック保護＋別アイテムに再選定）
-        const isLocked = !!item.isLocked;
-        const lockBtnColor = isLocked ? '#664400' : '#444444';
-        const lockBtnText = isLocked ? '🔒 ロック' : '🔓 解除';
+        if (isBase) {
+            // 強化ベース表示時の右端バッジ
+            const baseBadge = this.add.text(x + itemW - 85, y + 8, '🌟 強化元', {
+                fontSize: '12px', color: '#ffffff', backgroundColor: '#886600', padding: { x: 6, y: 4 }
+            });
+            container.add(baseBadge);
+        } else {
+            // 右端に鍵ボタン（解除状態の表記「🔓 解除」で統一。タップでロック保護＋自動再選定）
+            const isLocked = !!item.isLocked;
+            const lockBtnColor = isLocked ? '#664400' : '#444444';
+            const lockBtnText = isLocked ? '🔒 ロック' : '🔓 解除';
 
-        const lockBtn = this.add.text(x + itemW - 75, y + 8, lockBtnText, {
-            fontSize: '12px', color: '#ffffff', backgroundColor: lockBtnColor,
-            padding: { x: 6, y: 4 }
+            const lockBtn = this.add.text(x + itemW - 75, y + 8, lockBtnText, {
+                fontSize: '12px', color: '#ffffff', backgroundColor: lockBtnColor,
+                padding: { x: 6, y: 4 }
+            }).setInteractive({ useHandCursor: true });
+
+            lockBtn.on('pointerdown', () => {
+                if (onLockToggle) {
+                    onLockToggle(item);
+                } else {
+                    item.isLocked = true;
+                    SaveManager.saveGame();
+                    this.showToast(`『${item.name}』をロック保護しました`);
+                    this.executeSynthesis();
+                }
+            });
+            container.add(lockBtn);
+        }
+    }
+
+    showEnhanceConfirmUI() {
+        const baseItem = this.enhanceBaseItem;
+        if (!baseItem) return;
+
+        const rankStr = this.getRankString(baseItem.rank);
+        const nextRankStr = this.getRankString(baseItem.rank + 1);
+        const typeLabel = this.itemType === 'relic' ? 'レリクス' : '宝石';
+
+        const itemH = 44;
+
+        // --- topContainer ---
+        this.topContainer.add(
+            this.add.text(20, 0, '【このレリクスを強化】', { fontSize: '18px', color: '#ffcc44', fontStyle: 'bold' })
+        );
+        this.topContainer.add(
+            this.add.text(210, 2, `[${rankStr}${typeLabel} ➔ ${nextRankStr}${typeLabel}]`, { fontSize: '14px', color: '#aaffaa' })
+        );
+
+        // ① 強化ベース（一番上の枠色を変えてゴールドハイライト表示）
+        this.drawConfirmRelicItem(this.topContainer, 20, 24, baseItem, true);
+
+        // ② 素材1〜2個目（topContainer）
+        this.topContainer.add(
+            this.add.text(20, 72, `【消費素材 (素材数: ${this.enhanceMaterials.length}/4)】`, { fontSize: '14px', color: '#ffaaaa' })
+        );
+
+        for (let i = 0; i < 2; i++) {
+            const item = this.enhanceMaterials[i];
+            const by = 92 + i * itemH;
+            if (item) {
+                this.drawConfirmRelicItem(this.topContainer, 20, by, item, false, (mat) => {
+                    mat.isLocked = true;
+                    SaveManager.saveGame();
+                    this.showToast(`『${mat.name}』をロック保護しました`);
+                    this.autoSelectEnhanceMaterials();
+                    this.drawUI();
+                });
+            } else {
+                this.drawEmptyMaterialSlot(this.topContainer, 20, by, i + 1);
+            }
+        }
+
+        // --- midContainer ---
+        // ③ 素材3〜4個目（midContainer）
+        for (let i = 2; i < 4; i++) {
+            const item = this.enhanceMaterials[i];
+            const by = (i - 2) * itemH;
+            if (item) {
+                this.drawConfirmRelicItem(this.midContainer, 20, by, item, false, (mat) => {
+                    mat.isLocked = true;
+                    SaveManager.saveGame();
+                    this.showToast(`『${mat.name}』をロック保護しました`);
+                    this.autoSelectEnhanceMaterials();
+                    this.drawUI();
+                });
+            } else {
+                this.drawEmptyMaterialSlot(this.midContainer, 20, by, i + 1);
+            }
+        }
+
+        // 下部ボタン
+        const btnY = 2 * itemH + 6;
+
+        // 自動選択ボタン
+        const btnAuto = this.add.text(20, btnY, '🤖 自動選択', {
+            fontSize: '16px', backgroundColor: '#225588', color: '#ffffff',
+            padding: { x: 14, y: 7 }
         }).setInteractive({ useHandCursor: true });
-
-        lockBtn.on('pointerdown', () => {
-            item.isLocked = true;
-            SaveManager.saveGame();
-            this.showToast(`『${item.name}』をロック保護しました`);
-            this.executeSynthesis();
+        btnAuto.on('pointerdown', () => {
+            this.autoSelectEnhanceMaterials();
+            this.drawUI();
         });
-        container.add(lockBtn);
+        this.midContainer.add(btnAuto);
+
+        // キャンセルボタン
+        const btnCancel = this.add.text(145, btnY, '✕ キャンセル', {
+            fontSize: '16px', backgroundColor: '#553333', color: '#ffffff',
+            padding: { x: 14, y: 7 }
+        }).setInteractive({ useHandCursor: true });
+        btnCancel.on('pointerdown', () => {
+            this.enhanceMode = false;
+            this.enhanceMaterials = [];
+            this.enhanceBaseItem = null;
+            this.drawUI();
+        });
+        this.midContainer.add(btnCancel);
+
+        // 強化実行ボタン（4/4の時だけ表示）
+        if (this.enhanceMaterials.length === 4) {
+            const btnExec = this.add.text(this.width - 145, btnY, '⚔️ 強化実行', {
+                fontSize: '16px', backgroundColor: '#880000', color: '#ffffff',
+                padding: { x: 16, y: 7 }, fontStyle: 'bold'
+            }).setInteractive({ useHandCursor: true });
+            btnExec.on('pointerdown', () => this.executeEnhance());
+            this.midContainer.add(btnExec);
+        }
+    }
+
+    drawEmptyMaterialSlot(container, x, y, slotNum) {
+        const itemW = this.width - 40;
+        const itemH = 40;
+        const bg = this.add.rectangle(x, y, itemW, itemH, 0x111122).setOrigin(0, 0);
+        container.add(bg);
+        const label = this.add.text(x + 12, y + 10, `[素材 ${slotNum}] 未選択 (下のリストからタップで追加可能)`, {
+            fontSize: '14px', color: '#666688'
+        });
+        container.add(label);
     }
 
     showSynthesisConfirmUI() {
