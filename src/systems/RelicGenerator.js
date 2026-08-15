@@ -89,9 +89,9 @@ export class RelicGenerator {
         const bossMult = isBoss ? 2.0 : 1.0;
         const rareMult = (isFoolUpright ? 2.0 : 1.0) * bossMult;
         
-        // Rank 1: 2 to 6 drops (ボス時は4〜8個)
-        const minDrops = isBoss ? 4 : 2;
-        const numRank1 = minDrops + Math.floor(Math.random() * 5);
+        // Rank 1: 通常戦闘 1〜3個 (魔女戦は 2〜4個)
+        const minDrops = isBoss ? 2 : 1;
+        const numRank1 = minDrops + Math.floor(Math.random() * 3);
         for (let i = 0; i < numRank1; i++) {
             drops.push(this.generateRelic(1));
         }
@@ -121,8 +121,8 @@ export class RelicGenerator {
         const genericMult = isGenericHex ? 0.5 : 1.0;
         const rareMult = (isFoolUpright ? 2.0 : 1.0) * genericMult;
 
-        // Rank 1: 2〜8個
-        const numRank1 = 2 + Math.floor(Math.random() * 7);
+        // Rank 1: 探索 2〜4個
+        const numRank1 = 2 + Math.floor(Math.random() * 3);
         for (let i = 0; i < numRank1; i++) {
             drops.push(this.generateRelic(1));
         }
