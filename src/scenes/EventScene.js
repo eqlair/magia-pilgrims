@@ -99,11 +99,21 @@ export default class EventScene extends Phaser.Scene {
 
     _playBattleBgm(cb) {
         // 現在のBGMをフェードアウト
-        this.sound.sounds.forEach(s => {
-            if (s.isPlaying) {
-                this.tweens.add({ targets: s, volume: 0, duration: 1000, onComplete: () => s.stop() });
-            }
-        });
+        if (this.sound && this.sound.sounds) {
+            this.sound.sounds.forEach(s => {
+                if (s && s.isPlaying) {
+                    this.tweens.add({
+                        targets: s, volume: 0, duration: 1000,
+                        onUpdate: (t, target) => {
+                            if (!target || !target.manager || target.pendingRemove) {
+                                try { t.stop(); } catch(e){}
+                            }
+                        },
+                        onComplete: () => { try { s.stop(); } catch(e){} }
+                    });
+                }
+            });
+        }
 
         // ランダムな戦闘BGMを選ぶ (1~4) し、キーを記憶してBattleSceneへ引き継げるようにする
         const bgmIndex = Math.floor(Math.random() * 4) + 1;

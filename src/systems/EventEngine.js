@@ -124,7 +124,15 @@ export class EventEngine {
             this.scene.sound.sounds.forEach(s => {
                 if (s && s.isPlaying && s !== this._currentBgm) {
                     try {
-                        this.scene.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
+                        this.scene.tweens.add({
+                            targets: s, volume: 0, duration: 600,
+                            onUpdate: (t, target) => {
+                                if (!target || !target.manager || target.pendingRemove) {
+                                    try { t.stop(); } catch(e){}
+                                }
+                            },
+                            onComplete: () => { try { s.stop(); } catch(e){} }
+                        });
                     } catch(e) {}
                 }
             });
@@ -136,7 +144,11 @@ export class EventEngine {
             this._currentBgm = null;
             this.scene.tweens.add({
                 targets: old, volume: 0, duration: 600,
-                onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); },
+                onUpdate: (t, target) => {
+                    if (!target || !target.manager || target.pendingRemove) {
+                        try { t.stop(); } catch(e){}
+                    }
+                },
                 onComplete: () => { try { old.stop(); old.destroy(); } catch(e){} }
             });
         }
