@@ -121,6 +121,19 @@ export default class TitleScene extends Phaser.Scene {
             gearBtnBg.on('pointerout', () => gearBtnBg.setFillStyle(0x000000, 0.6));
         }
 
+        // ── 画面右上 「新規」ボタン (セーブデータが存在する時のみ表示) ──
+        if (SaveManager.hasSaveData()) {
+            const newGameBtn = this.add.text(width - 20, 20, '新規', {
+                fontSize: '16px', color: '#ffaaaa', stroke: '#000000', strokeThickness: 3,
+                backgroundColor: '#330000aa', padding: { x: 10, y: 6 }
+            }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+
+            newGameBtn.on('pointerdown', (pointer) => {
+                if (pointer) pointer.event.stopPropagation();
+                this._showNewGameConfirmDialog();
+            });
+        }
+
         // ── 明転フェードイン ─────────────────────
         TransitionManager.fadeIn(this);
 
@@ -128,11 +141,109 @@ export default class TitleScene extends Phaser.Scene {
         this.input.on('pointerdown', (pointer) => {
             // 左上歯車ボタンのタップは除外
             if (GlobalState.IS_DEBUG_MODE && pointer.x <= 80 && pointer.y <= 80) return;
+            // 右上「新規」ボタンの領域タップは除外
+            if (SaveManager.hasSaveData() && pointer.x >= width - 90 && pointer.y <= 70) return;
             this._startDirectGame();
         });
 
         // リサイズ追従
         this.scale.on('resize', this._fitVideo, this);
+    }
+
+    /**
+     * セーブデータ削除＆ニューゲーム確認ダイアログ（「はい」を5秒長押しで削除）
+     */
+    _showNewGameConfirmDialog() {
+        const { width, height } = this.scale;
+        const dialogContainer = this.add.container(0, 0).setDepth(10000);
+
+        // 背景遮断
+        const bg = this.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
+        bg.on('pointerdown', (pointer) => pointer.event.stopPropagation());
+        dialogContainer.add(bg);
+
+        // メッセージパネル
+        const panelWidth = Math.min(width * 0.88, 460);
+        const panelHeight = 270;
+        const panel = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x1a0d0d, 0.95)
+            .setStrokeStyle(2, 0xff5555);
+        dialogContainer.add(panel);
+
+        // 説明テキスト
+        const msgText = this.add.text(width / 2, height / 2 - 60,
+            'ゲームデータを削除し、\nニューゲームではじめるには\n「はい」を5秒押してください。', {
+            fontSize: '18px', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
+            align: 'center', wordWrap: { width: panelWidth - 30 }
+        }).setOrigin(0.5, 0.5);
+        dialogContainer.add(msgText);
+
+        // ボタンの配置
+        const btnY = height / 2 + 55;
+
+        // 「いいえ」ボタン
+        const noBtn = this.add.text(width / 2 + 75, btnY, 'いいえ', {
+            fontSize: '20px', color: '#ffffff', stroke: '#000000', strokeThickness: 3,
+            backgroundColor: '#444455', padding: { x: 22, y: 10 }
+        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+
+        noBtn.on('pointerdown', (pointer) => {
+            if (pointer) pointer.event.stopPropagation();
+            dialogContainer.destroy();
+        });
+        dialogContainer.add(noBtn);
+
+        // 「はい」ボタン (長押し5秒判定)
+        const yesBtn = this.add.text(width / 2 - 75, btnY, 'はい', {
+            fontSize: '20px', color: '#ffaaaa', stroke: '#000000', strokeThickness: 3,
+            backgroundColor: '#661111', padding: { x: 22, y: 10 }
+        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+        dialogContainer.add(yesBtn);
+
+        // 長押しプログレスバー (ゲージ)
+        const progressBarBg = this.add.rectangle(width / 2 - 75, btnY + 34, 100, 8, 0x333333).setOrigin(0.5, 0.5);
+        const progressBarFill = this.add.rectangle(width / 2 - 125, btnY + 34, 0, 8, 0xff3333).setOrigin(0, 0.5);
+        dialogContainer.add([progressBarBg, progressBarFill]);
+
+        let pressTimer = null;
+        let elapsedMs = 0;
+        const targetMs = 5000;
+
+        const stopPress = () => {
+            if (pressTimer) {
+                pressTimer.remove();
+                pressTimer = null;
+            }
+            elapsedMs = 0;
+            progressBarFill.width = 0;
+            yesBtn.setText('はい');
+        };
+
+        yesBtn.on('pointerdown', (pointer) => {
+            if (pointer) pointer.event.stopPropagation();
+            stopPress();
+
+            pressTimer = this.time.addEvent({
+                delay: 50,
+                loop: true,
+                callback: () => {
+                    elapsedMs += 50;
+                    const progress = Math.min(1.0, elapsedMs / targetMs);
+                    progressBarFill.width = 100 * progress;
+                    
+                    const secRemaining = Math.ceil((targetMs - elapsedMs) / 1000);
+                    yesBtn.setText(`はい (${secRemaining}s)`);
+
+                    if (elapsedMs >= targetMs) {
+                        stopPress();
+                        dialogContainer.destroy();
+                        this._startNewGame();
+                    }
+                }
+            });
+        });
+
+        yesBtn.on('pointerup', stopPress);
+        yesBtn.on('pointerout', stopPress);
     }
 
     /**
