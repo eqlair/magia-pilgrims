@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { EventEngine } from '../systems/EventEngine';
+import { GlobalState } from '../systems/GlobalState';
 
 export default class OpScene extends Phaser.Scene {
     constructor() {
@@ -133,20 +134,22 @@ export default class OpScene extends Phaser.Scene {
         };
 
 
-        // ── 画面左上の隠しOPスキップボタン ──
+        // ── 画面左上の隠しOPスキップボタン (デバッグモード時のみ表示) ──
         this.isSkipping = false;
-        this.skipBtn = this.add.text(20, 20, '⏩ SKIP', {
-            fontFamily: 'sans-serif',
-            fontSize: '18px',
-            color: '#ffffff',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            padding: { x: 10, y: 6 }
-        }).setDepth(9999).setInteractive({ useHandCursor: true });
+        if (GlobalState.IS_DEBUG_MODE) {
+            this.skipBtn = this.add.text(20, 20, '⏩ SKIP', {
+                fontFamily: 'sans-serif',
+                fontSize: '18px',
+                color: '#ffffff',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                padding: { x: 10, y: 6 }
+            }).setDepth(9999).setInteractive({ useHandCursor: true });
 
-        this.skipBtn.setAlpha(0.6);
-        this.skipBtn.on('pointerover', () => this.skipBtn.setAlpha(1.0));
-        this.skipBtn.on('pointerout', () => this.skipBtn.setAlpha(0.6));
-        this.skipBtn.on('pointerdown', triggerOpFinish);
+            this.skipBtn.setAlpha(0.6);
+            this.skipBtn.on('pointerover', () => this.skipBtn.setAlpha(1.0));
+            this.skipBtn.on('pointerout', () => this.skipBtn.setAlpha(0.6));
+            this.skipBtn.on('pointerdown', triggerOpFinish);
+        }
 
         this.engine.start();
     }
