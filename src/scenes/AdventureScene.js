@@ -326,15 +326,17 @@ export default class AdventureScene extends Phaser.Scene {
         // カメラの自由な移動を保証するため、広めのBoundsを設定
         this.cameras.main.setBounds(-2000, -2000, 4000, 4000);
         
-        // デバッグ用: Pキーで宝石ドロップフラグをトグル
-        const globalState = GlobalState.getInstance();
-        this.input.keyboard.on('keydown-P', () => {
-            globalState.debugForceGemDrop = !globalState.debugForceGemDrop;
-            const text = this.add.text(this.scale.width / 2, 50, `[DEBUG] 宝石確定ドロップ: ${globalState.debugForceGemDrop ? 'ON' : 'OFF'}`, {
-                fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
-            }).setOrigin(0.5).setDepth(9999);
-            this.time.delayedCall(2000, () => text.destroy());
-        });
+        // デバッグ用: Pキーで宝石ドロップフラグをトグル (デバッグモード時のみ)
+        if (GlobalState.IS_DEBUG_MODE) {
+            const globalState = GlobalState.getInstance();
+            this.input.keyboard.on('keydown-P', () => {
+                globalState.debugForceGemDrop = !globalState.debugForceGemDrop;
+                const text = this.add.text(this.scale.width / 2, 50, `[DEBUG] 宝石確定ドロップ: ${globalState.debugForceGemDrop ? 'ON' : 'OFF'}`, {
+                    fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
+                }).setOrigin(0.5).setDepth(9999);
+                this.time.delayedCall(2000, () => text.destroy());
+            });
+        }
 
         // 初期位置: (D, 7) の東京 (col=3, row=6)
         this.playerCol = 3;
@@ -1153,45 +1155,46 @@ export default class AdventureScene extends Phaser.Scene {
 
 
 
-        // ── 突破テストボタン (時間経過無しでいつでも突破モードへ直接チャレンジ) ──
-        const breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
+        // ── デバッグ用ボタン群 (デバッグモード時のみ表示) ──
+        if (GlobalState.IS_DEBUG_MODE) {
+            // 突破テストボタン
+            const breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
-            fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        breakTestBtn.on('pointerdown', () => {
-            TransitionManager.transitionTo(this, 'BattleScene', {
-                rule: 2,
-                isTest: true,
-                party: this.party || ['001', '002', '003', '004', '005'],
-                enemyCount: 50,
-                enemyLevel: 1,
-                spawnInterval: 1.0,
-                breakthroughTarget: 42195,
-                returnScene: 'AdventureScene'
+            breakTestBtn.on('pointerdown', () => {
+                TransitionManager.transitionTo(this, 'BattleScene', {
+                    rule: 2,
+                    isTest: true,
+                    party: this.party || ['001', '002', '003', '004', '005'],
+                    enemyCount: 50,
+                    enemyLevel: 1,
+                    spawnInterval: 1.0,
+                    breakthroughTarget: 42195,
+                    returnScene: 'AdventureScene'
+                });
             });
-        });
 
+            this.uiContainer.add([breakTestBtn]);
 
-        this.uiContainer.add([breakTestBtn]);
+            // DPS計測ボタン
+            const dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc00', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
-        // ── DPS計測ボタン (サンドバッグ3匹と戦闘) ──
-        const dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
-            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc00', fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        dpsTestBtn.on('pointerdown', () => {
-            TransitionManager.transitionTo(this, 'BattleScene', {
-                rule: 3, // DPS計測モード
-                isDpsTest: true,
-                party: this.party || ['001', '002', '003', '004', '005'],
-                returnScene: 'AdventureScene'
+            dpsTestBtn.on('pointerdown', () => {
+                TransitionManager.transitionTo(this, 'BattleScene', {
+                    rule: 3, // DPS計測モード
+                    isDpsTest: true,
+                    party: this.party || ['001', '002', '003', '004', '005'],
+                    returnScene: 'AdventureScene'
+                });
             });
-        });
 
-        this.uiContainer.add([dpsTestBtn]);
+            this.uiContainer.add([dpsTestBtn]);
+        }
     }
 
 

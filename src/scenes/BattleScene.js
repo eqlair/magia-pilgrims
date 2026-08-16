@@ -145,7 +145,9 @@ export default class BattleScene extends Phaser.Scene {
         // 背景設定（突破モード: rule===2 の場合は floor_a を疑似3D平面メッシュ化して舞台と同じ角度に傾斜）
         if (this.battleConfig.rule === 2) {
             this.initGroundMesh();
-            this.initBreakthroughDebugUI();
+            if (GlobalState.IS_DEBUG_MODE) {
+                this.initBreakthroughDebugUI();
+            }
             
             // 突破進捗UI（画面上部）
 
@@ -318,11 +320,13 @@ export default class BattleScene extends Phaser.Scene {
         
         this.confirmContainer.add([cOverlay, cText, yesBtn, noBtn]);
 
-        this.input.keyboard.on('keydown-Y', () => {
-            if (this.engine) {
-                this.engine.debugFastForward();
-            }
-        });
+        if (GlobalState.IS_DEBUG_MODE) {
+            this.input.keyboard.on('keydown-Y', () => {
+                if (this.engine) {
+                    this.engine.debugFastForward();
+                }
+            });
+        }
 
         // DPS表示（画面左下・スプライト文字）
         this.dpsText = new SpriteText(this, 10, this.scale.height - 10, '', {

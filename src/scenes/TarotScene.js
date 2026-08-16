@@ -50,28 +50,12 @@ export default class TarotScene extends Phaser.Scene {
                 this.tarotDeck.push(i);
             }
         }
-        Phaser.Utils.Array.Shuffle(this.tarotDeck);
-
-        // Iキーで3枚配りなおす（インチキ機能）
-        this.input.keyboard.on('keydown-I', () => {
-            if (!this.canSelect) return;
-            
-            console.log('Redrawing Tarot Cards...');
-            // 選んでいない3枚をデッキに戻して再シャッフル
-            if (this.drawnCardIds && this.drawnCardIds.length > 0) {
-                this.drawnCardIds.forEach(id => {
-                    if (!this.tarotDeck.includes(id)) this.tarotDeck.push(id);
-                });
-                this.drawnCardIds = [];
-            }
-            Phaser.Utils.Array.Shuffle(this.tarotDeck);
-            
-            if (this.bgm) {
-                this.bgm.stop();
-                this.bgm.destroy();
-            }
-            this.scene.restart();
-        });
+        if (GlobalState.IS_DEBUG_MODE) {
+            this.input.keyboard.on('keydown-I', () => {
+                if (!this.canSelect) return;
+                this.scene.restart();
+            });
+        }
 
 
         this.startCardFlowAnimation();
@@ -144,19 +128,20 @@ export default class TarotScene extends Phaser.Scene {
 
         let completedTweens = 0;
 
-        // Oキーでデバッグフラグトグル
-
-        this.input.keyboard.on('keydown-O', () => {
-            gs.tarotAllFaceUp = !gs.tarotAllFaceUp;
-            console.log('Tarot All Face Up:', gs.tarotAllFaceUp);
-            if (gs.tarotAllFaceUp && this.cards && this.cards.length > 0) {
-                this.cards.forEach((card, idx) => {
-                    card.setTexture(`tarot_${this.drawnCardIds[idx]}`);
-                });
-            } else if (!gs.tarotAllFaceUp && this.cards && this.cards.length > 0) {
-                this.cards.forEach(card => card.setTexture('tarot_0'));
-            }
-        });
+        // Oキーでデバッグフラグトグル (デバッグモード時のみ)
+        if (GlobalState.IS_DEBUG_MODE) {
+            this.input.keyboard.on('keydown-O', () => {
+                gs.tarotAllFaceUp = !gs.tarotAllFaceUp;
+                console.log('Tarot All Face Up:', gs.tarotAllFaceUp);
+                if (gs.tarotAllFaceUp && this.cards && this.cards.length > 0) {
+                    this.cards.forEach((card, idx) => {
+                        card.setTexture(`tarot_${this.drawnCardIds[idx]}`);
+                    });
+                } else if (!gs.tarotAllFaceUp && this.cards && this.cards.length > 0) {
+                    this.cards.forEach(card => card.setTexture('tarot_0'));
+                }
+            });
+        }
 
         for (let i = 0; i < drawCount; i++) {
             // Cards flow from left this time

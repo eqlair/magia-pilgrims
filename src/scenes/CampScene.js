@@ -50,14 +50,16 @@ export default class CampScene extends Phaser.Scene {
         const state = GlobalState.getInstance();
         this.globalState = state;
 
-        // デバッグ用: Pキーで宝石ドロップフラグをトグル
-        this.input.keyboard.on('keydown-P', () => {
-            this.globalState.debugForceGemDrop = !this.globalState.debugForceGemDrop;
-            const text = this.add.text(width / 2, 50, `[DEBUG] 宝石確定ドロップ: ${this.globalState.debugForceGemDrop ? 'ON' : 'OFF'}`, {
-                fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
-            }).setOrigin(0.5).setDepth(9999);
-            this.time.delayedCall(2000, () => text.destroy());
-        });
+        // デバッグ用: Pキーで宝石ドロップフラグをトグル (デバッグモード時のみ)
+        if (GlobalState.IS_DEBUG_MODE) {
+            this.input.keyboard.on('keydown-P', () => {
+                this.globalState.debugForceGemDrop = !this.globalState.debugForceGemDrop;
+                const text = this.add.text(width / 2, 50, `[DEBUG] 宝石確定ドロップ: ${this.globalState.debugForceGemDrop ? 'ON' : 'OFF'}`, {
+                    fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
+                }).setOrigin(0.5).setDepth(9999);
+                this.time.delayedCall(2000, () => text.destroy());
+            });
+        }
 
         // メインビュー用コンテナ（キャラ一覧） depth: 10
         this.mainViewContainer = this.add.container(0, 0).setDepth(10);

@@ -101,23 +101,25 @@ export default class TitleScene extends Phaser.Scene {
             fontSize: '14px', color: '#666666'
         }).setOrigin(1, 1);
 
-        // ── 左上 歯車ボタン (これまでの設定/システムメニューへ) ──
-        const gearBtnBg = this.add.circle(40, 40, 24, 0x000000, 0.6).setInteractive({ useHandCursor: true });
-        const gearIcon = this.add.text(40, 40, '⚙', {
-            fontSize: '28px', color: '#ffffff'
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        // ── 左上 歯車ボタン (デバッグモード時のみ表示) ──
+        if (GlobalState.IS_DEBUG_MODE) {
+            const gearBtnBg = this.add.circle(40, 40, 24, 0x000000, 0.6).setInteractive({ useHandCursor: true });
+            const gearIcon = this.add.text(40, 40, '⚙', {
+                fontSize: '28px', color: '#ffffff'
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        const openMenu = (pointer) => {
-            if (pointer) pointer.event.stopPropagation();
-            this._goToMenu();
-        };
+            const openMenu = (pointer) => {
+                if (pointer) pointer.event.stopPropagation();
+                this._goToMenu();
+            };
 
-        gearBtnBg.on('pointerdown', openMenu);
-        gearIcon.on('pointerdown', openMenu);
+            gearBtnBg.on('pointerdown', openMenu);
+            gearIcon.on('pointerdown', openMenu);
 
-        // ⚙ ボタンのホバー演出
-        gearBtnBg.on('pointerover', () => gearBtnBg.setFillStyle(0x333333, 0.8));
-        gearBtnBg.on('pointerout', () => gearBtnBg.setFillStyle(0x000000, 0.6));
+            // ⚙ ボタンのホバー演出
+            gearBtnBg.on('pointerover', () => gearBtnBg.setFillStyle(0x333333, 0.8));
+            gearBtnBg.on('pointerout', () => gearBtnBg.setFillStyle(0x000000, 0.6));
+        }
 
         // ── 明転フェードイン ─────────────────────
         TransitionManager.fadeIn(this);
@@ -125,7 +127,7 @@ export default class TitleScene extends Phaser.Scene {
         // ── 画面通常タップ（ゲーム開始/続きから）待ち ─────────────────
         this.input.on('pointerdown', (pointer) => {
             // 左上歯車ボタンのタップは除外
-            if (pointer.x <= 80 && pointer.y <= 80) return;
+            if (GlobalState.IS_DEBUG_MODE && pointer.x <= 80 && pointer.y <= 80) return;
             this._startDirectGame();
         });
 
