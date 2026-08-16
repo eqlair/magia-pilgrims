@@ -61,12 +61,12 @@ export default class ResultScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const boostText = this.isExpBoosted ? ' 🔥[2倍ボーナス発動中!]' : '';
-        this.add.text(width / 2, 160, `獲得経験値：${this.earnedExp}${boostText}　獲得SP：${this.earnedSp}`, {
-            fontFamily: 'sans-serif', fontSize: '23px', color: this.isExpBoosted ? '#ffdd00' : '#ffffff', fontStyle: this.isExpBoosted ? 'bold' : 'normal'
+        this.add.text(width / 2, 150, `獲得経験値：${this.earnedExp}${boostText}　獲得SP：${this.earnedSp}`, {
+            fontFamily: 'sans-serif', fontSize: '18px', color: this.isExpBoosted ? '#ffdd00' : '#ffffff', fontStyle: this.isExpBoosted ? 'bold' : 'normal'
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, 210, `ストック加算：+${stockExpAdd} (累計:${stockExp})　ストックSP：${this.globalState.stockSp}`, {
-            fontFamily: 'sans-serif', fontSize: '25px', color: '#aaaaff'
+        this.add.text(width / 2, 190, `取得ストック経験値：${stockExpAdd}　SP：${stockExp}`, {
+            fontFamily: 'sans-serif', fontSize: '18px', color: '#aaaaff'
         }).setOrigin(0.5);
 
 
