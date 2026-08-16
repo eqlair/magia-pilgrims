@@ -56,45 +56,25 @@ export default class TitleScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // ── NEW GAME ボタン ──────────────────────
-        const newGameBtn = this.add.text(width / 2, height * 0.72, 'NEW  GAME', {
+        // ── TAP TO START 点滅テキスト ─────────────────────
+        const tapText = this.add.text(width / 2, height * 0.78, '- TAP TO START -', {
             fontFamily: FONT_MAIN,
-            fontSize: '26px',
-            color: '#fffaee',
+            fontSize: '24px',
+            color: '#ffffff',
             fontStyle: 'bold',
-            backgroundColor: 'rgba(30, 30, 60, 0.85)',
-            padding: { x: 35, y: 12 },
             stroke: '#000000',
-            strokeThickness: 5,
-            shadow: { offsetX: 0, offsetY: 0, color: '#ffcc44', blur: 15, fill: true }
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            strokeThickness: 4,
+            shadow: { offsetX: 0, offsetY: 0, color: '#00ffff', blur: 12, fill: true }
+        }).setOrigin(0.5);
 
-        newGameBtn.on('pointerdown', (pointer) => {
-            if (pointer && pointer.event) pointer.event.stopPropagation();
-            this._startNewGame();
+        this.tweens.add({
+            targets: tapText,
+            alpha: 0.25,
+            duration: 850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
         });
-
-        // 続きからボタン（セーブデータがある場合）
-        const hasSave = SaveManager.hasSaveData();
-        if (hasSave) {
-            const continueBtn = this.add.text(width / 2, height * 0.83, 'CONTINUE', {
-                fontFamily: FONT_MAIN,
-                fontSize: '26px',
-                color: '#aaccff',
-                fontStyle: 'bold',
-                backgroundColor: 'rgba(20, 20, 40, 0.85)',
-                padding: { x: 35, y: 12 },
-                stroke: '#000000',
-                strokeThickness: 5,
-                shadow: { offsetX: 0, offsetY: 0, color: '#4488ff', blur: 15, fill: true }
-            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-            continueBtn.on('pointerdown', (pointer) => {
-                if (pointer && pointer.event) pointer.event.stopPropagation();
-                this._startDirectGame();
-            });
-        }
-
 
         // ── バージョン ─────────────────────────
         this.add.text(width - 10, height - 10, 'ver.0.0.1', {
@@ -129,7 +109,7 @@ export default class TitleScene extends Phaser.Scene {
             }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
 
             newGameBtn.on('pointerdown', (pointer) => {
-                if (pointer) pointer.event.stopPropagation();
+                if (pointer && pointer.event) pointer.event.stopPropagation();
                 this._showNewGameConfirmDialog();
             });
         }
@@ -139,6 +119,8 @@ export default class TitleScene extends Phaser.Scene {
 
         // ── 画面通常タップ（ゲーム開始/続きから）待ち ─────────────────
         this.input.on('pointerdown', (pointer) => {
+            // ダイアログ表示中は一切反応しない
+            if (this._isConfirmDialogOpen) return;
             // 左上歯車ボタンのタップは除外
             if (GlobalState.IS_DEBUG_MODE && pointer.x <= 80 && pointer.y <= 80) return;
             // 右上「新規」ボタンの領域タップは除外
@@ -154,12 +136,20 @@ export default class TitleScene extends Phaser.Scene {
      * セーブデータ削除＆ニューゲーム確認ダイアログ（「はい」を5秒長押しで削除）
      */
     _showNewGameConfirmDialog() {
+        this._isConfirmDialogOpen = true;
         const { width, height } = this.scale;
         const dialogContainer = this.add.container(0, 0).setDepth(10000);
 
+        const closeDialog = () => {
+            this._isConfirmDialogOpen = false;
+            dialogContainer.destroy();
+        };
+
         // 背景遮断
         const bg = this.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
-        bg.on('pointerdown', (pointer) => pointer.event.stopPropagation());
+        bg.on('pointerdown', (pointer) => {
+            if (pointer && pointer.event) pointer.event.stopPropagation();
+        });
         dialogContainer.add(bg);
 
         // メッセージパネル
@@ -187,8 +177,8 @@ export default class TitleScene extends Phaser.Scene {
         }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
 
         noBtn.on('pointerdown', (pointer) => {
-            if (pointer) pointer.event.stopPropagation();
-            dialogContainer.destroy();
+            if (pointer && pointer.event) pointer.event.stopPropagation();
+            closeDialog();
         });
         dialogContainer.add(noBtn);
 
@@ -219,7 +209,7 @@ export default class TitleScene extends Phaser.Scene {
         };
 
         yesBtn.on('pointerdown', (pointer) => {
-            if (pointer) pointer.event.stopPropagation();
+            if (pointer && pointer.event) pointer.event.stopPropagation();
             stopPress();
 
             pressTimer = this.time.addEvent({
@@ -235,7 +225,7 @@ export default class TitleScene extends Phaser.Scene {
 
                     if (elapsedMs >= targetMs) {
                         stopPress();
-                        dialogContainer.destroy();
+                        closeDialog();
                         this._startNewGame();
                     }
                 }
