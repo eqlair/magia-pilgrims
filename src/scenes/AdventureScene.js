@@ -335,8 +335,8 @@ export default class AdventureScene extends Phaser.Scene {
         // 無操作10秒で喜ぶアクション
         this.resetIdleTimer();
 
-        // カメラの自由な移動を保証するため、広めのBoundsを設定
-        this.cameras.main.setBounds(-2000, -2000, 4000, 4000);
+        // カメラの自由な移動を保証するため、タワー(60フロア・縦4000px超)も含めて広大なBoundsを設定
+        this.cameras.main.setBounds(-2000, -2000, 6000, 12000);
         
         // デバッグ用: Pキーで宝石ドロップフラグをトグル (デバッグモード時のみ)
         if (GlobalState.IS_DEBUG_MODE) {
@@ -1267,6 +1267,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     findImageFile(col, row, cellData) {
+        if (this.isTowerMode) return 'bg_tower01';
         const colLetter = String.fromCharCode(97 + col);
         const rowNum = row + 1;
         
@@ -1295,6 +1296,7 @@ export default class AdventureScene extends Phaser.Scene {
 
     // 背景用: カット前の元画像キーを返す（bg_img_ プレフィックス）
     findBgImageFile(col, row, cellData) {
+        if (this.isTowerMode) return 'bg_tower01';
         if (!cellData) return 'map_img_woods.jpg';
         const colLetter = String.fromCharCode(97 + col);
         const rowNum = row + 1;
@@ -1374,6 +1376,12 @@ export default class AdventureScene extends Phaser.Scene {
 
         for (const h of this.hexes) {
             const cell = h.cellData;
+
+            // タワーモードで存在しないマスは非表示
+            if (this.isTowerMode && cell.exists === false) {
+                h.container.setVisible(false);
+                continue;
+            }
             
             const dist = this.getHexDistance(this.playerCol, this.playerRow, h.col, h.row);
             // 通常表示かつ2ヘクスより先は非表示にしてスキップ
