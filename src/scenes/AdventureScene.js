@@ -1193,12 +1193,12 @@ export default class AdventureScene extends Phaser.Scene {
         // ── デバッグ用ボタン群 (デバッグモード時のみ表示) ──
         if (GlobalState.IS_DEBUG_MODE) {
             // 突破テストボタン
-            const breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
+            this.breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
                 fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
                 backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
             }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
-            breakTestBtn.on('pointerdown', () => {
+            this.breakTestBtn.on('pointerdown', () => {
                 TransitionManager.transitionTo(this, 'BattleScene', {
                     rule: 2,
                     isTest: true,
@@ -1211,15 +1211,15 @@ export default class AdventureScene extends Phaser.Scene {
                 });
             });
 
-            this.uiContainer.add([breakTestBtn]);
+            this.uiContainer.add([this.breakTestBtn]);
 
             // DPS計測ボタン
-            const dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
+            this.dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
                 fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc00', fontStyle: 'bold',
                 backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
             }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
-            dpsTestBtn.on('pointerdown', () => {
+            this.dpsTestBtn.on('pointerdown', () => {
                 TransitionManager.transitionTo(this, 'BattleScene', {
                     rule: 3, // DPS計測モード
                     isDpsTest: true,
@@ -1228,7 +1228,25 @@ export default class AdventureScene extends Phaser.Scene {
                 });
             });
 
-            this.uiContainer.add([dpsTestBtn]);
+            this.uiContainer.add([this.dpsTestBtn]);
+
+            // タワーテストボタン (現在のパーティ編成・育成状況を維持して突入)
+            this.towerTestBtn = this.add.text(width - 20, 190, '🗼 タワーテスト', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ff66ff', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.towerTestBtn.on('pointerdown', () => {
+                const gs = GlobalState.getInstance();
+                gs.isTowerMode = true;
+                gs.towerFloor = 0;
+                TransitionManager.transitionTo(this, 'AdventureScene', {
+                    isTower: true,
+                    party: this.party && this.party.length > 0 ? this.party : ['001']
+                });
+            });
+
+            this.uiContainer.add([this.towerTestBtn]);
         }
     }
 
@@ -1532,6 +1550,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.tickerText) this.tickerText.setVisible(isVisible);
         if (this.breakTestBtn) this.breakTestBtn.setVisible(isVisible);
         if (this.dpsTestBtn) this.dpsTestBtn.setVisible(isVisible);
+        if (this.towerTestBtn) this.towerTestBtn.setVisible(isVisible);
     }
 
 
