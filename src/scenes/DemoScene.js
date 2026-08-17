@@ -77,16 +77,32 @@ export default class DemoScene extends Phaser.Scene {
                     TransitionManager.transitionTo(this, 'AdventureScene', { fromSave: true });
                 } 
             },
+            {
+                label: '⑩ 🗼 タワー編テスト\n（MAP002・1階スタート）',
+                color: 0x114466,
+                action: () => {
+                    const gs = GlobalState.getInstance();
+                    gs.isTowerMode = true;
+                    gs.towerFloor = 0;
+                    gs.food = 100;
+                    TransitionManager.transitionTo(this, 'AdventureScene', {
+                        isTower: true,
+                        party: ['001', '002', '003', '004', '005']
+                    });
+                }
+            }
         ];
 
+        const startY = 105;
+        const spacing = 58;
         buttons.forEach((btn, i) => {
-            const y = 120 + i * 68; // Spacing adjusted for 9 buttons
-            const bg = this.add.rectangle(width / 2, y, width * 0.82, 58, btn.color)
+            const y = startY + i * spacing;
+            const bg = this.add.rectangle(width / 2, y, width * 0.82, 50, btn.color)
                 .setInteractive({ useHandCursor: true });
 
             this.add.text(width / 2, y, btn.label, {
                 fontFamily: FONT_MAIN,
-                fontSize: '15px', color: '#ffffff', align: 'center'
+                fontSize: '14px', color: '#ffffff', align: 'center'
             }).setOrigin(0.5);
 
             bg.on('pointerdown', () => {
