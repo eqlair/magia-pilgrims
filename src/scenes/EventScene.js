@@ -36,6 +36,10 @@ export default class EventScene extends Phaser.Scene {
         this.fromRespEvent = data.fromRespEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
+        this.isTowerBattle = data.isTowerBattle || false;
+        this.towerEnemy1 = data.towerEnemy1 !== undefined ? data.towerEnemy1 : 0;
+        this.towerEnemy2 = data.towerEnemy2 !== undefined ? data.towerEnemy2 : 0;
+        this.towerEnemiesList = data.towerEnemiesList || null;
 
         const gs = GlobalState.getInstance();
         gs.addLog(`🎬 [EventScene init] from1207=${this.from1207Event}, from1214=${this.from1214Event}, eventLen=${this.eventData ? this.eventData.length : 0}`);
@@ -282,14 +286,15 @@ export default class EventScene extends Phaser.Scene {
                     return;
                 }
 
-                if (this.enemyLevel > 0) {
+                if (this.enemyLevel > 0 || this.isTowerBattle) {
                     console.log('[EventScene] Direct transition to BattleScene (No map resume intermediate)');
                     const config = {
-                        rule: 0,
+                        rule: this.isTowerBattle ? 1 : 0,
                         attribute: this.enemyAttr || 1,
                         enemyAttr: this.enemyAttr || 1,
-                        enemyCount: 10 + (this.enemyLevel || 1) * 3,
+                        enemyCount: this.isTowerBattle ? 100 : (10 + (this.enemyLevel || 1) * 3),
                         waveCount: 2,
+                        totalWaves: 2,
                         enemyLevel: this.enemyLevel || 1,
                         majoLevel: this.majoLevel || 0,
                         bgmKey: this.selectedBgmKey,
@@ -297,7 +302,11 @@ export default class EventScene extends Phaser.Scene {
                         returnScene: 'AdventureScene',
                         party: party,
                         canRetreat: true,
-                        isNightBattle: this.isNightBattle || this.isNightExploration || false
+                        isNightBattle: this.isNightBattle || this.isNightExploration || false,
+                        isTowerBattle: this.isTowerBattle,
+                        towerEnemy1: this.towerEnemy1,
+                        towerEnemy2: this.towerEnemy2,
+                        towerEnemiesList: this.towerEnemiesList
                     };
 
                     if (this.engine) this.engine.cleanup();

@@ -53,8 +53,17 @@ export class BattleEngine {
         this.enemyCountPerWave = this.config.enemyCount || 10;
         // 味方が増えると敵も増える（主人公1人基準で+1人につき+15体）
         const partySize = (this.config.party || ['001']).length;
-        this.enemyCountPerWave += Math.max(0, partySize - 1) * 15;
         this.totalWaves = Math.max(1, (this.config.totalWaves || this.config.waveCount || 1) + (gs.extraWaves || 0));
+
+        // タワー戦闘設定 (2ウェーブ、合計100体、2種類の敵)
+        this.isTowerBattle = !!this.config.isTowerBattle;
+        if (this.isTowerBattle) {
+            this.totalWaves = 2;
+            this.enemyCountPerWave = 50;
+            this.towerEnemy1 = this.config.towerEnemy1 !== undefined ? this.config.towerEnemy1 : 0;
+            this.towerEnemy2 = this.config.towerEnemy2 !== undefined ? this.config.towerEnemy2 : 0;
+            this.towerEnemiesList = this.config.towerEnemiesList || [];
+        }
 
         this.majoLevel = Math.max(0, this.config.majoLevel !== undefined ? this.config.majoLevel : 0);
         this.enemyLevel = Math.max(1, (this.config.enemyLevel !== undefined ? this.config.enemyLevel : 1) + (gs.extraEnemyLevel || 0));
@@ -348,15 +357,38 @@ export class BattleEngine {
 
     spawnEnemyGroup(typeIndex = null, forceDropSpawn = null) {
         let typeDef;
-        // サンドバッグ(id:10)を除外した通常敵タイプ一覧(id: 1~9)
-        const normalTypes = ENEMY_TYPES.filter(t => t.id !== 10);
-        if (typeIndex !== null && ENEMY_TYPES.find(t => t.id === typeIndex)) {
-            typeDef = ENEMY_TYPES.find(t => t.id === typeIndex);
-        } else if (typeIndex !== null && ENEMY_TYPES[typeIndex]) {
-            typeDef = ENEMY_TYPES[typeIndex];
+        if (this.isTowerBattle && this.towerEnemiesList && this.towerEnemiesList.length > 0) {
+            // タワーの2種類の敵からランダムに選択
+            const chosenId = Math.random() < 0.5 ? this.towerEnemy1 : this.towerEnemy2;
+            const tDef = this.towerEnemiesList.find(e => e.towerId === chosenId) || this.towerEnemiesList[0];
+            typeDef = {
+                name: tDef.name,
+                hp: tDef.hp,
+                speed: tDef.speed,
+                weight: tDef.weight,
+                atkRange: tDef.range,
+                atkFreq: tDef.attackInterval,
+                atkPower: tDef.atk,
+                size: tDef.size,
+                moveDist: tDef.moveDist,
+                moveInterval: tDef.moveInterval,
+                debuffResist: tDef.debuffResist,
+                textureKey: tDef.texture || 'en003',
+                frame: tDef.frame !== undefined ? tDef.frame : 0,
+                spawnCount: tDef.enemyNum || 1,
+                isTowerEnemy: true
+            };
         } else {
-            const idx = Math.floor(Math.random() * normalTypes.length);
-            typeDef = normalTypes[idx];
+            // サンドバッグ(id:10)を除外した通常敵タイプ一覧(id: 1~9)
+            const normalTypes = ENEMY_TYPES.filter(t => t.id !== 10);
+            if (typeIndex !== null && ENEMY_TYPES.find(t => t.id === typeIndex)) {
+                typeDef = ENEMY_TYPES.find(t => t.id === typeIndex);
+            } else if (typeIndex !== null && ENEMY_TYPES[typeIndex]) {
+                typeDef = ENEMY_TYPES[typeIndex];
+            } else {
+                const idx = Math.floor(Math.random() * normalTypes.length);
+                typeDef = normalTypes[idx];
+            }
         }
 
         const count = typeDef.spawnCount || 1;

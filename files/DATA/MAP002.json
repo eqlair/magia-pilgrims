@@ -1,0 +1,2822 @@
+[
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 39.5,
+      "floor": 59,
+      "floorNum": 60,
+      "col": 0,
+      "row": 0
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 39.5,
+      "floor": 59,
+      "floorNum": 60,
+      "col": 1,
+      "row": 0
+    },
+    {
+      "name": "top of tower",
+      "exists": true,
+      "enemyLevel": 39.5,
+      "floor": 59,
+      "floorNum": 60,
+      "col": 2,
+      "row": 0
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 39.5,
+      "floor": 59,
+      "floorNum": 60,
+      "col": 3,
+      "row": 0
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 39.5,
+      "floor": 59,
+      "floorNum": 60,
+      "col": 4,
+      "row": 0
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 39,
+      "floor": 58,
+      "floorNum": 59,
+      "col": 0,
+      "row": 1
+    },
+    {
+      "name": "59f",
+      "exists": true,
+      "enemyLevel": 39,
+      "floor": 58,
+      "floorNum": 59,
+      "col": 1,
+      "row": 1
+    },
+    {
+      "name": "59f",
+      "exists": true,
+      "enemyLevel": 39,
+      "floor": 58,
+      "floorNum": 59,
+      "col": 2,
+      "row": 1
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 39,
+      "floor": 58,
+      "floorNum": 59,
+      "col": 3,
+      "row": 1
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 39,
+      "floor": 58,
+      "floorNum": 59,
+      "col": 4,
+      "row": 1
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 38.5,
+      "floor": 57,
+      "floorNum": 58,
+      "col": 0,
+      "row": 2
+    },
+    {
+      "name": "ki",
+      "exists": true,
+      "enemyLevel": 38.5,
+      "floor": 57,
+      "floorNum": 58,
+      "col": 1,
+      "row": 2
+    },
+    {
+      "name": "青",
+      "exists": true,
+      "enemyLevel": 38.5,
+      "floor": 57,
+      "floorNum": 58,
+      "col": 2,
+      "row": 2
+    },
+    {
+      "name": "あか",
+      "exists": true,
+      "enemyLevel": 38.5,
+      "floor": 57,
+      "floorNum": 58,
+      "col": 3,
+      "row": 2
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 38.5,
+      "floor": 57,
+      "floorNum": 58,
+      "col": 4,
+      "row": 2
+    }
+  ],
+  [
+    {
+      "name": "あお",
+      "exists": true,
+      "enemyLevel": 38,
+      "floor": 56,
+      "floorNum": 57,
+      "col": 0,
+      "row": 3
+    },
+    {
+      "name": "黄",
+      "exists": true,
+      "enemyLevel": 38,
+      "floor": 56,
+      "floorNum": 57,
+      "col": 1,
+      "row": 3
+    },
+    {
+      "name": "mido",
+      "exists": true,
+      "enemyLevel": 38,
+      "floor": 56,
+      "floorNum": 57,
+      "col": 2,
+      "row": 3
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 38,
+      "floor": 56,
+      "floorNum": 57,
+      "col": 3,
+      "row": 3
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 38,
+      "floor": 56,
+      "floorNum": 57,
+      "col": 4,
+      "row": 3
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 37.5,
+      "floor": 55,
+      "floorNum": 56,
+      "col": 0,
+      "row": 4
+    },
+    {
+      "name": "mura",
+      "exists": true,
+      "enemyLevel": 37.5,
+      "floor": 55,
+      "floorNum": 56,
+      "col": 1,
+      "row": 4
+    },
+    {
+      "name": "緑",
+      "exists": true,
+      "enemyLevel": 37.5,
+      "floor": 55,
+      "floorNum": 56,
+      "col": 2,
+      "row": 4
+    },
+    {
+      "name": "きいろ",
+      "exists": true,
+      "enemyLevel": 37.5,
+      "floor": 55,
+      "floorNum": 56,
+      "col": 3,
+      "row": 4
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 37.5,
+      "floor": 55,
+      "floorNum": 56,
+      "col": 4,
+      "row": 4
+    }
+  ],
+  [
+    {
+      "name": "き",
+      "exists": true,
+      "enemyLevel": 37,
+      "floor": 54,
+      "floorNum": 55,
+      "col": 0,
+      "row": 5
+    },
+    {
+      "name": "aka",
+      "exists": true,
+      "enemyLevel": 37,
+      "floor": 54,
+      "floorNum": 55,
+      "col": 1,
+      "row": 5
+    },
+    {
+      "name": "紫",
+      "exists": true,
+      "enemyLevel": 37,
+      "floor": 54,
+      "floorNum": 55,
+      "col": 2,
+      "row": 5
+    },
+    {
+      "name": "みど",
+      "exists": true,
+      "enemyLevel": 37,
+      "floor": 54,
+      "floorNum": 55,
+      "col": 3,
+      "row": 5
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 37,
+      "floor": 54,
+      "floorNum": 55,
+      "col": 4,
+      "row": 5
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 36.5,
+      "floor": 53,
+      "floorNum": 54,
+      "col": 0,
+      "row": 6
+    },
+    {
+      "name": "ao",
+      "exists": true,
+      "enemyLevel": 36.5,
+      "floor": 53,
+      "floorNum": 54,
+      "col": 1,
+      "row": 6
+    },
+    {
+      "name": "むら",
+      "exists": true,
+      "enemyLevel": 36.5,
+      "floor": 53,
+      "floorNum": 54,
+      "col": 2,
+      "row": 6
+    },
+    {
+      "name": "赤",
+      "exists": true,
+      "enemyLevel": 36.5,
+      "floor": 53,
+      "floorNum": 54,
+      "col": 3,
+      "row": 6
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 36.5,
+      "floor": 53,
+      "floorNum": 54,
+      "col": 4,
+      "row": 6
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 36,
+      "floor": 52,
+      "floorNum": 53,
+      "col": 0,
+      "row": 7
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 36,
+      "floor": 52,
+      "floorNum": 53,
+      "col": 1,
+      "row": 7
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 36,
+      "floor": 52,
+      "floorNum": 53,
+      "col": 2,
+      "row": 7
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 36,
+      "floor": 52,
+      "floorNum": 53,
+      "col": 3,
+      "row": 7
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 36,
+      "floor": 52,
+      "floorNum": 53,
+      "col": 4,
+      "row": 7
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 35.5,
+      "floor": 51,
+      "floorNum": 52,
+      "col": 0,
+      "row": 8
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 35.5,
+      "floor": 51,
+      "floorNum": 52,
+      "col": 1,
+      "row": 8
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 35.5,
+      "floor": 51,
+      "floorNum": 52,
+      "col": 2,
+      "row": 8
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 35.5,
+      "floor": 51,
+      "floorNum": 52,
+      "col": 3,
+      "row": 8
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 35.5,
+      "floor": 51,
+      "floorNum": 52,
+      "col": 4,
+      "row": 8
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 35,
+      "floor": 50,
+      "floorNum": 51,
+      "col": 0,
+      "row": 9
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 35,
+      "floor": 50,
+      "floorNum": 51,
+      "col": 1,
+      "row": 9
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 35,
+      "floor": 50,
+      "floorNum": 51,
+      "col": 2,
+      "row": 9
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 35,
+      "floor": 50,
+      "floorNum": 51,
+      "col": 3,
+      "row": 9
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 35,
+      "floor": 50,
+      "floorNum": 51,
+      "col": 4,
+      "row": 9
+    }
+  ],
+  [
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 34.5,
+      "floor": 49,
+      "floorNum": 50,
+      "col": 0,
+      "row": 10
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 34.5,
+      "floor": 49,
+      "floorNum": 50,
+      "col": 1,
+      "row": 10
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 34.5,
+      "floor": 49,
+      "floorNum": 50,
+      "col": 2,
+      "row": 10
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 34.5,
+      "floor": 49,
+      "floorNum": 50,
+      "col": 3,
+      "row": 10
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 34.5,
+      "floor": 49,
+      "floorNum": 50,
+      "col": 4,
+      "row": 10
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 34,
+      "floor": 48,
+      "floorNum": 49,
+      "col": 0,
+      "row": 11
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 34,
+      "floor": 48,
+      "floorNum": 49,
+      "col": 1,
+      "row": 11
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 34,
+      "floor": 48,
+      "floorNum": 49,
+      "col": 2,
+      "row": 11
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 34,
+      "floor": 48,
+      "floorNum": 49,
+      "col": 3,
+      "row": 11
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 34,
+      "floor": 48,
+      "floorNum": 49,
+      "col": 4,
+      "row": 11
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 33.5,
+      "floor": 47,
+      "floorNum": 48,
+      "col": 0,
+      "row": 12
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 33.5,
+      "floor": 47,
+      "floorNum": 48,
+      "col": 1,
+      "row": 12
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 33.5,
+      "floor": 47,
+      "floorNum": 48,
+      "col": 2,
+      "row": 12
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 33.5,
+      "floor": 47,
+      "floorNum": 48,
+      "col": 3,
+      "row": 12
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 33.5,
+      "floor": 47,
+      "floorNum": 48,
+      "col": 4,
+      "row": 12
+    }
+  ],
+  [
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 33,
+      "floor": 46,
+      "floorNum": 47,
+      "col": 0,
+      "row": 13
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 33,
+      "floor": 46,
+      "floorNum": 47,
+      "col": 1,
+      "row": 13
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 33,
+      "floor": 46,
+      "floorNum": 47,
+      "col": 2,
+      "row": 13
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 33,
+      "floor": 46,
+      "floorNum": 47,
+      "col": 3,
+      "row": 13
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 33,
+      "floor": 46,
+      "floorNum": 47,
+      "col": 4,
+      "row": 13
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 32.5,
+      "floor": 45,
+      "floorNum": 46,
+      "col": 0,
+      "row": 14
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 32.5,
+      "floor": 45,
+      "floorNum": 46,
+      "col": 1,
+      "row": 14
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 32.5,
+      "floor": 45,
+      "floorNum": 46,
+      "col": 2,
+      "row": 14
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 32.5,
+      "floor": 45,
+      "floorNum": 46,
+      "col": 3,
+      "row": 14
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 32.5,
+      "floor": 45,
+      "floorNum": 46,
+      "col": 4,
+      "row": 14
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 32,
+      "floor": 44,
+      "floorNum": 45,
+      "col": 0,
+      "row": 15
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 32,
+      "floor": 44,
+      "floorNum": 45,
+      "col": 1,
+      "row": 15
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 32,
+      "floor": 44,
+      "floorNum": 45,
+      "col": 2,
+      "row": 15
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 32,
+      "floor": 44,
+      "floorNum": 45,
+      "col": 3,
+      "row": 15
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 32,
+      "floor": 44,
+      "floorNum": 45,
+      "col": 4,
+      "row": 15
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 31.5,
+      "floor": 43,
+      "floorNum": 44,
+      "col": 0,
+      "row": 16
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 31.5,
+      "floor": 43,
+      "floorNum": 44,
+      "col": 1,
+      "row": 16
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 31.5,
+      "floor": 43,
+      "floorNum": 44,
+      "col": 2,
+      "row": 16
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 31.5,
+      "floor": 43,
+      "floorNum": 44,
+      "col": 3,
+      "row": 16
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 31.5,
+      "floor": 43,
+      "floorNum": 44,
+      "col": 4,
+      "row": 16
+    }
+  ],
+  [
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 31,
+      "floor": 42,
+      "floorNum": 43,
+      "col": 0,
+      "row": 17
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 31,
+      "floor": 42,
+      "floorNum": 43,
+      "col": 1,
+      "row": 17
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 31,
+      "floor": 42,
+      "floorNum": 43,
+      "col": 2,
+      "row": 17
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 31,
+      "floor": 42,
+      "floorNum": 43,
+      "col": 3,
+      "row": 17
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 31,
+      "floor": 42,
+      "floorNum": 43,
+      "col": 4,
+      "row": 17
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 30.5,
+      "floor": 41,
+      "floorNum": 42,
+      "col": 0,
+      "row": 18
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 30.5,
+      "floor": 41,
+      "floorNum": 42,
+      "col": 1,
+      "row": 18
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 30.5,
+      "floor": 41,
+      "floorNum": 42,
+      "col": 2,
+      "row": 18
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 30.5,
+      "floor": 41,
+      "floorNum": 42,
+      "col": 3,
+      "row": 18
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 30.5,
+      "floor": 41,
+      "floorNum": 42,
+      "col": 4,
+      "row": 18
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 30,
+      "floor": 40,
+      "floorNum": 41,
+      "col": 0,
+      "row": 19
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 30,
+      "floor": 40,
+      "floorNum": 41,
+      "col": 1,
+      "row": 19
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 30,
+      "floor": 40,
+      "floorNum": 41,
+      "col": 2,
+      "row": 19
+    },
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 30,
+      "floor": 40,
+      "floorNum": 41,
+      "col": 3,
+      "row": 19
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 30,
+      "floor": 40,
+      "floorNum": 41,
+      "col": 4,
+      "row": 19
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 29.5,
+      "floor": 39,
+      "floorNum": 40,
+      "col": 0,
+      "row": 20
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 29.5,
+      "floor": 39,
+      "floorNum": 40,
+      "col": 1,
+      "row": 20
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 29.5,
+      "floor": 39,
+      "floorNum": 40,
+      "col": 2,
+      "row": 20
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 29.5,
+      "floor": 39,
+      "floorNum": 40,
+      "col": 3,
+      "row": 20
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 29.5,
+      "floor": 39,
+      "floorNum": 40,
+      "col": 4,
+      "row": 20
+    }
+  ],
+  [
+    {
+      "name": "黒",
+      "exists": true,
+      "enemyLevel": 29,
+      "floor": 38,
+      "floorNum": 39,
+      "col": 0,
+      "row": 21
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 29,
+      "floor": 38,
+      "floorNum": 39,
+      "col": 1,
+      "row": 21
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 29,
+      "floor": 38,
+      "floorNum": 39,
+      "col": 2,
+      "row": 21
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 29,
+      "floor": 38,
+      "floorNum": 39,
+      "col": 3,
+      "row": 21
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 29,
+      "floor": 38,
+      "floorNum": 39,
+      "col": 4,
+      "row": 21
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 28.5,
+      "floor": 37,
+      "floorNum": 38,
+      "col": 0,
+      "row": 22
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 28.5,
+      "floor": 37,
+      "floorNum": 38,
+      "col": 1,
+      "row": 22
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 28.5,
+      "floor": 37,
+      "floorNum": 38,
+      "col": 2,
+      "row": 22
+    },
+    {
+      "name": "異",
+      "exists": true,
+      "enemyLevel": 28.5,
+      "floor": 37,
+      "floorNum": 38,
+      "col": 3,
+      "row": 22
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 28.5,
+      "floor": 37,
+      "floorNum": 38,
+      "col": 4,
+      "row": 22
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 28,
+      "floor": 36,
+      "floorNum": 37,
+      "col": 0,
+      "row": 23
+    },
+    {
+      "name": "金",
+      "exists": true,
+      "enemyLevel": 28,
+      "floor": 36,
+      "floorNum": 37,
+      "col": 1,
+      "row": 23
+    },
+    {
+      "name": "金",
+      "exists": true,
+      "enemyLevel": 28,
+      "floor": 36,
+      "floorNum": 37,
+      "col": 2,
+      "row": 23
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 28,
+      "floor": 36,
+      "floorNum": 37,
+      "col": 3,
+      "row": 23
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 28,
+      "floor": 36,
+      "floorNum": 37,
+      "col": 4,
+      "row": 23
+    }
+  ],
+  [
+    {
+      "name": "金",
+      "exists": true,
+      "enemyLevel": 27.5,
+      "floor": 35,
+      "floorNum": 36,
+      "col": 0,
+      "row": 24
+    },
+    {
+      "name": "金",
+      "exists": true,
+      "enemyLevel": 27.5,
+      "floor": 35,
+      "floorNum": 36,
+      "col": 1,
+      "row": 24
+    },
+    {
+      "name": "金",
+      "exists": true,
+      "enemyLevel": 27.5,
+      "floor": 35,
+      "floorNum": 36,
+      "col": 2,
+      "row": 24
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 27.5,
+      "floor": 35,
+      "floorNum": 36,
+      "col": 3,
+      "row": 24
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 27.5,
+      "floor": 35,
+      "floorNum": 36,
+      "col": 4,
+      "row": 24
+    }
+  ],
+  [
+    {
+      "name": "金",
+      "exists": true,
+      "enemyLevel": 27,
+      "floor": 34,
+      "floorNum": 35,
+      "col": 0,
+      "row": 25
+    },
+    {
+      "name": "金",
+      "exists": true,
+      "enemyLevel": 27,
+      "floor": 34,
+      "floorNum": 35,
+      "col": 1,
+      "row": 25
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 27,
+      "floor": 34,
+      "floorNum": 35,
+      "col": 2,
+      "row": 25
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 27,
+      "floor": 34,
+      "floorNum": 35,
+      "col": 3,
+      "row": 25
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 27,
+      "floor": 34,
+      "floorNum": 35,
+      "col": 4,
+      "row": 25
+    }
+  ],
+  [
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 26.5,
+      "floor": 33,
+      "floorNum": 34,
+      "col": 0,
+      "row": 26
+    },
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 26.5,
+      "floor": 33,
+      "floorNum": 34,
+      "col": 1,
+      "row": 26
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 26.5,
+      "floor": 33,
+      "floorNum": 34,
+      "col": 2,
+      "row": 26
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 26.5,
+      "floor": 33,
+      "floorNum": 34,
+      "col": 3,
+      "row": 26
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 26.5,
+      "floor": 33,
+      "floorNum": 34,
+      "col": 4,
+      "row": 26
+    }
+  ],
+  [
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 26,
+      "floor": 32,
+      "floorNum": 33,
+      "col": 0,
+      "row": 27
+    },
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 26,
+      "floor": 32,
+      "floorNum": 33,
+      "col": 1,
+      "row": 27
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 26,
+      "floor": 32,
+      "floorNum": 33,
+      "col": 2,
+      "row": 27
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 26,
+      "floor": 32,
+      "floorNum": 33,
+      "col": 3,
+      "row": 27
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 26,
+      "floor": 32,
+      "floorNum": 33,
+      "col": 4,
+      "row": 27
+    }
+  ],
+  [
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 25.5,
+      "floor": 31,
+      "floorNum": 32,
+      "col": 0,
+      "row": 28
+    },
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 25.5,
+      "floor": 31,
+      "floorNum": 32,
+      "col": 1,
+      "row": 28
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 25.5,
+      "floor": 31,
+      "floorNum": 32,
+      "col": 2,
+      "row": 28
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 25.5,
+      "floor": 31,
+      "floorNum": 32,
+      "col": 3,
+      "row": 28
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 25.5,
+      "floor": 31,
+      "floorNum": 32,
+      "col": 4,
+      "row": 28
+    }
+  ],
+  [
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 25,
+      "floor": 30,
+      "floorNum": 31,
+      "col": 0,
+      "row": 29
+    },
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 25,
+      "floor": 30,
+      "floorNum": 31,
+      "col": 1,
+      "row": 29
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 25,
+      "floor": 30,
+      "floorNum": 31,
+      "col": 2,
+      "row": 29
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 25,
+      "floor": 30,
+      "floorNum": 31,
+      "col": 3,
+      "row": 29
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 25,
+      "floor": 30,
+      "floorNum": 31,
+      "col": 4,
+      "row": 29
+    }
+  ],
+  [
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 24.5,
+      "floor": 29,
+      "floorNum": 30,
+      "col": 0,
+      "row": 30
+    },
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 24.5,
+      "floor": 29,
+      "floorNum": 30,
+      "col": 1,
+      "row": 30
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 24.5,
+      "floor": 29,
+      "floorNum": 30,
+      "col": 2,
+      "row": 30
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 24.5,
+      "floor": 29,
+      "floorNum": 30,
+      "col": 3,
+      "row": 30
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 24.5,
+      "floor": 29,
+      "floorNum": 30,
+      "col": 4,
+      "row": 30
+    }
+  ],
+  [
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 24,
+      "floor": 28,
+      "floorNum": 29,
+      "col": 0,
+      "row": 31
+    },
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 24,
+      "floor": 28,
+      "floorNum": 29,
+      "col": 1,
+      "row": 31
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 24,
+      "floor": 28,
+      "floorNum": 29,
+      "col": 2,
+      "row": 31
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 24,
+      "floor": 28,
+      "floorNum": 29,
+      "col": 3,
+      "row": 31
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 24,
+      "floor": 28,
+      "floorNum": 29,
+      "col": 4,
+      "row": 31
+    }
+  ],
+  [
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 23.5,
+      "floor": 27,
+      "floorNum": 28,
+      "col": 0,
+      "row": 32
+    },
+    {
+      "name": "炎",
+      "exists": true,
+      "enemyLevel": 23.5,
+      "floor": 27,
+      "floorNum": 28,
+      "col": 1,
+      "row": 32
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 23.5,
+      "floor": 27,
+      "floorNum": 28,
+      "col": 2,
+      "row": 32
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 23.5,
+      "floor": 27,
+      "floorNum": 28,
+      "col": 3,
+      "row": 32
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 23.5,
+      "floor": 27,
+      "floorNum": 28,
+      "col": 4,
+      "row": 32
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 23,
+      "floor": 26,
+      "floorNum": 27,
+      "col": 0,
+      "row": 33
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 23,
+      "floor": 26,
+      "floorNum": 27,
+      "col": 1,
+      "row": 33
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 23,
+      "floor": 26,
+      "floorNum": 27,
+      "col": 2,
+      "row": 33
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 23,
+      "floor": 26,
+      "floorNum": 27,
+      "col": 3,
+      "row": 33
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 23,
+      "floor": 26,
+      "floorNum": 27,
+      "col": 4,
+      "row": 33
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 22.5,
+      "floor": 25,
+      "floorNum": 26,
+      "col": 0,
+      "row": 34
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 22.5,
+      "floor": 25,
+      "floorNum": 26,
+      "col": 1,
+      "row": 34
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 22.5,
+      "floor": 25,
+      "floorNum": 26,
+      "col": 2,
+      "row": 34
+    },
+    {
+      "name": "顔",
+      "exists": true,
+      "enemyLevel": 22.5,
+      "floor": 25,
+      "floorNum": 26,
+      "col": 3,
+      "row": 34
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 22.5,
+      "floor": 25,
+      "floorNum": 26,
+      "col": 4,
+      "row": 34
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 22,
+      "floor": 24,
+      "floorNum": 25,
+      "col": 0,
+      "row": 35
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 22,
+      "floor": 24,
+      "floorNum": 25,
+      "col": 1,
+      "row": 35
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 22,
+      "floor": 24,
+      "floorNum": 25,
+      "col": 2,
+      "row": 35
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 22,
+      "floor": 24,
+      "floorNum": 25,
+      "col": 3,
+      "row": 35
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 22,
+      "floor": 24,
+      "floorNum": 25,
+      "col": 4,
+      "row": 35
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 21.5,
+      "floor": 23,
+      "floorNum": 24,
+      "col": 0,
+      "row": 36
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 21.5,
+      "floor": 23,
+      "floorNum": 24,
+      "col": 1,
+      "row": 36
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 21.5,
+      "floor": 23,
+      "floorNum": 24,
+      "col": 2,
+      "row": 36
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 21.5,
+      "floor": 23,
+      "floorNum": 24,
+      "col": 3,
+      "row": 36
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 21.5,
+      "floor": 23,
+      "floorNum": 24,
+      "col": 4,
+      "row": 36
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 21,
+      "floor": 22,
+      "floorNum": 23,
+      "col": 0,
+      "row": 37
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 21,
+      "floor": 22,
+      "floorNum": 23,
+      "col": 1,
+      "row": 37
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 21,
+      "floor": 22,
+      "floorNum": 23,
+      "col": 2,
+      "row": 37
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 21,
+      "floor": 22,
+      "floorNum": 23,
+      "col": 3,
+      "row": 37
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 21,
+      "floor": 22,
+      "floorNum": 23,
+      "col": 4,
+      "row": 37
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 20.5,
+      "floor": 21,
+      "floorNum": 22,
+      "col": 0,
+      "row": 38
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 20.5,
+      "floor": 21,
+      "floorNum": 22,
+      "col": 1,
+      "row": 38
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 20.5,
+      "floor": 21,
+      "floorNum": 22,
+      "col": 2,
+      "row": 38
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 20.5,
+      "floor": 21,
+      "floorNum": 22,
+      "col": 3,
+      "row": 38
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 20.5,
+      "floor": 21,
+      "floorNum": 22,
+      "col": 4,
+      "row": 38
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 20,
+      "floor": 20,
+      "floorNum": 21,
+      "col": 0,
+      "row": 39
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 20,
+      "floor": 20,
+      "floorNum": 21,
+      "col": 1,
+      "row": 39
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 20,
+      "floor": 20,
+      "floorNum": 21,
+      "col": 2,
+      "row": 39
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 20,
+      "floor": 20,
+      "floorNum": 21,
+      "col": 3,
+      "row": 39
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 20,
+      "floor": 20,
+      "floorNum": 21,
+      "col": 4,
+      "row": 39
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 19.5,
+      "floor": 19,
+      "floorNum": 20,
+      "col": 0,
+      "row": 40
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 19.5,
+      "floor": 19,
+      "floorNum": 20,
+      "col": 1,
+      "row": 40
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 19.5,
+      "floor": 19,
+      "floorNum": 20,
+      "col": 2,
+      "row": 40
+    },
+    {
+      "name": "氷",
+      "exists": true,
+      "enemyLevel": 19.5,
+      "floor": 19,
+      "floorNum": 20,
+      "col": 3,
+      "row": 40
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 19.5,
+      "floor": 19,
+      "floorNum": 20,
+      "col": 4,
+      "row": 40
+    }
+  ],
+  [
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 19,
+      "floor": 18,
+      "floorNum": 19,
+      "col": 0,
+      "row": 41
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 19,
+      "floor": 18,
+      "floorNum": 19,
+      "col": 1,
+      "row": 41
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 19,
+      "floor": 18,
+      "floorNum": 19,
+      "col": 2,
+      "row": 41
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 19,
+      "floor": 18,
+      "floorNum": 19,
+      "col": 3,
+      "row": 41
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 19,
+      "floor": 18,
+      "floorNum": 19,
+      "col": 4,
+      "row": 41
+    }
+  ],
+  [
+    {
+      "name": "骨",
+      "exists": true,
+      "enemyLevel": 20,
+      "floor": 17,
+      "floorNum": 18,
+      "col": 0,
+      "row": 42
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 18.5,
+      "floor": 17,
+      "floorNum": 18,
+      "col": 1,
+      "row": 42
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 18.5,
+      "floor": 17,
+      "floorNum": 18,
+      "col": 2,
+      "row": 42
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 18.5,
+      "floor": 17,
+      "floorNum": 18,
+      "col": 3,
+      "row": 42
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 18.5,
+      "floor": 17,
+      "floorNum": 18,
+      "col": 4,
+      "row": 42
+    }
+  ],
+  [
+    {
+      "name": "骨",
+      "exists": true,
+      "enemyLevel": 24,
+      "floor": 16,
+      "floorNum": 17,
+      "col": 0,
+      "row": 43
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 18,
+      "floor": 16,
+      "floorNum": 17,
+      "col": 1,
+      "row": 43
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 18,
+      "floor": 16,
+      "floorNum": 17,
+      "col": 2,
+      "row": 43
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 18,
+      "floor": 16,
+      "floorNum": 17,
+      "col": 3,
+      "row": 43
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 18,
+      "floor": 16,
+      "floorNum": 17,
+      "col": 4,
+      "row": 43
+    }
+  ],
+  [
+    {
+      "name": "骨",
+      "exists": true,
+      "enemyLevel": 28,
+      "floor": 15,
+      "floorNum": 16,
+      "col": 0,
+      "row": 44
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 17.5,
+      "floor": 15,
+      "floorNum": 16,
+      "col": 1,
+      "row": 44
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 17.5,
+      "floor": 15,
+      "floorNum": 16,
+      "col": 2,
+      "row": 44
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 17.5,
+      "floor": 15,
+      "floorNum": 16,
+      "col": 3,
+      "row": 44
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 17.5,
+      "floor": 15,
+      "floorNum": 16,
+      "col": 4,
+      "row": 44
+    }
+  ],
+  [
+    {
+      "name": "骨",
+      "exists": true,
+      "enemyLevel": 32,
+      "floor": 14,
+      "floorNum": 15,
+      "col": 0,
+      "row": 45
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 17,
+      "floor": 14,
+      "floorNum": 15,
+      "col": 1,
+      "row": 45
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 17,
+      "floor": 14,
+      "floorNum": 15,
+      "col": 2,
+      "row": 45
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 17,
+      "floor": 14,
+      "floorNum": 15,
+      "col": 3,
+      "row": 45
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 17,
+      "floor": 14,
+      "floorNum": 15,
+      "col": 4,
+      "row": 45
+    }
+  ],
+  [
+    {
+      "name": "骨",
+      "exists": true,
+      "enemyLevel": 36,
+      "floor": 13,
+      "floorNum": 14,
+      "col": 0,
+      "row": 46
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 16.5,
+      "floor": 13,
+      "floorNum": 14,
+      "col": 1,
+      "row": 46
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 16.5,
+      "floor": 13,
+      "floorNum": 14,
+      "col": 2,
+      "row": 46
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 16.5,
+      "floor": 13,
+      "floorNum": 14,
+      "col": 3,
+      "row": 46
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 16.5,
+      "floor": 13,
+      "floorNum": 14,
+      "col": 4,
+      "row": 46
+    }
+  ],
+  [
+    {
+      "name": "骨",
+      "exists": true,
+      "enemyLevel": 40,
+      "floor": 12,
+      "floorNum": 13,
+      "col": 0,
+      "row": 47
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 16,
+      "floor": 12,
+      "floorNum": 13,
+      "col": 1,
+      "row": 47
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 16,
+      "floor": 12,
+      "floorNum": 13,
+      "col": 2,
+      "row": 47
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 16,
+      "floor": 12,
+      "floorNum": 13,
+      "col": 3,
+      "row": 47
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 16,
+      "floor": 12,
+      "floorNum": 13,
+      "col": 4,
+      "row": 47
+    }
+  ],
+  [
+    {
+      "name": "骨",
+      "exists": true,
+      "enemyLevel": 50,
+      "floor": 11,
+      "floorNum": 12,
+      "col": 0,
+      "row": 48
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 15.5,
+      "floor": 11,
+      "floorNum": 12,
+      "col": 1,
+      "row": 48
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 15.5,
+      "floor": 11,
+      "floorNum": 12,
+      "col": 2,
+      "row": 48
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 15.5,
+      "floor": 11,
+      "floorNum": 12,
+      "col": 3,
+      "row": 48
+    },
+    {
+      "name": "樹",
+      "exists": true,
+      "enemyLevel": 15.5,
+      "floor": 11,
+      "floorNum": 12,
+      "col": 4,
+      "row": 48
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 15,
+      "floor": 10,
+      "floorNum": 11,
+      "col": 0,
+      "row": 49
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 15,
+      "floor": 10,
+      "floorNum": 11,
+      "col": 1,
+      "row": 49
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 15,
+      "floor": 10,
+      "floorNum": 11,
+      "col": 2,
+      "row": 49
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 15,
+      "floor": 10,
+      "floorNum": 11,
+      "col": 3,
+      "row": 49
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 15,
+      "floor": 10,
+      "floorNum": 11,
+      "col": 4,
+      "row": 49
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 14.5,
+      "floor": 9,
+      "floorNum": 10,
+      "col": 0,
+      "row": 50
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 14.5,
+      "floor": 9,
+      "floorNum": 10,
+      "col": 1,
+      "row": 50
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 14.5,
+      "floor": 9,
+      "floorNum": 10,
+      "col": 2,
+      "row": 50
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 14.5,
+      "floor": 9,
+      "floorNum": 10,
+      "col": 3,
+      "row": 50
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 14.5,
+      "floor": 9,
+      "floorNum": 10,
+      "col": 4,
+      "row": 50
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 14,
+      "floor": 8,
+      "floorNum": 9,
+      "col": 0,
+      "row": 51
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 14,
+      "floor": 8,
+      "floorNum": 9,
+      "col": 1,
+      "row": 51
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 14,
+      "floor": 8,
+      "floorNum": 9,
+      "col": 2,
+      "row": 51
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 14,
+      "floor": 8,
+      "floorNum": 9,
+      "col": 3,
+      "row": 51
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 14,
+      "floor": 8,
+      "floorNum": 9,
+      "col": 4,
+      "row": 51
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 13.5,
+      "floor": 7,
+      "floorNum": 8,
+      "col": 0,
+      "row": 52
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 13.5,
+      "floor": 7,
+      "floorNum": 8,
+      "col": 1,
+      "row": 52
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 13.5,
+      "floor": 7,
+      "floorNum": 8,
+      "col": 2,
+      "row": 52
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 13.5,
+      "floor": 7,
+      "floorNum": 8,
+      "col": 3,
+      "row": 52
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 13.5,
+      "floor": 7,
+      "floorNum": 8,
+      "col": 4,
+      "row": 52
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 13,
+      "floor": 6,
+      "floorNum": 7,
+      "col": 0,
+      "row": 53
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 13,
+      "floor": 6,
+      "floorNum": 7,
+      "col": 1,
+      "row": 53
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 13,
+      "floor": 6,
+      "floorNum": 7,
+      "col": 2,
+      "row": 53
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 13,
+      "floor": 6,
+      "floorNum": 7,
+      "col": 3,
+      "row": 53
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 13,
+      "floor": 6,
+      "floorNum": 7,
+      "col": 4,
+      "row": 53
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 12.5,
+      "floor": 5,
+      "floorNum": 6,
+      "col": 0,
+      "row": 54
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 12.5,
+      "floor": 5,
+      "floorNum": 6,
+      "col": 1,
+      "row": 54
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 12.5,
+      "floor": 5,
+      "floorNum": 6,
+      "col": 2,
+      "row": 54
+    },
+    {
+      "name": "石",
+      "exists": true,
+      "enemyLevel": 12.5,
+      "floor": 5,
+      "floorNum": 6,
+      "col": 3,
+      "row": 54
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 12.5,
+      "floor": 5,
+      "floorNum": 6,
+      "col": 4,
+      "row": 54
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 12,
+      "floor": 4,
+      "floorNum": 5,
+      "col": 0,
+      "row": 55
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 12,
+      "floor": 4,
+      "floorNum": 5,
+      "col": 1,
+      "row": 55
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 12,
+      "floor": 4,
+      "floorNum": 5,
+      "col": 2,
+      "row": 55
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 12,
+      "floor": 4,
+      "floorNum": 5,
+      "col": 3,
+      "row": 55
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 12,
+      "floor": 4,
+      "floorNum": 5,
+      "col": 4,
+      "row": 55
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 11.5,
+      "floor": 3,
+      "floorNum": 4,
+      "col": 0,
+      "row": 56
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 11.5,
+      "floor": 3,
+      "floorNum": 4,
+      "col": 1,
+      "row": 56
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 11.5,
+      "floor": 3,
+      "floorNum": 4,
+      "col": 2,
+      "row": 56
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 11.5,
+      "floor": 3,
+      "floorNum": 4,
+      "col": 3,
+      "row": 56
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 11.5,
+      "floor": 3,
+      "floorNum": 4,
+      "col": 4,
+      "row": 56
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 11,
+      "floor": 2,
+      "floorNum": 3,
+      "col": 0,
+      "row": 57
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 11,
+      "floor": 2,
+      "floorNum": 3,
+      "col": 1,
+      "row": 57
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 11,
+      "floor": 2,
+      "floorNum": 3,
+      "col": 2,
+      "row": 57
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 11,
+      "floor": 2,
+      "floorNum": 3,
+      "col": 3,
+      "row": 57
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 11,
+      "floor": 2,
+      "floorNum": 3,
+      "col": 4,
+      "row": 57
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 10.5,
+      "floor": 1,
+      "floorNum": 2,
+      "col": 0,
+      "row": 58
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 10.5,
+      "floor": 1,
+      "floorNum": 2,
+      "col": 1,
+      "row": 58
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 10.5,
+      "floor": 1,
+      "floorNum": 2,
+      "col": 2,
+      "row": 58
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 10.5,
+      "floor": 1,
+      "floorNum": 2,
+      "col": 3,
+      "row": 58
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 10.5,
+      "floor": 1,
+      "floorNum": 2,
+      "col": 4,
+      "row": 58
+    }
+  ],
+  [
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 10,
+      "floor": 0,
+      "floorNum": 1,
+      "col": 0,
+      "row": 59
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 10,
+      "floor": 0,
+      "floorNum": 1,
+      "col": 1,
+      "row": 59
+    },
+    {
+      "name": "街",
+      "exists": true,
+      "enemyLevel": 10,
+      "floor": 0,
+      "floorNum": 1,
+      "col": 2,
+      "row": 59
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 10,
+      "floor": 0,
+      "floorNum": 1,
+      "col": 3,
+      "row": 59
+    },
+    {
+      "name": "通路",
+      "exists": false,
+      "enemyLevel": 10,
+      "floor": 0,
+      "floorNum": 1,
+      "col": 4,
+      "row": 59
+    }
+  ]
+]

@@ -811,7 +811,8 @@ export class EnemyCharacter extends BattleEntity {
 
         this.weight = data.weight || 5;
         this.debuffResist = data.debuffResist !== undefined ? data.debuffResist : 0;
-        const baseSize = (data.size || 1.0) + Math.max(0, this.level - 1) * 0.1;
+        const sizeBonus = data.isTowerEnemy ? 0 : Math.max(0, this.level - 1) * 0.1;
+        const baseSize = (data.size || 1.0) + sizeBonus;
 
         this.size = baseSize * (gs.debugEnemySizeMultiplier || 1.0);
 

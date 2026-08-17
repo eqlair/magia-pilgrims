@@ -116,4 +116,82 @@ export class TimeReporter {
             }
         });
     }
+
+    /**
+     * タワー用フロア告知
+     * @param {Phaser.Scene} scene - 現在のシーン
+     * @param {number} floorNum - フロア番号（1〜60）
+     * @param {Function} [onComplete] - コールバック
+     */
+    static showFloor(scene, floorNum, onComplete = null) {
+        const { width, height } = scene.scale;
+        const DEPTH = 6000;
+        const BAND_H = Math.floor(height / 5);
+        const CX = width / 2;
+        const CY = height / 2;
+
+        const displayText = `第 ${floorNum} 階`;
+
+        const blocker = scene.add.rectangle(CX, CY, width, height, 0x000000)
+            .setAlpha(0.001)
+            .setDepth(DEPTH - 1)
+            .setScrollFactor(0)
+            .setInteractive();
+
+        const band = scene.add.rectangle(CX, CY, width * 2, BAND_H, 0x112233)
+            .setAlpha(0)
+            .setDepth(DEPTH)
+            .setScrollFactor(0)
+            .setScale(1, 0.01);
+
+        const label = scene.add.text(width + 400, CY, displayText, {
+            fontFamily: FONT_MAIN,
+            fontSize: Math.floor(height / 13) + 'px',
+            color: '#00ffff',
+            fontStyle: 'bold',
+            stroke: '#001122',
+            strokeThickness: 6
+        }).setOrigin(0.5, 0.5).setDepth(DEPTH + 1).setScrollFactor(0);
+
+        scene.tweens.add({
+            targets: band,
+            scaleY: 1,
+            alpha: 0.9,
+            duration: 250,
+            ease: 'Cubic.easeOut',
+            onComplete: () => {
+                scene.tweens.add({
+                    targets: label,
+                    x: CX,
+                    duration: 350,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => {
+                        scene.time.delayedCall(700, () => {
+                            scene.tweens.add({
+                                targets: label,
+                                x: -400,
+                                duration: 300,
+                                ease: 'Cubic.easeIn',
+                                onComplete: () => {
+                                    scene.tweens.add({
+                                        targets: band,
+                                        scaleY: 0.01,
+                                        alpha: 0,
+                                        duration: 200,
+                                        ease: 'Cubic.easeIn',
+                                        onComplete: () => {
+                                            label.destroy();
+                                            band.destroy();
+                                            blocker.destroy();
+                                            if (typeof onComplete === 'function') onComplete();
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+        });
+    }
 }

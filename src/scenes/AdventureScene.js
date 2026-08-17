@@ -26,6 +26,11 @@ export default class AdventureScene extends Phaser.Scene {
 
     init(data) {
         this._initData = data || {};
+        const gs = GlobalState.getInstance();
+        if (this._initData.isTower !== undefined) {
+            gs.isTowerMode = !!this._initData.isTower;
+        }
+        this.isTowerMode = !!gs.isTowerMode;
     }
 
     preload() {
@@ -169,11 +174,13 @@ export default class AdventureScene extends Phaser.Scene {
         // マップデータの初期化・状態付与
         this.hexes = [];
         this.grid = []; // 2次元配列でのアクセス用
-        for (let row = 0; row < MapData.length; row++) {
+        const rawMapData = this.isTowerMode ? (this.cache.json.get('map_tower') || MapData) : MapData;
+
+        for (let row = 0; row < rawMapData.length; row++) {
             this.grid[row] = [];
-            for (let col = 0; col < MapData[row].length; col++) {
-                // MapDataの参照汚染を防ぐためディープコピー
-                const cellData = JSON.parse(JSON.stringify(MapData[row][col]));
+            for (let col = 0; col < rawMapData[row].length; col++) {
+                // 参照汚染を防ぐためディープコピー
+                const cellData = JSON.parse(JSON.stringify(rawMapData[row][col]));
                 // 初期状態の付与
                 cellData.visited = cellData.visited || 0;
                 cellData.revealed = cellData.revealed || 0; // 一度でも隣接した水域・密林用
@@ -181,14 +188,11 @@ export default class AdventureScene extends Phaser.Scene {
                 if (cellData.initialEnemyLevel === undefined) {
                     cellData.initialEnemyLevel = cellData.enemyLevel || 0;
                 }
-                // 敵の属性(1~5)をランダムに初期設定
+                // 敵の属性(1~5)をランダムに初期設定 (タワー時はRCで後ほど再計算も可能)
                 if (cellData.enemyAttr === undefined) {
                     cellData.enemyAttr = Math.floor(Math.random() * 5) + 1;
                 }
 
-
-
-                
                 const xOffset = (row % 2 === 1) ? (this.hexWidth / 2) : 0;
                 const px = col * this.hexWidth + xOffset;
                 this.mapTiltY = 0.65; // 鳥瞰図用Y圧縮率
@@ -201,11 +205,11 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
 
-        // セーブデータが存在しない場合（新規プレイ開始時）のみ魔女21箇所をランダム配置
+        // セーブデータが存在しない場合（新規プレイ開始時）のみ魔女21箇所をランダム配置 (タワー時は魔女配置なし)
         const savedDataForWitch = SaveManager.loadGameData();
         const hasSavedAdventure = savedDataForWitch && savedDataForWitch.adventureState && savedDataForWitch.adventureState.hexStates;
 
-        if (!hasSavedAdventure) {
+        if (!hasSavedAdventure && !this.isTowerMode) {
             const landHexes = this.hexes.filter(h => h.cellData.enemyLevel > 0);
             for (let i = landHexes.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -224,8 +228,9 @@ export default class AdventureScene extends Phaser.Scene {
         for (const h of this.hexes) {
             h.container = this.add.container(h.px, h.py);
             
-            // 背景画像用Sprite
-            h.bgSprite = this.add.sprite(0, 0, 'map_img_woods.jpg');
+            // 背景画像用Sprite (タワー時はbg_tower01)
+            const defaultBgKey = this.isTowerMode ? 'bg_tower01' : 'map_img_woods.jpg';
+            h.bgSprite = this.add.sprite(0, 0, defaultBgKey);
             h.bgSprite.setScale(1, this.mapTiltY);
             
             // インタラクティブ領域
@@ -241,7 +246,7 @@ export default class AdventureScene extends Phaser.Scene {
             h.outline.setScale(1, this.mapTiltY);
 
             // テキスト
-            let displayName = h.cellData.name.replace('\n', '');
+            let displayName = (h.cellData.name || '').replace('\n', '');
             h.text = this.add.text(0, 0, displayName, {
                 fontFamily: 'sans-serif',
                 fontSize: '14px',
@@ -250,6 +255,13 @@ export default class AdventureScene extends Phaser.Scene {
                 strokeThickness: 3,
                 align: 'center'
             }).setOrigin(0.5, 0.5);
+
+            // タワーで存在しないマス（exists === false）は非表示
+            if (this.isTowerMode && h.cellData.exists === false) {
+                h.bgSprite.setVisible(false);
+                h.outline.setVisible(false);
+                h.text.setVisible(false);
+            }
 
             h.container.add([h.bgSprite, h.outline, h.text]);
 
@@ -338,13 +350,18 @@ export default class AdventureScene extends Phaser.Scene {
             });
         }
 
-        // 初期位置: (D, 7) の東京 (col=3, row=6)
-        this.playerCol = 3;
-        this.playerRow = 6;
+        // 初期位置: 通常は(D, 7)東京 (col=3, row=6)、タワー時は(c, 60) (col=2, row=59)
+        if (this.isTowerMode) {
+            this.playerCol = 2;
+            this.playerRow = 59;
+        } else {
+            this.playerCol = 3;
+            this.playerRow = 6;
+        }
         this.isJumping = false;
 
-        // チュートリアル初期化/ニューゲーム時
-        if (this._initData.isTutorialStart || this._initData.fromTitleNewGame) {
+        // チュートリアル初期化/ニューゲーム時 (タワー時はスキップ)
+        if (!this.isTowerMode && (this._initData.isTutorialStart || this._initData.fromTitleNewGame)) {
             gs.currentMonth = 12;
             gs.currentDay = 1;
             gs.timePeriodIndex = 0;
@@ -613,9 +630,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.currentDay = gs.currentDay;
             this.timePeriodIndex = gs.timePeriodIndex || 0;
             this.timeOfDay = this.timePeriods[this.timePeriodIndex];
-            if (this.dateTimeText) {
-                this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-            }
+            this._updateDateTimeDisplay();
         }
 
         if (this.player) this.player.setVisible(true);
@@ -692,7 +707,8 @@ export default class AdventureScene extends Phaser.Scene {
             // ※ fromExploration は除外！探索の時間進行は全ステップ完了後に
             //   _advanceTimeAfterExploration() が advanceTime() を呼ぶので、ここでは呼ばない
             // ※ fromNightExploration は夜探索専用フラグ。こちらはここで時間を進める
-            if (data && (data.fromRest || data.fromBattle || data.fromNightExploration) && !data.fromTarot && !data.isNotification) {
+            // 休息・戦闘完了時のみ時間を1コマ進める (タワーモード時は時間は進まない！)
+            if (!this.isTowerMode && data && (data.fromRest || data.fromBattle || data.fromNightExploration) && !data.fromTarot && !data.isNotification) {
                 if (!advancedTimeThisResume) {
                     this.advanceTime();
                     advancedTimeThisResume = true;
@@ -703,6 +719,14 @@ export default class AdventureScene extends Phaser.Scene {
 
             if (data && data.fromBattle) {
                 console.log(`[AdventureScene] fromBattle returned. globalWaveCount=${this.globalWaveCount}`);
+
+                if (this.isTowerMode) {
+                    const hexKey = `${this.playerCol}_${this.playerRow}`;
+                    gs.towerClearedHexes[hexKey] = true;
+                    this._updateDateTimeDisplay();
+                    const currentFloor = 59 - this.playerRow;
+                    TimeReporter.showFloor(this, currentFloor + 1);
+                }
 
                 // 現在のヘクスを制圧済みに（敵レベル・魔女レベルを0にして敵なしヘクスにする）
                 const currentHex = this.grid[this.playerRow]?.[this.playerCol];
@@ -966,7 +990,8 @@ export default class AdventureScene extends Phaser.Scene {
             .setDepth(500)
             .setScrollFactor(0);
 
-        this.dateTimeText = this.add.text(width / 2, height - 180, `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`, {
+        const initialDateStr = this.isTowerMode ? `${59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1}階` : `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`;
+        this.dateTimeText = this.add.text(width / 2, height - 180, initialDateStr, {
             fontFamily: 'sans-serif',
             fontSize: '22px',
             fontStyle: 'bold',
@@ -1717,6 +1742,44 @@ export default class AdventureScene extends Phaser.Scene {
         events.push({ cmd: 'end' });
 
         // カメラフラッシュ（明転）してから遷移
+        if (this.isTowerMode) {
+            const currentFloor = 59 - this.playerRow;
+            const targetFloor = 59 - hex.row;
+            const gs = GlobalState.getInstance();
+
+            if (targetFloor > currentFloor) {
+                gs.food = Math.min(140, gs.food + 100);
+                this._updateFoodDisplay();
+                this.showToast(`フロア移動！ 食料 +100（現在: ${Math.floor(gs.food)}）`);
+            }
+
+            const floor = targetFloor;
+            const rc = hex.col + (floor * 5);
+            const enemy1 = rc % 9;
+            const enemy2 = rc % 8;
+            const attrNum = rc % 5; // 0:赤, 1:紫, 2:緑, 3:黄, 4:青
+            const towerEnemiesList = this.cache.json.get('tower_enemies') || [];
+
+            this.cameras.main.flash(1000, 255, 255, 255);
+            this.time.delayedCall(1000, () => {
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: events,
+                    returnScene: 'AdventureScene',
+                    enemyLevel: hex.cellData.enemyLevel || (10 + floor * 0.5),
+                    enemyAttr: attrNum + 1,
+                    majoLevel: 0,
+                    isNightBattle: false,
+                    isTowerBattle: true,
+                    towerEnemy1: enemy1,
+                    towerEnemy2: enemy2,
+                    towerEnemiesList: towerEnemiesList
+                });
+                this.isJumping = false;
+            });
+            return;
+        }
+
         const isNightMove = (this.timeOfDay === '夜');
         const moveEnemyLevel = hex.cellData.enemyLevel + (isNightMove ? 3 : 0);
         this.cameras.main.flash(1000, 255, 255, 255);
@@ -1754,7 +1817,25 @@ export default class AdventureScene extends Phaser.Scene {
         // 隣接しているヘクスのみ移動可能
         if (!hex.cellData.isAdjacent) return;
 
-        
+        // タワーモード時の移動判定
+        if (this.isTowerMode) {
+            if (hex.cellData.exists === false) return; // 通路・空白マスは移動不可
+            const currentFloor = 59 - this.playerRow;
+            const targetFloor = 59 - hex.row;
+            const gs = GlobalState.getInstance();
+            const hexKey = `${hex.col}_${hex.row}`;
+            const isCleared = !!gs.towerClearedHexes[hexKey] || hex.cellData.visited > 0;
+
+            // 上の階へ進む場合（targetFloor > currentFloor）
+            if (targetFloor > currentFloor) {
+                const stairsFound = !!gs.towerStairsFound[currentFloor];
+                if (!stairsFound && !isCleared) {
+                    this.showToast('上の階への階段が見つかっていない…（探索で探そう）');
+                    return;
+                }
+            }
+        }
+
         // 水域・密林には移動不可
         if (hex.cellData.name === '水域' || hex.cellData.name === '密林') return;
         if (this.checkIkebukuro02Event('move', hex)) return;
@@ -2054,6 +2135,16 @@ export default class AdventureScene extends Phaser.Scene {
         });
     }
 
+    _updateDateTimeDisplay() {
+        if (!this.dateTimeText) return;
+        if (this.isTowerMode) {
+            const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59);
+            this.dateTimeText.setText(`${currentFloor + 1}階`);
+        } else {
+            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        }
+    }
+
 
 
 
@@ -2304,13 +2395,62 @@ export default class AdventureScene extends Phaser.Scene {
             const locInfo = LOCATION_INFO_DATA[hexName];
             const isGeneric = !locInfo;
 
-            // ① 食料設定：地名ヘクスは 140、汎用ヘクスは半分（70）
-            const foodAmount = isGeneric ? 70 : 140;
-            gs.food = foodAmount;
-            this._updateFoodDisplay();
+            let drops = [];
+            let towerStairsMsg = null;
 
-            // ② レリクス・宝石ドロップ：汎用ヘクスはレア出現率半分
-            const drops = RelicGenerator.generateExplorationDrops(isGeneric);
+            if (this.isTowerMode) {
+                // タワー探索コスト: パーティ全員 HP-5, SP-5 (HPは最低1で保護)
+                for (const pId of this.party) {
+                    const ch = gs.characters[pId];
+                    if (ch) {
+                        ch.currentHp = Math.max(1, (ch.currentHp || ch.baseHp) - 5);
+                        ch.currentSp = Math.max(0, (ch.currentSp || ch.baseSp) - 5);
+                    }
+                }
+
+                // 100面ダイスでレリクス1個確定
+                // 1: 宝石, 2〜3: SR(Rank3), 4〜10: R(Rank2), 11〜100: N(Rank1)
+                const d100 = Math.floor(Math.random() * 100) + 1;
+                let singleDrop = null;
+                if (d100 === 1) {
+                    singleDrop = RelicGenerator.generateRandomGem();
+                } else if (d100 <= 3) {
+                    singleDrop = RelicGenerator.generateRelic(3);
+                } else if (d100 <= 10) {
+                    singleDrop = RelicGenerator.generateRelic(2);
+                } else {
+                    singleDrop = RelicGenerator.generateRelic(1);
+                }
+                if (singleDrop) drops.push(singleDrop);
+
+                // 階段発見判定
+                const currentFloor = 59 - this.playerRow;
+                let clearedCount = 0;
+                if (this.grid[this.playerRow]) {
+                    for (let c = 0; c < 5; c++) {
+                        const h = this.grid[this.playerRow][c];
+                        if (h && h.cellData && h.cellData.exists) {
+                            if (h.cellData.visited > 0 || gs.towerClearedHexes[`${c}_${this.playerRow}`]) {
+                                clearedCount++;
+                            }
+                        }
+                    }
+                }
+                const stairsProb = Math.max(1, clearedCount) / 10;
+                if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
+                    gs.towerStairsFound[currentFloor] = true;
+                    towerStairsMsg = '上の階への階段を発見した！';
+                }
+            } else {
+                // ① 食料設定：地名ヘクスは 140、汎用ヘクスは半分（70）
+                const foodAmount = isGeneric ? 70 : 140;
+                gs.food = foodAmount;
+                this._updateFoodDisplay();
+
+                // ② レリクス・宝石ドロップ：汎用ヘクスはレア出現率半分
+                drops = RelicGenerator.generateExplorationDrops(isGeneric);
+            }
+
             if (!gs.inventory) {
                 gs.inventory = { relics: [], gems: [] };
             }
@@ -2318,6 +2458,10 @@ export default class AdventureScene extends Phaser.Scene {
                 if (drop.type === 'gem') gs.inventory.gems.push(drop);
                 else gs.inventory.relics.push(drop);
             });
+
+            if (towerStairsMsg) {
+                this.time.delayedCall(500, () => this.showToast(`✨ ${towerStairsMsg}`));
+            }
 
             // ③ 仲間遭遇判定 (1/5 = 20%) & 情報テキスト判定 (1/2 = 50%)
             let triggeredJoinCharId = null;
@@ -2477,6 +2621,7 @@ export default class AdventureScene extends Phaser.Scene {
     // _resumeHandlerではなくここで advanceTime() を呼ぶことで、
     // 探索途中のfromExploration resumeが誤って時間を進めるのを防ぐ
     _advanceTimeAfterExploration() {
+        if (this.isTowerMode) return;
         this.advanceTime();
     }
 

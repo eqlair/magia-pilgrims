@@ -47,8 +47,30 @@ export class DebugMenuScene extends Phaser.Scene {
             gs.debugEnemyHpGrowthRate = val;
         });
 
+        // タワー編テスト開始ボタン
+        const towerBtn = this.add.text(centerX, 640, '🗼 タワー編テスト開始', {
+            fontSize: '22px',
+            color: '#00ffff',
+            fontStyle: 'bold',
+            backgroundColor: '#113355',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+
+        towerBtn.on('pointerdown', () => {
+            gs.isTowerMode = true;
+            gs.towerFloor = 0;
+            gs.food = 100;
+            this.scene.stop('TitleScene');
+            this.scene.stop('AdventureScene');
+            this.scene.start('AdventureScene', {
+                isTower: true,
+                party: ['001', '002', '003', '004', '005']
+            });
+            this.scene.stop();
+        });
+
         // 閉じるボタン
-        const closeBtn = this.add.text(centerX, 650, '閉じる', {
+        const closeBtn = this.add.text(centerX, 720, '閉じる', {
             fontSize: '24px',
             color: '#ffffff',
             backgroundColor: '#666666',

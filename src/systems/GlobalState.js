@@ -6,7 +6,7 @@ import { SaveManager } from './SaveManager';
 
 export class GlobalState {
     static instance = null;
-    static IS_DEBUG_MODE = false; // デバッグモードフラグ（デフォルト: false、依頼時のみ true に切り替え）
+    static IS_DEBUG_MODE = true; // デバッグモードフラグ（デバッグ版ON）
 
     constructor() {
         if (GlobalState.instance) {
@@ -24,6 +24,11 @@ export class GlobalState {
         // 食料（0〜100）
         this.food = 100;
 
+        // タワー編管理プロパティ
+        this.isTowerMode = false;
+        this.towerFloor = 0; // 0 (1F) 〜 59 (60F)
+        this.towerStairsFound = {}; // { [floor]: true }
+        this.towerClearedHexes = {}; // { [`${col}_${row}`]: true }
         
         // 所持SP（魔女撃破時に獲得、休息でSP回復に使用）
         this.stockSp = 0;
@@ -1025,6 +1030,12 @@ export class GlobalState {
         this.event1221WildhuntPlayed = false;
         this.ikebukuro01Played = false;
         this.ikebukuro02Played = false;
+
+        // タワー編のリセット
+        this.isTowerMode = false;
+        this.towerFloor = 0;
+        this.towerStairsFound = {};
+        this.towerClearedHexes = {};
 
         // タロット関係のリセット
         this.activeTarots = [];
