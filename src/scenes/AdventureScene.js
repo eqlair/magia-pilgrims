@@ -456,7 +456,7 @@ export default class AdventureScene extends Phaser.Scene {
         // セーブデータが存在し、かつ新規ゲーム起動(isNewGame)でない場合のみマップ状態を復元適用
         if (!isNewGame) {
             const saveData = SaveManager.loadGameData();
-            if (saveData && saveData.adventureState) {
+            if (saveData && (saveData.adventureState || saveData.towerState)) {
                 this.applySaveData(saveData);
             }
         }
@@ -2177,12 +2177,16 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     _updateDateTimeDisplay() {
-        if (!this.dateTimeText) return;
-        if (this.isTowerMode) {
-            const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59);
-            this.dateTimeText.setText(`${currentFloor + 1}階`);
-        } else {
-            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        if (!this.dateTimeText || !this.dateTimeText.active || !this.dateTimeText.scene) return;
+        try {
+            if (this.isTowerMode) {
+                const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59);
+                this.dateTimeText.setText(`${currentFloor + 1}階`);
+            } else {
+                this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+            }
+        } catch (e) {
+            console.warn('[AdventureScene] _updateDateTimeDisplay error:', e);
         }
     }
 
