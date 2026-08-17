@@ -873,6 +873,14 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
+                // 池袋02イベント完了時 (12/21夜) -> タワー編移行ガード
+                if (data && data.fromIkebukuro02Event) {
+                    this.showToast('池袋の深淵へと足を踏み入れた…（タワー編準備中）');
+                    SaveManager.saveGame(this);
+                    TransitionManager.fadeIn(this);
+                    return;
+                }
+
                 // 12/21魔女襲来イベント完了時 -> 視聴完了フラグ確定＆周回イベント(event_resp)の連続起動
                 if (data && data.from1221Event) {
                     GlobalState.getInstance().event1221Played = true;
@@ -977,6 +985,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.exploreBtn.setScale(tansScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.isMovementOnlyTutorial || this.isRestOnlyTutorial) return; // チュートリアル午前・夜は不可！
+            if (this.checkIkebukuro02Event('exploration')) return;
             if (this.check1221NightForcedBreakthrough()) return;
             if (!this.isJumping) this._startExploration();
         });
@@ -992,6 +1001,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.restBtn.setScale(kyuuScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.isMovementOnlyTutorial || this.isExploreOnlyTutorial) return; // チュートリアル午前・午後は不可！
+            if (this.checkIkebukuro02Event('rest')) return;
             if (!this.isJumping) {
                 this.inRestMode = true;
                 SaveManager.saveGame(this);
@@ -1747,6 +1757,7 @@ export default class AdventureScene extends Phaser.Scene {
         
         // 水域・密林には移動不可
         if (hex.cellData.name === '水域' || hex.cellData.name === '密林') return;
+        if (this.checkIkebukuro02Event('move', hex)) return;
         this._preBattleSnapshot = this.createSnapshot();
         this.moveToHex(hex, true);
     }
@@ -2862,9 +2873,19 @@ export default class AdventureScene extends Phaser.Scene {
                 check: () => this.check1214Event()
             },
             {
+                id: 'event_ikebukuro02',
+                timing: 'after_time_signal',
+                check: () => this.checkIkebukuro02Event('time_signal')
+            },
+            {
                 id: 'event_1221_wildhunt',
                 timing: 'after_time_signal',
                 check: () => this.check1221NightWildhunt()
+            },
+            {
+                id: 'event_ikebukuro01',
+                timing: 'after_time_signal',
+                check: () => this.checkIkebukuro01Event()
             },
             {
                 id: 'event_1222_witch',
@@ -2881,6 +2902,64 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
         return fired;
+    }
+
+    checkIkebukuro01Event() {
+        const gs = GlobalState.getInstance();
+        if (gs.ikebukuro01Played) return false;
+
+        const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+        const rawName = (currentHex && currentHex.cellData && currentHex.cellData.name) ? currentHex.cellData.name.replace(/\n/g, '').trim() : '';
+
+        if (rawName === '池袋') {
+            gs.ikebukuro01Played = true;
+            const evData = this.cache.json.get('event_ikebukuro01');
+            if (evData) {
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: evData,
+                        returnScene: 'AdventureScene',
+                        fromIkebukuro01Event: true
+                    }
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+
+    checkIkebukuro02Event(actionType, targetHex = null) {
+        const gs = GlobalState.getInstance();
+        if (gs.ikebukuro02Played) return false;
+
+        if (this.currentMonth === 12 && this.currentDay === 21 && this.timePeriodIndex === 2) {
+            let targetHexData = null;
+            if (actionType === 'move' && targetHex) {
+                targetHexData = targetHex.cellData;
+            } else {
+                targetHexData = this.grid[this.playerRow]?.[this.playerCol]?.cellData;
+            }
+
+            const rawName = (targetHexData && targetHexData.name) ? targetHexData.name.replace(/\n/g, '').trim() : '';
+
+            if (rawName === '池袋') {
+                gs.ikebukuro02Played = true;
+                const evData = this.cache.json.get('event_ikebukuro02');
+                if (evData) {
+                    this.enqueueEvent({
+                        type: 'event',
+                        data: {
+                            events: evData,
+                            returnScene: 'AdventureScene',
+                            fromIkebukuro02Event: true
+                        }
+                    });
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 

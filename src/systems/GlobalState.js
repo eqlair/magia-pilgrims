@@ -49,10 +49,12 @@ export class GlobalState {
         // デバッグ機能: 戦闘後に宝石確定ドロップ
         this.debugForceGemDrop = false;
         
-        // 12/7, 12/14, 12/21イベントフラグ
+        // 12/7, 12/14, 12/21, 池袋イベントフラグ
         this.event1207Played = false;
         this.event1214Played = false;
         this.event1221Played = false;
+        this.ikebukuro01Played = false;
+        this.ikebukuro02Played = false;
 
 
         // --- タロット用の一時・永続フラグ ---
@@ -1021,6 +1023,8 @@ export class GlobalState {
         this.event1214Played = false;
         this.event1221Played = false;
         this.event1221WildhuntPlayed = false;
+        this.ikebukuro01Played = false;
+        this.ikebukuro02Played = false;
 
         // タロット関係のリセット
         this.activeTarots = [];
