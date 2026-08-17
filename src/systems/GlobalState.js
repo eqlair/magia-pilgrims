@@ -27,8 +27,15 @@ export class GlobalState {
         // タワー編管理プロパティ
         this.isTowerMode = false;
         this.towerFloor = 0; // 0 (1F) 〜 59 (60F)
+        this.towerPlayerCol = 2; // タワー内初期位置X: 2 ((c, 60))
+        this.towerPlayerRow = 59; // タワー内初期位置Y: 59 (1階)
+        this.towerHexStates = []; // タワー内のヘクス踏破・敵レベル・属性保存用
         this.towerStairsFound = {}; // { [floor]: true }
         this.towerClearedHexes = {}; // { [`${col}_${row}`]: true }
+        
+        // 通常マップのプレイヤー座標保持用
+        this.normalPlayerCol = 3;
+        this.normalPlayerRow = 6;
         
         // 所持SP（魔女撃破時に獲得、休息でSP回復に使用）
         this.stockSp = 0;
@@ -1034,8 +1041,13 @@ export class GlobalState {
         // タワー編のリセット
         this.isTowerMode = false;
         this.towerFloor = 0;
+        this.towerPlayerCol = 2;
+        this.towerPlayerRow = 59;
+        this.towerHexStates = [];
         this.towerStairsFound = {};
         this.towerClearedHexes = {};
+        this.normalPlayerCol = 3;
+        this.normalPlayerRow = 6;
 
         // タロット関係のリセット
         this.activeTarots = [];

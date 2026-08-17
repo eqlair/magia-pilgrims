@@ -67,7 +67,9 @@ export class SaveManager {
 
             // AdventureScene のマップ状況をシリアライズ
             const existing = SaveManager.loadGameData();
-            let adventureData = null;
+            let adventureData = existing ? existing.adventureState : null;
+            let towerData = existing ? existing.towerState : null;
+
             if (adventureScene) {
                 const hexStates = [];
                 if (adventureScene.hexes) {
@@ -82,27 +84,44 @@ export class SaveManager {
                             enemyLevel: cell.enemyLevel !== undefined ? cell.enemyLevel : 0,
                             witchLevel: cell.witchLevel !== undefined ? cell.witchLevel : 0,
                             enemyAttr: cell.enemyAttr !== undefined ? cell.enemyAttr : 1,
-                            cleared: cell.cleared || false
+                            cleared: cell.cleared || false,
+                            exists: cell.exists !== undefined ? cell.exists : true
                         });
                     }
                 }
 
-                adventureData = {
-                    playerCol: adventureScene.playerCol !== undefined ? adventureScene.playerCol : 3,
-                    playerRow: adventureScene.playerRow !== undefined ? adventureScene.playerRow : 6,
-                    currentMonth: gs.currentMonth || 12,
-                    currentDay: gs.currentDay || 1,
-                    timeOfDay: (adventureScene && adventureScene.timePeriods) ? adventureScene.timePeriods[gs.timePeriodIndex || 0] : '午前',
-                    timePeriodIndex: gs.timePeriodIndex || 0,
-                    globalWaveCount: adventureScene.globalWaveCount || 2,
-                    globalEnemyCount: adventureScene.globalEnemyCount !== undefined ? adventureScene.globalEnemyCount : 10,
-                    party: adventureScene.party || ['001'],
-
-                    previousPartySize: adventureScene.party ? adventureScene.party.length : 1,
-                    inRestMode: adventureScene.inRestMode || false,
-                    hexStates: hexStates
-                };
-
+                if (adventureScene.isTowerMode) {
+                    // タワーモード時のセーブ
+                    gs.towerPlayerCol = adventureScene.playerCol;
+                    gs.towerPlayerRow = adventureScene.playerRow;
+                    gs.towerHexStates = hexStates;
+                    towerData = {
+                        towerPlayerCol: adventureScene.playerCol !== undefined ? adventureScene.playerCol : 2,
+                        towerPlayerRow: adventureScene.playerRow !== undefined ? adventureScene.playerRow : 59,
+                        towerFloor: 59 - (adventureScene.playerRow !== undefined ? adventureScene.playerRow : 59),
+                        towerStairsFound: gs.towerStairsFound ? JSON.parse(JSON.stringify(gs.towerStairsFound)) : {},
+                        towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
+                        towerHexStates: hexStates
+                    };
+                } else {
+                    // 通常マップ時のセーブ
+                    gs.normalPlayerCol = adventureScene.playerCol;
+                    gs.normalPlayerRow = adventureScene.playerRow;
+                    adventureData = {
+                        playerCol: adventureScene.playerCol !== undefined ? adventureScene.playerCol : 3,
+                        playerRow: adventureScene.playerRow !== undefined ? adventureScene.playerRow : 6,
+                        currentMonth: gs.currentMonth || 12,
+                        currentDay: gs.currentDay || 1,
+                        timeOfDay: (adventureScene && adventureScene.timePeriods) ? adventureScene.timePeriods[gs.timePeriodIndex || 0] : '午前',
+                        timePeriodIndex: gs.timePeriodIndex || 0,
+                        globalWaveCount: adventureScene.globalWaveCount || 2,
+                        globalEnemyCount: adventureScene.globalEnemyCount !== undefined ? adventureScene.globalEnemyCount : 10,
+                        party: adventureScene.party || ['001'],
+                        previousPartySize: adventureScene.party ? adventureScene.party.length : 1,
+                        inRestMode: adventureScene.inRestMode || false,
+                        hexStates: hexStates
+                    };
+                }
             } else if (existing && existing.adventureState) {
                 adventureData = existing.adventureState;
                 if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
@@ -115,7 +134,6 @@ export class SaveManager {
                 }
             }
 
-
             const saveData = {
                 timestamp: Date.now(),
                 saveDateTimeStr: new Date().toLocaleString('ja-JP', {
@@ -123,7 +141,8 @@ export class SaveManager {
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 }),
                 globalState: globalData,
-                adventureState: adventureData || (existing ? existing.adventureState : null)
+                adventureState: adventureData,
+                towerState: towerData
             };
 
 
@@ -194,10 +213,22 @@ export class SaveManager {
         if (d.tutorialGameOverSeen !== undefined) gs.tutorialGameOverSeen = d.tutorialGameOverSeen;
         if (d.tutorialStep !== undefined) gs.tutorialStep = d.tutorialStep;
 
+        // タワー状態の復元
+        if (saveData.towerState) {
+            const ts = saveData.towerState;
+            if (ts.towerPlayerCol !== undefined) gs.towerPlayerCol = ts.towerPlayerCol;
+            if (ts.towerPlayerRow !== undefined) gs.towerPlayerRow = ts.towerPlayerRow;
+            if (ts.towerHexStates) gs.towerHexStates = ts.towerHexStates;
+            if (ts.towerStairsFound) gs.towerStairsFound = ts.towerStairsFound;
+            if (ts.towerClearedHexes) gs.towerClearedHexes = ts.towerClearedHexes;
+        }
 
-
-
-
+        // 通常マップ座標の復元
+        if (saveData.adventureState) {
+            const as = saveData.adventureState;
+            if (as.playerCol !== undefined) gs.normalPlayerCol = as.playerCol;
+            if (as.playerRow !== undefined) gs.normalPlayerRow = as.playerRow;
+        }
 
         console.log('[SaveManager] GlobalState restored!');
         return true;

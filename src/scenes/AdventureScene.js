@@ -352,11 +352,11 @@ export default class AdventureScene extends Phaser.Scene {
 
         // 初期位置: 通常は(D, 7)東京 (col=3, row=6)、タワー時は(c, 60) (col=2, row=59)
         if (this.isTowerMode) {
-            this.playerCol = 2;
-            this.playerRow = 59;
+            this.playerCol = gs.towerPlayerCol !== undefined ? gs.towerPlayerCol : 2;
+            this.playerRow = gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59;
         } else {
-            this.playerCol = 3;
-            this.playerRow = 6;
+            this.playerCol = gs.normalPlayerCol !== undefined ? gs.normalPlayerCol : 3;
+            this.playerRow = gs.normalPlayerRow !== undefined ? gs.normalPlayerRow : 6;
         }
         this.isJumping = false;
 
@@ -1230,20 +1230,33 @@ export default class AdventureScene extends Phaser.Scene {
 
             this.uiContainer.add([this.dpsTestBtn]);
 
-            // タワーテストボタン (現在のパーティ編成・育成状況を維持して突入)
-            this.towerTestBtn = this.add.text(width - 20, 190, '🗼 タワーテスト', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#ff66ff', fontStyle: 'bold',
+            // タワー切替ボタン（タワー時は「通常マップへ戻る」、通常マップ時は「タワーテスト」）
+            const towerBtnLabel = this.isTowerMode ? '🗺️ 通常マップへ戻る' : '🗼 タワーテスト';
+            const towerBtnColor = this.isTowerMode ? '#aaffaa' : '#ff66ff';
+            this.towerTestBtn = this.add.text(width - 20, 190, towerBtnLabel, {
+                fontFamily: 'sans-serif', fontSize: '15px', color: towerBtnColor, fontStyle: 'bold',
                 backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
             }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.towerTestBtn.on('pointerdown', () => {
                 const gs = GlobalState.getInstance();
-                gs.isTowerMode = true;
-                gs.towerFloor = 0;
-                TransitionManager.transitionTo(this, 'AdventureScene', {
-                    isTower: true,
-                    party: this.party && this.party.length > 0 ? this.party : ['001']
-                });
+                if (this.isTowerMode) {
+                    // タワーから通常マップへ復帰
+                    SaveManager.saveGame(this);
+                    gs.isTowerMode = false;
+                    TransitionManager.transitionTo(this, 'AdventureScene', {
+                        isTower: false,
+                        party: this.party && this.party.length > 0 ? this.party : ['001']
+                    });
+                } else {
+                    // 通常マップからタワーへ突入
+                    SaveManager.saveGame(this);
+                    gs.isTowerMode = true;
+                    TransitionManager.transitionTo(this, 'AdventureScene', {
+                        isTower: true,
+                        party: this.party && this.party.length > 0 ? this.party : ['001']
+                    });
+                }
             });
 
             this.uiContainer.add([this.towerTestBtn]);
@@ -1578,6 +1591,15 @@ export default class AdventureScene extends Phaser.Scene {
 
         this.playerCol = hex.col;
         this.playerRow = hex.row;
+        const gs = GlobalState.getInstance();
+        if (this.isTowerMode) {
+            gs.towerPlayerCol = hex.col;
+            gs.towerPlayerRow = hex.row;
+        } else {
+            gs.normalPlayerCol = hex.col;
+            gs.normalPlayerRow = hex.row;
+        }
+        this._updateDateTimeDisplay();
 
         this.resetIdleTimer();
 
@@ -3337,6 +3359,50 @@ export default class AdventureScene extends Phaser.Scene {
     applySaveData(saveData) {
         if (!saveData) return;
         SaveManager.restoreGlobalState(saveData);
+        const gs = GlobalState.getInstance();
+
+        if (this.isTowerMode) {
+            const tower = saveData.towerState;
+            if (tower) {
+                if (tower.towerPlayerCol !== undefined && tower.towerPlayerRow !== undefined) {
+                    this.playerCol = tower.towerPlayerCol;
+                    this.playerRow = tower.towerPlayerRow;
+                } else {
+                    this.playerCol = gs.towerPlayerCol !== undefined ? gs.towerPlayerCol : 2;
+                    this.playerRow = gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59;
+                }
+
+                if (tower.towerHexStates && Array.isArray(tower.towerHexStates) && this.hexes) {
+                    for (const state of tower.towerHexStates) {
+                        const hex = this.hexes.find(h => h.col === state.col && h.row === state.row);
+                        if (hex && hex.cellData) {
+                            if (state.visited !== undefined) hex.cellData.visited = state.visited;
+                            else if (state.isExplored) hex.cellData.visited = 1;
+                            if (state.revealed !== undefined) hex.cellData.revealed = state.revealed;
+                            hex.isExplored = !!(state.isExplored || hex.cellData.visited > 0);
+                            if (state.enemyLevel !== undefined) hex.cellData.enemyLevel = state.enemyLevel;
+                            if (state.enemyAttr !== undefined) hex.cellData.enemyAttr = state.enemyAttr;
+                            if (state.cleared !== undefined) hex.cellData.cleared = state.cleared;
+                        }
+                    }
+                }
+            } else {
+                this.playerCol = gs.towerPlayerCol !== undefined ? gs.towerPlayerCol : 2;
+                this.playerRow = gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59;
+            }
+
+            // プレイヤー位置とカメラの更新
+            const targetHex = this.hexes ? this.hexes.find(h => h.col === this.playerCol && h.row === this.playerRow) : null;
+            if (targetHex && this.player) {
+                this.player.setPosition(targetHex.px, targetHex.py - this.CHAR_OFFSET_Y);
+                if (this.cameras && this.cameras.main) {
+                    this.cameras.main.centerOn(this.player.x, this.player.y);
+                }
+            }
+            this._updateDateTimeDisplay();
+            this.updateVisibility();
+            return;
+        }
 
         const adv = saveData.adventureState;
         if (!adv) return;
@@ -3344,6 +3410,9 @@ export default class AdventureScene extends Phaser.Scene {
         if (adv.playerCol !== undefined && adv.playerRow !== undefined) {
             this.playerCol = adv.playerCol;
             this.playerRow = adv.playerRow;
+        } else if (gs.normalPlayerCol !== undefined && gs.normalPlayerRow !== undefined) {
+            this.playerCol = gs.normalPlayerCol;
+            this.playerRow = gs.normalPlayerRow;
         }
         if (adv.currentMonth !== undefined) this.currentMonth = adv.currentMonth;
         if (adv.currentDay !== undefined) this.currentDay = adv.currentDay;
@@ -3355,8 +3424,6 @@ export default class AdventureScene extends Phaser.Scene {
 
         if (adv.party) this.party = adv.party;
         this.previousPartySize = (adv.previousPartySize !== undefined) ? adv.previousPartySize : (this.party ? this.party.length : 1);
-
-
 
         // ヘックスの訪問・レベル情報を復元
         if (adv.hexStates && Array.isArray(adv.hexStates) && this.hexes) {
