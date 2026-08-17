@@ -3748,6 +3748,29 @@ export default class AdventureScene extends Phaser.Scene {
         gs.onLogCallback = updateText;
         updateText(gs.debugLogs);
     }
+
+    showToast(message) {
+        const { width, height } = this.scale;
+        const toast = this.add.text(width / 2, height / 2 - 80, message, {
+            fontFamily: 'sans-serif',
+            fontSize: '18px',
+            color: '#ffffaa',
+            backgroundColor: '#000000dd',
+            padding: { x: 18, y: 10 },
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
+
+        this.tweens.add({
+            targets: toast,
+            alpha: 0,
+            y: height / 2 - 130,
+            duration: 2200,
+            ease: 'Power2',
+            onComplete: () => toast.destroy()
+        });
+    }
 }
 
 
