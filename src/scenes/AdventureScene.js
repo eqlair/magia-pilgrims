@@ -912,9 +912,7 @@ export default class AdventureScene extends Phaser.Scene {
                     this.globalEnemyCount = 10;
                     this.globalWaveCount = 1;
 
-                    if (this.dateTimeText) {
-                        this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-                    }
+                    this._updateDateTimeDisplay();
 
                     this.resetMapForNewLoop();
                     SaveManager.saveGame(this);
@@ -1956,7 +1954,7 @@ export default class AdventureScene extends Phaser.Scene {
         // UI等の更新
         this.updateVisibility();
         this._updateFoodDisplay();
-        this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
+        this._updateDateTimeDisplay();
         
         // プレイヤーのスプライト位置を戻す
         const hex = this.grid[this.playerRow][this.playerCol];
@@ -2001,9 +1999,7 @@ export default class AdventureScene extends Phaser.Scene {
         gsInst.currentDay = this.currentDay;
         gsInst.timePeriodIndex = this.timePeriodIndex;
 
-        if (this.dateTimeText) {
-            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-        }
+        this._updateDateTimeDisplay();
 
 
         // 12月21日の難易度補正（午前・午後）
@@ -2120,9 +2116,7 @@ export default class AdventureScene extends Phaser.Scene {
         this.handlePostTimeAdvance(timeSignalCb);
         this.updateNightOverlay();
         
-        if (this.dateTimeText) {
-            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-        }
+        this._updateDateTimeDisplay();
     }
 
     /** 時間経過後の各種イベント・タロットチェックと時報の優先度制御 */
@@ -3533,9 +3527,7 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
         this.updateVisibility();
-        if (this.dateTimeText) {
-            this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
-        }
+        this._updateDateTimeDisplay();
         this.updateNightOverlay();
         console.log('[AdventureScene] Restored state from save data!');
     }
