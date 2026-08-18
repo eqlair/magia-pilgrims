@@ -1712,40 +1712,33 @@ export class BattleEngine {
                 
                 // 1.0 m/s^2 の加速度 (dt = 0.1s なら速度が 0.1 変化)
                 let accel = 1.0; 
-                let isFlee = false;
                 
                 if (e.movePattern === 2) {
-                    accel = 2.0;
+                    accel = 2.0; // 加速度2倍
                 } else if (e.movePattern === 3) {
-                    accel = 0.5;
+                    accel = 0.5; // 加速度0.5倍
                 } else if (e.movePattern === 4) {
-                    accel = 0;
-                    // 目標地点へ直接テレポート
-                    e.x = targetX;
-                    e.z = targetZ;
-                    e.vx = 0;
-                    e.vz = 0;
-                } else if (e.movePattern === 5) {
-                    accel = 1.0;
-                    isFlee = true; // 逆に離れようとする
-                    const vMag = Math.sqrt(e.vx * e.vx + e.vz * e.vz);
-                    if (vMag > 10.0) {
+                    accel = 0.0; // テレポートタイプ: 加速度加算なし（テレポート後に秒速1mで等速直進）
+
+                    if (e.teleportTimer === undefined) e.teleportTimer = 3.0;
+                    e.teleportTimer -= dt;
+                    if (e.teleportTimer <= 0) {
+                        e.teleportTimer = 3.0 + Math.random() * 1.0;
                         e.x = targetX;
                         e.z = targetZ;
-                        e.vx = 0;
-                        e.vz = 0;
+
+                        // テレポート後、まったくランダムな方向に秒速1mで進み続ける
+                        const angle = Math.random() * Math.PI * 2;
+                        e.vx = Math.cos(angle) * 1.0;
+                        e.vz = Math.sin(angle) * 1.0;
                     }
+                } else if (e.movePattern === 5) {
+                    accel = 3.0; // 加速度加算が3倍タイプ
                 }
 
-                // Z軸の加速
-                let currentAccelZ = accel;
-                if (isFlee) {
-                    if (e.z < targetZ) {
-                        e.vz -= currentAccelZ * dt; // 離れる
-                    } else if (e.z > targetZ) {
-                        e.vz += currentAccelZ * dt; // 離れる
-                    }
-                } else {
+                if (e.movePattern !== 4) {
+                    // Z軸の加速
+                    let currentAccelZ = accel;
                     if (e.z < targetZ) {
                         if (e.z < fixedVanguardZ) currentAccelZ *= 2.0;
                         e.vz += currentAccelZ * dt;
@@ -1753,48 +1746,55 @@ export class BattleEngine {
                         if (e.z > fixedRearguardZ) currentAccelZ *= 2.0;
                         e.vz -= currentAccelZ * dt;
                     }
-                }
-                
-                // X軸の加速
-                if (isFlee) {
-                    if (e.x < targetX) {
-                        e.vx -= accel * dt;
-                    } else if (e.x > targetX) {
-                        e.vx += accel * dt;
-                    }
-                } else {
-                    if (e.x < targetX) {
-                        e.vx += accel * dt;
-                    } else if (e.x > targetX) {
-                        e.vx -= accel * dt;
-                    }
-                }
-                
-                // 画面端の処理
-                const limitX = 9.0 - (e.size / 4);
-                if (e.movePattern === 5) {
-                    // ループ処理 (X軸)
-                    if (e.x > limitX) e.x = -limitX;
-                    else if (e.x < -limitX) e.x = limitX;
                     
-                    // ループ処理 (Z軸)
-                    if (e.z > 25.0) e.z = 0.0;
-                    else if (e.z < 0.0) e.z = 25.0;
-                } else {
-                    // 跳ね返り（画像が1/4見切れる位置）
+                    // X軸の加速
+                    if (e.x < targetX) {
+                        e.vx += accel * dt;
+                    } else if (e.x > targetX) {
+                        e.vx -= accel * dt;
+                    }
+                }
+                
+                // 画面端の処理 (跳ね返り)
+                const limitX = 9.0 - (e.size / 4);
+                if (e.movePattern === 4) {
+                    // テレポートタイプは秒速1mのまま反射
                     if (e.x > limitX) {
-                        e.x = limitX; // めり込み防止
-                        e.vx = -Math.abs(e.vx) * 0.5; // 反転して半減
+                        e.x = limitX;
+                        e.vx = -Math.abs(e.vx);
+                    } else if (e.x < -limitX) {
+                        e.x = -limitX;
+                        e.vx = Math.abs(e.vx);
+                    }
+                } else {
+                    if (e.x > limitX) {
+                        e.x = limitX;
+                        e.vx = -Math.abs(e.vx) * 0.5;
                     } else if (e.x < -limitX) {
                         e.x = -limitX;
                         e.vx = Math.abs(e.vx) * 0.5;
                     }
                 }
                 
-                // Z軸の画面外テレポート安全装置 (とりあえずの処理)
-                if (e.z < -e.size / 2 || e.z > 25.2 + e.size / 2) {
-                    e.z = targetZ;
-                    e.vz = 0;
+                // Z軸の画面端跳ね返り / 安全装置
+                const minZ = 6.0;
+                const maxZ = 22.0;
+                if (e.movePattern === 4) {
+                    if (e.z < minZ) {
+                        e.z = minZ;
+                        e.vz = Math.abs(e.vz);
+                    } else if (e.z > maxZ) {
+                        e.z = maxZ;
+                        e.vz = -Math.abs(e.vz);
+                    }
+                } else {
+                    if (e.z < minZ) {
+                        e.z = minZ;
+                        e.vz = Math.abs(e.vz) * 0.5;
+                    } else if (e.z > maxZ) {
+                        e.z = maxZ;
+                        e.vz = -Math.abs(e.vz) * 0.5;
+                    }
                 }
 
                 // --- 攻撃パターン ---
