@@ -67,7 +67,8 @@ const config = {
     height: 960,
     scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        orientation: Phaser.Scale.Orientation.PORTRAIT
     },
     // スプライト縮小時のアンチエイリアス（バイリニアフィルタリング）
     antialias: true,
