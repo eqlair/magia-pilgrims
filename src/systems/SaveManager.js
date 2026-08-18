@@ -56,7 +56,8 @@ export class SaveManager {
                 tutorialTarotSeen: gs.tutorialTarotSeen,
                 tutorialRestSeen: gs.tutorialRestSeen,
                 tutorialGameOverSeen: gs.tutorialGameOverSeen,
-                tutorialStep: gs.tutorialStep
+                tutorialStep: gs.tutorialStep,
+                relicSortKeys: gs.relicSortKeys || ['lock', 'rank', 'max_val']
             };
 
 
@@ -203,6 +204,7 @@ export class SaveManager {
         if (d.currentDay !== undefined) gs.currentDay = d.currentDay;
         if (d.timePeriodIndex !== undefined) gs.timePeriodIndex = d.timePeriodIndex;
         if (d.inventory) gs.inventory = d.inventory;
+        if (d.relicSortKeys) gs.relicSortKeys = d.relicSortKeys;
 
         if (d.characters) gs.characters = d.characters;
         if (d.savedFormation) gs.savedFormation = d.savedFormation;

@@ -413,7 +413,7 @@ export default class EquipmentScene extends Phaser.Scene {
         this.bottomContainer.add(this.add.text(20, headerY, '【インベントリ】', { fontSize: '20px', color: '#aaaaaa', padding: { top: 4, bottom: 4 } }));
 
         // レイアウト変更ボタン
-        const layoutBtn = this.add.text(200, headerY, 'レイアウト', { fontSize: '18px', backgroundColor: '#333333', padding: { x: 8, y: 4 } }).setInteractive();
+        const layoutBtn = this.add.text(175, headerY, 'レイアウト', { fontSize: '16px', backgroundColor: '#333333', padding: { x: 6, y: 4 } }).setInteractive();
         layoutBtn.on('pointerdown', () => {
             this.expandedLayout = !this.expandedLayout;
             this.drawUI();
@@ -421,9 +421,17 @@ export default class EquipmentScene extends Phaser.Scene {
         this.bottomContainer.add(layoutBtn);
 
         // 合成ボタン（レリクス・宝石共通）
-        const synthBtn = this.add.text(320, headerY, '合成', { fontSize: '18px', backgroundColor: '#552288', padding: { x: 8, y: 4 } }).setInteractive();
+        const synthBtn = this.add.text(275, headerY, '合成', { fontSize: '16px', backgroundColor: '#552288', padding: { x: 8, y: 4 } }).setInteractive();
         synthBtn.on('pointerdown', () => this.executeSynthesis());
         this.bottomContainer.add(synthBtn);
+
+        // 並べ替えボタン
+        const sortBtn = this.add.text(340, headerY, '🔄 並べ替え', { fontSize: '16px', backgroundColor: '#225544', padding: { x: 8, y: 4 } }).setInteractive();
+        sortBtn.on('pointerdown', () => this.openSortDialog());
+        this.bottomContainer.add(sortBtn);
+
+        // インベントリの並べ替えを適用
+        this.applySortToInventory();
 
         const items = this.getInventoryItems();
         if (items.length === 0) {
@@ -1029,5 +1037,288 @@ export default class EquipmentScene extends Phaser.Scene {
             this.drawUI();
         });
         this.midContainer.add(btnNo);
+    }
+
+    // ─────────────────────────────────────────────────────
+    // 並べ替え（ソート）機能
+    // ─────────────────────────────────────────────────────
+    static SORT_OPTIONS = [
+        { id: 'lock', label: 'ロック' },
+        { id: 'rank', label: 'レア度' },
+        { id: 'max_val', label: '最高値' },
+        { id: 'atk', label: '攻撃' },
+        { id: 'hit', label: '命中' },
+        { id: 'reload', label: 'リロ' },
+        { id: 'hp', label: '生命' },
+        { id: 'sp', label: '精神' },
+        { id: 'lvup', label: 'LVUP' },
+        { id: 'red', label: '赤' },
+        { id: 'blue', label: '青' },
+        { id: 'green', label: '緑' },
+        { id: 'yellow', label: '黄' },
+        { id: 'purple', label: '紫' },
+        { id: 'evade', label: '回避' },
+        { id: 'crit_rate', label: 'CH率' },
+        { id: 'crit_mult', label: 'CH倍率' },
+        { id: 'exp', label: '経験値UP' }
+    ];
+
+    getItemSortValue(item, keyId) {
+        if (!item) return -999;
+        switch (keyId) {
+            case 'lock':
+                return item.isLocked ? 1 : 0;
+            case 'rank':
+                return item.rank || 1;
+            case 'max_val':
+                if (!item.traits || !Array.isArray(item.traits) || item.traits.length === 0) return 0;
+                return Math.max(0, ...item.traits.map(t => (t && t.level) || 0));
+            case 'atk':
+                return this._getTraitLevel(item, '攻撃力UP', 'ATKUP');
+            case 'hit':
+                return this._getTraitLevel(item, '命中');
+            case 'reload':
+                return this._getTraitLevel(item, 'リロード');
+            case 'hp':
+                return this._getTraitLevel(item, '生命力', 'HPUP');
+            case 'sp':
+                return this._getTraitLevel(item, '精神力', 'SPUP');
+            case 'lvup':
+                return this._getTraitLevel(item, 'レベルUP', 'レベル+', '全攻撃');
+            case 'red':
+                return this._getTraitLevel(item, '赤属性', '情熱');
+            case 'blue':
+                return this._getTraitLevel(item, '青属性', '統制');
+            case 'green':
+                return this._getTraitLevel(item, '緑属性', '調和');
+            case 'yellow':
+                return this._getTraitLevel(item, '黄属性', '犠牲');
+            case 'purple':
+                return this._getTraitLevel(item, '紫属性', '混沌');
+            case 'evade':
+                return this._getTraitLevel(item, '回避');
+            case 'crit_rate':
+                return this._getTraitLevel(item, 'CH率', 'クリティカル率');
+            case 'crit_mult':
+                return this._getTraitLevel(item, 'CH倍率', 'クリティカル倍率');
+            case 'exp':
+                return this._getTraitLevel(item, '経験値', 'EXP');
+            default:
+                return 0;
+        }
+    }
+
+    _getTraitLevel(item, ...keywords) {
+        if (!item || !item.traits || !Array.isArray(item.traits)) return 0;
+        let sum = 0;
+        for (const t of item.traits) {
+            if (!t || !t.level) continue;
+            const name = (t.name || '').toString();
+            if (keywords.some(k => name.includes(k))) {
+                sum += Number(t.level || 0);
+            }
+        }
+        return sum;
+    }
+
+    getFinalSortKeys(selectedList = []) {
+        const list = [...selectedList];
+        const defaultFallbacks = ['lock', 'rank', 'max_val'];
+        for (const fb of defaultFallbacks) {
+            if (list.length >= 3) break;
+            if (!list.includes(fb)) {
+                list.push(fb);
+            }
+        }
+        return list.slice(0, 3);
+    }
+
+    applySortToInventory() {
+        const items = this.getInventoryItems();
+        if (!items || items.length <= 1) return;
+
+        const gs = GlobalState.getInstance();
+        const sortKeys = this.getFinalSortKeys(gs.relicSortKeys || ['lock', 'rank', 'max_val']);
+
+        items.sort((a, b) => {
+            for (const key of sortKeys) {
+                const valA = this.getItemSortValue(a, key);
+                const valB = this.getItemSortValue(b, key);
+                if (valB !== valA) {
+                    return valB - valA; // 降順 (大きい順)
+                }
+            }
+            return (a.name || '').localeCompare(b.name || '');
+        });
+    }
+
+    openSortDialog() {
+        if (this.sortDialogContainer) {
+            this.sortDialogContainer.destroy();
+            this.sortDialogContainer = null;
+        }
+
+        const width = this.width;
+        const height = this.height;
+        const gs = GlobalState.getInstance();
+
+        // 選択中の一時リスト (現在設定値からコピー)
+        this.tempSortKeys = [...(gs.relicSortKeys || ['lock', 'rank', 'max_val'])];
+
+        this.sortDialogContainer = this.add.container(0, 0).setDepth(2000);
+
+        // 背景暗転
+        const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.7)
+            .setOrigin(0, 0)
+            .setInteractive();
+        this.sortDialogContainer.add(blocker);
+
+        // ダイアログ枠
+        const diagW = Math.min(width - 30, 520);
+        const diagH = 430;
+        const diagX = (width - diagW) / 2;
+        const diagY = (height - diagH) / 2;
+
+        const diagBg = this.add.rectangle(diagX, diagY, diagW, diagH, 0x1a1a28)
+            .setOrigin(0, 0)
+            .setStrokeStyle(3, 0xffee88);
+        this.sortDialogContainer.add(diagBg);
+
+        // タイトル
+        const title = this.add.text(width / 2, diagY + 18, '【並べ替え項目の選択】', {
+            fontSize: '20px', fontStyle: 'bold', color: '#ffdd66'
+        }).setOrigin(0.5, 0);
+        this.sortDialogContainer.add(title);
+
+        const subTitle = this.add.text(width / 2, diagY + 45, '優先したい項目を最大3つまでタップしてください', {
+            fontSize: '13px', color: '#aaaaaa'
+        }).setOrigin(0.5, 0);
+        this.sortDialogContainer.add(subTitle);
+
+        // 優先順位表示テキスト
+        const priorityText = this.add.text(width / 2, diagY + 70, '', {
+            fontSize: '14px', fontStyle: 'bold', color: '#aaffaa', backgroundColor: '#112211', padding: { x: 10, y: 5 }
+        }).setOrigin(0.5, 0);
+        this.sortDialogContainer.add(priorityText);
+
+        // ボタン配置用コンテナ
+        const buttonsContainer = this.add.container(0, 0);
+        this.sortDialogContainer.add(buttonsContainer);
+
+        const options = EquipmentScene.SORT_OPTIONS;
+        const cols = 6;
+        const btnW = Math.floor((diagW - 40 - (cols - 1) * 8) / cols);
+        const btnH = 38;
+        const startX = diagX + 20;
+        const startY = diagY + 110;
+
+        const updateDialogUI = () => {
+            buttonsContainer.removeAll(true);
+
+            // 優先順位テキストの更新
+            const finalKeys = this.getFinalSortKeys(this.tempSortKeys);
+            const labelMap = {};
+            options.forEach(o => labelMap[o.id] = o.label);
+
+            let pStr = '優先順: ';
+            finalKeys.forEach((k, idx) => {
+                const isAuto = !this.tempSortKeys.includes(k);
+                pStr += `[${idx + 1}] ${labelMap[k] || k}${isAuto ? '(補完)' : ''} `;
+                if (idx < 2) pStr += '➔ ';
+            });
+            priorityText.setText(pStr);
+
+            // ボタン一覧の描画
+            options.forEach((opt, idx) => {
+                const c = idx % cols;
+                const r = Math.floor(idx / cols);
+                const bx = startX + c * (btnW + 8);
+                const by = startY + r * (btnH + 10);
+
+                const selectIndex = this.tempSortKeys.indexOf(opt.id);
+                const isSelected = selectIndex !== -1;
+
+                const btnBgColor = isSelected ? 0x336644 : 0x282838;
+                const btnStrokeColor = isSelected ? 0x66ff88 : 0x555566;
+
+                const bg = this.add.rectangle(bx, by, btnW, btnH, btnBgColor)
+                    .setOrigin(0, 0)
+                    .setStrokeStyle(isSelected ? 2 : 1, btnStrokeColor)
+                    .setInteractive({ useHandCursor: true });
+
+                bg.on('pointerdown', () => {
+                    if (isSelected) {
+                        this.tempSortKeys.splice(selectIndex, 1);
+                    } else {
+                        if (this.tempSortKeys.length >= 3) {
+                            this.tempSortKeys.shift(); // 3つ超えたら古い順に押し出し
+                        }
+                        this.tempSortKeys.push(opt.id);
+                    }
+                    updateDialogUI();
+                });
+                buttonsContainer.add(bg);
+
+                const label = this.add.text(bx + btnW / 2, by + btnH / 2, opt.label, {
+                    fontSize: '13px', color: isSelected ? '#ffffff' : '#cccccc', fontStyle: isSelected ? 'bold' : 'normal'
+                }).setOrigin(0.5, 0.5);
+                buttonsContainer.add(label);
+
+                // 選択順バッジ (①, ②, ③)
+                if (isSelected) {
+                    const badgeNum = ['①', '②', '③'][selectIndex] || '';
+                    const badge = this.add.text(bx + 4, by + 2, badgeNum, {
+                        fontSize: '12px', color: '#ffff44', fontStyle: 'bold'
+                    });
+                    buttonsContainer.add(badge);
+                }
+            });
+        };
+
+        updateDialogUI();
+
+        // ダイアログ下部ボタン
+        const btmY = diagY + diagH - 55;
+
+        // クリアボタン
+        const btnClear = this.add.text(diagX + 30, btmY, '🔄 クリア', {
+            fontSize: '16px', backgroundColor: '#553333', color: '#ffffff', padding: { x: 14, y: 8 }
+        }).setInteractive({ useHandCursor: true });
+        btnClear.on('pointerdown', () => {
+            this.tempSortKeys = [];
+            updateDialogUI();
+        });
+        this.sortDialogContainer.add(btnClear);
+
+        // 閉じるボタン
+        const btnClose = this.add.text(width / 2 - 45, btmY, '✕ 閉じる', {
+            fontSize: '16px', backgroundColor: '#444455', color: '#ffffff', padding: { x: 14, y: 8 }
+        }).setInteractive({ useHandCursor: true });
+        btnClose.on('pointerdown', () => {
+            this.sortDialogContainer.destroy();
+            this.sortDialogContainer = null;
+        });
+        this.sortDialogContainer.add(btnClose);
+
+        // 決定ボタン
+        const btnConfirm = this.add.text(diagX + diagW - 130, btmY, '✓ 決定', {
+            fontSize: '18px', fontStyle: 'bold', backgroundColor: '#227733', color: '#ffffff', padding: { x: 20, y: 7 }
+        }).setInteractive({ useHandCursor: true });
+        btnConfirm.on('pointerdown', () => {
+            const finalKeys = this.getFinalSortKeys(this.tempSortKeys);
+            gs.relicSortKeys = finalKeys;
+            SaveManager.saveGame();
+
+            const labelMap = {};
+            options.forEach(o => labelMap[o.id] = o.label);
+            const summaryStr = finalKeys.map((k, i) => `${i + 1}.${labelMap[k]}`).join(' ➔ ');
+            this.showToast(`並べ替えを適用しました\n(${summaryStr})`);
+
+            this.sortDialogContainer.destroy();
+            this.sortDialogContainer = null;
+
+            this.drawUI();
+        });
+        this.sortDialogContainer.add(btnConfirm);
     }
 }

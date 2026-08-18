@@ -45,6 +45,7 @@ export class GlobalState {
             relics: [],
             gems: []
         };
+        this.relicSortKeys = ['lock', 'rank', 'max_val'];
         
         // オプション設定
         this.options = {
