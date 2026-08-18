@@ -145,9 +145,9 @@ export default class EquipmentScene extends Phaser.Scene {
             case 3: return 'SR';
             case 4: return 'SSR';
             case 5: return 'UR';
-            case 6: return 'LR';
-            case 7: return 'MR';
-            case 8: return 'EX';
+            case 6: return 'MR';
+            case 7: return 'GR';
+            case 8: return 'GTR';
             default: return 'N';
         }
     }
@@ -636,7 +636,18 @@ export default class EquipmentScene extends Phaser.Scene {
 
     executeEnhance() {
         if (this.enhanceMaterials.length !== 4) return;
-        
+        if (!this.enhanceBaseItem) return;
+
+        const spCost = this.getSpCost(this.enhanceBaseItem.rank);
+        const currentSp = Math.floor(this.globalState.stockSp || 0);
+        if (currentSp < spCost) {
+            this.showToast(`強化に必要なSPが不足しています\n(必要: ${spCost.toLocaleString()} SP, 所持: ${currentSp.toLocaleString()} SP)`);
+            return;
+        }
+
+        // SP消費
+        this.globalState.stockSp -= spCost;
+
         // Remove materials from inventory
         const items = this.getInventoryItems();
         this.enhanceMaterials.forEach(mat => {
@@ -752,17 +763,27 @@ export default class EquipmentScene extends Phaser.Scene {
         const consumed = this.synthConsumed;
         const targetRank = this.synthTargetRank;
 
+        const spCost = this.getSpCost(targetRank);
+        const currentSp = Math.floor(this.globalState.stockSp || 0);
+        if (currentSp < spCost) {
+            this.showToast(`合成に必要なSPが不足しています\n(必要: ${spCost.toLocaleString()} SP, 所持: ${currentSp.toLocaleString()} SP)`);
+            return;
+        }
+
+        // SP消費
+        this.globalState.stockSp -= spCost;
+
         if (this.itemType === 'relic') {
             this.globalState.inventory.relics = this.globalState.inventory.relics.filter(r => !consumed.includes(r));
             const newRelic = RelicGenerator.generateRelic(targetRank + 1);
             this.globalState.inventory.relics.push(newRelic);
-            this.showToast(`『${newRelic.name}』のメモリアを合成した`);
+            this.showToast(`『${newRelic.name}』のメモリアを合成した (-${spCost.toLocaleString()} SP)`);
         } else {
             if (!this.globalState.inventory.gems) this.globalState.inventory.gems = [];
             this.globalState.inventory.gems = this.globalState.inventory.gems.filter(g => !consumed.includes(g));
             const newGem = RelicGenerator.generateGem(targetRank + 1);
             this.globalState.inventory.gems.push(newGem);
-            this.showToast(`『${newGem.name}』の宝石を合成した`);
+            this.showToast(`『${newGem.name}』の宝石を合成した (-${spCost.toLocaleString()} SP)`);
         }
 
         SaveManager.saveGame();
@@ -884,12 +905,20 @@ export default class EquipmentScene extends Phaser.Scene {
 
         const itemH = 44;
 
+        const spCost = this.getSpCost(baseItem.rank);
+        const currentSp = Math.floor(this.globalState.stockSp || 0);
+        const hasEnoughSp = currentSp >= spCost;
+        const spColor = hasEnoughSp ? '#ffee66' : '#ff5555';
+
         // --- topContainer ---
         this.topContainer.add(
             this.add.text(20, 0, '【このレリクスを強化】', { fontSize: '18px', color: '#ffcc44', fontStyle: 'bold' })
         );
         this.topContainer.add(
-            this.add.text(210, 2, `[${rankStr}${typeLabel} ➔ ${nextRankStr}${typeLabel}]`, { fontSize: '14px', color: '#aaffaa' })
+            this.add.text(200, 2, `[${rankStr}${typeLabel} ➔ ${nextRankStr}${typeLabel}]`, { fontSize: '14px', color: '#aaffaa' })
+        );
+        this.topContainer.add(
+            this.add.text(this.width - 250, 2, `消費SP: ${spCost.toLocaleString()} (所持: ${currentSp.toLocaleString()})`, { fontSize: '13px', color: spColor, fontStyle: 'bold' })
         );
 
         // ① 強化ベース（一番上の枠色を変えてゴールドハイライト表示）
@@ -990,6 +1019,11 @@ export default class EquipmentScene extends Phaser.Scene {
         const nextRankStr = this.getRankString(targetRank + 1);
         const typeLabel = this.itemType === 'relic' ? 'レリクス' : '宝石';
 
+        const spCost = this.getSpCost(targetRank);
+        const currentSp = Math.floor(this.globalState.stockSp || 0);
+        const hasEnoughSp = currentSp >= spCost;
+        const spColor = hasEnoughSp ? '#ffee66' : '#ff5555';
+
         // --- topContainer (y=70〜) ---
         // タイトル
         this.topContainer.add(
@@ -998,6 +1032,11 @@ export default class EquipmentScene extends Phaser.Scene {
         this.topContainer.add(
             this.add.text(20, 22, `${rankStr}${typeLabel} × 5 → ${nextRankStr}${typeLabel} × 1`, {
                 fontSize: '14px', color: '#aaaaaa'
+            })
+        );
+        this.topContainer.add(
+            this.add.text(this.width - 250, 22, `消費SP: ${spCost.toLocaleString()} (所持: ${currentSp.toLocaleString()})`, {
+                fontSize: '13px', color: spColor, fontStyle: 'bold'
             })
         );
 
@@ -1037,6 +1076,24 @@ export default class EquipmentScene extends Phaser.Scene {
             this.drawUI();
         });
         this.midContainer.add(btnNo);
+    }
+
+    // ─────────────────────────────────────────────────────
+    // 強化・合成 SP消費テーブル
+    // ─────────────────────────────────────────────────────
+    static SP_COST_TABLE = {
+        1: 5,       // N
+        2: 25,      // R
+        3: 125,     // SR
+        4: 625,     // SSR
+        5: 3125,    // UR
+        6: 15625,   // MR
+        7: 78125,   // GR
+        8: 390625   // GTR
+    };
+
+    getSpCost(rank) {
+        return EquipmentScene.SP_COST_TABLE[rank] || 5;
     }
 
     // ─────────────────────────────────────────────────────

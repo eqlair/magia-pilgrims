@@ -22,7 +22,9 @@ export class CharacterDetailHelper {
             case 3: return 'SR';
             case 4: return 'SSR';
             case 5: return 'UR';
-            case 6: return 'LR';
+            case 6: return 'MR';
+            case 7: return 'GR';
+            case 8: return 'GTR';
             default: return 'N';
         }
     }

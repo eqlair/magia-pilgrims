@@ -914,6 +914,13 @@ export default class AdventureScene extends Phaser.Scene {
 
                     this._updateDateTimeDisplay();
 
+                    // 周回報酬: URレリクス（Rank 5）を付与
+                    const urRelic = RelicGenerator.generateRelic(5);
+                    if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                    if (!gs.inventory.relics) gs.inventory.relics = [];
+                    gs.inventory.relics.push(urRelic);
+                    this.showToast(`✨ 周回報酬: URレリクス『${urRelic.name}』を獲得！`);
+
                     this.resetMapForNewLoop();
                     SaveManager.saveGame(this);
                     TransitionManager.fadeIn(this);
@@ -3209,12 +3216,18 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.currentDay === 7 && this.timePeriodIndex < 1) return false; // 12/7午前は午後の時報まで待つ
             const eventData = this.cache.json.get('event_1207');
             if (eventData) {
+                const ssrRelic = RelicGenerator.generateRelic(4);
+                if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                if (!gs.inventory.relics) gs.inventory.relics = [];
+                gs.inventory.relics.push(ssrRelic);
+
                 this.enqueueEvent({
                     type: 'event',
                     data: {
                         events: eventData,
                         returnScene: 'AdventureScene',
-                        from1207Event: true
+                        from1207Event: true,
+                        explorationDrops: [ssrRelic]
                     }
                 });
                 return true; // イベント登録
@@ -3236,8 +3249,12 @@ export default class AdventureScene extends Phaser.Scene {
                 this.sound.stopAll();
 
                 const newGem = RelicGenerator.generateGem(1);
+                const ssrRelic = RelicGenerator.generateRelic(4);
                 if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                if (!gs.inventory.gems) gs.inventory.gems = [];
+                if (!gs.inventory.relics) gs.inventory.relics = [];
                 gs.inventory.gems.push(newGem);
+                gs.inventory.relics.push(ssrRelic);
 
                 this.enqueueEvent({
                     type: 'event',
@@ -3245,7 +3262,7 @@ export default class AdventureScene extends Phaser.Scene {
                         events: eventData,
                         returnScene: 'AdventureScene',
                         from1214Event: true,
-                        explorationDrops: [newGem]
+                        explorationDrops: [newGem, ssrRelic]
                     }
                 });
                 return true;
