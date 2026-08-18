@@ -160,6 +160,12 @@ export class BattleEngine {
             this.spawnedInWave = 3; // スポーン済み扱いにして追加スポーンを防止
             this.waveState = 'playing';
             this.waveTimer = 0;
+        } else if (this.config.isWitchOnly || (this.isTowerBattle && this.majoLevel > 0)) {
+            // 魔女単体戦モード (タワーの魔女マスなど: 雑魚戦なしで直接魔女出現)
+            this.totalWaves = 0;
+            this.waveState = 'boss_presentation';
+            this.bossPresTimer = 2.0; // 2秒の警告演出後に魔女出現
+            this.waveTimer = 0;
         }
 
         // パーティ情報を取得
@@ -530,7 +536,7 @@ export class BattleEngine {
             level: this.majoLevel,
             textureKey: textureKey,
             attribute: this.config.isTutorial ? 'green' : (this.enemyAttribute || 'green'),
-            movePattern: this.config.isTutorial ? 1 : undefined // チュートリアルは通常タイプ(1)
+            movePattern: this.config.isTutorial ? 1 : (this.config.witchPattern !== undefined ? this.config.witchPattern : undefined)
         };
 
         const boss = new BossCharacter(x, z, bossData);

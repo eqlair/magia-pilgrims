@@ -1761,6 +1761,10 @@ export default class AdventureScene extends Phaser.Scene {
             const attrNum = rc % 5; // 0:赤, 1:紫, 2:緑, 3:黄, 4:青
             const towerEnemiesList = this.cache.json.get('tower_enemies') || [];
 
+            const hasWitch = !!hex.cellData.hasWitch;
+            const witchLevel = hex.cellData.witchLevel || 0;
+            const witchPattern = hex.cellData.witchPattern || 1;
+
             this.cameras.main.flash(1000, 255, 255, 255);
             this.time.delayedCall(1000, () => {
                 this.scene.pause();
@@ -1769,7 +1773,9 @@ export default class AdventureScene extends Phaser.Scene {
                     returnScene: 'AdventureScene',
                     enemyLevel: hex.cellData.enemyLevel || (10 + floor * 0.5),
                     enemyAttr: attrNum + 1,
-                    majoLevel: 0,
+                    majoLevel: hasWitch ? witchLevel : 0,
+                    witchPattern: hasWitch ? witchPattern : 1,
+                    isWitchOnly: hasWitch,
                     isNightBattle: false,
                     isTowerBattle: true,
                     towerEnemy1: enemy1,

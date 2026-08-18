@@ -40,6 +40,8 @@ export default class EventScene extends Phaser.Scene {
         this.towerEnemy1 = data.towerEnemy1 !== undefined ? data.towerEnemy1 : 0;
         this.towerEnemy2 = data.towerEnemy2 !== undefined ? data.towerEnemy2 : 0;
         this.towerEnemiesList = data.towerEnemiesList || null;
+        this.isWitchOnly = data.isWitchOnly || false;
+        this.witchPattern = data.witchPattern !== undefined ? data.witchPattern : 1;
 
         const gs = GlobalState.getInstance();
         gs.addLog(`🎬 [EventScene init] from1207=${this.from1207Event}, from1214=${this.from1214Event}, eventLen=${this.eventData ? this.eventData.length : 0}`);
@@ -297,6 +299,8 @@ export default class EventScene extends Phaser.Scene {
                         totalWaves: 2,
                         enemyLevel: this.enemyLevel || 1,
                         majoLevel: this.majoLevel || 0,
+                        witchPattern: this.witchPattern || 1,
+                        isWitchOnly: this.isWitchOnly || false,
                         bgmKey: this.selectedBgmKey,
                         isOverlay: true,
                         returnScene: 'AdventureScene',
