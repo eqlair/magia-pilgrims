@@ -18,6 +18,8 @@ export default class ResultScene extends Phaser.Scene {
         this.returnScene = data.returnScene || 'AdventureScene';
         this.isTutorial = data.isTutorial || false;
         this.isBoss = data.isBoss || false;
+        this.enemyLevel = data.enemyLevel || 1;
+        this.majoLevel = data.majoLevel || 0;
         this.isRelicScreen = false;
 
         this.relicAnimationPlaying = false;
@@ -219,7 +221,7 @@ export default class ResultScene extends Phaser.Scene {
         // 半透明の黒背景
         this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7).setDepth(100);
 
-        const drops = RelicGenerator.generateBattleDrops(this.isBoss);
+        const drops = RelicGenerator.generateBattleDrops(this.isBoss, this.enemyLevel);
         
         if (this.globalState.debugForceGemDrop) {
             drops.push(RelicGenerator.generateGem(1));
@@ -244,11 +246,28 @@ export default class ResultScene extends Phaser.Scene {
         for (let i = 0; i < drops.length; i++) {
             const drop = drops[i];
             let color = '#ffffff';
-            if (drop.rank === 2) color = '#aaffaa';
-            if (drop.rank === 3) color = '#aaaaff';
+            let rankLabel = `[Rank ${drop.rank}]`;
+            if (drop.type === 'gem') {
+                color = '#44ffff';
+                rankLabel = `[宝石]`;
+            } else if (drop.rank === 2) {
+                color = '#aaffaa'; // R
+                rankLabel = `[R]`;
+            } else if (drop.rank === 3) {
+                color = '#88ccff'; // SR
+                rankLabel = `[SR]`;
+            } else if (drop.rank === 4) {
+                color = '#ffcc00'; // SSR
+                rankLabel = `[SSR]`;
+            } else if (drop.rank >= 5) {
+                color = '#ff55ff'; // UR
+                rankLabel = `[UR]`;
+            } else {
+                rankLabel = `[N]`;
+            }
 
-            const txt = this.add.text(width / 2, startY + (i * 40), `Rank${drop.rank}: ${drop.name}`, {
-                fontFamily: 'sans-serif', fontSize: '24px', color: color
+            const txt = this.add.text(width / 2, startY + (i * 40), `${rankLabel} ${drop.name}`, {
+                fontFamily: 'sans-serif', fontSize: '24px', color: color, fontStyle: drop.rank >= 4 ? 'bold' : 'normal'
             }).setOrigin(0.5).setDepth(101).setAlpha(0);
 
             this.tweens.add({
