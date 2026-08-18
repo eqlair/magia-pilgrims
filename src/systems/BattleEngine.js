@@ -791,6 +791,9 @@ export class BattleEngine {
                 if (defender.elemMods && defender.elemMods[atkAttr]) {
                     defBase = Math.max(1, defBase - defender.elemMods[atkAttr]);
                 }
+                if (defender.allElemDef) {
+                    defBase = Math.max(1, defBase - defender.allElemDef);
+                }
                 const multiplier = defBase / 100.0;
                 finalDamage *= multiplier;
                 
