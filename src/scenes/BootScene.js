@@ -100,6 +100,7 @@ export default class BootScene extends Phaser.Scene {
 
         // 探索・休息イベント画像
         this.load.image('ev_expr', 'files/event/ev_expr.jpg');
+        this.load.image('ev_exprX', 'files/event/ev_exprX.jpg');
         this.load.image('ev_daycamp', 'files/event/ev_daycamp.jpg');
         this.load.image('ev_camp', 'files/event/ev_camp.jpg');
         

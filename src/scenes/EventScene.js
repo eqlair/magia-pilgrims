@@ -231,10 +231,14 @@ export default class EventScene extends Phaser.Scene {
         GlobalState.getInstance().addLog(`🚪 [_finishScene] leaving EventScene (from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
         // ワイルドハント突破戦への遷移時はBGMを一切止めない（bgm_wildhuntをそのまま引き継ぐ）
         if (!this.from1221WildhuntEvent && this.sound && this.sound.sounds) {
-            // 戦闘BGM(bgm_battle1~4)は鳴らしたまま引き継ぐ。それ以外は停止
+            // 戦闘BGM(bgm_battle1~4)は鳴らしたまま引き継ぐ。また探索ダイアログ(fromExploration)の時はマップBGM(bgm_hexen, bgm_toppa)も止めずに継続する
             this.sound.sounds.forEach(s => {
-                if (s && s.isPlaying && !(s.key && s.key.startsWith('bgm_battle'))) {
-                    try { s.stop(); } catch (e) {}
+                if (s && s.isPlaying) {
+                    const isBattleBgm = s.key && s.key.startsWith('bgm_battle');
+                    const isMapBgm = s.key && (s.key === 'bgm_hexen' || s.key === 'bgm_toppa');
+                    if (!isBattleBgm && !(this.fromExploration && isMapBgm)) {
+                        try { s.stop(); } catch (e) {}
+                    }
                 }
             });
         }

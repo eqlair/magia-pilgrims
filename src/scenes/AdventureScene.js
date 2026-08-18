@@ -697,13 +697,15 @@ export default class AdventureScene extends Phaser.Scene {
             // 休息・戦闘完了時のみ時間を1コマ進める
             // ※ fromExploration は除外！探索の時間進行は全ステップ完了後に
             //   _advanceTimeAfterExploration() が advanceTime() を呼ぶので、ここでは呼ばない
-            // ※ fromNightExploration は夜探索専用フラグ。こちらはここで時間を進める
-            // 休息・戦闘完了時のみ時間を1コマ進める (タワーモード時は時間は進まない！)
+            // 休息・戦闘完了時のみ時間を1コマ進める (タワーモード時は時間は進まないが、休息時は食料減少！)
             if (!this.isTowerMode && data && (data.fromRest || data.fromBattle || data.fromNightExploration) && !data.fromTarot && !data.isNotification) {
                 if (!advancedTimeThisResume) {
                     this.advanceTime();
                     advancedTimeThisResume = true;
                 }
+            } else if (this.isTowerMode && data && data.fromRest) {
+                // タワー内での休息による食料減少 (5〜40)
+                this._drainFoodInTower();
             }
 
 
@@ -962,6 +964,9 @@ export default class AdventureScene extends Phaser.Scene {
             backgroundColor: '#000000bb',
             padding: { x: 16, y: 6 }
         }).setOrigin(0.5, 0.5).setDepth(1500).setScrollFactor(0).setVisible(false);
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.ignore(this.towerGuideText);
+        }
 
         // --- UI (2) 中段: 探索ボタン（Btans.png）＆ 休息ボタン（Bkyuu.png） ---
         const tansScale = 0.33;
@@ -1778,13 +1783,9 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.isTowerMode) {
             const currentFloor = 59 - this.playerRow;
             const targetFloor = 59 - hex.row;
-            const gs = GlobalState.getInstance();
 
-            if (targetFloor > currentFloor) {
-                gs.food = Math.min(140, gs.food + 100);
-                this._updateFoodDisplay();
-                this.showToast(`フロア移動！ 食料 +100（現在: ${Math.floor(gs.food)}）`);
-            }
+            // タワー内行動による食料減少 (5〜40)
+            this._drainFoodInTower();
 
             const floor = targetFloor;
             const rc = hex.col + (floor * 5);
@@ -2234,6 +2235,14 @@ export default class AdventureScene extends Phaser.Scene {
         }
     }
 
+    _drainFoodInTower() {
+        if (!this.isTowerMode) return;
+        const gs = GlobalState.getInstance();
+        const foodDrain = Math.floor(Math.random() * 36) + 5; // 5〜40減少
+        gs.food = Math.max(0, gs.food - foodDrain);
+        this._updateFoodDisplay();
+    }
+
 
 
     _startExploration() {
@@ -2242,8 +2251,8 @@ export default class AdventureScene extends Phaser.Scene {
         
         this._preBattleSnapshot = this.createSnapshot();
 
-        // 夜または12月21日の場合は会話イベントを挟んでから戦闘に突入
-        if (this.timeOfDay === '夜' || this.currentDay === 21) {
+        // 夜または12月21日の場合は会話イベントを挟んでから戦闘に突入 (タワー内では常に通常探索)
+        if (!this.isTowerMode && (this.timeOfDay === '夜' || this.currentDay === 21)) {
 
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
             this._isExploring = false; // 探索状態はリセットしておく
@@ -2504,9 +2513,14 @@ export default class AdventureScene extends Phaser.Scene {
                 const stairsProb = Math.max(1, clearedCount) / 10;
                 if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
                     gs.towerStairsFound[currentFloor] = true;
-                    towerStairsMsg = '上の階への階段を発見した！';
+                    gs.food = Math.min(140, gs.food + 140);
+                    this._updateFoodDisplay();
+                    towerStairsMsg = '上の階への階段を発見した！（食料 +140）';
                     this._updateTowerGuideDisplay();
                 }
+
+                // タワー内探索による食料減少 (5〜40)
+                this._drainFoodInTower();
             } else {
                 // ① 食料設定：地名ヘクスは 140、汎用ヘクスは半分（70）
                 const foodAmount = isGeneric ? 70 : 140;
@@ -2571,10 +2585,13 @@ export default class AdventureScene extends Phaser.Scene {
 
             // ── ステップ①: 探索結果ダイアログ (食料・探索メモ) + そのままレリクス一覧表示 ──
             steps.push((onNextStep) => {
+                const exprBgKey = this.isTowerMode ? 'ev_exprX' : 'ev_expr';
                 const exprEvents = [
-                    { cmd: 'bg', key: 'ev_expr' }
+                    { cmd: 'bg', key: exprBgKey }
                 ];
-                const resultFoodText = isGeneric ? '探索を行い、一定量の食料を手に入れた。' : '探索を行い、充分な量の食料を手に入れた。';
+                const resultFoodText = this.isTowerMode
+                    ? '探索を行ったが、食料は見つからなかった。'
+                    : (isGeneric ? '探索を行い、一定量の食料を手に入れた。' : '探索を行い、充分な量の食料を手に入れた。');
                 exprEvents.push({ cmd: 'text', name: '', body: resultFoodText });
                 if (infoText) {
                     exprEvents.push({ cmd: 'text', name: '探索メモ', body: infoText });
@@ -3783,6 +3800,10 @@ export default class AdventureScene extends Phaser.Scene {
             padding: { x: 20, y: 10 },
             align: 'center'
         }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
+
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.ignore(toast);
+        }
 
         this.activeToast = toast;
 
