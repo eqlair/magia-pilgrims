@@ -67,7 +67,7 @@ export default class CampScene extends Phaser.Scene {
                 this.refreshCurrentView();
             });
 
-            // Kキー: レリクス (N:10, R:2, SR:1) ＆ 宝石 1個 を生成
+            // Kキー: レリクス (SSR:10, UR:2, MR:1) ＆ 宝石 1個 を生成
             this.input.keyboard.on('keydown-K', () => {
                 if (!this.globalState.inventory) {
                     this.globalState.inventory = { relics: [], gems: [] };
@@ -75,21 +75,21 @@ export default class CampScene extends Phaser.Scene {
                 if (!this.globalState.inventory.relics) this.globalState.inventory.relics = [];
                 if (!this.globalState.inventory.gems) this.globalState.inventory.gems = [];
 
-                // N (Rank 1) × 10
+                // SSR (Rank 4) × 10
                 for (let i = 0; i < 10; i++) {
-                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(1));
+                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(4));
                 }
-                // R (Rank 2) × 2
+                // UR (Rank 5) × 2
                 for (let i = 0; i < 2; i++) {
-                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(2));
+                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(5));
                 }
-                // SR (Rank 3) × 1
-                this.globalState.inventory.relics.push(RelicGenerator.generateRelic(3));
+                // MR (Rank 7) × 1
+                this.globalState.inventory.relics.push(RelicGenerator.generateRelic(7));
                 // 宝石 × 1
-                this.globalState.inventory.gems.push(RelicGenerator.generateRandomGem());
+                this.globalState.inventory.gems.push(RelicGenerator.generateGem());
 
                 SaveManager.saveGame(this);
-                this.showDebugToast('[DEBUG] レリクス(N:10, R:2, SR:1) ＆ 宝石(1) を生成しました！');
+                this.showDebugToast('[DEBUG] レリクス(SSR:10, UR:2, MR:1) ＆ 宝石(1) を生成しました！');
                 this.refreshCurrentView();
             });
         }

@@ -70,7 +70,7 @@ export default class EquipmentScene extends Phaser.Scene {
                 this.time.delayedCall(2200, () => toast.destroy());
             });
 
-            // Kキー: レリクス (N:10, R:2, SR:1) ＆ 宝石 1個 を生成
+            // Kキー: レリクス (SSR:10, UR:2, MR:1) ＆ 宝石 1個 を生成
             this.input.keyboard.on('keydown-K', () => {
                 if (!this.globalState.inventory) {
                     this.globalState.inventory = { relics: [], gems: [] };
@@ -79,16 +79,16 @@ export default class EquipmentScene extends Phaser.Scene {
                 if (!this.globalState.inventory.gems) this.globalState.inventory.gems = [];
 
                 for (let i = 0; i < 10; i++) {
-                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(1));
+                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(4));
                 }
                 for (let i = 0; i < 2; i++) {
-                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(2));
+                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(5));
                 }
-                this.globalState.inventory.relics.push(RelicGenerator.generateRelic(3));
-                this.globalState.inventory.gems.push(RelicGenerator.generateRandomGem());
+                this.globalState.inventory.relics.push(RelicGenerator.generateRelic(7));
+                this.globalState.inventory.gems.push(RelicGenerator.generateGem());
 
                 SaveManager.saveGame(this);
-                const toast = this.add.text(this.width / 2, 50, '[DEBUG] レリクス(N:10, R:2, SR:1) ＆ 宝石(1) を生成しました！', {
+                const toast = this.add.text(this.width / 2, 50, '[DEBUG] レリクス(SSR:10, UR:2, MR:1) ＆ 宝石(1) を生成しました！', {
                     fontSize: '18px', fontStyle: 'bold', color: '#ffffaa', backgroundColor: '#000000dd', padding: { x: 12, y: 6 }
                 }).setOrigin(0.5).setDepth(9999);
                 this.time.delayedCall(2200, () => toast.destroy());
