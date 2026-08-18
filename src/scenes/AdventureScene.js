@@ -145,12 +145,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
         // ── BGM制御 ──
-        this.sound.stopAll();
-        if (this.cache.audio.exists('bgm_hexen')) {
-            const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
-            mapBgm.play();
-            this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
-        }
+        this._playMapBgm(true);
 
         // ヘックスのパラメータ設定
         this.hexRadius = 60;
@@ -587,12 +582,7 @@ export default class AdventureScene extends Phaser.Scene {
             });
             
             // BGM再開
-            this.sound.stopAll();
-            if (this.cache.audio.exists('bgm_hexen')) {
-                const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
-                mapBgm.play();
-                this.tweens.add({ targets: mapBgm, volume: 0.5, duration: 1000 });
-            }
+            this._playMapBgm(true);
             return;
         }
 
@@ -777,50 +767,12 @@ export default class AdventureScene extends Phaser.Scene {
 
 
                 // マップBGMを再開
-                if (this.tweens && typeof this.tweens.getTweens === 'function') {
-                    this.tweens.getTweens().forEach(t => {
-                        if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
-                            t.stop();
-                        }
-                    });
-                }
-                this.sound.stopAll();
-                if (this.cache.audio.exists('bgm_hexen')) {
-                    const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
-                    mapBgm.play();
-                    this.tweens.add({
-                        targets: mapBgm, volume: 0.5, duration: 1000,
-                        onUpdate: (tween, target) => {
-                            if (!target || !target.manager) tween.stop();
-                        }
-                    });
-                }
+                this._playMapBgm(true);
             }
 
             // タロットからの復帰時などもマップBGMを再開（ワイルドハントイベント経由の場合はスキップ）
             if ((!data || (!data.fromBattle && !data.startBattle)) && !data?.from1221WildhuntEvent) {
-                const existing = this.sound.get('bgm_hexen');
-                if (!existing || !existing.isPlaying) {
-                    if (this.tweens && typeof this.tweens.getTweens === 'function') {
-                        this.tweens.getTweens().forEach(t => {
-                            if (t.targets && t.targets.some(target => target && target.key === 'bgm_hexen')) {
-                                t.stop();
-                            }
-                        });
-                    }
-                    this.sound.stopAll();
-
-                    if (this.cache.audio.exists('bgm_hexen')) {
-                        const mapBgm = this.sound.add('bgm_hexen', { loop: true, volume: 0 });
-                        mapBgm.play();
-                        this.tweens.add({
-                            targets: mapBgm, volume: 0.5, duration: 1000,
-                            onUpdate: (tween, target) => {
-                                if (!target || !target.manager) tween.stop();
-                            }
-                        });
-                    }
-                }
+                this._playMapBgm();
             }
 
 
@@ -3770,6 +3722,42 @@ export default class AdventureScene extends Phaser.Scene {
             ease: 'Power2',
             onComplete: () => toast.destroy()
         });
+    }
+
+    _getMapBgmKey() {
+        return this.isTowerMode ? 'bgm_toppa' : 'bgm_hexen';
+    }
+
+    _playMapBgm(force = false) {
+        const bgmKey = this._getMapBgmKey();
+        const existing = this.sound.get(bgmKey);
+
+        if (!force && existing && existing.isPlaying) return;
+
+        if (this.tweens && typeof this.tweens.getTweens === 'function') {
+            this.tweens.getTweens().forEach(t => {
+                if (t.targets && t.targets.some(target => target && (target.key === 'bgm_hexen' || target.key === 'bgm_toppa'))) {
+                    try { t.stop(); } catch(e){}
+                }
+            });
+        }
+
+        this.sound.stopAll();
+
+        if (this.cache.audio.exists(bgmKey)) {
+            const mapBgm = this.sound.add(bgmKey, { loop: true, volume: 0 });
+            mapBgm.play();
+            this.tweens.add({
+                targets: mapBgm,
+                volume: 0.5,
+                duration: 1000,
+                onUpdate: (tween, target) => {
+                    if (!target || !target.manager) {
+                        try { tween.stop(); } catch(e){}
+                    }
+                }
+            });
+        }
     }
 }
 
