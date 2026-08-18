@@ -129,7 +129,7 @@ export class PlayerCharacter extends BattleEntity {
         this.atk = stats.atk || this.charDef.baseAtk || 100;
         this.reloadStat = stats.reload || 100; // ベース100
         this.hitRateBonus = stats.hitRateBonus || 0; // 命中率ボーナス
-        this.evadeRateBonus = stats.evadeRateBonus || 0; // 回避率ボーナス
+        this.evadeRateBonus = (stats.evadeRateBonus || 0) + 0.05; // デフォルト回避率5% ＋ 装備補正
         this.critRateBonus = stats.critRateBonus || 0; // クリティカル率ボーナス
         this.critMultBonus = stats.critMultBonus || 0; // クリティカル倍率ボーナス
         this.elemMods = stats.elemMods || { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };

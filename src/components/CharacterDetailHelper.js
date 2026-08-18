@@ -219,20 +219,20 @@ export class CharacterDetailHelper {
         ry += lineSpacing * 0.7;
 
         const evadeBonus = Math.floor((stats.evadeRateBonus || 0) * 100);
-        const evadeRateStr = `0%`;
-        const evadeRateDiffStr = evadeBonus !== 0 ? ` (${evadeBonus > 0 ? '+' : ''}${evadeBonus})` : '';
+        const evadeRateStr = `5%`;
+        const evadeRateDiffStr = evadeBonus !== 0 ? ` (${evadeBonus > 0 ? '+' : ''}${evadeBonus}%)` : '';
         targetContainer.add(scene.add.text(rx, ry, `回避率: ${evadeRateStr}${evadeRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
         const critBonus = Math.floor((stats.critRateBonus || 0) * 100);
         const critRateStr = `5%`;
-        const critRateDiffStr = critBonus !== 0 ? ` (${critBonus > 0 ? '+' : ''}${critBonus})` : '';
+        const critRateDiffStr = critBonus !== 0 ? ` (${critBonus > 0 ? '+' : ''}${critBonus}%)` : '';
         targetContainer.add(scene.add.text(rx, ry, `クリティカル率: ${critRateStr}${critRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
         const critMultBonus = Math.floor((stats.critMultBonus || 0) * 100);
-        const critMultStr = `100%`;
-        const critMultDiffStr = critMultBonus !== 0 ? ` (${critMultBonus > 0 ? '+' : ''}${critMultBonus})` : '';
+        const critMultStr = `200%`;
+        const critMultDiffStr = critMultBonus !== 0 ? ` (${critMultBonus > 0 ? '+' : ''}${critMultBonus}%)` : '';
         targetContainer.add(scene.add.text(rx, ry, `クリティカル倍率: ${critMultStr}${critMultDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 

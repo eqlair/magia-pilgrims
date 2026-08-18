@@ -363,7 +363,7 @@ export class GlobalState {
                 } else if (tName.includes('CH率') || tName.includes('クリティカル率')) {
                     critRateMod += tLevel * 0.05;
                 } else if (tName.includes('CH倍率') || tName.includes('クリティカル倍率')) {
-                    critMultMod += tLevel * 0.10;
+                    critMultMod += tLevel * 0.50;
                 } else if (tName.includes('全攻撃') || tName.includes('全攻撃LV') || tName.includes('全攻撃Lv')) {
                     meleeLevelBonus += tLevel;
                     rangedLevelBonus += tLevel;
