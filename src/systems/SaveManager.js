@@ -103,6 +103,9 @@ export class SaveManager {
                         towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
                         towerHexStates: hexStates
                     };
+                    if (existing && existing.adventureState) {
+                        adventureData = existing.adventureState;
+                    }
                 } else {
                     // 通常マップ時のセーブ
                     gs.normalPlayerCol = adventureScene.playerCol;
@@ -121,6 +124,19 @@ export class SaveManager {
                         inRestMode: adventureScene.inRestMode || false,
                         hexStates: hexStates
                     };
+                    // タワーの状態は既存データまたはGlobalStateから必ず保持・保存！
+                    if (gs.towerHexStates && gs.towerHexStates.length > 0) {
+                        towerData = {
+                            towerPlayerCol: gs.towerPlayerCol !== undefined ? gs.towerPlayerCol : 2,
+                            towerPlayerRow: gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59,
+                            towerFloor: 59 - (gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59),
+                            towerStairsFound: gs.towerStairsFound ? JSON.parse(JSON.stringify(gs.towerStairsFound)) : {},
+                            towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
+                            towerHexStates: gs.towerHexStates
+                        };
+                    } else if (existing && existing.towerState) {
+                        towerData = existing.towerState;
+                    }
                 }
             } else if (existing && existing.adventureState) {
                 adventureData = existing.adventureState;

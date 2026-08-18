@@ -297,6 +297,22 @@ export default class AdventureScene extends Phaser.Scene {
             this.mapContainer.add(h.container);
         }
 
+        if (this.isTowerMode && gs.towerHexStates && Array.isArray(gs.towerHexStates) && gs.towerHexStates.length > 0) {
+            for (const state of gs.towerHexStates) {
+                const hex = this.hexes.find(h => h.col === state.col && h.row === state.row);
+                if (hex && hex.cellData) {
+                    if (state.visited !== undefined) hex.cellData.visited = state.visited;
+                    else if (state.isExplored) hex.cellData.visited = 1;
+                    if (state.revealed !== undefined) hex.cellData.revealed = state.revealed;
+                    hex.isExplored = !!(state.isExplored || hex.cellData.visited > 0);
+                    if (state.enemyLevel !== undefined) hex.cellData.enemyLevel = state.enemyLevel;
+                    if (state.witchLevel !== undefined) hex.cellData.witchLevel = state.witchLevel;
+                    if (state.enemyAttr !== undefined) hex.cellData.enemyAttr = state.enemyAttr;
+                    if (state.cleared !== undefined) hex.cellData.cleared = state.cleared;
+                }
+            }
+        }
+
 
 
 
@@ -3414,8 +3430,12 @@ export default class AdventureScene extends Phaser.Scene {
                     this.playerRow = gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59;
                 }
 
-                if (tower.towerHexStates && Array.isArray(tower.towerHexStates) && this.hexes) {
-                    for (const state of tower.towerHexStates) {
+                const statesToApply = (tower && tower.towerHexStates && Array.isArray(tower.towerHexStates))
+                    ? tower.towerHexStates
+                    : (gs.towerHexStates && Array.isArray(gs.towerHexStates) ? gs.towerHexStates : null);
+
+                if (statesToApply && this.hexes) {
+                    for (const state of statesToApply) {
                         const hex = this.hexes.find(h => h.col === state.col && h.row === state.row);
                         if (hex && hex.cellData) {
                             if (state.visited !== undefined) hex.cellData.visited = state.visited;
@@ -3423,6 +3443,7 @@ export default class AdventureScene extends Phaser.Scene {
                             if (state.revealed !== undefined) hex.cellData.revealed = state.revealed;
                             hex.isExplored = !!(state.isExplored || hex.cellData.visited > 0);
                             if (state.enemyLevel !== undefined) hex.cellData.enemyLevel = state.enemyLevel;
+                            if (state.witchLevel !== undefined) hex.cellData.witchLevel = state.witchLevel;
                             if (state.enemyAttr !== undefined) hex.cellData.enemyAttr = state.enemyAttr;
                             if (state.cleared !== undefined) hex.cellData.cleared = state.cleared;
                         }
@@ -3431,6 +3452,22 @@ export default class AdventureScene extends Phaser.Scene {
             } else {
                 this.playerCol = gs.towerPlayerCol !== undefined ? gs.towerPlayerCol : 2;
                 this.playerRow = gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59;
+
+                if (gs.towerHexStates && Array.isArray(gs.towerHexStates) && this.hexes) {
+                    for (const state of gs.towerHexStates) {
+                        const hex = this.hexes.find(h => h.col === state.col && h.row === state.row);
+                        if (hex && hex.cellData) {
+                            if (state.visited !== undefined) hex.cellData.visited = state.visited;
+                            else if (state.isExplored) hex.cellData.visited = 1;
+                            if (state.revealed !== undefined) hex.cellData.revealed = state.revealed;
+                            hex.isExplored = !!(state.isExplored || hex.cellData.visited > 0);
+                            if (state.enemyLevel !== undefined) hex.cellData.enemyLevel = state.enemyLevel;
+                            if (state.witchLevel !== undefined) hex.cellData.witchLevel = state.witchLevel;
+                            if (state.enemyAttr !== undefined) hex.cellData.enemyAttr = state.enemyAttr;
+                            if (state.cleared !== undefined) hex.cellData.cleared = state.cleared;
+                        }
+                    }
+                }
             }
 
             // プレイヤー位置とカメラの更新

@@ -1073,14 +1073,8 @@ export class GlobalState {
         this.ikebukuro01Played = false;
         this.ikebukuro02Played = false;
 
-        // タワー編のリセット
+        // タワー編のモードフラグのみ通常マップへ戻す（タワーの踏破・敵レベル・魔女レベル・階段データは永久保持！）
         this.isTowerMode = false;
-        this.towerFloor = 0;
-        this.towerPlayerCol = 2;
-        this.towerPlayerRow = 59;
-        this.towerHexStates = [];
-        this.towerStairsFound = {};
-        this.towerClearedHexes = {};
         this.normalPlayerCol = 3;
         this.normalPlayerRow = 6;
 
