@@ -929,26 +929,34 @@ export class BattleRenderer {
 
             if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && eff.type.startsWith('majo_death'))) {
 
-                // 爆発エフェクト (魔女死亡・雑魚死亡時含む): bomb.png (300x300) を使用。着色なしで急拡大＆フェードアウト
+                // 爆発エフェクト (魔女死亡・雑魚死亡時含む): bomb.png (300x300) を使用。加算合成で急拡大＆発光フェード
                 obj.setPosition(p.x, p.y - p.scale * 0.5);
                 const radiusPx = (eff.radius || 1.5) * p.scale;
                 const baseWidth = obj.width || 300;
                 
-                // 魔女死亡時の小爆発(majo_death_2)はサイズ2倍、最終大爆発(majo_death_3)は超巨大に拡大
+                // 魔女死亡時の小爆発(majo_death_2)はサイズ5倍、最終大爆発(majo_death_3)は超巨大に拡大
                 let sizeMult = 2.5;
                 if (eff.type === 'enemy_death') sizeMult = 1.5;
                 if (eff.type === 'majo_death_2') sizeMult = 5.0;
-                if (eff.type === 'majo_death_3') sizeMult = 8.0;
+                if (eff.type === 'majo_death_3') sizeMult = 8.5;
 
-
-                const scaleFactor = 0.4 + progress * 1.2;
+                const scaleFactor = 0.4 + progress * 1.3;
                 obj.setScale((radiusPx * sizeMult * scaleFactor) / baseWidth);
                 
-                // 魔女の爆発時（majo_death / witch_bomb）は最大不透明度を70% (0.7) に設定
-                const isWitchExplosion = (eff.type && eff.type.startsWith('majo_death')) || eff.type === 'witch_bomb';
-                const maxAlpha = isWitchExplosion ? 0.7 : 0.95;
-                obj.setAlpha(Math.max(0, (1.0 - progress) * maxAlpha));
-                obj.clearTint(); // 着色しない
+                // 加算合成（ADD）では序盤に高輝度発光し、終盤にかけて自然に光が収束フェードアウト
+                const isWitchFinal = eff.type === 'majo_death_3';
+                let alpha = 1.0;
+                if (progress < 0.15) {
+                    alpha = 1.0; // 瞬間最大発光（白熱）
+                } else {
+                    alpha = Math.max(0, (1.0 - (progress - 0.15) / 0.85));
+                }
+                if (isWitchFinal) {
+                    obj.setAlpha(alpha);
+                } else {
+                    obj.setAlpha(alpha * 0.9);
+                }
+                obj.clearTint();
                 return;
             }
 
