@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
 import { CharacterDetailHelper } from '../components/CharacterDetailHelper';
+import { RelicGenerator } from '../systems/RelicGenerator';
 
 import { fontSize, FONT_MAIN } from '../config/GameFont';
 
@@ -50,14 +51,46 @@ export default class CampScene extends Phaser.Scene {
         const state = GlobalState.getInstance();
         this.globalState = state;
 
-        // デバッグ用: Pキーで宝石ドロップフラグをトグル (デバッグモード時のみ)
+        // デバッグ用キーバインド (デバッグモード時のみ)
         if (GlobalState.IS_DEBUG_MODE) {
+            // Pキー: 宝石ドロップフラグ
             this.input.keyboard.on('keydown-P', () => {
                 this.globalState.debugForceGemDrop = !this.globalState.debugForceGemDrop;
-                const text = this.add.text(width / 2, 50, `[DEBUG] 宝石確定ドロップ: ${this.globalState.debugForceGemDrop ? 'ON' : 'OFF'}`, {
-                    fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
-                }).setOrigin(0.5).setDepth(9999);
-                this.time.delayedCall(2000, () => text.destroy());
+                this.showDebugToast(`[DEBUG] 宝石確定ドロップ: ${this.globalState.debugForceGemDrop ? 'ON' : 'OFF'}`);
+            });
+
+            // Lキー: ストック経験値 50,000 点付与
+            this.input.keyboard.on('keydown-L', () => {
+                const addedExp = this.globalState.addDirectStockExp(50000);
+                SaveManager.saveGame(this);
+                this.showDebugToast(`[DEBUG] ストック経験値 +${addedExp.toLocaleString()} (現在: ${this.globalState.stockExp.toLocaleString()})`);
+                this.refreshCurrentView();
+            });
+
+            // Kキー: レリクス (N:10, R:2, SR:1) ＆ 宝石 1個 を生成
+            this.input.keyboard.on('keydown-K', () => {
+                if (!this.globalState.inventory) {
+                    this.globalState.inventory = { relics: [], gems: [] };
+                }
+                if (!this.globalState.inventory.relics) this.globalState.inventory.relics = [];
+                if (!this.globalState.inventory.gems) this.globalState.inventory.gems = [];
+
+                // N (Rank 1) × 10
+                for (let i = 0; i < 10; i++) {
+                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(1));
+                }
+                // R (Rank 2) × 2
+                for (let i = 0; i < 2; i++) {
+                    this.globalState.inventory.relics.push(RelicGenerator.generateRelic(2));
+                }
+                // SR (Rank 3) × 1
+                this.globalState.inventory.relics.push(RelicGenerator.generateRelic(3));
+                // 宝石 × 1
+                this.globalState.inventory.gems.push(RelicGenerator.generateRandomGem());
+
+                SaveManager.saveGame(this);
+                this.showDebugToast('[DEBUG] レリクス(N:10, R:2, SR:1) ＆ 宝石(1) を生成しました！');
+                this.refreshCurrentView();
             });
         }
 
@@ -234,6 +267,31 @@ export default class CampScene extends Phaser.Scene {
 
     showEffectView(width, height) {
         CharacterDetailHelper.showEffectView(this);
+    }
+
+    refreshCurrentView() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+        if (this.currentDetailCharId && this.detailViewContainer && this.detailViewContainer.visible) {
+            this.showDetailView(this.currentDetailCharId, width, height);
+        } else {
+            this.drawMainView(width, height);
+        }
+    }
+
+    showDebugToast(message) {
+        const width = this.cameras.main.width;
+        const text = this.add.text(width / 2, 50, message, {
+            fontFamily: 'sans-serif',
+            fontSize: '18px',
+            fontStyle: 'bold',
+            color: '#ffffaa',
+            backgroundColor: '#000000dd',
+            padding: { x: 14, y: 8 },
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(9999);
+        this.time.delayedCall(2200, () => text.destroy());
     }
 }
 
