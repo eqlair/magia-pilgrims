@@ -55,6 +55,10 @@ export class RelicGenerator {
         };
     }
 
+    static generateRandomGem(targetRank = null) {
+        return this.generateGem(targetRank);
+    }
+
     static generateGem(targetRank = null) {
         const gemNames = Object.keys(gemEffects);
         const name = gemNames[Math.floor(Math.random() * gemNames.length)];
