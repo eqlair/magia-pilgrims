@@ -877,36 +877,56 @@ export class BossCharacter extends BattleEntity {
         const level = Math.max(1, data.level || 1);
         this.level = level;
         
-        // レベル別定義テーブル (LV1〜13)
-        const hpTable = [6000, 12000, 18000, 24000, 33000, 42000, 51000, 60000, 80000, 100000, 110000, 120000, 130000];
-        const atkTable = [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27];
-        const weightTable = [15, 36, 90, 223, 550, 1350, 3300, 8000, 12700, 18000, 20000, 20000, 20000];
-        const sizeTable = [1.2, 1.6, 2.2, 3.0, 4.0, 5.4, 7.2, 8.0, 9.0, 10.0, 10.5, 11.0, 11.5];
-        const elemDefTable = [0, 10, 10, 10, 10, 10, 10, 10, 10, 10, 20, 20, 20];
-        const evadeTable = [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10];
+        // LV1〜10の基礎テーブル
+        const baseHpTable = [6000, 12000, 18000, 24000, 33000, 42000, 51000, 60000, 80000, 100000];
+        const baseWeightTable = [15, 36, 90, 223, 550, 1350, 3300, 8000, 12700, 18000];
+        const baseSizeTable = [1.2, 1.6, 2.2, 3.0, 4.0, 5.4, 7.2, 8.0, 9.0, 10.0];
 
-        const idx = Math.min(level - 1, hpTable.length - 1);
-
-        if (level <= hpTable.length) {
-            this.hp = hpTable[idx];
+        // 1. 生命力 (HP)
+        if (level <= 10) {
+            this.hp = baseHpTable[level - 1];
         } else {
-            this.hp = hpTable[hpTable.length - 1] + (level - hpTable.length) * 10000;
+            this.hp = level * 10000;
         }
         this.maxHp = this.hp;
 
-        this.atkPower = level <= atkTable.length ? atkTable[idx] : (14 + level);
-        this.weight = weightTable[idx];
-        this.debuffResist = 100; // 魔女ボスはデバフ抵抗100
+        // 2. 攻撃力 (14 + level)
+        this.atkPower = 14 + level;
 
-        // 各属性防御力(%)と回避率(%)
-        this.allElemDef = elemDefTable[idx];
-        this.evadeRateBonus = evadeTable[idx];
+        // 3. 重量 (LV11以降は20,000カンスト固定)
+        this.weight = level <= 10 ? baseWeightTable[level - 1] : 20000;
+
+        // 4. デバフ抵抗 (全レベル100)
+        this.debuffResist = 100;
+
+        // 5. 大きさ (LV10以降は+0.5m/LVずつ増加)
+        let calcSize = 1.0;
+        if (level <= 10) {
+            calcSize = baseSizeTable[level - 1];
+        } else {
+            calcSize = 10.0 + (level - 10) * 0.5;
+        }
+        const gs = GlobalState.getInstance();
+        this.size = calcSize * (gs.debugEnemySizeMultiplier || 1.0);
+
+        // 6. 各属性防御力(%) - LV10毎にガクッと10%ずつ増加 (LV1=0%, LV2~10=10%, LV11~19=20%, LV20~29=30%...)
+        if (level === 1) {
+            this.allElemDef = 0;
+        } else if (level <= 10) {
+            this.allElemDef = 10;
+        } else {
+            this.allElemDef = 20 + Math.floor((level - 10) / 10) * 10;
+        }
+
+        // 7. 回避率(%) - LV10毎にガクッと10%ずつ増加 (LV1~10=5%, LV11~19=10%, LV20~29=20%, LV30~39=30%...)
+        if (level <= 10) {
+            this.evadeRateBonus = 0.05;
+        } else {
+            this.evadeRateBonus = 0.10 + Math.floor((level - 10) / 10) * 0.10;
+        }
 
         this.sp = 0;
         this.maxSp = 0;
-
-        const gs = GlobalState.getInstance();
-        this.size = sizeTable[idx] * (gs.debugEnemySizeMultiplier || 1.0);
         
         // 魔女の大きさ/2 + 魔女の座標 が画面センター(約12.6m)になる場所へ出現
         this.z = 12.6 - (this.size / 2);
