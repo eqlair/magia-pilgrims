@@ -130,6 +130,31 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.image('bg_tower01', 'files/MAP/tower01.jpg');
 
+        // タワー用エリア画像 (全17種類)
+        const towerMapImages = {
+            '街': 'files/MAP/01city.jpg',
+            '石': 'files/MAP/02boulder.jpg',
+            '樹': 'files/MAP/03tree.jpg',
+            '骨': 'files/MAP/06skal.jpg',
+            '氷': 'files/MAP/04ice.jpg',
+            '顔': 'files/MAP/07face.jpg',
+            '炎': 'files/MAP/05fire.jpg',
+            '金': 'files/MAP/08gold.jpg',
+            '異': 'files/MAP/09al.jpg',
+            '外': 'files/MAP/10out.jpg',
+            '黒': 'files/MAP/11black.jpg',
+            '赤': 'files/MAP/12red.jpg',
+            '青': 'files/MAP/16blue.jpg',
+            '黄': 'files/MAP/15yerrow.jpg',
+            '緑': 'files/MAP/14green.jpg',
+            '紫': 'files/MAP/13purple.jpg',
+            '白': 'files/MAP/17white.jpg',
+            'top of tower': 'files/MAP/17white.jpg'
+        };
+        for (const [key, path] of Object.entries(towerMapImages)) {
+            this.load.image(`tower_map_${key}`, path);
+        }
+
         this.load.image('bg_resp', 'files/event/resp.jpg');
         this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
         this.load.audio('bgm_star', 'files/BGM/star.mp3');

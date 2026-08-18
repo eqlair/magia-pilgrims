@@ -223,9 +223,10 @@ export default class AdventureScene extends Phaser.Scene {
         for (const h of this.hexes) {
             h.container = this.add.container(h.px, h.py);
             
-            // 背景画像用Sprite (タワー時はbg_tower01)
-            const defaultBgKey = this.isTowerMode ? 'bg_tower01' : 'map_img_woods.jpg';
-            h.bgSprite = this.add.sprite(0, 0, defaultBgKey);
+            // 背景画像用Sprite (タワー時はエリア固有画像)
+            const initialImgKey = this.findImageFile(h.col, h.row, h.cellData);
+            h.bgSprite = this.add.sprite(0, 0, initialImgKey);
+            h.currentImgKey = initialImgKey;
             h.bgSprite.setScale(1, this.mapTiltY);
             
             // インタラクティブ領域
@@ -1219,7 +1220,14 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     findImageFile(col, row, cellData) {
-        if (this.isTowerMode) return 'bg_tower01';
+        if (this.isTowerMode) {
+            const rawName = cellData ? (cellData.name || '').trim() : '';
+            const key = `tower_map_${rawName}`;
+            if (this.textures && this.textures.exists(key)) {
+                return key;
+            }
+            return 'bg_tower01';
+        }
         const colLetter = String.fromCharCode(97 + col);
         const rowNum = row + 1;
         
@@ -1248,7 +1256,14 @@ export default class AdventureScene extends Phaser.Scene {
 
     // 背景用: カット前の元画像キーを返す（bg_img_ プレフィックス）
     findBgImageFile(col, row, cellData) {
-        if (this.isTowerMode) return 'bg_tower01';
+        if (this.isTowerMode) {
+            const rawName = cellData ? (cellData.name || '').trim() : '';
+            const key = `tower_map_${rawName}`;
+            if (this.textures && this.textures.exists(key)) {
+                return key;
+            }
+            return 'bg_tower01';
+        }
         if (!cellData) return 'map_img_woods.jpg';
         const colLetter = String.fromCharCode(97 + col);
         const rowNum = row + 1;
