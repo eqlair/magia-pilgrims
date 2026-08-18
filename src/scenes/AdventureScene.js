@@ -956,13 +956,11 @@ export default class AdventureScene extends Phaser.Scene {
         // --- タワー用 階段探索案内バナー (画面上部中央) ---
         this.towerGuideText = this.add.text(width / 2, 28, '🔍 探索を行って上り階段を発見してください', {
             fontFamily: 'sans-serif',
-            fontSize: '15px',
+            fontSize: '14px',
             fontStyle: 'bold',
             color: '#ffee66',
-            backgroundColor: '#000000cc',
-            padding: { x: 14, y: 6 },
-            stroke: '#000000',
-            strokeThickness: 3
+            backgroundColor: '#000000bb',
+            padding: { x: 16, y: 6 }
         }).setOrigin(0.5, 0.5).setDepth(1500).setScrollFactor(0).setVisible(false);
 
         // --- UI (2) 中段: 探索ボタン（Btans.png）＆ 休息ボタン（Bkyuu.png） ---
@@ -3766,24 +3764,41 @@ export default class AdventureScene extends Phaser.Scene {
 
     showToast(message) {
         const { width, height } = this.scale;
+
+        // 既存のトーストがあれば破棄して2重表示を完全に防止
+        if (this.activeToast) {
+            try {
+                if (this.activeToast.tween) this.activeToast.tween.stop();
+                this.activeToast.destroy();
+            } catch (e) {}
+            this.activeToast = null;
+        }
+
         const toast = this.add.text(width / 2, height / 2 - 80, message, {
             fontFamily: 'sans-serif',
-            fontSize: '18px',
-            color: '#ffffaa',
-            backgroundColor: '#000000dd',
-            padding: { x: 18, y: 10 },
-            stroke: '#000000',
-            strokeThickness: 3,
+            fontSize: '17px',
+            fontStyle: 'bold',
+            color: '#ffffcc',
+            backgroundColor: '#000000ee',
+            padding: { x: 20, y: 10 },
             align: 'center'
         }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
 
-        this.tweens.add({
+        this.activeToast = toast;
+
+        toast.tween = this.tweens.add({
             targets: toast,
             alpha: 0,
-            y: height / 2 - 130,
-            duration: 2200,
+            y: height / 2 - 120,
+            delay: 1000,
+            duration: 800,
             ease: 'Power2',
-            onComplete: () => toast.destroy()
+            onComplete: () => {
+                if (this.activeToast === toast) {
+                    this.activeToast = null;
+                }
+                toast.destroy();
+            }
         });
     }
 
