@@ -953,6 +953,18 @@ export default class AdventureScene extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
 
+        // --- タワー用 階段探索案内バナー (画面上部中央) ---
+        this.towerGuideText = this.add.text(width / 2, 28, '🔍 探索を行って上り階段を発見してください', {
+            fontFamily: 'sans-serif',
+            fontSize: '15px',
+            fontStyle: 'bold',
+            color: '#ffee66',
+            backgroundColor: '#000000cc',
+            padding: { x: 14, y: 6 },
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5, 0.5).setDepth(1500).setScrollFactor(0).setVisible(false);
+
         // --- UI (2) 中段: 探索ボタン（Btans.png）＆ 休息ボタン（Bkyuu.png） ---
         const tansScale = 0.33;
         this.exploreBtn = this.add.image(width / 2 - 110, height - 105, 'btn_tans')
@@ -1139,6 +1151,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.foodText,
             this.spBg,
             this.spText,
+            this.towerGuideText,
         ]);
 
 
@@ -1539,6 +1552,12 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.breakTestBtn) this.breakTestBtn.setVisible(isVisible);
         if (this.dpsTestBtn) this.dpsTestBtn.setVisible(isVisible);
         if (this.towerTestBtn) this.towerTestBtn.setVisible(isVisible);
+
+        if (!isVisible) {
+            if (this.towerGuideText) this.towerGuideText.setVisible(false);
+        } else {
+            this._updateTowerGuideDisplay();
+        }
     }
 
 
@@ -2166,9 +2185,31 @@ export default class AdventureScene extends Phaser.Scene {
             } else {
                 this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
             }
+            this._updateTowerGuideDisplay();
         } catch (e) {
             console.warn('[AdventureScene] _updateDateTimeDisplay error:', e);
         }
+    }
+
+    _updateTowerGuideDisplay() {
+        if (!this.towerGuideText || !this.towerGuideText.active || !this.towerGuideText.scene) return;
+        if (!this.isTowerMode || this.isWideMap) {
+            this.towerGuideText.setVisible(false);
+            return;
+        }
+
+        const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59);
+        // 最上階（60F = currentFloor: 59）は上り階段不要
+        if (currentFloor >= 59) {
+            this.towerGuideText.setVisible(false);
+            return;
+        }
+
+        const gs = GlobalState.getInstance();
+        const stairsFound = !!gs.towerStairsFound[currentFloor];
+
+        // 階段が見つかっていない場合のみ画面上部中央に表示！
+        this.towerGuideText.setVisible(!stairsFound);
     }
 
 
@@ -2466,6 +2507,7 @@ export default class AdventureScene extends Phaser.Scene {
                 if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
                     gs.towerStairsFound[currentFloor] = true;
                     towerStairsMsg = '上の階への階段を発見した！';
+                    this._updateTowerGuideDisplay();
                 }
             } else {
                 // ① 食料設定：地名ヘクスは 140、汎用ヘクスは半分（70）
