@@ -1238,7 +1238,7 @@ export default class AdventureScene extends Phaser.Scene {
     findImageFile(col, row, cellData) {
         if (this.isTowerMode) {
             const rawName = cellData ? (cellData.name || '').trim() : '';
-            const key = `tower_map_${rawName}`;
+            const key = `hex_map_${rawName}`;
             if (this.textures && this.textures.exists(key)) {
                 return key;
             }
@@ -1274,7 +1274,7 @@ export default class AdventureScene extends Phaser.Scene {
     findBgImageFile(col, row, cellData) {
         if (this.isTowerMode) {
             const rawName = cellData ? (cellData.name || '').trim() : '';
-            const key = `tower_map_${rawName}`;
+            const key = `tower_bg_${rawName}`;
             if (this.textures && this.textures.exists(key)) {
                 return key;
             }

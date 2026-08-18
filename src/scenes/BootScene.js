@@ -131,29 +131,31 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.image('bg_tower01', 'files/MAP/tower01.jpg');
 
-        // タワー用エリア画像 (全17種類)
-        const towerMapImages = {
-            '街': 'files/MAP/01city.jpg',
-            '石': 'files/MAP/02boulder.jpg',
-            '樹': 'files/MAP/03tree.jpg',
-            '骨': 'files/MAP/06skal.jpg',
-            '氷': 'files/MAP/04ice.jpg',
-            '顔': 'files/MAP/07face.jpg',
-            '炎': 'files/MAP/05fire.jpg',
-            '金': 'files/MAP/08gold.jpg',
-            '異': 'files/MAP/09al.jpg',
-            '外': 'files/MAP/10out.jpg',
-            '黒': 'files/MAP/11black.jpg',
-            '赤': 'files/MAP/12red.jpg',
-            '青': 'files/MAP/16blue.jpg',
-            '黄': 'files/MAP/15yerrow.jpg',
-            '緑': 'files/MAP/14green.jpg',
-            '紫': 'files/MAP/13purple.jpg',
-            '白': 'files/MAP/17white.jpg',
-            'top of tower': 'files/MAP/17white.jpg'
+        // タワー用エリア画像 (ヘクス用 200x200六角形PNG & 画面背景用JPG)
+        const towerAreaAssets = {
+            '街': { hex: 'files/MAP/hex_01city.png', bg: 'files/MAP/01city.jpg' },
+            '石': { hex: 'files/MAP/hex_02boulder.png', bg: 'files/MAP/02boulder.jpg' },
+            '樹': { hex: 'files/MAP/hex_03tree.png', bg: 'files/MAP/03tree.jpg' },
+            '骨': { hex: 'files/MAP/hex_06skal.png', bg: 'files/MAP/06skal.jpg' },
+            '氷': { hex: 'files/MAP/hex_04ice.png', bg: 'files/MAP/04ice.jpg' },
+            '顔': { hex: 'files/MAP/hex_07face.png', bg: 'files/MAP/07face.jpg' },
+            '炎': { hex: 'files/MAP/hex_05fire.png', bg: 'files/MAP/05fire.jpg' },
+            '金': { hex: 'files/MAP/hex_08gold.png', bg: 'files/MAP/08gold.jpg' },
+            '異': { hex: 'files/MAP/hex_09al.png', bg: 'files/MAP/09al.jpg' },
+            '外': { hex: 'files/MAP/hex_10out.png', bg: 'files/MAP/10out.jpg' },
+            '黒': { hex: 'files/MAP/hex_11black.png', bg: 'files/MAP/11black.jpg' },
+            '赤': { hex: 'files/MAP/hex_12red.png', bg: 'files/MAP/12red.jpg' },
+            '青': { hex: 'files/MAP/hex_16blue.png', bg: 'files/MAP/16blue.jpg' },
+            '黄': { hex: 'files/MAP/hex_15yerrow.png', bg: 'files/MAP/15yerrow.jpg' },
+            '緑': { hex: 'files/MAP/hex_14green.png', bg: 'files/MAP/14green.jpg' },
+            '紫': { hex: 'files/MAP/hex_13purple.png', bg: 'files/MAP/13purple.jpg' },
+            '白': { hex: 'files/MAP/hex_17white.png', bg: 'files/MAP/17white.jpg' },
+            'top of tower': { hex: 'files/MAP/hex_top_of_tower.png', bg: 'files/MAP/17white.jpg' }
         };
-        for (const [key, path] of Object.entries(towerMapImages)) {
-            this.load.image(`tower_map_${key}`, path);
+        for (const [key, paths] of Object.entries(towerAreaAssets)) {
+            this.load.image(`hex_map_${key}`, paths.hex);
+            this.load.image(`tower_bg_${key}`, paths.bg);
+            this.load.image(`tower_map_${key}`, paths.hex); // 互換用
         }
 
         this.load.image('bg_resp', 'files/event/resp.jpg');
