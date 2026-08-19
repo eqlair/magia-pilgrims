@@ -537,7 +537,7 @@ export class PlayerCharacter extends BattleEntity {
                     const bObj = new Bullet(spawnX, spawnZ, {
                         owner: 'player', isPiercing: true,
                         vx: Math.cos(randomAngle)*spd, vz: Math.sin(randomAngle)*spd,
-                        damage: bulletDmg, knockback: 1, size: 0.8, lifeTime: 4.0, type: 'weapon_004',
+                        damage: bulletDmg, knockback: 1, size: 0.8, lifeTime: 4.0, type: 'weapon_004_ribbon',
                         swayPhase: 0,
                         swayAmp: 0,
                         spinAngle: Math.random() * Math.PI * 2,
