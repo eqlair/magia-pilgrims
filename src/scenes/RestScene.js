@@ -128,6 +128,17 @@ export default class RestScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '18px', color: '#aaaaff', backgroundColor: 'rgba(0,0,0,0.5)', padding: { x: 8, y: 3 }
         }).setOrigin(0, 0));
 
+        // 隊列設定（配置変更）ボタン（右上）
+        const formationBtn = this.add.text(width * 0.95, height * 0.02, '⚔️ 隊列設定', {
+            stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#aaffaa', backgroundColor: '#335533'
+        }).setInteractive().setPadding(10).setOrigin(1, 0);
+
+        formationBtn.on('pointerdown', () => {
+            this.scene.pause('RestScene');
+            this.scene.launch('FormationScene', { party: this.party, returnScene: 'RestScene' });
+        });
+        this.mainViewContainer.add(formationBtn);
+
         const charIds = this.party;
         const startY = height * 0.15;
         const rowHeight = height * 0.15;
