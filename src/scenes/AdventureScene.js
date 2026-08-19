@@ -3352,10 +3352,13 @@ export default class AdventureScene extends Phaser.Scene {
 
     /** 周回開始時のマップ踏破・視界リセット処理 */
     resetMapForNewLoop() {
+        const gs = GlobalState.getInstance();
         this.playerCol = 3;
         this.playerRow = 6;
 
+        // ① 地上マップの雑魚敵レベル復元＆魔女21体のランダム再配置
         if (this.grid) {
+            const landHexes = [];
             for (let r = 0; r < this.grid.length; r++) {
                 if (!this.grid[r]) continue;
                 for (let c = 0; c < this.grid[r].length; c++) {
@@ -3366,14 +3369,45 @@ export default class AdventureScene extends Phaser.Scene {
                         if (hex.cellData.initialEnemyLevel !== undefined) {
                             hex.cellData.enemyLevel = hex.cellData.initialEnemyLevel;
                         }
-                        if (hex.cellData.initialWitchLevel !== undefined) {
-                            hex.cellData.witchLevel = hex.cellData.initialWitchLevel;
-                        }
+                        hex.cellData.witchLevel = 0;
                         hex.isCleared = false;
+
+                        if (hex.cellData.enemyLevel > 0) {
+                            landHexes.push(hex);
+                        }
+                    }
+                }
+            }
+
+            // 魔女21箇所をランダム再配置
+            for (let i = landHexes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [landHexes[i], landHexes[j]] = [landHexes[j], landHexes[i]];
+            }
+            const witchHexes = landHexes.slice(0, 21);
+            for (const wh of witchHexes) {
+                wh.cellData.witchLevel = wh.cellData.enemyLevel;
+                wh.cellData.initialWitchLevel = wh.cellData.enemyLevel;
+            }
+        }
+
+        // ② タワー内の雑魚・魔女をMAP002.jsonの初期データに基づいて完全復活
+        const towerMapData = this.cache.json.get('map_tower');
+        if (towerMapData && Array.isArray(towerMapData)) {
+            if (gs.towerHexStates && Array.isArray(gs.towerHexStates)) {
+                for (const state of gs.towerHexStates) {
+                    const rawCell = towerMapData[state.row]?.[state.col];
+                    if (rawCell) {
+                        state.enemyLevel = rawCell.enemyLevel || (10 + Math.floor((59 - state.row) * 0.5));
+                        state.witchLevel = rawCell.hasWitch ? (rawCell.witchLevel || state.enemyLevel) : 0;
+                        state.isCleared = false;
+                        state.cleared = false;
                     }
                 }
             }
         }
+        // 階段捜索回数はリフレッシュ（踏破履歴 towerClearedHexes と 階段発見 towerStairsFound は維持）
+        gs.towerSearchCount = {};
 
         const startHex = this.grid[this.playerRow]?.[this.playerCol];
         if (startHex) {
@@ -3576,6 +3610,24 @@ export default class AdventureScene extends Phaser.Scene {
             this.player.setPosition(targetHex.px, targetHex.py - (this.CHAR_OFFSET_Y || 52));
             if (this.cameras && this.cameras.main) {
                 this.cameras.main.centerOn(this.player.x, this.player.y);
+            }
+        }
+
+        // 地上マップで敵がいるのに魔女が1体もいない場合（周回後の未配置データの救済）、魔女21箇所を自動配置
+        if (!this.isTowerMode && this.hexes) {
+            const currentWitches = this.hexes.filter(h => h.cellData && (h.cellData.witchLevel || 0) > 0);
+            if (currentWitches.length === 0) {
+                const landHexes = this.hexes.filter(h => h.cellData && h.cellData.enemyLevel > 0);
+                for (let i = landHexes.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [landHexes[i], landHexes[j]] = [landHexes[j], landHexes[i]];
+                }
+                const witchHexes = landHexes.slice(0, 21);
+                for (const wh of witchHexes) {
+                    wh.cellData.witchLevel = wh.cellData.enemyLevel;
+                    wh.cellData.initialWitchLevel = wh.cellData.enemyLevel;
+                }
+                console.log('[AdventureScene] Auto-respawned 21 witches for new loop state!');
             }
         }
 
