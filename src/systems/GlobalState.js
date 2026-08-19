@@ -31,6 +31,7 @@ export class GlobalState {
         this.towerPlayerRow = 59; // タワー内初期位置Y: 59 (1階)
         this.towerHexStates = []; // タワー内のヘクス踏破・敵レベル・属性保存用
         this.towerStairsFound = {}; // { [floor]: true }
+        this.towerSearchCount = {}; // { [floor]: Number }
         this.towerClearedHexes = {}; // { [`${col}_${row}`]: true }
         
         // 通常マップのプレイヤー座標保持用

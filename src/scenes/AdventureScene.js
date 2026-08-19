@@ -782,6 +782,9 @@ export default class AdventureScene extends Phaser.Scene {
 
                     console.log(`[AdventureScene] Hex (${this.playerCol}, ${this.playerRow}) cleared - enemies removed`);
                     this.updateVisibility(); // マップ上の敵表示を即時更新
+
+                    // タワー内であればフロア敵全滅による階段自動発見チェック
+                    this.checkTowerFloorClearAndFindStairs();
                 }
 
 
@@ -976,14 +979,14 @@ export default class AdventureScene extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
 
-        // --- タワー用 階段探索案内バナー (画面上部中央) ---
-        this.towerGuideText = this.add.text(width / 2, 28, '🔍 探索を行って上り階段を発見してください', {
+        // --- タワー用 階段探索案内バナー (画面中央寄り上部) ---
+        this.towerGuideText = this.add.text(width / 2, 75, '🔍 捜索、またはフロアの敵を全滅して階段を発見してください。', {
             fontFamily: 'sans-serif',
-            fontSize: '14px',
+            fontSize: '13px',
             fontStyle: 'bold',
             color: '#ffee66',
-            backgroundColor: '#000000bb',
-            padding: { x: 16, y: 6 }
+            backgroundColor: '#000000cc',
+            padding: { x: 14, y: 6 }
         }).setOrigin(0.5, 0.5).setDepth(1500).setScrollFactor(0).setVisible(false);
         if (this.cameras && this.cameras.main) {
             this.cameras.main.ignore(this.towerGuideText);
@@ -2228,6 +2231,44 @@ export default class AdventureScene extends Phaser.Scene {
         this.towerGuideText.setVisible(!stairsFound);
     }
 
+    /** タワー内でフロアの全敵が全滅したかチェックし、全滅していれば階段を自動発見する */
+    checkTowerFloorClearAndFindStairs() {
+        if (!this.isTowerMode) return;
+        const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59);
+        if (currentFloor >= 59) return; // 最上階
+
+        const gs = GlobalState.getInstance();
+        if (gs.towerStairsFound[currentFloor]) return; // すでに発見済み
+
+        // 現在のフロア(this.playerRow)の全ヘクスの敵をチェック
+        let hasEnemy = false;
+        if (this.grid && this.grid[this.playerRow]) {
+            for (let c = 0; c < 5; c++) {
+                const hex = this.grid[this.playerRow][c];
+                if (hex && hex.cellData && hex.cellData.exists) {
+                    const eLvl = hex.cellData.enemyLevel || 0;
+                    const wLvl = hex.cellData.witchLevel || 0;
+                    if (eLvl > 0 || wLvl > 0) {
+                        hasEnemy = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // フロアの敵が全滅していれば階段を自動発見！
+        if (!hasEnemy) {
+            gs.towerStairsFound[currentFloor] = true;
+            gs.food = Math.min(140, gs.food + 140);
+            this._updateFoodDisplay();
+            this._updateTowerGuideDisplay();
+            this.time.delayedCall(500, () => {
+                this.showToast('🎉 フロアの敵を全滅させた！\n上の階への階段を発見！（食料 +140）');
+            });
+            SaveManager.saveGame(this);
+        }
+    }
+
 
 
 
@@ -2514,20 +2555,15 @@ export default class AdventureScene extends Phaser.Scene {
                 }
                 if (singleDrop) drops.push(singleDrop);
 
-                // 階段発見判定
+                // 階段発見判定 (1/10 -> 1/9 -> ... -> 1/1 で確定発見)
                 const currentFloor = 59 - this.playerRow;
-                let clearedCount = 0;
-                if (this.grid[this.playerRow]) {
-                    for (let c = 0; c < 5; c++) {
-                        const h = this.grid[this.playerRow][c];
-                        if (h && h.cellData && h.cellData.exists) {
-                            if (h.cellData.visited > 0 || gs.towerClearedHexes[`${c}_${this.playerRow}`]) {
-                                clearedCount++;
-                            }
-                        }
-                    }
-                }
-                const stairsProb = Math.max(1, clearedCount) / 10;
+                if (!gs.towerSearchCount) gs.towerSearchCount = {};
+                const searchCount = gs.towerSearchCount[currentFloor] || 0;
+                const denominator = Math.max(1, 10 - searchCount);
+                const stairsProb = 1.0 / denominator;
+
+                gs.towerSearchCount[currentFloor] = searchCount + 1;
+
                 if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
                     gs.towerStairsFound[currentFloor] = true;
                     gs.food = Math.min(140, gs.food + 140);

@@ -101,6 +101,7 @@ export class SaveManager {
                         towerPlayerRow: adventureScene.playerRow !== undefined ? adventureScene.playerRow : 59,
                         towerFloor: 59 - (adventureScene.playerRow !== undefined ? adventureScene.playerRow : 59),
                         towerStairsFound: gs.towerStairsFound ? JSON.parse(JSON.stringify(gs.towerStairsFound)) : {},
+                        towerSearchCount: gs.towerSearchCount ? JSON.parse(JSON.stringify(gs.towerSearchCount)) : {},
                         towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
                         towerHexStates: hexStates
                     };
@@ -132,6 +133,7 @@ export class SaveManager {
                             towerPlayerRow: gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59,
                             towerFloor: 59 - (gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59),
                             towerStairsFound: gs.towerStairsFound ? JSON.parse(JSON.stringify(gs.towerStairsFound)) : {},
+                            towerSearchCount: gs.towerSearchCount ? JSON.parse(JSON.stringify(gs.towerSearchCount)) : {},
                             towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
                             towerHexStates: gs.towerHexStates
                         };
@@ -238,6 +240,7 @@ export class SaveManager {
             if (ts.towerPlayerRow !== undefined) gs.towerPlayerRow = ts.towerPlayerRow;
             if (ts.towerHexStates) gs.towerHexStates = ts.towerHexStates;
             if (ts.towerStairsFound) gs.towerStairsFound = ts.towerStairsFound;
+            if (ts.towerSearchCount) gs.towerSearchCount = ts.towerSearchCount;
             if (ts.towerClearedHexes) gs.towerClearedHexes = ts.towerClearedHexes;
         }
 
