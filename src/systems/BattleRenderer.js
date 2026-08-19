@@ -971,8 +971,8 @@ export class BattleRenderer {
                 const custom = eff.customData || {};
                 const isFatal = custom.isFatal || (eff.type && eff.type.startsWith('enemy_death_'));
                 
-                let startSize = isFatal ? 0.1 : 0.2 / 3.0;
-                let midSize = isFatal ? ((eff.radius || 1.5) * 0.7) : 0.75 / 3.0;
+                let startSize = isFatal ? 0.05 : 0.2 / 3.0;
+                let midSize = isFatal ? ((eff.radius || 1.5) * 0.35) : 0.75 / 3.0;
                 let endSize = isFatal ? midSize * 1.4 : 1.0 / 3.0;
                 
                 if (eff.type === 'kick_hit') {
