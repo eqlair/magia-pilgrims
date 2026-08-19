@@ -50,6 +50,7 @@ export default class TarotScene extends Phaser.Scene {
                 this.tarotDeck.push(i);
             }
         }
+        Phaser.Utils.Array.Shuffle(this.tarotDeck);
         if (GlobalState.IS_DEBUG_MODE) {
             this.input.keyboard.on('keydown-I', () => {
                 if (!this.canSelect) return;
@@ -120,9 +121,36 @@ export default class TarotScene extends Phaser.Scene {
             return;
         }
 
+        // 1周目かつ3日目までに 蒼樹(002)・紅華(003)・黄蘭(004) がいない場合の救済判定
+        const isFirstLoop = (gs.maxPastExp || 0) === 0;
+        const isEarlyDay = (gs.currentDay || 1) <= 3;
+        const hasSpecificMember = (this.party || []).includes('002') || (this.party || []).includes('003') || (this.party || []).includes('004') ||
+                                  !!(gs.characters?.['002']?.hasAccompanied) ||
+                                  !!(gs.characters?.['003']?.hasAccompanied) ||
+                                  !!(gs.characters?.['004']?.hasAccompanied);
+
+        const isGuaranteeMode = isFirstLoop && isEarlyDay && !hasSpecificMember;
+
         this.drawnCardIds = [];
-        for (let i = 0; i < drawCount; i++) {
-            this.drawnCardIds.push(this.tarotDeck.shift());
+        if (isGuaranteeMode) {
+            // 黄蘭: 4 (女帝), 紅華: 9 (力), 蒼樹: 12 (正義)
+            const guaranteePool = [4, 9, 12].filter(id => !gs.drawnTarotCards.includes(id));
+            if (guaranteePool.length > 0) {
+                Phaser.Utils.Array.Shuffle(guaranteePool);
+                for (let i = 0; i < drawCount; i++) {
+                    this.drawnCardIds.push(guaranteePool[i % guaranteePool.length]);
+                }
+                // 山札から提示カードを取り除く
+                this.tarotDeck = this.tarotDeck.filter(id => !this.drawnCardIds.includes(id));
+                console.log('[TarotScene] Guarantee Mode Activated! Drawn Cards:', this.drawnCardIds);
+            }
+        }
+
+        // 通常ドロー（救済モード外またはフォールバック）
+        if (this.drawnCardIds.length === 0) {
+            for (let i = 0; i < drawCount; i++) {
+                this.drawnCardIds.push(this.tarotDeck.shift());
+            }
         }
 
 
