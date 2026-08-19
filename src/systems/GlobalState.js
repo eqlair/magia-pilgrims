@@ -199,6 +199,7 @@ export class GlobalState {
             friendships: {}, // 各キャラへの友好度（ID -> 友好度 -10~25）
             friendshipPoints: 0, // 友好度ボーナスポイント
             metCharacters: [], // 一緒に編成したことのあるキャラIDリスト
+            hasAccompanied: id === '001', // 同行経験フラグ（紫苑は初期からtrue）
             meleeLevel: 1, // 近接攻撃レベル
             rangedLevel: 1, // 遠隔攻撃レベル
             gachaFails: 0, // 攻撃レベル上昇ガチャのハズレ回数
@@ -1043,20 +1044,31 @@ export class GlobalState {
                 }
             }
 
-            // レベル・能力値・攻撃レベルを初期値に戻す
-            const initial = this.createInitialCharData(id, char.name, 1);
+            // 友好度・同行フラグの退避
+            const savedFriendships = char.friendships ? JSON.parse(JSON.stringify(char.friendships)) : {};
+            const savedPoints = char.friendshipPoints || 0;
+            const savedMet = char.metCharacters ? [...char.metCharacters] : [];
+            const savedAccompanied = !!(char.hasAccompanied || id === '001');
+
+            // 基礎ステータスの初期化
+            const def = charDataJson.characters[id] || {};
             char.level = 1;
             char.exp = 0;
             char.meleeLevel = 1;
             char.rangedLevel = 1;
             char.gachaFails = 0;
-            char.baseHp = initial.baseHp;
-            char.baseSp = initial.baseSp;
-            char.baseAtk = initial.baseAtk;
-            char.baseReload = initial.baseReload;
-            char.currentHp = initial.baseHp;
-            char.currentSp = initial.baseSp;
-            // 友好度（friendships, friendshipPoints, metCharacters, affection）は保持
+            char.baseHp = def.baseHp || 1000;
+            char.baseSp = def.baseSp || 500;
+            char.baseAtk = 100;
+            char.baseReload = 100;
+            char.currentHp = char.baseHp;
+            char.currentSp = char.baseSp;
+
+            // 友好度と同行フラグを保持・復元
+            char.friendships = savedFriendships;
+            char.friendshipPoints = savedPoints;
+            char.metCharacters = savedMet;
+            char.hasAccompanied = savedAccompanied;
         }
 
         // ② 集計を終えたのでストック経験値は0にリセット！

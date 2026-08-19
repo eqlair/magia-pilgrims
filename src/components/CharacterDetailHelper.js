@@ -542,9 +542,14 @@ export class CharacterDetailHelper {
         targetContainer.add(bonusText);
         ry += 50;
 
-        // リスト描画（これまでに一度でも一緒に編成された同伴履歴 metCharacters に含まれるキャラのみ表示）
-        const metCharIds = new Set(charData.metCharacters || []);
-        const displayCharIds = Array.from(metCharIds).filter(id => id !== charId && globalState.characters[id]);
+        // リスト描画（同行経験フラグ hasAccompanied または同伴履歴のあるキャラのみ表示）
+        const displayCharIds = Object.keys(globalState.characters).filter(id => {
+            if (id === charId) return false;
+            const other = globalState.characters[id];
+            if (!other) return false;
+            const isAccompanied = !!(other.hasAccompanied || (charData.metCharacters && charData.metCharacters.includes(id)) || (charData.friendships && charData.friendships[id] !== undefined));
+            return isAccompanied;
+        });
 
         if (displayCharIds.length === 0) {
             targetContainer.add(scene.add.text(width * 0.1, ry, '過去に一緒に編成された仲間がいません', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));

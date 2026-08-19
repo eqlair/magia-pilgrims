@@ -208,7 +208,21 @@ export class SaveManager {
         if (d.inventory) gs.inventory = d.inventory;
         if (d.relicSortKeys) gs.relicSortKeys = d.relicSortKeys;
 
-        if (d.characters) gs.characters = d.characters;
+        if (d.characters) {
+            gs.characters = d.characters;
+            // 既存キャラの hasAccompanied 自動補完
+            for (const cid in gs.characters) {
+                const c = gs.characters[cid];
+                if (c) {
+                    if (cid === '001') c.hasAccompanied = true;
+                    if (c.hasAccompanied === undefined) {
+                        const hasFriendship = c.friendships && Object.keys(c.friendships).length > 0;
+                        const hasMet = c.metCharacters && c.metCharacters.length > 0;
+                        c.hasAccompanied = !!(hasFriendship || hasMet || c.isJoined);
+                    }
+                }
+            }
+        }
         if (d.savedFormation) gs.savedFormation = d.savedFormation;
         if (d.activeTarots) gs.activeTarots = d.activeTarots;
         if (d.drawnTarotCards) gs.drawnTarotCards = d.drawnTarotCards;
