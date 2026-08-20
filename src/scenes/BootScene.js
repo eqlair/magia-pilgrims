@@ -173,6 +173,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.audio('JOIN_US', 'files/BGM/005_JOIN_US.mp3');
         this.load.audio('bgm_hexen', 'files/BGM/004_hexen.mp3');
         this.load.audio('bgm_toppa', 'files/BGM/toppa.mp3');
+        this.load.audio('bgm_wildhunt', 'files/BGM/wildhunt.mp3');
         this.load.audio('bgm_result', 'files/BGM/008_fan-37.mp3');
         this.load.audio('se_awaken_boss', 'files/SOUND/awaken_boss.mp3');
         this.load.audio('se_bossbomb', 'files/SOUND/bossbomb002x.mp3');

@@ -170,16 +170,27 @@ export default class BattleScene extends Phaser.Scene {
             bg.setOrigin(0.5, 0.5);
             bg.setScale(Math.max(width / bg.width, height / bg.height));
             bg.setDepth(-100);
+        }
 
-            // 通常戦闘BGMの再生（すでに戦闘BGMが再生中であればスキップしてシームレス引き継ぎ！）
-            const bKey = this.battleConfig.bgmKey || `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
+        // BGM再生処理
+        // ワイルドハント（12/21夜突破戦）時は EventScene から流れている bgm_wildhunt をそのままシームレス継続！
+        const isWildhunt = this.battleConfig.is1221NightBattle || (this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt'));
+
+        if (isWildhunt) {
+            const isWhPlaying = this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt');
+            if (!isWhPlaying && this.cache.audio.exists('bgm_wildhunt')) {
+                this.sound.play('bgm_wildhunt', { loop: true, volume: 0.75 });
+            }
+        } else {
+            // 通常突破戦または通常戦闘BGM
+            const defaultBKey = (this.battleConfig.rule === 2) ? 'bgm_toppa' : `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
+            const bKey = this.battleConfig.bgmKey || defaultBKey;
             let isTargetBgmPlaying = false;
             if (this.sound && this.sound.sounds) {
                 isTargetBgmPlaying = this.sound.sounds.some(s => s && s.isPlaying && s.key === bKey);
             }
 
             if (!isTargetBgmPlaying) {
-                // 他の音が鳴っていれば整理して指定戦闘BGM(bgm_battle4等)を再生
                 if (this.sound && this.sound.sounds) {
                     this.sound.sounds.forEach(s => {
                         if (s && s.isPlaying && s.key !== bKey) {
@@ -478,7 +489,7 @@ export default class BattleScene extends Phaser.Scene {
             
             // BGMフェードアウト (3秒ウェイトしてから1秒でフェードアウト)
             this.time.delayedCall(3000, () => {
-                const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US'];
+                const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa'];
                 bgmKeys.forEach(key => {
                     try {
                         const s = this.sound.get(key);
@@ -521,7 +532,7 @@ export default class BattleScene extends Phaser.Scene {
             this.isBossBgmStarted = true;
             
             // 確実に前のBGMを全て止める
-            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US'];
+            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa'];
             bgmKeys.forEach(key => {
                 if (this.sound.stopByKey) {
                     this.sound.stopByKey(key);
@@ -569,7 +580,7 @@ export default class BattleScene extends Phaser.Scene {
             }
 
             // BGMフェードアウト（キー名指定で安全に取得）
-            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US'];
+            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa'];
             bgmKeys.forEach(key => {
                 try {
                     const s = this.sound.get(key);
