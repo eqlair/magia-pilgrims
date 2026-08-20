@@ -414,8 +414,25 @@ export class CharacterDetailHelper {
         const effectBtn = scene.add.text(20, height - 20, '影響', {
             fontSize: '20px', backgroundColor: '#333333', color: '#ffffff'
         }).setPadding(10).setOrigin(0, 1).setInteractive();
+
+        if (!globalState.guideTappedEffectBtn) {
+            scene.tweens.add({
+                targets: effectBtn,
+                alpha: 0.35,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
         
         effectBtn.on('pointerdown', () => {
+            if (!globalState.guideTappedEffectBtn) {
+                globalState.guideTappedEffectBtn = true;
+                scene.tweens.killTweensOf(effectBtn);
+                effectBtn.setAlpha(1.0);
+                SaveManager.saveGame(scene);
+            }
             CharacterDetailHelper.showEffectView(scene);
         });
         targetContainer.add(effectBtn);

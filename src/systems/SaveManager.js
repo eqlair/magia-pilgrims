@@ -61,6 +61,7 @@ export class SaveManager {
                 guideTappedSionFace: gs.guideTappedSionFace || false,
                 guideTappedElementResistBtn: gs.guideTappedElementResistBtn || false,
                 guideTappedFriendshipBtn: gs.guideTappedFriendshipBtn || false,
+                guideTappedEffectBtn: gs.guideTappedEffectBtn || false,
                 relicSortKeys: gs.relicSortKeys || ['lock', 'rank', 'max_val']
             };
 
@@ -254,6 +255,7 @@ export class SaveManager {
         if (d.guideTappedSionFace !== undefined) gs.guideTappedSionFace = d.guideTappedSionFace;
         if (d.guideTappedElementResistBtn !== undefined) gs.guideTappedElementResistBtn = d.guideTappedElementResistBtn;
         if (d.guideTappedFriendshipBtn !== undefined) gs.guideTappedFriendshipBtn = d.guideTappedFriendshipBtn;
+        if (d.guideTappedEffectBtn !== undefined) gs.guideTappedEffectBtn = d.guideTappedEffectBtn;
 
         // タワー状態の復元
         if (saveData.towerState) {

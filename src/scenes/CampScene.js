@@ -269,7 +269,24 @@ export default class CampScene extends Phaser.Scene {
             fontSize: '20px', backgroundColor: '#333333', color: '#ffffff'
         }).setPadding(10).setOrigin(0, 1).setInteractive();
 
+        if (!this.globalState.guideTappedEffectBtn) {
+            this.tweens.add({
+                targets: effectBtn,
+                alpha: 0.35,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
         effectBtn.on('pointerdown', () => {
+            if (!this.globalState.guideTappedEffectBtn) {
+                this.globalState.guideTappedEffectBtn = true;
+                this.tweens.killTweensOf(effectBtn);
+                effectBtn.setAlpha(1.0);
+                SaveManager.saveGame(this);
+            }
             CharacterDetailHelper.showEffectView(this);
         });
         this.mainViewContainer.add(effectBtn);
