@@ -6,7 +6,7 @@ import { SaveManager } from './SaveManager';
 
 export class GlobalState {
     static instance = null;
-    static IS_DEBUG_MODE = true; // デバッグモードフラグ（デバッグ版ON）
+    static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常プレイ版）
 
     constructor() {
         if (GlobalState.instance) {
