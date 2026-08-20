@@ -57,6 +57,10 @@ export class SaveManager {
                 tutorialRestSeen: gs.tutorialRestSeen,
                 tutorialGameOverSeen: gs.tutorialGameOverSeen,
                 tutorialStep: gs.tutorialStep,
+                guideTappedFormationBtn: gs.guideTappedFormationBtn || false,
+                guideTappedSionFace: gs.guideTappedSionFace || false,
+                guideTappedElementResistBtn: gs.guideTappedElementResistBtn || false,
+                guideTappedFriendshipBtn: gs.guideTappedFriendshipBtn || false,
                 relicSortKeys: gs.relicSortKeys || ['lock', 'rank', 'max_val']
             };
 
@@ -246,6 +250,10 @@ export class SaveManager {
         if (d.tutorialRestSeen !== undefined) gs.tutorialRestSeen = d.tutorialRestSeen;
         if (d.tutorialGameOverSeen !== undefined) gs.tutorialGameOverSeen = d.tutorialGameOverSeen;
         if (d.tutorialStep !== undefined) gs.tutorialStep = d.tutorialStep;
+        if (d.guideTappedFormationBtn !== undefined) gs.guideTappedFormationBtn = d.guideTappedFormationBtn;
+        if (d.guideTappedSionFace !== undefined) gs.guideTappedSionFace = d.guideTappedSionFace;
+        if (d.guideTappedElementResistBtn !== undefined) gs.guideTappedElementResistBtn = d.guideTappedElementResistBtn;
+        if (d.guideTappedFriendshipBtn !== undefined) gs.guideTappedFriendshipBtn = d.guideTappedFriendshipBtn;
 
         // タワー状態の復元
         if (saveData.towerState) {

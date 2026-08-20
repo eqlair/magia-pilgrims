@@ -142,7 +142,24 @@ export default class CampScene extends Phaser.Scene {
             stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#aaffaa', backgroundColor: '#335533'
         }).setInteractive().setPadding(10).setOrigin(1, 0);
 
+        if (!this.globalState.guideTappedFormationBtn) {
+            this.tweens.add({
+                targets: formationBtn,
+                alpha: 0.35,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
         formationBtn.on('pointerdown', () => {
+            if (!this.globalState.guideTappedFormationBtn) {
+                this.globalState.guideTappedFormationBtn = true;
+                this.tweens.killTweensOf(formationBtn);
+                formationBtn.setAlpha(1.0);
+                SaveManager.saveGame(this);
+            }
             this.scene.pause('CampScene');
             this.scene.launch('FormationScene', { party: this.party, returnScene: 'CampScene' });
         });
@@ -176,8 +193,26 @@ export default class CampScene extends Phaser.Scene {
             // 顔アイコン
             const faceKey = `face_${charId}`;
             const face = this.add.image(width * 0.15, cy, faceKey).setDisplaySize(rowHeight * 0.8, rowHeight * 0.8).setInteractive({ useHandCursor: true });
+            
+            if (charId === '001' && !this.globalState.guideTappedSionFace) {
+                this.tweens.add({
+                    targets: face,
+                    alpha: 0.35,
+                    duration: 600,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+
             this.mainViewContainer.add(face);
             face.on('pointerdown', () => {
+                if (charId === '001' && !this.globalState.guideTappedSionFace) {
+                    this.globalState.guideTappedSionFace = true;
+                    this.tweens.killTweensOf(face);
+                    face.setAlpha(1.0);
+                    SaveManager.saveGame(this);
+                }
                 this.showDetailView(charId, width, height);
             });
 

@@ -117,8 +117,24 @@ export class CharacterDetailHelper {
             }
         };
         const elementIcon = scene.add.image(rx - 25, ry + 16, getElementImage(charId)).setScale(0.15).setInteractive({ useHandCursor: true });
+        if (!globalState.guideTappedElementResistBtn) {
+            scene.tweens.add({
+                targets: elementIcon,
+                alpha: 0.35,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
         targetContainer.add(elementIcon);
         elementIcon.on('pointerdown', () => {
+            if (!globalState.guideTappedElementResistBtn) {
+                globalState.guideTappedElementResistBtn = true;
+                scene.tweens.killTweensOf(elementIcon);
+                elementIcon.setAlpha(1.0);
+                SaveManager.saveGame(scene);
+            }
             CharacterDetailHelper.showElementResistanceView(scene, charId, parentSceneName, targetContainer, () => {
                 CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
             });
@@ -188,7 +204,25 @@ export class CharacterDetailHelper {
         const friendshipBtn = scene.add.text(rx + 120, ry, '友好度をみる', {
             fontSize: '18px', backgroundColor: '#3333aa', color: '#ffffff'
         }).setPadding(6).setInteractive();
+
+        if (!globalState.guideTappedFriendshipBtn) {
+            scene.tweens.add({
+                targets: friendshipBtn,
+                alpha: 0.35,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
         friendshipBtn.on('pointerdown', () => {
+            if (!globalState.guideTappedFriendshipBtn) {
+                globalState.guideTappedFriendshipBtn = true;
+                scene.tweens.killTweensOf(friendshipBtn);
+                friendshipBtn.setAlpha(1.0);
+                SaveManager.saveGame(scene);
+            }
             CharacterDetailHelper.showFriendshipView(scene, charId, parentSceneName, targetContainer, () => {
                 CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
             });

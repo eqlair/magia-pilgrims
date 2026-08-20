@@ -133,7 +133,24 @@ export default class RestScene extends Phaser.Scene {
             stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#aaffaa', backgroundColor: '#335533'
         }).setInteractive().setPadding(10).setOrigin(1, 0);
 
+        if (!this.globalState.guideTappedFormationBtn) {
+            this.tweens.add({
+                targets: formationBtn,
+                alpha: 0.35,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
         formationBtn.on('pointerdown', () => {
+            if (!this.globalState.guideTappedFormationBtn) {
+                this.globalState.guideTappedFormationBtn = true;
+                this.tweens.killTweensOf(formationBtn);
+                formationBtn.setAlpha(1.0);
+                SaveManager.saveGame(this);
+            }
             this.scene.pause('RestScene');
             this.scene.launch('FormationScene', { party: this.party, returnScene: 'RestScene' });
         });

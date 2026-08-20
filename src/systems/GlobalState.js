@@ -101,6 +101,10 @@ export class GlobalState {
         this.tutorialRestSeen = false;
         this.tutorialGameOverSeen = false;
         this.tutorialStep = 0;
+        this.guideTappedFormationBtn = false;
+        this.guideTappedSionFace = false;
+        this.guideTappedElementResistBtn = false;
+        this.guideTappedFriendshipBtn = false;
 
         // ── 周回経験値ブーストシステム ──
         this.maxPastExp = 0;           // ① 過去最高獲得経験値 (1周での歴代最大)
