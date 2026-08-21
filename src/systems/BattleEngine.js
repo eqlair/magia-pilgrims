@@ -2282,10 +2282,21 @@ export class BattleEngine {
                     const dirX = dx / dist;
                     const dirZ = dz / dist;
 
-                    // 近接射程判定: 距離6m以内かつターゲットが前衛エリア(Z>=3.0)にいる場合
-                    const isMeleeRange = (dist <= 6.0 && target.z >= 3.0);
+                    // キャラクター別の近接有効射程（紫苑のキックは2.2m、剣・大剣等は3.2m）
+                    const meleeRangeMap = {
+                        '001': 2.2, // キック
+                        '002': 3.2, // 剣
+                        '003': 3.5, // 大剣
+                        '004': 3.2, // リボン
+                        '005': 2.5, // 拳
+                        '010': 3.0  // バリア
+                    };
+                    const maxMeleeDist = meleeRangeMap[ep.charId] || 3.0;
 
-                    if (ep.isFront && isMeleeRange) {
+                    // 近接射程判定: 敵前衛かつ、ターゲットとの絶対距離(X,Z)が近接有効射程以内の場合のみ
+                    const isMeleeRange = (ep.isFront && dist <= maxMeleeDist);
+
+                    if (isMeleeRange) {
                         // ── 前衛・近接攻撃（ターゲットに向かって踏み込み！） ──
                         const stepDist = 0.85; // 0.85m手前の相手に向かって突進踏み込み！
                         ep.targetOffsetX = dirX * stepDist;
@@ -2299,8 +2310,8 @@ export class BattleEngine {
 
                             const kickDmg = Math.floor(ep.atk * 1.0);
                             const kickBullet = new Bullet(ep.x, ep.z - 0.5, {
-                                vx: 0,
-                                vz: -20, // 手前へ
+                                vx: dirX * 20.0,
+                                vz: dirZ * 20.0, // ターゲットの方向へ正確に蹴り込む
                                 damage: kickDmg,
                                 knockback: 100,
                                 owner: 'enemy',
