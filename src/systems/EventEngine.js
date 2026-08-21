@@ -264,12 +264,12 @@ export class EventEngine {
 
         let newBg;
         if (isHexMapBg) {
-            // ヘックス画像を背景としたマップ上の対話画面: 画面上部中央を支点に 0.36倍
+            // ヘックス画像を背景としたマップ上の対話画面: 画面上部中央を支点に 0.8倍
             newBg = this.scene.add.image(screenW / 2, 0, key)
                 .setOrigin(0.5, 0)
                 .setDepth(this.DEPTH)
                 .setAlpha(0)
-                .setScale(0.36);
+                .setScale(0.8);
         } else {
             newBg = this.scene.add.image(screenW / 2, screenH / 2, key)
                 .setDepth(this.DEPTH)

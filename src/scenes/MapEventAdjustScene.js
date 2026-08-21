@@ -1,4 +1,4 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 
@@ -63,11 +63,7 @@ export default class MapEventAdjustScene extends Phaser.Scene {
         this.char2Index = 0; // 紫苑 (右)
 
         // 1. 背景描画 (中央上を支点: origin(0.5, 0))
-        // EventEngine/AdventureScene基準: 横幅フィットスケール (width / bg.width)
-        const initBgTex = this.textures.get(this.bgList[this.bgIndex]);
-        const baseBgWidth = (initBgTex && initBgTex.getSourceImage()) ? initBgTex.getSourceImage().width : 800;
-        this.defaultBaseScale = width / baseBgWidth;
-        this.bgScale = this.defaultBaseScale;
+        this.bgScale = 0.8;
 
         this.bgImage = this.add.image(width / 2, 0, this.bgList[this.bgIndex]);
         this.bgImage.setOrigin(0.5, 0);
