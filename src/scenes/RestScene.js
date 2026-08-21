@@ -176,14 +176,36 @@ export default class RestScene extends Phaser.Scene {
             const rowHitZone = this.add.rectangle(textX, cy, width * 0.35, rowHeight * 0.8, 0x000000, 0.001).setInteractive({ useHandCursor: true });
             this.mainViewContainer.add(rowHitZone);
             rowHitZone.on('pointerdown', () => {
+                if (charId === '001' && !this.globalState.guideTappedSionFace) {
+                    this.globalState.guideTappedSionFace = true;
+                    SaveManager.saveGame(this);
+                }
                 this.showDetailView(charId, width, height);
             });
 
             // 顔アイコン
             const faceKey = `face_${charId}`;
             const face = this.add.image(width * 0.15, cy, faceKey).setDisplaySize(rowHeight * 0.8, rowHeight * 0.8).setInteractive({ useHandCursor: true });
+            
+            if (charId === '001' && !this.globalState.guideTappedSionFace) {
+                this.tweens.add({
+                    targets: face,
+                    alpha: 0.35,
+                    duration: 600,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+
             this.mainViewContainer.add(face);
             face.on('pointerdown', () => {
+                if (charId === '001' && !this.globalState.guideTappedSionFace) {
+                    this.globalState.guideTappedSionFace = true;
+                    this.tweens.killTweensOf(face);
+                    face.setAlpha(1.0);
+                    SaveManager.saveGame(this);
+                }
                 this.showDetailView(charId, width, height);
             });
 
@@ -193,10 +215,12 @@ export default class RestScene extends Phaser.Scene {
             }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
             this.mainViewContainer.add(nameText);
             nameText.on('pointerdown', () => {
+                if (charId === '001' && !this.globalState.guideTappedSionFace) {
+                    this.globalState.guideTappedSionFace = true;
+                    SaveManager.saveGame(this);
+                }
                 this.showDetailView(charId, width, height);
             });
-
-
 
             // HPバーとテキスト
             const hpY = cy - rowHeight * 0.05;
@@ -233,9 +257,28 @@ export default class RestScene extends Phaser.Scene {
             const hpBtn = this.add.text(textX + barWidth + 15, hpY, '回復', {
                 fontFamily: 'sans-serif', fontSize: '16px', color: hpTextColor, backgroundColor: hpBtnColor, padding: { x: 10, y: 3 }
             }).setOrigin(0, 0.5);
+
             if (canHealHp) {
+                if (!this.globalState.guideTappedHealBtn) {
+                    this.tweens.add({
+                        targets: hpBtn,
+                        alpha: 0.35,
+                        duration: 600,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'Sine.easeInOut'
+                    });
+                }
                 hpBtn.setInteractive({ useHandCursor: true });
-                hpBtn.on('pointerdown', () => this.healHp(charId, stats.maxHp));
+                hpBtn.on('pointerdown', () => {
+                    if (!this.globalState.guideTappedHealBtn) {
+                        this.globalState.guideTappedHealBtn = true;
+                        this.tweens.killTweensOf(hpBtn);
+                        hpBtn.setAlpha(1.0);
+                        SaveManager.saveGame(this);
+                    }
+                    this.healHp(charId, stats.maxHp);
+                });
             }
             this.mainViewContainer.add(hpBtn);
 
@@ -246,9 +289,28 @@ export default class RestScene extends Phaser.Scene {
             const spBtn = this.add.text(textX + barWidth + 15, spY, '回復', {
                 fontFamily: 'sans-serif', fontSize: '16px', color: spTextColor, backgroundColor: spBtnColor, padding: { x: 10, y: 3 }
             }).setOrigin(0, 0.5);
+
             if (canHealSp) {
+                if (!this.globalState.guideTappedHealBtn) {
+                    this.tweens.add({
+                        targets: spBtn,
+                        alpha: 0.35,
+                        duration: 600,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'Sine.easeInOut'
+                    });
+                }
                 spBtn.setInteractive({ useHandCursor: true });
-                spBtn.on('pointerdown', () => this.confirmHealSp(charId, stats.maxSp));
+                spBtn.on('pointerdown', () => {
+                    if (!this.globalState.guideTappedHealBtn) {
+                        this.globalState.guideTappedHealBtn = true;
+                        this.tweens.killTweensOf(spBtn);
+                        spBtn.setAlpha(1.0);
+                        SaveManager.saveGame(this);
+                    }
+                    this.confirmHealSp(charId, stats.maxSp);
+                });
             }
             this.mainViewContainer.add(spBtn);
 
