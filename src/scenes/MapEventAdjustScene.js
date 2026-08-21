@@ -59,57 +59,74 @@ export default class MapEventAdjustScene extends Phaser.Scene {
         ];
 
         this.bgIndex = 0;
-        this.char1Index = 0; // 紫苑
-        this.char2Index = 1; // 蒼樹
-
-        // 調整パラメータ初期値
-        this.bgScale = 1.0;
-        this.charScale = 0.75;
-        this.charY = Math.floor(height * 0.42);
+        this.char1Index = 1; // 蒼樹 (左)
+        this.char2Index = 0; // 紫苑 (右)
 
         // 1. 背景描画 (中央上を支点: origin(0.5, 0))
+        // EventEngine/AdventureScene基準: 横幅フィットスケール (width / bg.width)
+        const initBgTex = this.textures.get(this.bgList[this.bgIndex]);
+        const baseBgWidth = (initBgTex && initBgTex.getSourceImage()) ? initBgTex.getSourceImage().width : 800;
+        this.defaultBaseScale = width / baseBgWidth;
+        this.bgScale = this.defaultBaseScale;
+
         this.bgImage = this.add.image(width / 2, 0, this.bgList[this.bgIndex]);
         this.bgImage.setOrigin(0.5, 0);
         this.bgImage.setScale(this.bgScale);
 
-        // 2. キャラクター描画
-        const char1Def = this.charList[this.char1Index];
-        const char2Def = this.charList[this.char2Index];
+        // 2. キャラクター描画 (EventEngineの初期配置: H/2, scale = (H * 0.6) / height)
+        this.charY = height / 2;
+        const c1Def = this.charList[this.char1Index];
+        const c2Def = this.charList[this.char2Index];
 
-        this.char1Image = this.add.image(width * 0.28, this.charY, char1Def.key);
+        const dummyTex = this.textures.get(c1Def.key);
+        const charH = (dummyTex && dummyTex.getSourceImage()) ? dummyTex.getSourceImage().height : 800;
+        this.defaultCharScale = (height * 0.6) / charH;
+        this.charScale = this.defaultCharScale;
+
+        const c1Key = this.textures.exists(c1Def.keyB) ? c1Def.keyB : c1Def.key;
+        this.char1Image = this.add.image(width * 0.25, this.charY, c1Key);
         this.char1Image.setOrigin(0.5, 0.5);
         this.char1Image.setScale(this.charScale);
 
-        const char2Key = this.textures.exists(char2Def.keyB) ? char2Def.keyB : char2Def.key;
-        this.char2Image = this.add.image(width * 0.72, this.charY, char2Key);
+        this.char2Image = this.add.image(width * 0.75, this.charY, c2Def.key);
         this.char2Image.setOrigin(0.5, 0.5);
         this.char2Image.setScale(this.charScale);
 
-        // 3. メッセージ欄 (会話ウィンドウ風)
-        const msgBoxWidth = width * 0.94;
-        const msgBoxHeight = 175;
-        const msgBoxX = width / 2;
-        const msgBoxY = height - msgBoxHeight / 2 - 15;
+        // 3. メッセージ欄 (いつものEventEngineと完全に同じ位置・サイズ・デザイン)
+        const BOX_TOP = height * 0.62;
+        const BOX_H   = height * 0.38;
 
-        this.msgBg = this.add.rectangle(msgBoxX, msgBoxY, msgBoxWidth, msgBoxHeight, 0x050510, 0.88)
-            .setStrokeStyle(2, 0x6688cc);
+        this.textBox = this.add.rectangle(width / 2, BOX_TOP + BOX_H / 2, width, BOX_H, 0x000000)
+            .setAlpha(0.75);
 
-        this.msgText = this.add.text(msgBoxX - msgBoxWidth / 2 + 20, msgBoxY - msgBoxHeight / 2 + 12, '', {
+        this.nameLabel = this.add.text(24, BOX_TOP + 8, '【マップイベント調整モード】', {
             fontFamily: FONT_MAIN,
-            fontSize: '17px',
-            color: '#ffffff',
-            lineSpacing: 7,
-            stroke: '#000000',
-            strokeThickness: 3
+            fontSize: fontSize.small(width),
+            color: '#ffdd88',
+            fontStyle: 'bold'
         });
 
-        // 戻るボタン
-        const backBtn = this.add.text(20, 20, '◀ 戻る (ESC)', {
+        this.textLabel = this.add.text(24, BOX_TOP + 38, '', {
             fontFamily: FONT_MAIN,
-            fontSize: '20px',
+            fontSize: '15px',
+            color: '#ffffff',
+            wordWrap: { width: width - 48, useAdvancedWrap: true },
+            lineSpacing: 6
+        });
+
+        this.tapLabel = this.add.text(width - 16, height - 16, '[ESC] 終了して戻る', {
+            fontFamily: FONT_MAIN,
+            fontSize: fontSize.small(width),
+            color: '#aaaaaa'
+        }).setOrigin(1, 1);
+
+        // 戻るボタン
+        const backBtn = this.add.text(16, 16, '◀ 戻る', {
+            fontFamily: FONT_MAIN,
+            fontSize: '18px',
             color: '#ffaaaa',
-            backgroundColor: '#330000cc',
-            padding: { x: 12, y: 6 },
+            backgroundColor: '#220000bb',
+            padding: { x: 10, y: 6 },
             stroke: '#000000',
             strokeThickness: 3
         }).setInteractive({ useHandCursor: true });
@@ -156,7 +173,6 @@ export default class MapEventAdjustScene extends Phaser.Scene {
     }
 
     switchRandomChars() {
-        // ランダムに異なる2人を選択
         let idx1 = Math.floor(Math.random() * this.charList.length);
         let idx2 = Math.floor(Math.random() * this.charList.length);
         while (idx2 === idx1 && this.charList.length > 1) {
@@ -168,9 +184,9 @@ export default class MapEventAdjustScene extends Phaser.Scene {
         const c1 = this.charList[this.char1Index];
         const c2 = this.charList[this.char2Index];
 
-        this.char1Image.setTexture(c1.key);
-        const c2Key = this.textures.exists(c2.keyB) ? c2.keyB : c2.key;
-        this.char2Image.setTexture(c2Key);
+        const c1Key = this.textures.exists(c1.keyB) ? c1.keyB : c1.key;
+        this.char1Image.setTexture(c1Key);
+        this.char2Image.setTexture(c2.key);
 
         this.updateParamDisplay();
     }
@@ -179,41 +195,41 @@ export default class MapEventAdjustScene extends Phaser.Scene {
         const dt = delta / 1000;
         let changed = false;
 
-        // Q, A: 背景の拡大率 (毎秒 0.4倍 変化)
+        // Q, A: 背景の拡大率 (毎秒 0.3倍 変化)
         if (this.cursors.q.isDown) {
-            this.bgScale = Math.min(3.0, this.bgScale + 0.4 * dt);
+            this.bgScale = Math.min(3.0, this.bgScale + 0.3 * dt);
             this.bgImage.setScale(this.bgScale);
             changed = true;
         }
         if (this.cursors.a.isDown) {
-            this.bgScale = Math.max(0.2, this.bgScale - 0.4 * dt);
+            this.bgScale = Math.max(0.1, this.bgScale - 0.3 * dt);
             this.bgImage.setScale(this.bgScale);
             changed = true;
         }
 
-        // W, S: キャラクターの拡大率 (毎秒 0.4倍 変化)
+        // W, S: キャラクターの拡大率 (毎秒 0.3倍 変化)
         if (this.cursors.w.isDown) {
-            this.charScale = Math.min(2.5, this.charScale + 0.4 * dt);
+            this.charScale = Math.min(2.5, this.charScale + 0.3 * dt);
             this.char1Image.setScale(this.charScale);
             this.char2Image.setScale(this.charScale);
             changed = true;
         }
         if (this.cursors.s.isDown) {
-            this.charScale = Math.max(0.2, this.charScale - 0.4 * dt);
+            this.charScale = Math.max(0.1, this.charScale - 0.3 * dt);
             this.char1Image.setScale(this.charScale);
             this.char2Image.setScale(this.charScale);
             changed = true;
         }
 
-        // E, D: キャラクターの垂直位置 (毎秒 150px 変化)
+        // E, D: キャラクターの垂直位置 (毎秒 120px 変化)
         if (this.cursors.e.isDown) {
-            this.charY -= 150 * dt;
+            this.charY -= 120 * dt;
             this.char1Image.setY(this.charY);
             this.char2Image.setY(this.charY);
             changed = true;
         }
         if (this.cursors.d.isDown) {
-            this.charY += 150 * dt;
+            this.charY += 120 * dt;
             this.char1Image.setY(this.charY);
             this.char2Image.setY(this.charY);
             changed = true;
@@ -230,13 +246,12 @@ export default class MapEventAdjustScene extends Phaser.Scene {
         const c2 = this.charList[this.char2Index];
 
         const text = [
-            `【マップイベント表示パラメータ】`,
-            `🖼️ 背景画像: [${bgKey}]  拡大率: ${this.bgScale.toFixed(3)} (支点: 中央上)`,
+            `🖼️ 背景画像: [${bgKey}]  Scale: ${this.bgScale.toFixed(4)} (中央上支点)`,
             `👥 キャラクター: [左: ${c1.name}]  [右: ${c2.name}]`,
-            `📏 キャラ拡大率: ${this.charScale.toFixed(3)}  |  垂直位置 (Y): ${Math.round(this.charY)} px`,
+            `📏 キャラScale: ${this.charScale.toFixed(4)}  |  垂直位置 (Y): ${Math.round(this.charY)} px (H/2からの差: ${Math.round(this.charY - this.scale.height / 2)}px)`,
             `⌨️ [Q/A] 背景拡大/縮小 | [W/S] キャラ拡大/縮小 | [E/D] キャラ上下 | [R/F] 背景切替 | [T/G] キャラ切替`
         ].join('\n');
 
-        this.msgText.setText(text);
+        this.textLabel.setText(text);
     }
 }
