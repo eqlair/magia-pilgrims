@@ -518,6 +518,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.events.off('resume', this._resumeHandler, this);
         }
         this._resumeHandler = (scene, data) => {
+            const gs = GlobalState.getInstance();
             this._isAdvancingTime = false; // シーン復帰時に時間経過ロックを必ず解除
             this.isTransitioningMode = false; // 画面・イベント遷移のロックを必ず解除
             this.isJumping = false; // ジャンプ動作ロックを必ず解除
@@ -681,7 +682,6 @@ export default class AdventureScene extends Phaser.Scene {
             return;
         }
 
-        const gs = GlobalState.getInstance();
         if (gs.currentMonth !== undefined && gs.currentDay !== undefined) {
             this.currentMonth = gs.currentMonth;
             this.currentDay = gs.currentDay;
