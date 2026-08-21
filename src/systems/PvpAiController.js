@@ -41,7 +41,7 @@ export class PvpAiController {
         for (const ep of pvpEnemies) {
             if (!this.charTimers.has(ep)) {
                 this.charTimers.set(ep, {
-                    ultCheckTimer: 2.0 + Math.random() * 3.0, // 5秒周期の判断タイマー（開幕少しズラす）
+                    ultCheckTimer: 2.0 + Math.random() * 3.0,
                     posCheckTimer: 0.5 + Math.random() * 0.5
                 });
             }
@@ -49,19 +49,13 @@ export class PvpAiController {
             const timer = this.charTimers.get(ep);
             const role = this.getRoleType(ep.charId);
 
-            // ── 1. 必殺技の判断（5秒に1回、1/2で撃とうとする） ──
+            // ── 1. 必殺技の判断（ゲージがたまれば撃つ） ──
             timer.ultCheckTimer -= dt;
             if (timer.ultCheckTimer <= 0) {
-                timer.ultCheckTimer = 5.0; // 次の判断まで5秒
+                timer.ultCheckTimer = 2.0; // 2秒ごとに必殺技可能かチェック
 
-                const shouldCastUlt = Math.random() < 0.5; // 1/2で撃とうとする
-                if (shouldCastUlt) {
+                if (ep.ultimateCooldown <= 0) {
                     let canCast = true;
-
-                    // 必殺技ゲージが溜まっていない（クールダウン中）なら撃てない
-                    if (ep.ultimateCooldown > 0) {
-                        canCast = false;
-                    }
 
                     // 近接型のみ: 6秒以内に他のメンバーが必殺技を撃っていたら撃たない
                     if (role === 'melee') {
@@ -80,7 +74,6 @@ export class PvpAiController {
             timer.posCheckTimer -= dt;
             if (timer.posCheckTimer <= 0) {
                 timer.posCheckTimer = 0.5; // 0.5秒ごとに位置・レーン判定
-
                 this._updatePositionAndLane(ep, role, pvpEnemies, players, now);
             }
         }
@@ -98,15 +91,15 @@ export class PvpAiController {
                 moveToCenter = true;
             }
         } else if (role === 'support') {
-            // 移動せず必殺技を撃つ
+            // 支援型: 移動せず撃つ
             moveToCenter = false;
         }
 
         if (moveToCenter) {
             this._swapLane(ep, 0, pvpEnemies, now);
             ep.isFront = true;
-            ep.targetZ = 9.5;
-            ep.z = 9.5;
+            ep.targetZ = 9.0;
+            ep.z = 9.0;
         }
 
         // 必殺技の実行
@@ -133,11 +126,9 @@ export class PvpAiController {
         if (ep.lane === targetLane) return;
 
         const oldLane = ep.lane !== undefined ? ep.lane : 0;
-        // 移動先レーンにいる他の味方を探す
         const occupant = pvpEnemies.find(m => m !== ep && m.lane === targetLane);
 
         if (occupant) {
-            // 相手を自分の元のレーンへスワップ（入れ替え）
             occupant.lane = oldLane;
             occupant.x = oldLane * 1.8;
         }
@@ -147,13 +138,35 @@ export class PvpAiController {
         this.teamLastLaneMoveTime = now;
     }
 
+    /** ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する */
+    _tryMoveToAdjacentEmptyLane(ep, pvpEnemies, now) {
+        const currentLane = ep.lane !== undefined ? ep.lane : 0;
+        const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+        for (const d of dirs) {
+            const targetLane = currentLane + d;
+            if (targetLane >= -2 && targetLane <= 2) {
+                const isOccupied = pvpEnemies.some(m => m !== ep && m.lane === targetLane);
+                if (!isOccupied) {
+                    this._swapLane(ep, targetLane, pvpEnemies, now);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /** 前後列とレーン移動の思考ルーチン */
     _updatePositionAndLane(ep, role, pvpEnemies, players, now) {
-        const canMoveLane = (now - this.teamLastLaneMoveTime >= 1.0);
-
         // ── A. 前衛 / 後衛の判定 ──
-        if (role === 'melee') {
-            // 全メンバーの中で最もHPが低くなると後列に下がる。それ以外の場合前衛に出る
+        // 共通ルール: 誰も前衛にいないと前衛に出る
+        const hasAnyFrontAlly = pvpEnemies.some(m => m !== ep && m.isFront);
+
+        if (!hasAnyFrontAlly) {
+            // 誰も前衛にいない -> 前衛に出る
+            ep.isFront = true;
+            ep.targetZ = 9.0;
+        } else if (role === 'melee') {
+            // 【近接攻撃型】 全メンバーの中で最もHPが低くなると後列に下がる。それ以外の場合前衛に出る
             let lowestHp = Infinity;
             let lowestMember = null;
             for (const m of pvpEnemies) {
@@ -166,65 +179,81 @@ export class PvpAiController {
             if (lowestMember === ep && pvpEnemies.length > 1) {
                 // 最もHPが低い -> 後列に下がる
                 ep.isFront = false;
-                ep.targetZ = 14.5;
+                ep.targetZ = 14.0;
             } else {
                 // それ以外 -> 前衛に出る
                 ep.isFront = true;
-                ep.targetZ = 9.5;
+                ep.targetZ = 9.0;
             }
         } else if (role === 'ranged') {
-            // 後列から動かない
+            // 【後衛型】 後列から動かない
             ep.isFront = false;
-            ep.targetZ = 14.5;
+            ep.targetZ = 14.0;
         } else if (role === 'support') {
-            // 前衛に誰かがいれば後列から動かない。前衛がいなくなると前に出ようとする。
-            const hasFrontAlly = pvpEnemies.some(m => m !== ep && m.isFront);
-            if (hasFrontAlly) {
-                ep.isFront = false;
-                ep.targetZ = 14.5;
-            } else {
-                ep.isFront = true;
-                ep.targetZ = 9.5;
-            }
+            // 【支援型】 前衛に誰かがいれば後列から動かない。前衛がいなくなると前に出ようとする。
+            ep.isFront = false;
+            ep.targetZ = 14.0;
         }
 
         // ── B. レーン移動の判定 ──
-        if (!canMoveLane) return; // 他のキャラクターが1秒以内に移動していたら移動しない
+        // 他のキャラクターが1秒以内にレーン移動していたら移動しない
+        const canMoveLane = (now - this.teamLastLaneMoveTime >= 1.0);
+        if (!canMoveLane) return;
 
         const currentLane = ep.lane !== undefined ? ep.lane : 0;
 
         if (role === 'melee' || role === 'support') {
             // 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たらレーンを移動する
             const facingPlayer = players.find(p => p.lane === currentLane);
+            let facingHighDef = false;
+
             if (facingPlayer) {
                 const defAttr = facingPlayer.attribute || 'red';
                 const atkAttr = ep.attribute || 'red';
                 const defValue = ATTR_DEF[defAttr]?.[atkAttr] !== undefined ? ATTR_DEF[defAttr][atkAttr] : 100;
-
                 if (defValue < 100) {
-                    // 防御力が高い（相性が悪い）キャラクターが正面にいる！
-                    // 隣接レーンまたは他のレーンを選択してスワップ移動
+                    facingHighDef = true;
+                }
+            }
+
+            if (facingHighDef) {
+                // 属性不利 -> ランダムで左右どちらかの空きレーンに移動（空きがなければ別レーンへスワップ）
+                if (!this._tryMoveToAdjacentEmptyLane(ep, pvpEnemies, now)) {
                     const candidates = [-2, -1, 0, 1, 2].filter(l => l !== currentLane);
                     if (candidates.length > 0) {
                         const targetLane = candidates[Math.floor(Math.random() * candidates.length)];
                         this._swapLane(ep, targetLane, pvpEnemies, now);
-                        return;
                     }
                 }
+                return;
             }
-        }
 
-        if (role === 'ranged') {
-            // 右端か左端近いほうにレーン移動しようとする
+            // 通常時: ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する
+            if (Math.random() < 0.35) {
+                this._tryMoveToAdjacentEmptyLane(ep, pvpEnemies, now);
+            }
+        } else if (role === 'ranged') {
+            // 【後衛型】 右端か左端近いほうにレーン移動しようとする。ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する。
             const distToLeft = Math.abs(currentLane - (-2));
             const distToRight = Math.abs(currentLane - 2);
-
             const preferredLane = (distToLeft <= distToRight) ? -2 : 2;
 
             if (preferredLane !== currentLane) {
                 const step = preferredLane > currentLane ? 1 : -1;
                 const nextLane = currentLane + step;
-                this._swapLane(ep, nextLane, pvpEnemies, now);
+                // そのレーンに誰もいなければ移動、またはスワップ
+                const occupant = pvpEnemies.find(m => m !== ep && m.lane === nextLane);
+                if (!occupant) {
+                    this._swapLane(ep, nextLane, pvpEnemies, now);
+                } else {
+                    // 端方向へのスワップ移動
+                    this._swapLane(ep, nextLane, pvpEnemies, now);
+                }
+            } else {
+                // すでに端または近くにいる場合: ランダムで左右どちらかのレーンを確認し誰もいないと移動
+                if (Math.random() < 0.35) {
+                    this._tryMoveToAdjacentEmptyLane(ep, pvpEnemies, now);
+                }
             }
         }
     }

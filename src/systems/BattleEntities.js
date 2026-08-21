@@ -1175,9 +1175,9 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.maxUltimateCooldown = Math.max(0, 60.0 - (this.wlv * 2.0));
         this.ultimateCooldown = this.maxUltimateCooldown;
 
-        // 座標: 前衛なら Z=9.5、後衛なら Z=14.5 (-1.0m手前へ)
+        // 座標: 前衛なら Z=9.0、後衛なら Z=14.0
         this.x = this.lane * 1.8;
-        this.z = this.isFront ? 9.5 : 14.5;
+        this.z = this.isFront ? 9.0 : 14.0;
         this.targetZ = this.z;
 
         const charIdToAttr = {

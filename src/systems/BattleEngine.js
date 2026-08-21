@@ -2169,7 +2169,7 @@ export class BattleEngine {
 
                 // 定位置 ＋ 踏み込みオフセット（animOffsetX, animOffsetZ）を反映
                 const baseTargetX = ep.lane * 1.8;
-                const baseTargetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.5 : 14.5);
+                const baseTargetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.0 : 14.0);
                 ep.x = baseTargetX + (ep.animOffsetX || 0);
                 ep.z = baseTargetZ + (ep.animOffsetZ || 0);
 
