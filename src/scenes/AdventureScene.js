@@ -538,6 +538,49 @@ export default class AdventureScene extends Phaser.Scene {
 
 
             
+        // ── 戦闘復帰時（勝利・敗北・撤退共通）: 紫苑の精神力1/5以下による最優先リスポーン判定 ──
+        if (data && data.fromBattle && !data.isTutorialStart && !data.fromTowerRespEvent && !data.fromRespEvent) {
+            const sionData = gs.characters['001'];
+            if (sionData) {
+                const sionStats = gs.calcStats('001', this.party);
+                const maxSp = sionStats ? sionStats.maxSp : (sionData.maxSp || 500);
+                const currentSp = data.sionFinalSp !== undefined && data.sionFinalSp !== null ? data.sionFinalSp : sionData.currentSp;
+                const isSionMentalBreak = (currentSp <= maxSp / 5);
+
+                if (isSionMentalBreak) {
+                    if (this.scene.isActive('EventScene')) {
+                        this.scene.stop('EventScene');
+                    }
+
+                    if (this.isTowerMode) {
+                        const towerRespData = this.cache.json.get('event_tow_res');
+                        if (towerRespData) {
+                            GlobalState.getInstance().addLog(`💀 [SionMentalBreak] SP <= 20% in Tower -> Launching event_tow_res!`);
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: towerRespData,
+                                returnScene: 'AdventureScene',
+                                fromTowerRespEvent: true
+                            });
+                            return; // ★ 最優先でタワーリスポーンへ！
+                        }
+                    } else {
+                        const respData = this.cache.json.get('event_resp');
+                        if (respData) {
+                            GlobalState.getInstance().addLog(`💀 [SionMentalBreak] SP <= 20% -> Launching event_resp loop reset!`);
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: respData,
+                                returnScene: 'AdventureScene',
+                                fromRespEvent: true
+                            });
+                            return; // ★ 最優先で12/1東京周回リセットへ！
+                        }
+                    }
+                }
+            }
+        }
+
         // 撤退または全滅からの復帰
         if (data && (data.isGameOver || data.isRetreated)) {
             // イベントシーンが残っていれば終了

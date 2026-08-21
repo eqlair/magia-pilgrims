@@ -665,11 +665,13 @@ export default class BattleScene extends Phaser.Scene {
         // 全滅・撤退時の遷移
         if ((this.engine.waveState === 'gameover' || this.engine.waveState === 'retreated') && !this.isExiting) {
             this.isExiting = true;
+            const sionPlayer = this.engine.players.find(p => p.charId === '001');
             const stateObj = { 
                 isGameOver: this.engine.waveState === 'gameover',
                 isRetreated: this.engine.waveState === 'retreated',
                 isNightExploration: this.battleConfig.isNightExploration,
                 is1221NightBattle: this.battleConfig.is1221NightBattle || false,
+                sionFinalSp: sionPlayer ? sionPlayer.sp : null,
                 fromBattle: true
             };
 
