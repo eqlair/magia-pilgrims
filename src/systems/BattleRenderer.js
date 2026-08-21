@@ -256,30 +256,30 @@ export class BattleRenderer {
                     sprite.setTexture(baseTex);
                     sprite.setFrame(6); // 死亡フレーム（7番目, index 6）
                 } else if (isMeleeMotion && this.scene.textures.exists(motionTex)) {
-                    // 近接特殊モーション (_bシート: 0:上/奥, 1:左, 2:右, 3:下/手前)
+                    // 近接特殊モーション (_bシート: 0:正面/手前, 1:左, 2:右, 3:背面/奥)
                     sprite.setTexture(motionTex);
                     if (!entity.isEnemy) {
-                        // ── 味方プレイヤーの近接モーション: 基本は上(0:奥) ──
-                        let frame = 0;
-                        if (entity.targetEnemy) {
-                            const dx = entity.targetEnemy.x - entity.x;
-                            const dz = entity.targetEnemy.z - entity.z;
-                            if (dz < -1.0) frame = 3; // 手前
-                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
-                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
-                            else frame = 0; // 奥
-                        }
-                        sprite.setFrame(frame);
-                    } else {
-                        // ── 敵魔法少女の近接モーション: 基本は下(3:手前) ──
+                        // ── 味方プレイヤーの近接: 基本は背面(3:奥向き) ──
                         let frame = 3;
                         if (entity.targetEnemy) {
                             const dx = entity.targetEnemy.x - entity.x;
                             const dz = entity.targetEnemy.z - entity.z;
-                            if (dz > 1.0) frame = 0; // 奥
+                            if (dz < -1.0) frame = 0; // 手前
+                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
+                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
+                            else frame = 3; // 奥
+                        }
+                        sprite.setFrame(frame);
+                    } else {
+                        // ── 敵魔法少女の近接: 基本は正面(0:手前向き) ──
+                        let frame = 0;
+                        if (entity.targetEnemy) {
+                            const dx = entity.targetEnemy.x - entity.x;
+                            const dz = entity.targetEnemy.z - entity.z;
+                            if (dz > 1.0) frame = 3; // 奥
                             else if (dx > 2.5 && Math.abs(dz) < 2.0) frame = 2; // 右
                             else if (dx < -2.5 && Math.abs(dz) < 2.0) frame = 1; // 左
-                            else frame = 3; // 手前
+                            else frame = 0; // 手前
                         }
                         sprite.setFrame(frame);
                     }
@@ -294,14 +294,14 @@ export class BattleRenderer {
                     if (entity.targetEnemy && isMeleeMotion) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
-                        if (dz < -1.0) targetFrame = 3;
+                        if (dz < -1.0) targetFrame = 0;
                         else if (dx > 2.5 && dz < 2.0) targetFrame = 2;
                         else if (dx < -2.5 && dz < 2.0) targetFrame = 1;
-                        else targetFrame = 0;
+                        else targetFrame = 3;
                     } else if (entity.targetEnemy && isAttacking) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
-                        if (dz < -1.0) { useBaseTex = true; targetFrame = 3; }
+                        if (dz < -1.0) { useBaseTex = true; targetFrame = 0; }
                         else if (dx > 2.5 && dz < 2.0) { useBaseTex = true; targetFrame = 2; }
                         else if (dx < -2.5 && dz < 2.0) { useBaseTex = true; targetFrame = 1; }
                         else targetFrame = runFrame;
@@ -317,34 +317,34 @@ export class BattleRenderer {
                         sprite.setFrame(targetFrame);
                     } else {
                         sprite.setTexture(baseTex);
-                        sprite.setFrame(0);
+                        sprite.setFrame(3);
                     }
 
                 } else {
-                    // 通常のアニメーション (baseTex: 0:上/奥, 1:左, 2:右, 3:下/手前)
+                    // 通常のアニメーション (baseTex: 0:正面/手前, 1:左, 2:右, 3:背面/奥)
                     sprite.setTexture(baseTex);
                     if (!entity.isEnemy) {
-                        // ── 味方プレイヤー: デフォルト＆射撃は上向き(0:奥/背中) ──
-                        let frame = 0;
-                        if (entity.targetEnemy) {
-                            const dx = entity.targetEnemy.x - entity.x;
-                            const dz = entity.targetEnemy.z - entity.z;
-                            if (dz < -1.0) frame = 3; // 手前
-                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
-                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
-                            else frame = 0; // 奥
-                        }
-                        sprite.setFrame(frame);
-                    } else {
-                        // ── 敵魔法少女: デフォルト＆射撃は下向き(3:手前/正面) ──
+                        // ── 味方プレイヤー: 基本は背面(3:奥/後ろ姿) ──
                         let frame = 3;
                         if (entity.targetEnemy) {
                             const dx = entity.targetEnemy.x - entity.x;
                             const dz = entity.targetEnemy.z - entity.z;
-                            if (dz > 1.0) frame = 0; // 奥
+                            if (dz < -1.0) frame = 0; // 手前
+                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
+                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
+                            else frame = 3; // 奥
+                        }
+                        sprite.setFrame(frame);
+                    } else {
+                        // ── 敵魔法少女: 基本は正面(0:手前/顔が見える) ──
+                        let frame = 0;
+                        if (entity.targetEnemy) {
+                            const dx = entity.targetEnemy.x - entity.x;
+                            const dz = entity.targetEnemy.z - entity.z;
+                            if (dz > 1.0) frame = 3; // 奥
                             else if (dx > 2.5 && Math.abs(dz) < 2.0) frame = 2; // 右
                             else if (dx < -2.5 && Math.abs(dz) < 2.0) frame = 1; // 左
-                            else frame = 3; // 手前
+                            else frame = 0; // 手前
                         }
                         sprite.setFrame(frame);
                     }
