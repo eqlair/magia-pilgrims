@@ -294,11 +294,16 @@ export default class EventScene extends Phaser.Scene {
 
                 if (this.enemyLevel > 0 || this.isTowerBattle) {
                     console.log('[EventScene] Direct transition to BattleScene (No map resume intermediate)');
+                    const partySize = (party && party.length) ? party.length : 1;
+                    const baseEnemyTable = { 1: 10, 2: 20, 3: 35, 4: 55, 5: 80 };
+                    const baseCount = baseEnemyTable[partySize] || (80 + (partySize - 5) * 25);
+                    const calcEnemyCount = baseCount + (this.enemyLevel || 1) * 3;
+
                     const config = {
                         rule: this.isTowerBattle ? 1 : 0,
                         attribute: this.enemyAttr || 1,
                         enemyAttr: this.enemyAttr || 1,
-                        enemyCount: this.isTowerBattle ? 100 : (10 + (this.enemyLevel || 1) * 3),
+                        enemyCount: this.isTowerBattle ? 100 : calcEnemyCount,
                         waveCount: 2,
                         totalWaves: 2,
                         enemyLevel: this.enemyLevel || 1,
