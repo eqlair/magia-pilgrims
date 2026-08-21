@@ -185,8 +185,8 @@ export class BattleEngine {
                 ep.engine = this;
                 this.pvpEnemies.push(ep);
             }
-            this.pvpAi = new PvpAiController(this);
         }
+        this.pvpAi = new PvpAiController(this);
 
         // パーティ情報を取得
         this.players = [];
@@ -2141,12 +2141,13 @@ export class BattleEngine {
             if (e.z > 30) e.z = 25.0; // 画面奥に行き過ぎた場合の安全装置
         }
 
+        // ── AI思考ルーチン（プレイヤー側＆敵側）の更新 ──
+        if (this.pvpAi) {
+            this.pvpAi.update(dt);
+        }
+
         // ── PvP敵魔法少女たちの行動更新 ──
         if (this.isPvpBattle && this.pvpEnemies) {
-            if (this.pvpAi) {
-                this.pvpAi.update(dt);
-            }
-
             for (const ep of this.pvpEnemies) {
                 if (ep.isDead) continue;
                 ep.update(dt);
