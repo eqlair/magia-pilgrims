@@ -18,9 +18,9 @@ export default class BattleScene extends Phaser.Scene {
 
     init(data) {
         this.battleConfig = data || {};
+        this.globalState = GlobalState.getInstance();
         // 食料が0かどうかを battleConfig に反映
-        const gs = GlobalState.getInstance();
-        this.battleConfig.isFoodEmpty = (gs.food <= 0);
+        this.battleConfig.isFoodEmpty = (this.globalState.food <= 0);
         // フラグを1戦ごとにリセット（launchで起動しても前回の値が残るため）
         this.isExiting = false;
         this.isBossPresentationStarted = false;
