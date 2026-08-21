@@ -63,9 +63,10 @@ export class GlobalState {
         // デバッグ機能: 戦闘後に宝石確定ドロップ
         this.debugForceGemDrop = false;
         
-        // 12/7, 12/14, 12/21, 池袋イベントフラグ
+        // 12/7, 12/14, 12/17, 12/21, 池袋イベントフラグ
         this.event1207Played = false;
         this.event1214Played = false;
+        this.event1217Played = false;
         this.event1221Played = false;
         this.ikebukuro01Played = false;
         this.ikebukuro02Played = false;
@@ -937,6 +938,7 @@ export class GlobalState {
             tarot13_targetAtk: this.tarot13_targetAtk,
             event1207Played: this.event1207Played,
             event1214Played: this.event1214Played,
+            event1217Played: this.event1217Played,
             event1221Played: this.event1221Played,
 
             maxPastExp: this.maxPastExp || 0,
@@ -1103,6 +1105,7 @@ export class GlobalState {
         // イベントフラグのリセット
         this.event1207Played = false;
         this.event1214Played = false;
+        this.event1217Played = false;
         this.event1221Played = false;
         this.event1221WildhuntPlayed = false;
         this.ikebukuro01Played = false;

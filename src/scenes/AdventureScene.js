@@ -856,6 +856,12 @@ export default class AdventureScene extends Phaser.Scene {
                     SaveManager.saveGame(this);
                 }
 
+                // 12/17午後イベント視聴完了時 -> 視聴フラグをONに更新
+                if (data && data.from1217Event) {
+                    GlobalState.getInstance().event1217Played = true;
+                    SaveManager.saveGame(this);
+                }
+
                 // 12/14就寝前イベント完了時 -> 視聴フラグ確定・日時同期後、15日午前の時報を1回だけ鳴らしてreturn
                 if (data && data.from1214Event) {
                     const gsInst = GlobalState.getInstance();
@@ -3107,7 +3113,7 @@ export default class AdventureScene extends Phaser.Scene {
     enqueueEvent(item) {
         if (!this.eventQueue) this.eventQueue = [];
         this.eventQueue.push(item);
-        const name = item.data?.from1207Event ? '1207' : item.data?.from1214Event ? '1214' : item.type;
+        const name = item.data?.from1207Event ? '1207' : item.data?.from1214Event ? '1214' : item.data?.from1217Event ? '1217' : item.type;
         GlobalState.getInstance().addLog(`📌 [enqueueEvent] ${name} (QueueLen: ${this.eventQueue.length})`);
     }
 
@@ -3119,7 +3125,7 @@ export default class AdventureScene extends Phaser.Scene {
         const next = this.eventQueue.shift();
         if (!next) return false;
 
-        const name = next.data?.from1207Event ? '1207' : next.data?.from1214Event ? '1214' : next.type;
+        const name = next.data?.from1207Event ? '1207' : next.data?.from1214Event ? '1214' : next.data?.from1217Event ? '1217' : next.type;
         GlobalState.getInstance().addLog(`🚀 [processEventQueue] Launching ${next.type}:${name}`);
 
         if (next.type === 'event') {
@@ -3160,6 +3166,11 @@ export default class AdventureScene extends Phaser.Scene {
                 id: 'event_1214',
                 timing: 'before_time_signal',
                 check: () => this.check1214Event()
+            },
+            {
+                id: 'event_1217',
+                timing: 'after_time_signal',
+                check: () => this.check1217Event()
             },
             {
                 id: 'event_ikebukuro02',
@@ -3310,6 +3321,29 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                 });
                 return true;
+            }
+        }
+        return false;
+    }
+
+    check1217Event() {
+        const gs = GlobalState.getInstance();
+        if (this.currentMonth === 12 && !gs.event1217Played) {
+            // 12/17 午後の時報の後（または12/17午後以降で未再生の場合）
+            if (this.currentDay === 17 && this.timePeriodIndex < 1) return false; // 12/17午前は午後の時報まで待つ
+            if (this.currentDay < 17) return false;
+
+            const eventData = this.cache.json.get('event_1217');
+            if (eventData && eventData.length > 0) {
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: eventData,
+                        returnScene: 'AdventureScene',
+                        from1217Event: true
+                    }
+                });
+                return true; // イベント登録
             }
         }
         return false;

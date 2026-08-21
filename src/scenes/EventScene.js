@@ -31,6 +31,7 @@ export default class EventScene extends Phaser.Scene {
         this.isNotification = data.isNotification || false;
         this.from1207Event = data.from1207Event || false;
         this.from1214Event = data.from1214Event || false;
+        this.from1217Event = data.from1217Event || false;
         this.from1221Event = data.from1221Event || false;
         this.from1221WildhuntEvent = data.from1221WildhuntEvent || false;
         this.fromRespEvent = data.fromRespEvent || false;
@@ -329,12 +330,13 @@ export default class EventScene extends Phaser.Scene {
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1221Event && !this.fromRespEvent && !this.fromOpTutorial,
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.fromRespEvent && !this.fromOpTutorial,
                         fromExploration: this.fromExploration,
                         fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
                         isNotification: this.isNotification,
                         from1207Event: this.from1207Event,
                         from1214Event: this.from1214Event,
+                        from1217Event: this.from1217Event,
                         from1221Event: this.from1221Event,
                         fromRespEvent: this.fromRespEvent,
 
