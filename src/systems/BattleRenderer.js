@@ -256,9 +256,10 @@ export class BattleRenderer {
                     sprite.setTexture(baseTex);
                     sprite.setFrame(6); // 死亡フレーム（7番目, index 6）
                 } else if (isMeleeMotion && this.scene.textures.exists(motionTex)) {
-                    // 近接特殊モーション
+                    // 近接特殊モーション (_bシート: 0:上/奥, 1:左, 2:右, 3:下/手前)
                     sprite.setTexture(motionTex);
-                    let frame = 3; // デフォルト: 下向き(手前)
+                    const defaultMeleeFrame = entity.isEnemy ? 3 : 0;
+                    let frame = defaultMeleeFrame;
                     let angle = null;
                     if (entity.kickAngle !== undefined && entity.kickAngle !== null) {
                         angle = entity.kickAngle;
@@ -268,16 +269,10 @@ export class BattleRenderer {
                         angle = Math.atan2(dz, dx) * 180 / Math.PI;
                     }
                     if (angle !== null) {
-                        const isUp = (angle <= -45 && angle >= -135);      // 上/奥 (dz < 0)
-                        const isRight = (angle >= -45 && angle <= 45);     // 右 (dx > 0)
-                        const isLeft = (angle >= 135 || angle <= -135);    // 左 (dx < 0)
-                        const isDown = (!isUp && !isRight && !isLeft);     // 下/手前 (dz > 0)
-
-                        // 統一仕様: 0:上(背面), 1:左, 2:右, 3:下(前)
-                        if (isDown) frame = 3;
-                        else if (isLeft) frame = 1;
-                        else if (isRight) frame = 2;
-                        else if (isUp) frame = 0;
+                        if (angle > 45 && angle < 135) frame = 0;          // 上/奥 (dz > 0)
+                        else if (angle < -45 && angle > -135) frame = 3;   // 下/手前 (dz < 0)
+                        else if (angle >= -45 && angle <= 45) frame = 2;   // 右 (dx > 0)
+                        else if (angle >= 135 || angle <= -135) frame = 1; // 左 (dx < 0)
                     }
                     sprite.setFrame(frame);
 
@@ -293,7 +288,7 @@ export class BattleRenderer {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle >= 45 && angle <= 135)          targetFrame = 3; // 下(手前)向き攻撃
+                        if (angle < -45 && angle > -135)          targetFrame = 3; // 下(手前)向き攻撃
                         else if (angle >= 135 || angle <= -135)   targetFrame = 1; // 左向き攻撃
                         else if (angle >= -45 && angle <= 45)     targetFrame = 2; // 右向き攻撃
                         else                                      targetFrame = 0; // 上(奥)向き攻撃
@@ -303,7 +298,7 @@ export class BattleRenderer {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle >= 45 && angle <= 135) {
+                        if (angle < -45 && angle > -135) {
                             useBaseTex = true;
                             targetFrame = 3; // 手前(下)向き
                         } else if (angle >= 135 || angle <= -135) {
@@ -332,44 +327,23 @@ export class BattleRenderer {
                         sprite.setFrame(0);
                     }
 
-
-
                 } else {
-                    // 通常のアニメーション (baseTex)
+                    // 通常のアニメーション (baseTex: 0:上/奥, 1:左, 2:右, 3:下/手前)
                     sprite.setTexture(baseTex);
+                    const defaultFrame = entity.isEnemy ? 3 : 0;
                     if (entity.targetEnemy) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        let frame = 3; // デフォルト: 下向き
-                        if (angle > 45 && angle < 135) frame = 3; // 下(手前)
-                        else if (angle >= 135 || angle <= -135) frame = 1; // 左
-                        else if (angle >= -45 && angle <= 45) frame = 2; // 右
-                        else frame = 0; // 上(背面)
+                        let frame = defaultFrame;
+                        if (angle > 45 && angle < 135) frame = 0;          // 上(奥・dz > 0)
+                        else if (angle < -45 && angle > -135) frame = 3;   // 下(手前・dz < 0)
+                        else if (angle >= -45 && angle <= 45) frame = 2;   // 右(dx > 0)
+                        else if (angle >= 135 || angle <= -135) frame = 1; // 左(dx < 0)
                         sprite.setFrame(frame);
                     } else {
-                        sprite.setFrame(3); // デフォルト: 下向き
+                        sprite.setFrame(defaultFrame);
                     }
-                }
-
-
-            }
-
- else if (textureKey.startsWith('battle_')) {
-                if ((entity.hp <= 0 || entity.isDead) && entity.owner === 'player') {
-                    sprite.setFrame(6); // 死亡フレーム（7番目, index 6）
-                } else if (entity.targetEnemy) {
-                    const dx = entity.targetEnemy.x - entity.x;
-                    const dz = entity.targetEnemy.z - entity.z;
-                    const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                    let frame = 0; // デフォルト: 上向き
-                    if (angle > 45 && angle < 135) frame = 0;  // 下→上フレームに統一修正後は0:上
-                    else if (angle >= -45 && angle <= 45) frame = 1;
-                    else if (angle >= 135 || angle <= -135) frame = 2;
-                    else frame = 3;
-                    sprite.setFrame(frame);
-                } else {
-                    sprite.setFrame(3); // デフォルト: 下向き
                 }
             }
 
