@@ -1013,9 +1013,9 @@ export class BattleEngine {
                     this.enemyLevel = 5 + Math.floor(this.wildhuntElapsedSec / 10);
                 }
 
-                // 倒れたキャラクター（isDead）を画面下のスクロールに合わせて後方へ流す演出
+                // 倒れたキャラクター（isDead または hp <= 0）を画面下のスクロールに合わせて後方へ流す演出
                 for (const p of this.players) {
-                    if (p.isDead) {
+                    if (p.isDead || p.hp <= 0) {
                         p.z -= (this.advanceSpeed || 8.0) * dt;
                     }
                 }
@@ -1225,7 +1225,9 @@ export class BattleEngine {
                 p.isDead = true;
                 if (p.isFront) {
                     p.isFront = false;
-                    p.targetZ = 1.0;
+                    if (this.rule !== 2) {
+                        p.targetZ = 1.0;
+                    }
                     this.eventQueue.push(`${p.name} is incapacitated!`);
                 }
             }
@@ -1240,7 +1242,9 @@ export class BattleEngine {
                         p.isDead = true;
                         if (p.isFront) {
                             p.isFront = false;
-                            p.targetZ = 1.0;
+                            if (this.rule !== 2) {
+                                p.targetZ = 1.0;
+                            }
                             this.eventQueue.push(`${p.name} is incapacitated!`);
                         }
                         this.floatingTexts.push({

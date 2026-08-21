@@ -29,6 +29,27 @@ export class BattleRenderer {
         // 描画更新の最初に、削除されたエンティティのスプライトを消去する
         for (const [entity, sprite] of this.spriteMap.entries()) {
             if (entity.isDead) {
+                // プレイヤーキャラクターは死亡後も倒れ絵を描画し、突破戦では画面下に流すため即時消去しない
+                if (entity.owner === 'player') {
+                    const isBreakthrough = (this.scene.battleConfig && this.scene.battleConfig.rule === 2);
+                    // 突破戦で完全に画面手前下端外（z < -2.0）に流れ去った場合のみ消去
+                    if (isBreakthrough && entity.z < -2.0) {
+                        sprite.destroy();
+                        if (entity.sprite2) entity.sprite2.destroy();
+                        this.spriteMap.delete(entity);
+                        if (this.uiMap.has(entity)) {
+                            const ui = this.uiMap.get(entity);
+                            if (ui) {
+                                if (ui.hpBg) ui.hpBg.destroy(); if (ui.hpBar) ui.hpBar.destroy(); 
+                                if (ui.ultBg) ui.ultBg.destroy(); if (ui.ultBar) ui.ultBar.destroy();
+                                if (ui.spBg) ui.spBg.destroy(); if (ui.spBar) ui.spBar.destroy(); 
+                            }
+                            this.uiMap.delete(entity);
+                        }
+                    }
+                    continue;
+                }
+
                 sprite.destroy();
                 if (entity.sprite2) {
                     entity.sprite2.destroy();
@@ -216,7 +237,7 @@ export class BattleRenderer {
                     }
                 }
 
-                if (entity.hp <= 0) {
+                if (entity.hp <= 0 || entity.isDead) {
                     sprite.setTexture(baseTex);
                     sprite.setFrame(6); // 死亡フレーム（7番目, index 6）
                 } else if (isMeleeMotion && this.scene.textures.exists(motionTex)) {
@@ -320,7 +341,7 @@ export class BattleRenderer {
             }
 
  else if (textureKey.startsWith('battle_')) {
-                if (entity.hp <= 0 && entity.owner === 'player') {
+                if ((entity.hp <= 0 || entity.isDead) && entity.owner === 'player') {
                     sprite.setFrame(6); // 死亡フレーム（7番目, index 6）
                 } else if (entity.targetEnemy) {
                     const dx = entity.targetEnemy.x - entity.x;
