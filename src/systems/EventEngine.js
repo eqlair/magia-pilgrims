@@ -30,7 +30,9 @@ export class EventEngine {
 
 
         // レイヤー管理
+        this.baseBlackRect = null;
         this.bgImage     = null;
+        this.bgOverlay   = null;
         this.illustImage = null;
         this.charaRight  = null;
         this.charaLeft   = null;
@@ -54,6 +56,15 @@ export class EventEngine {
 
     /** イベントを開始する */
     start() {
+        // マップ等の上に全画面黒下敷き矩形を敷いてから各種表示を行う
+        const screenH = Math.max(this.H, this.scene.scale ? this.scene.scale.height : 0);
+        const screenW = Math.max(this.W, this.scene.scale ? this.scene.scale.width : 0);
+        if (!this.baseBlackRect) {
+            this.baseBlackRect = this.scene.add.rectangle(screenW / 2, screenH / 2, screenW, screenH, 0x000000)
+                .setDepth(this.DEPTH - 1)
+                .setAlpha(1);
+        }
+
         this._inputCooldown = true;
         if (this.scene && this.scene.time) {
             this.scene.time.delayedCall(600, () => {
@@ -263,7 +274,12 @@ export class EventEngine {
         );
 
         let newBg;
-        if (isHexMapBg) {
+        if (!key) {
+            // keyがnullまたは未指定の場合は真っ黒な矩形（黒背景）を生成
+            newBg = this.scene.add.rectangle(screenW / 2, screenH / 2, screenW, screenH, 0x000000)
+                .setDepth(this.DEPTH)
+                .setAlpha(0);
+        } else if (isHexMapBg) {
             // ヘックス画像を背景としたマップ上の対話画面: 画面上部中央を支点に 0.8倍
             newBg = this.scene.add.image(screenW / 2, 0, key)
                 .setOrigin(0.5, 0)
@@ -458,6 +474,7 @@ export class EventEngine {
     cleanup(keepBgm = false) {
         if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
         if (this.whiteRect)   { this.scene.tweens.killTweensOf(this.whiteRect); this.whiteRect.destroy(); this.whiteRect = null; }
+        if (this.baseBlackRect) { this.baseBlackRect.destroy(); this.baseBlackRect = null; }
         if (this.bgImage)     { this.bgImage.destroy();     this.bgImage     = null; }
         if (this.bgOverlay)   { this.bgOverlay.destroy();   this.bgOverlay   = null; }
         if (this.illustImage) { this.illustImage.destroy(); this.illustImage = null; }
