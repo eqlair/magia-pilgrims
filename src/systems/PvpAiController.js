@@ -66,7 +66,7 @@ export class PvpAiController {
                     }
 
                     if (canCast) {
-                        this._executeUltimate(ep, role, now);
+                        this._executeUltimate(ep, role, now, pvpEnemies);
                     }
                 }
             }
@@ -82,7 +82,7 @@ export class PvpAiController {
     }
 
     /** 必殺技の発動と移動処理 */
-    _executeUltimate(ep, role, now) {
+    _executeUltimate(ep, role, now, pvpEnemies) {
         this.teamLastUltTime = now;
 
         // 移動するかどうかの判定
@@ -98,12 +98,10 @@ export class PvpAiController {
         }
 
         if (moveToCenter) {
-            ep.lane = 0;
+            this._swapLane(ep, 0, pvpEnemies, now);
             ep.isFront = true;
             ep.targetZ = 12.0;
-            ep.x = 0;
             ep.z = 12.0;
-            this.teamLastLaneMoveTime = now;
         }
 
         // 必殺技の実行
@@ -123,6 +121,25 @@ export class PvpAiController {
                 amount: "ULTIMATE!", type: "skill", lifeTime: 1.5, maxLife: 1.5
             });
         }
+    }
+
+    /** レーン移動およびスワップ（入れ替え）処理 */
+    _swapLane(ep, targetLane, pvpEnemies, now) {
+        if (ep.lane === targetLane) return;
+
+        const oldLane = ep.lane !== undefined ? ep.lane : 0;
+        // 移動先レーンにいる他の味方を探す
+        const occupant = pvpEnemies.find(m => m !== ep && m.lane === targetLane);
+
+        if (occupant) {
+            // 相手を自分の元のレーンへスワップ（入れ替え）
+            occupant.lane = oldLane;
+            occupant.x = oldLane * 1.8;
+        }
+
+        ep.lane = targetLane;
+        ep.x = targetLane * 1.8;
+        this.teamLastLaneMoveTime = now;
     }
 
     /** 前後列とレーン移動の思考ルーチン */
@@ -170,7 +187,6 @@ export class PvpAiController {
         if (!canMoveLane) return; // 他のキャラクターが1秒以内に移動していたら移動しない
 
         const currentLane = ep.lane !== undefined ? ep.lane : 0;
-        const usedLanes = pvpEnemies.filter(m => m !== ep).map(m => m.lane);
 
         if (role === 'melee' || role === 'support') {
             // 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たらレーンを移動する
@@ -182,14 +198,11 @@ export class PvpAiController {
 
                 if (defValue < 100) {
                     // 防御力が高い（相性が悪い）キャラクターが正面にいる！
-                    // 空いている他のレーンを探して移動
-                    const availableLanes = [-2, -1, 0, 1, 2].filter(l => !usedLanes.includes(l) && l !== currentLane);
-                    if (availableLanes.length > 0) {
-                        // 可能な限り相性が良い敵がいるレーン、または空いているレーンを選択
-                        const targetLane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
-                        ep.lane = targetLane;
-                        ep.x = targetLane * 1.8;
-                        this.teamLastLaneMoveTime = now;
+                    // 隣接レーンまたは他のレーンを選択してスワップ移動
+                    const candidates = [-2, -1, 0, 1, 2].filter(l => l !== currentLane);
+                    if (candidates.length > 0) {
+                        const targetLane = candidates[Math.floor(Math.random() * candidates.length)];
+                        this._swapLane(ep, targetLane, pvpEnemies, now);
                         return;
                     }
                 }
@@ -201,19 +214,12 @@ export class PvpAiController {
             const distToLeft = Math.abs(currentLane - (-2));
             const distToRight = Math.abs(currentLane - 2);
 
-            let preferredLane = (distToLeft <= distToRight) ? -2 : 2;
-            if (usedLanes.includes(preferredLane)) {
-                preferredLane = (preferredLane === -2) ? 2 : -2;
-            }
+            const preferredLane = (distToLeft <= distToRight) ? -2 : 2;
 
-            if (preferredLane !== currentLane && !usedLanes.includes(preferredLane)) {
+            if (preferredLane !== currentLane) {
                 const step = preferredLane > currentLane ? 1 : -1;
                 const nextLane = currentLane + step;
-                if (!usedLanes.includes(nextLane)) {
-                    ep.lane = nextLane;
-                    ep.x = nextLane * 1.8;
-                    this.teamLastLaneMoveTime = now;
-                }
+                this._swapLane(ep, nextLane, pvpEnemies, now);
             }
         }
     }
