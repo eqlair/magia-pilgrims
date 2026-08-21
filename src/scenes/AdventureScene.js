@@ -538,128 +538,121 @@ export default class AdventureScene extends Phaser.Scene {
 
 
             
-        // ── 戦闘復帰時（勝利・敗北・撤退共通）: 紫苑の精神力1/5以下による最優先リスポーン判定 ──
+        // ── 撤退時: 紫苑のSPに関わらず普通に撤退完了（突入前状態に復旧） ──
+        if (data && data.isRetreated) {
+            if (this.scene.isActive('EventScene')) {
+                this.scene.stop('EventScene');
+            }
+            if (this._preBattleSnapshot) {
+                this.restoreSnapshot(this._preBattleSnapshot);
+                this._preBattleSnapshot = null;
+            }
+            this._justReturnedFromGameOverOrRetreat = true;
+            this.checkTutorialEvents();
+
+            if (this._retreatMsgText) {
+                this._retreatMsgText.destroy();
+                this._retreatMsgText = null;
+            }
+            this._retreatMsgText = this.add.text(this.scale.width / 2, this.scale.height / 2, '戦闘から撤退した。', {
+                fontFamily: 'sans-serif',
+                fontSize: '28px',
+                color: '#ff6666',
+                backgroundColor: '#000000aa',
+                padding: { x: 20, y: 10 }
+            }).setOrigin(0.5).setDepth(9999).setScrollFactor(0);
+
+            this.time.delayedCall(2000, () => {
+                if (this._retreatMsgText) {
+                    this._retreatMsgText.destroy();
+                    this._retreatMsgText = null;
+                }
+            });
+
+            this.advanceTime();
+            SaveManager.saveGame(this);
+            TransitionManager.fadeIn(this);
+            return;
+        }
+
+        // ── 紫苑の精神力1/10以下（限界）判定 ──
+        let isSionMentalBreak = false;
         if (data && data.fromBattle && !data.isTutorialStart && !data.fromTowerRespEvent && !data.fromRespEvent) {
             const sionData = gs.characters['001'];
             if (sionData) {
                 const sionStats = gs.calcStats('001', this.party);
                 const maxSp = sionStats ? sionStats.maxSp : (sionData.maxSp || 500);
                 const currentSp = data.sionFinalSp !== undefined && data.sionFinalSp !== null ? data.sionFinalSp : sionData.currentSp;
-                const isSionMentalBreak = (currentSp <= maxSp / 5);
-
-                if (isSionMentalBreak) {
-                    if (this.scene.isActive('EventScene')) {
-                        this.scene.stop('EventScene');
-                    }
-
-                    if (this.isTowerMode) {
-                        const towerRespData = this.cache.json.get('event_tow_res');
-                        if (towerRespData) {
-                            GlobalState.getInstance().addLog(`💀 [SionMentalBreak] SP <= 20% in Tower -> Launching event_tow_res!`);
-                            this.scene.pause();
-                            this.scene.launch('EventScene', {
-                                events: towerRespData,
-                                returnScene: 'AdventureScene',
-                                fromTowerRespEvent: true
-                            });
-                            return; // ★ 最優先でタワーリスポーンへ！
-                        }
-                    } else {
-                        const respData = this.cache.json.get('event_resp');
-                        if (respData) {
-                            GlobalState.getInstance().addLog(`💀 [SionMentalBreak] SP <= 20% -> Launching event_resp loop reset!`);
-                            this.scene.pause();
-                            this.scene.launch('EventScene', {
-                                events: respData,
-                                returnScene: 'AdventureScene',
-                                fromRespEvent: true
-                            });
-                            return; // ★ 最優先で12/1東京周回リセットへ！
-                        }
-                    }
-                }
+                isSionMentalBreak = (currentSp <= maxSp / 10);
             }
         }
 
-        // 撤退または全滅からの復帰
-        if (data && (data.isGameOver || data.isRetreated)) {
-            // イベントシーンが残っていれば終了
+        // ── タワー内でのリスポーン分岐（全滅 または 紫苑SP1/10以下） ──
+        if (this.isTowerMode && data && data.fromBattle && (data.isGameOver || isSionMentalBreak) && !data.fromTowerRespEvent) {
+            const towerRespData = this.cache.json.get('event_tow_res');
+            if (towerRespData) {
+                GlobalState.getInstance().addLog(`💀 [TowerResp] isGameOver=${data.isGameOver}, isSionMentalBreak=${isSionMentalBreak} -> Launching event_tow_res!`);
+                if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: towerRespData,
+                    returnScene: 'AdventureScene',
+                    fromTowerRespEvent: true
+                });
+                return; // ★ タワーリスポーンへ直行
+            }
+        }
+
+        // ── 地上での周回リセット(event_resp)分岐（全滅 または 紫苑SP1/10以下） ──
+        if (!this.isTowerMode && data && data.fromBattle && (data.isGameOver || isSionMentalBreak) && !data.fromRespEvent) {
+            const respData = this.cache.json.get('event_resp');
+            if (respData) {
+                GlobalState.getInstance().addLog(`💀 [RespEvent] isGameOver=${data.isGameOver}, isSionMentalBreak=${isSionMentalBreak} -> Launching event_resp loop reset!`);
+                if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: respData,
+                    returnScene: 'AdventureScene',
+                    fromRespEvent: true
+                });
+                return; // ★ 12/1東京周回リセットへ直行
+            }
+        }
+
+        // ── 通常全滅からの復帰（フォールバック） ──
+        if (data && data.isGameOver) {
             if (this.scene.isActive('EventScene')) {
                 this.scene.stop('EventScene');
             }
-
-            // ★ タワー内での全滅時は tow_res イベントを起動！
-            if (this.isTowerMode && data.isGameOver) {
-                const towerRespData = this.cache.json.get('event_tow_res');
-                if (towerRespData) {
-                    GlobalState.getInstance().addLog(`💀 [GameOver] Tower Defeat -> Launching event_tow_res!`);
-                    this.scene.pause();
-                    this.scene.launch('EventScene', {
-                        events: towerRespData,
-                        returnScene: 'AdventureScene',
-                        fromTowerRespEvent: true
-                    });
-                    return; // ★ 後続の全滅メッセージや時報・セーブ処理を完全ブロック！(スナップショットは保持)
-                }
-            }
-
-            // 12/21の全滅、または12/21以降(一度も全滅・撤退したことがない場合含む)の全滅時は周回リセット(event_resp)へ突入
-            const isDec21Defeat = data.isGameOver && (data.is1221NightBattle || this.currentDay >= 21 || (this.currentMonth === 12 && this.currentDay >= 21));
-            if (isDec21Defeat) {
-                const respData = this.cache.json.get('event_resp');
-                if (respData) {
-                    GlobalState.getInstance().addLog(`💀 [GameOver] 12/21+ Defeat -> Launching event_resp loop reset!`);
-                    this.scene.pause();
-                    this.scene.launch('EventScene', {
-                        events: respData,
-                        returnScene: 'AdventureScene',
-                        fromRespEvent: true
-                    });
-                    return; // ★ 後続の全滅メッセージや時報・セーブ処理を完全ブロック！
-                }
-            }
-
             if (this._preBattleSnapshot) {
                 this.restoreSnapshot(this._preBattleSnapshot);
                 this._preBattleSnapshot = null;
             }
-
-            // 撤退または全滅からの復帰時チュートリアルチェック
             this._justReturnedFromGameOverOrRetreat = true;
-            const tutFired = this.checkTutorialEvents();
+            this.checkTutorialEvents();
 
-            // 二重表示を防ぐため既存のメッセージを消去
             if (this._retreatMsgText) {
-
                 this._retreatMsgText.destroy();
                 this._retreatMsgText = null;
             }
-
-            const msg = data.isGameOver ? '部隊は全滅した…' : '戦闘から撤退した。';
-            // メッセージ表示 (1つのみ単一管理・uiContainerに追加してカメラ二重描画を防止)
-            this._retreatMsgText = this.add.text(this.scale.width/2, this.scale.height/2, msg, {
+            this._retreatMsgText = this.add.text(this.scale.width / 2, this.scale.height / 2, '部隊は全滅した…', {
                 fontFamily: 'sans-serif',
                 fontSize: '28px',
                 color: '#ff6666',
-                backgroundColor: 'rgba(0,0,0,0.85)',
-                padding: { x: 24, y: 16 },
-                stroke: '#000000',
-                strokeThickness: 4
-            }).setOrigin(0.5).setDepth(3000).setScrollFactor(0);
+                backgroundColor: '#000000aa',
+                padding: { x: 20, y: 10 }
+            }).setOrigin(0.5).setDepth(9999).setScrollFactor(0);
 
-            if (this.uiContainer) {
-                this.uiContainer.add(this._retreatMsgText);
-            }
-
-            this.time.delayedCall(2500, () => {
+            this.time.delayedCall(2000, () => {
                 if (this._retreatMsgText) {
                     this._retreatMsgText.destroy();
                     this._retreatMsgText = null;
                 }
             });
-            
-            // BGM再開
-            this._playMapBgm(true);
+
+            this.advanceTime();
+            SaveManager.saveGame(this);
+            TransitionManager.fadeIn(this);
             return;
         }
 
