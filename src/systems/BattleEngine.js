@@ -2167,11 +2167,25 @@ export class BattleEngine {
                     }
                 }
 
-                // 定位置 ＋ 踏み込みオフセット（animOffsetX, animOffsetZ）を反映
+                // ノックバックオフセットの秒速3m復帰処理
+                const returnSpeed = 3.0; // 秒速3.0mで必死に前線へ戻る
+                const kbDist = Math.sqrt((ep.knockbackOffsetX || 0) ** 2 + (ep.knockbackOffsetZ || 0) ** 2);
+                if (kbDist > 0.001) {
+                    const moveDist = returnSpeed * dt;
+                    if (kbDist <= moveDist) {
+                        ep.knockbackOffsetX = 0;
+                        ep.knockbackOffsetZ = 0;
+                    } else {
+                        ep.knockbackOffsetX -= (ep.knockbackOffsetX / kbDist) * moveDist;
+                        ep.knockbackOffsetZ -= (ep.knockbackOffsetZ / kbDist) * moveDist;
+                    }
+                }
+
+                // 定位置 ＋ 踏み込みオフセット ＋ ノックバックオフセットを反映
                 const baseTargetX = ep.lane * 1.8;
                 const baseTargetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.0 : 14.0);
-                ep.x = baseTargetX + (ep.animOffsetX || 0);
-                ep.z = baseTargetZ + (ep.animOffsetZ || 0);
+                ep.x = baseTargetX + (ep.animOffsetX || 0) + (ep.knockbackOffsetX || 0);
+                ep.z = baseTargetZ + (ep.animOffsetZ || 0) + (ep.knockbackOffsetZ || 0);
 
                 if (ep.hp <= 0) {
                     ep.isDead = true;

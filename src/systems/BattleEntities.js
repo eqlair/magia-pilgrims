@@ -30,6 +30,10 @@ export class BattleEntity {
 
         // 呼吸アニメーション用（ラジアン）
         this.breathPhase = Math.random() * Math.PI * 2; 
+
+        // ノックバック変位量（秒速3mで定位置へ復帰）
+        this.knockbackOffsetX = 0;
+        this.knockbackOffsetZ = 0;
     }
 
     triggerAttackShake() {
@@ -88,18 +92,22 @@ export class BattleEntity {
 
     applyKnockback(forceX, forceZ) {
         // 力 / 重量 = 移動距離
-        let distanceX = forceX / this.weight;
-        let distanceZ = forceZ / this.weight;
+        let distanceX = forceX / (this.weight || 50);
+        let distanceZ = forceZ / (this.weight || 50);
         
         // 異常なノックバック値による画面外への吹き飛びを防ぐための上限
         distanceX = Math.max(-2.0, Math.min(distanceX, 2.0));
-        distanceZ = Math.max(-5.0, Math.min(distanceZ, 5.0));
+        distanceZ = Math.max(-4.0, Math.min(distanceZ, 4.0));
 
-        this.x += distanceX;
-        this.z += distanceZ;
-        
-        // Z座標が遠くに行き過ぎないように制限（24.0付近がスポーン地点のやや奥）
-        this.z = Math.min(this.z, 24.0);
+        this.knockbackOffsetX = (this.knockbackOffsetX || 0) + distanceX;
+        this.knockbackOffsetZ = (this.knockbackOffsetZ || 0) + distanceZ;
+
+        // baseXを持たない通常雑魚敵用の直接座標移動
+        if (this.baseX === undefined && !this.isEnemy) {
+            this.x += distanceX;
+            this.z += distanceZ;
+            this.z = Math.min(this.z, 24.0);
+        }
     }
 }
 
@@ -769,9 +777,23 @@ export class PlayerCharacter extends BattleEntity {
             this.animY = 0;
         }
 
+        // ノックバックオフセットの秒速3m復帰処理
+        const returnSpeed = 3.0; // 秒速3.0mで必死に元の位置へ戻る
+        const kbDist = Math.sqrt((this.knockbackOffsetX || 0) ** 2 + (this.knockbackOffsetZ || 0) ** 2);
+        if (kbDist > 0.001) {
+            const moveDist = returnSpeed * dt;
+            if (kbDist <= moveDist) {
+                this.knockbackOffsetX = 0;
+                this.knockbackOffsetZ = 0;
+            } else {
+                this.knockbackOffsetX -= (this.knockbackOffsetX / kbDist) * moveDist;
+                this.knockbackOffsetZ -= (this.knockbackOffsetZ / kbDist) * moveDist;
+            }
+        }
+
         // 最終座標の合成
-        this.x = this.baseX + this.animOffsetX;
-        this.z = this.baseZ + this.animOffsetZ;
+        this.x = this.baseX + this.animOffsetX + (this.knockbackOffsetX || 0);
+        this.z = this.baseZ + this.animOffsetZ + (this.knockbackOffsetZ || 0);
 
         super.update(dt);
         
