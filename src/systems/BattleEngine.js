@@ -826,9 +826,9 @@ export class BattleEngine {
             }
         }
 
-        // 対人戦(PvP魔法少女戦)モード限定: 互いの攻撃ダメージを1/10にする
+        // 対人戦(PvP魔法少女戦)モード限定: 互いの攻撃ダメージを1/50にする
         if (this.isPvpBattle) {
-            finalDamage *= 0.10;
+            finalDamage *= 0.02;
         }
 
         if (finalDamage > 0) {
