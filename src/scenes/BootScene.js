@@ -68,6 +68,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('talk_003', 'files/CHR/talk_紅華.json');
         this.load.json('talk_004', 'files/CHR/talk_黄蘭.json');
         this.load.json('talk_005', 'files/CHR/talk_李乃果.json');
+        this.load.json('talk_010', 'files/CHR/talk_白蓮.json');
         
         // タロットデータとイベントとキャラデータ
         this.load.json('tarot_data', 'files/DATA/tarot.json');
