@@ -241,6 +241,8 @@ export class BattleRenderer {
                 if (entity.isEnemy) {
                     if (charId === '001' || charId === '005') {
                         isMeleeMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
+                    } else {
+                        isMeleeMotion = (entity.attackAnimTimer > 0);
                     }
                 } else if (cs && cs.comboType === 'near') {
                     if (charId === '001' || charId === '005') {

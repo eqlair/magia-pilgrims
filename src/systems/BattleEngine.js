@@ -2151,9 +2151,17 @@ export class BattleEngine {
                 if (ep.isDead) continue;
                 ep.update(dt);
 
-                // 被弾後の定位置（Z=12.0 / Z=17.0, X=lane*1.8）への復帰スプリング
+                if (ep.attackAnimTimer > 0) {
+                    ep.attackAnimTimer -= dt;
+                }
+                if (ep.kickTimer > 0) {
+                    ep.kickTimer -= dt;
+                    if (ep.kickTimer <= 0) ep.isKickAttacking = false;
+                }
+
+                // 被弾後の定位置（targetZ, X=lane*1.8）への復帰スプリング
                 const baseTargetX = ep.lane * 1.8;
-                const baseTargetZ = ep.isFront ? 12.0 : 17.0;
+                const baseTargetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.5 : 14.5);
                 ep.x += (baseTargetX - ep.x) * Math.min(1.0, dt * 5.0);
                 ep.z += (baseTargetZ - ep.z) * Math.min(1.0, dt * 5.0);
 
@@ -2203,47 +2211,55 @@ export class BattleEngine {
                             if (ep.triggerAttackShake) ep.triggerAttackShake();
 
                             const kickDmg = Math.floor(ep.atk * 1.0);
-                            const kickBullet = new Bullet(ep.x, ep.z - 1.0, {
+                            const kickBullet = new Bullet(ep.x, ep.z - 0.5, {
                                 vx: 0,
                                 vz: -20, // 手前へ
                                 damage: kickDmg,
                                 knockback: 100,
                                 owner: 'enemy',
-                                size: 1.2,
+                                size: 1.5,
                                 type: 'kick',
-                                textureKey: null, // 画像なし（透明な当たり判定のみ）
-                                targetDist: 2.0,
+                                textureKey: null,
+                                targetDist: 2.5,
                                 isPiercing: true
                             });
+                            kickBullet.sourceEntity = ep;
                             this.bullets.push(kickBullet);
                         } else {
                             // 蒼樹(002), 紅華(003), 黄蘭(004), 李乃果(005), 白蓮(010)
                             if (ep.triggerAttackShake) ep.triggerAttackShake();
+                            ep.attackAnimTimer = 0.35; // 0.35秒間攻撃モーション
+
                             const swingMap = {
-                                '002': { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.1, size: 2.0 },
-                                '003': { type: 'swing_003', textureKey: 'weapon_003', dmg: 1.0, size: 2.2 },
-                                '004': { type: 'swing_004', textureKey: 'weapon_004_ribbon', dmg: 0.9, size: 2.5 },
-                                '005': { type: 'swing_005', textureKey: 'weapon_005', dmg: 1.0, size: 1.8 },
-                                '010': { type: 'barrier_010', textureKey: 'weapon_010b', dmg: 0.8, size: 2.0 }
+                                '002': { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.1, size: 3.0, hitRange: 3.5 },
+                                '003': { type: 'swing_003', textureKey: 'weapon_003', dmg: 1.0, size: 3.0, hitRange: 4.0 },
+                                '004': { type: 'swing_004', textureKey: 'weapon_004_ribbon', dmg: 0.9, size: 3.0, hitRange: 3.5 },
+                                '005': { type: 'swing_005', textureKey: 'weapon_005', dmg: 1.0, size: 2.0, hitRange: 2.5 },
+                                '010': { type: 'barrier_010', textureKey: 'weapon_010b', dmg: 0.8, size: 2.5, hitRange: 3.0 }
                             };
-                            const info = swingMap[ep.charId] || { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.0, size: 1.5 };
+                            const info = swingMap[ep.charId] || { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.0, size: 3.0, hitRange: 3.5 };
                             const swingDmg = Math.floor(ep.atk * info.dmg);
+                            const swingDuration = 0.35;
 
-                            // 手前へ踏み込み
-                            ep.z = 8.0;
-
-                            const swing = new Bullet(ep.x, ep.z - 1.5, {
+                            const swing = new Bullet(ep.x, ep.z, {
                                 vx: 0,
-                                vz: -15, // 手前へ
+                                vz: 0,
                                 damage: swingDmg,
                                 knockback: 80,
                                 owner: 'enemy',
                                 size: info.size,
+                                hitRange: info.hitRange,
                                 type: info.type,
                                 textureKey: info.textureKey,
-                                targetDist: 3.0,
+                                lifeTime: swingDuration,
                                 isPiercing: true
                             });
+
+                            swing.sourceEntity = ep;
+                            swing.maxLife = swingDuration;
+                            swing.baseAngle = Math.atan2(dz, dx); // 手前方向への角度
+                            swing.swingDir = Math.random() < 0.5 ? 1 : -1;
+
                             this.bullets.push(swing);
                         }
                     } else {

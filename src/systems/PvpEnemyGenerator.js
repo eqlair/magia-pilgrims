@@ -12,11 +12,11 @@ export class PvpEnemyGenerator {
 
     static DEFAULT_FRONT_ROLES = {
         '001': true,  // 紫苑: 前衛
-        '002': true,  // 蒼樹: 前衛
-        '003': false, // 紅華: 後衛
-        '004': false, // 黄蘭: 後衛
-        '005': true,  // 李乃果: 前衛
-        '010': false  // 白蓮: 後衛
+        '002': true,  // 蒼樹: 前衛 (近接型)
+        '003': true,  // 紅華: 前衛 (近接型)
+        '004': false, // 黄蘭: 後衛 (支援型)
+        '005': false, // 李乃果: 後衛 (後衛型)
+        '010': false  // 白蓮: 後衛 (後衛型)
     };
 
     static DEFAULT_LANES = {
