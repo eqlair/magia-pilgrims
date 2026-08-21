@@ -1,4 +1,4 @@
-﻿// 防御側から見た属性防御力（例: 赤(防御)は紫(攻撃)から75%ダメージを受ける -> 100未満なら防御力が高い）
+// 防御側から見た属性防御力（例: 赤(防御)は紫(攻撃)から75%ダメージを受ける -> 100未満なら防御力が高い）
 const ATTR_DEF = {
     'red':    { 'red': 100, 'purple': 75,  'green': 100, 'yellow': 100, 'blue': 125 },
     'purple': { 'red': 125, 'purple': 100, 'green': 75,  'yellow': 100, 'blue': 100 },
@@ -35,7 +35,7 @@ export class PvpAiController {
         const pvpEnemies = this.engine.pvpEnemies.filter(e => !e.isDead && e.hp > 0);
         if (pvpEnemies.length === 0) return;
 
-        const players = this.engine.players.filter(p => !p.isDead && p.hp > 0);
+        const players = this.engine.players.filter(p => !p.isDead && p.hp > 0 && p.sp > 0);
         const now = this.engine.time || 0;
 
         for (const ep of pvpEnemies) {

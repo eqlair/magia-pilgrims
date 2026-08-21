@@ -2157,10 +2157,11 @@ export class BattleEngine {
                 }
 
                 // ターゲット選定（正面レーンの味方、いなければ一番近い味方）
+                // 生存しているターゲット選定（正面レーン優先、HP>0, SP>0, !isDead）
                 let target = null;
                 let minDist = 9999;
                 for (const p of this.players) {
-                    if (p.isDead || p.hp <= 0) continue;
+                    if (p.isDead || p.hp <= 0 || p.sp <= 0) continue;
                     const dx = p.x - ep.x;
                     const dz = p.z - ep.z;
                     const dist = Math.sqrt(dx * dx + dz * dz);
@@ -2170,7 +2171,7 @@ export class BattleEngine {
                     }
                 }
 
-                if (!target) continue;
+                if (!target) continue; // 生存プレイヤーがいなければ攻撃しない
 
                 // 攻撃タイマー
                 if (!ep.atkCooldown) ep.atkCooldown = 1.0 + Math.random() * 0.5;
@@ -2179,7 +2180,13 @@ export class BattleEngine {
                 if (ep.atkCooldown <= 0) {
                     ep.atkCooldown = 1.0 + Math.random() * 0.4; // 攻撃間隔
 
-                    if (ep.isFront) {
+                    const dx = target.x - ep.x;
+                    const dz = target.z - ep.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
+                    // 近接射程判定: 距離6m以内かつターゲットが前衛エリア(Z>=3.0)にいる場合
+                    const isMeleeRange = (dist <= 6.0 && target.z >= 3.0);
+
+                    if (ep.isFront && isMeleeRange) {
                         // ── 前衛・近接攻撃 ──
                         if (ep.charId === '001') {
                             // ★ 紫苑: キック格闘（武器画像なし！キックモーション＋判定）
