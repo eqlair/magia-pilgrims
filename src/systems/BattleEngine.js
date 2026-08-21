@@ -2230,7 +2230,7 @@ export class BattleEngine {
                             const swingDmg = Math.floor(ep.atk * info.dmg);
 
                             // 手前へ踏み込み
-                            ep.z = 9.0;
+                            ep.z = 8.0;
 
                             const swing = new Bullet(ep.x, ep.z - 1.5, {
                                 vx: 0,

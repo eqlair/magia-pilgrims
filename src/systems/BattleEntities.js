@@ -1171,9 +1171,9 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.wlv = this.nearLevel + this.farLevel;
         this.weight = data.weight || 50;
 
-        // 座標: 前衛なら Z=10.5、後衛なら Z=15.5 (-1.5m手前へ)
+        // 座標: 前衛なら Z=9.5、後衛なら Z=14.5 (-1.0m手前へ)
         this.x = this.lane * 1.8;
-        this.z = this.isFront ? 10.5 : 15.5;
+        this.z = this.isFront ? 9.5 : 14.5;
         this.targetZ = this.z;
 
         const charIdToAttr = {

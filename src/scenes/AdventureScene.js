@@ -4074,14 +4074,14 @@ export default class AdventureScene extends Phaser.Scene {
 
         // ダイアログ枠
         const modalW = Math.min(width * 0.9, 640);
-        const modalH = Math.min(height * 0.9, 780);
+        const modalH = Math.min(height * 0.92, 800);
         const modalBox = this.add.rectangle(width / 2, height / 2, modalW, modalH, 0x181822, 0.95)
             .setStrokeStyle(3, 0xff6688);
         container.add(modalBox);
 
         // タイトル
-        const titleText = this.add.text(width / 2, height / 2 - modalH / 2 + 35, '⚔️ 対人戦テスト（魔法少女戦）', {
-            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffaaaa', fontStyle: 'bold'
+        const titleText = this.add.text(width / 2, height / 2 - modalH / 2 + 30, '⚔️ 対人戦テスト（魔法少女戦）', {
+            fontFamily: 'sans-serif', fontSize: '23px', color: '#ffaaaa', fontStyle: 'bold'
         }).setOrigin(0.5);
         container.add(titleText);
 
@@ -4090,8 +4090,8 @@ export default class AdventureScene extends Phaser.Scene {
         let selectedLevel = 1;
 
         // 編成選択タイトル
-        const presetHeader = this.add.text(width / 2 - modalW / 2 + 30, height / 2 - modalH / 2 + 75, '【敵編成パターン】', {
-            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffcc', fontStyle: 'bold'
+        const presetHeader = this.add.text(width / 2 - modalW / 2 + 30, height / 2 - modalH / 2 + 65, '【敵編成パターン】', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffcc', fontStyle: 'bold'
         });
         container.add(presetHeader);
 
@@ -4099,10 +4099,10 @@ export default class AdventureScene extends Phaser.Scene {
         const presets = PvpEnemyGenerator.PRESETS;
 
         presets.forEach((p, idx) => {
-            const btnY = height / 2 - modalH / 2 + 115 + idx * 52;
+            const btnY = height / 2 - modalH / 2 + 98 + idx * 43;
             const btn = this.add.text(width / 2, btnY, p.name, {
-                fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff',
-                backgroundColor: '#2a2a3a', padding: { x: 20, y: 10 }
+                fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
+                backgroundColor: '#2a2a3a', padding: { x: 18, y: 7 }
             }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
             btn.on('pointerdown', () => {
@@ -4114,24 +4114,24 @@ export default class AdventureScene extends Phaser.Scene {
         });
 
         // レベル選択エリア
-        const levelY = height / 2 - modalH / 2 + 400;
+        const levelY = height / 2 - modalH / 2 + 375;
         const levelHeader = this.add.text(width / 2 - modalW / 2 + 30, levelY, '【敵レベル選択】', {
-            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffcc', fontStyle: 'bold'
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffcc', fontStyle: 'bold'
         });
         container.add(levelHeader);
 
-        const levelMinusBtn = this.add.text(width / 2 - 120, levelY + 45, '◀ Lv -1', {
-            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 15, y: 8 }
+        const levelMinusBtn = this.add.text(width / 2 - 120, levelY + 38, '◀ Lv -1', {
+            fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 14, y: 7 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        const levelPlusBtn = this.add.text(width / 2 + 120, levelY + 45, 'Lv +1 ▶', {
-            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 15, y: 8 }
+        const levelPlusBtn = this.add.text(width / 2 + 120, levelY + 38, 'Lv +1 ▶', {
+            fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 14, y: 7 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        const levelText = this.add.text(width / 2, levelY + 45, `Lv ${selectedLevel}`, {
-            fontFamily: 'sans-serif', fontSize: '26px', color: '#ffea77', fontStyle: 'bold'
+        const levelText = this.add.text(width / 2, levelY + 38, `Lv ${selectedLevel}`, {
+            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffea77', fontStyle: 'bold'
         }).setOrigin(0.5);
 
         levelMinusBtn.on('pointerdown', () => {
@@ -4147,17 +4147,17 @@ export default class AdventureScene extends Phaser.Scene {
         container.add([levelMinusBtn, levelPlusBtn, levelText]);
 
         // ステータスプレビューエリア
-        const previewY = levelY + 95;
-        const previewBox = this.add.rectangle(width / 2, previewY + 50, modalW - 60, 95, 0x11111a, 0.8)
+        const previewY = levelY + 80;
+        const previewBox = this.add.rectangle(width / 2, previewY + 45, modalW - 60, 90, 0x11111a, 0.8)
             .setStrokeStyle(1, 0x444466);
-        const previewText = this.add.text(width / 2, previewY + 50, '', {
-            fontFamily: 'monospace', fontSize: '15px', color: '#aaffaa', align: 'center', lineSpacing: 4
+        const previewText = this.add.text(width / 2, previewY + 45, '', {
+            fontFamily: 'monospace', fontSize: '14px', color: '#aaffaa', align: 'center', lineSpacing: 4
         }).setOrigin(0.5);
         container.add([previewBox, previewText]);
 
         // 戦闘開始ボタン
-        const startBtn = this.add.text(width / 2, height / 2 + modalH / 2 - 70, '⚔️ 戦闘開始！', {
-            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
+        const startBtn = this.add.text(width / 2, height / 2 + modalH / 2 - 50, '⚔️ 戦闘開始！', {
+            fontFamily: 'sans-serif', fontSize: '23px', color: '#ffffff', fontStyle: 'bold',
             backgroundColor: '#aa2244', padding: { x: 35, y: 12 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 

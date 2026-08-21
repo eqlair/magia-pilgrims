@@ -1,4 +1,4 @@
-﻿import charDataJson from '../data/characters.json';
+import charDataJson from '../data/characters.json';
 
 export class PvpEnemyGenerator {
     static PRESETS = [
@@ -6,7 +6,8 @@ export class PvpEnemyGenerator {
         { id: 2, name: '② 蒼樹 ＆ 紅華 (2人)', party: ['002', '003'] },
         { id: 3, name: '③ 紫苑・黄蘭・李乃果 (3人)', party: ['001', '004', '005'] },
         { id: 4, name: '④ 蒼樹・紅華・黄蘭・白蓮 (4人)', party: ['002', '003', '004', '010'] },
-        { id: 5, name: '⑤ 5人フル編成 (5人)', party: ['001', '002', '003', '004', '005'] }
+        { id: 5, name: '⑤ 5人フル編成 (5人)', party: ['001', '002', '003', '004', '005'] },
+        { id: 6, name: '⑥ 紫苑 4人 (4人)', party: ['001', '001', '001', '001'] }
     ];
 
     static DEFAULT_FRONT_ROLES = {
@@ -44,7 +45,10 @@ export class PvpEnemyGenerator {
             const meleeLevel = Math.ceil(level / 2) + 1;
             const rangedLevel = Math.ceil(level / 2) + 1;
 
-            const isFront = this.DEFAULT_FRONT_ROLES[charId] !== undefined ? this.DEFAULT_FRONT_ROLES[charId] : (i % 2 === 0);
+            let isFront = this.DEFAULT_FRONT_ROLES[charId] !== undefined ? this.DEFAULT_FRONT_ROLES[charId] : (i % 2 === 0);
+            if (presetId === 6) {
+                isFront = (i < 2); // 2人前衛、2人後衛
+            }
             const lane = lanes[i] !== undefined ? lanes[i] : 0;
 
             enemies.push({
