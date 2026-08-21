@@ -84,6 +84,16 @@ export class BattleRenderer {
             this._updateUI(e);
         }
 
+        // PvP敵魔法少女の描画更新
+        if (this.engine.isPvpBattle && this.engine.pvpEnemies) {
+            for (const ep of this.engine.pvpEnemies) {
+                if (ep.isDead) continue;
+                const charTex = `battle_${ep.charId}`;
+                this._updateSprite(ep, charTex);
+                this._updateUI(ep);
+            }
+        }
+
         // 弾の描画更新
         for (const b of this.engine.bullets) {
             if (b.isDead) continue;

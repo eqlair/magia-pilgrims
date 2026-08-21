@@ -13,6 +13,7 @@ import { SpriteText } from '../utils/SpriteText';
 import { EventEngine } from '../systems/EventEngine';
 import { Dec21Effect } from '../systems/Dec21Effect';
 import { CharacterLossManager } from '../systems/CharacterLossManager';
+import { PvpEnemyGenerator } from '../systems/PvpEnemyGenerator';
 
 
 
@@ -1265,6 +1266,18 @@ export default class AdventureScene extends Phaser.Scene {
             });
 
             this.uiContainer.add([this.towerTestBtn]);
+
+            // 対人戦（PvP魔法少女）テストボタン（画面左側）
+            this.pvpTestBtn = this.add.text(20, 145, '⚔️ 対人戦テスト', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ff8888', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(0, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.pvpTestBtn.on('pointerdown', () => {
+                this._showPvpTestModal();
+            });
+
+            this.uiContainer.add([this.pvpTestBtn]);
         }
     }
 
@@ -1591,6 +1604,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.breakTestBtn) this.breakTestBtn.setVisible(isVisible);
         if (this.dpsTestBtn) this.dpsTestBtn.setVisible(isVisible);
         if (this.towerTestBtn) this.towerTestBtn.setVisible(isVisible);
+        if (this.pvpTestBtn) this.pvpTestBtn.setVisible(isVisible);
 
         if (!isVisible) {
             if (this.towerGuideText) this.towerGuideText.setVisible(false);
@@ -4040,6 +4054,170 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             });
         }
+    }
+
+    /** ⚔️ 対人戦（PvP魔法少女戦）テスト起動用モーダルダイアログ */
+    _showPvpTestModal() {
+        if (this._pvpModalContainer) {
+            this._pvpModalContainer.destroy();
+            this._pvpModalContainer = null;
+        }
+
+        const { width, height } = this.scale;
+        const container = this.add.container(0, 0).setDepth(9999).setScrollFactor(0);
+        this._pvpModalContainer = container;
+
+        // 全画面暗転下敷き
+        const maskBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75)
+            .setInteractive();
+        container.add(maskBg);
+
+        // ダイアログ枠
+        const modalW = Math.min(width * 0.9, 640);
+        const modalH = Math.min(height * 0.9, 780);
+        const modalBox = this.add.rectangle(width / 2, height / 2, modalW, modalH, 0x181822, 0.95)
+            .setStrokeStyle(3, 0xff6688);
+        container.add(modalBox);
+
+        // タイトル
+        const titleText = this.add.text(width / 2, height / 2 - modalH / 2 + 35, '⚔️ 対人戦テスト（魔法少女戦）', {
+            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffaaaa', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(titleText);
+
+        // 状態変数
+        let selectedPresetId = 1;
+        let selectedLevel = 1;
+
+        // 編成選択タイトル
+        const presetHeader = this.add.text(width / 2 - modalW / 2 + 30, height / 2 - modalH / 2 + 75, '【敵編成パターン】', {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffcc', fontStyle: 'bold'
+        });
+        container.add(presetHeader);
+
+        const presetButtons = [];
+        const presets = PvpEnemyGenerator.PRESETS;
+
+        presets.forEach((p, idx) => {
+            const btnY = height / 2 - modalH / 2 + 115 + idx * 52;
+            const btn = this.add.text(width / 2, btnY, p.name, {
+                fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff',
+                backgroundColor: '#2a2a3a', padding: { x: 20, y: 10 }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+            btn.on('pointerdown', () => {
+                selectedPresetId = p.id;
+                updateView();
+            });
+            container.add(btn);
+            presetButtons.push({ id: p.id, btn: btn });
+        });
+
+        // レベル選択エリア
+        const levelY = height / 2 - modalH / 2 + 400;
+        const levelHeader = this.add.text(width / 2 - modalW / 2 + 30, levelY, '【敵レベル選択】', {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffcc', fontStyle: 'bold'
+        });
+        container.add(levelHeader);
+
+        const levelMinusBtn = this.add.text(width / 2 - 120, levelY + 45, '◀ Lv -1', {
+            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 15, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        const levelPlusBtn = this.add.text(width / 2 + 120, levelY + 45, 'Lv +1 ▶', {
+            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 15, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        const levelText = this.add.text(width / 2, levelY + 45, `Lv ${selectedLevel}`, {
+            fontFamily: 'sans-serif', fontSize: '26px', color: '#ffea77', fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        levelMinusBtn.on('pointerdown', () => {
+            selectedLevel = Math.max(1, selectedLevel - 1);
+            updateView();
+        });
+
+        levelPlusBtn.on('pointerdown', () => {
+            selectedLevel = Math.min(15, selectedLevel + 1);
+            updateView();
+        });
+
+        container.add([levelMinusBtn, levelPlusBtn, levelText]);
+
+        // ステータスプレビューエリア
+        const previewY = levelY + 95;
+        const previewBox = this.add.rectangle(width / 2, previewY + 50, modalW - 60, 95, 0x11111a, 0.8)
+            .setStrokeStyle(1, 0x444466);
+        const previewText = this.add.text(width / 2, previewY + 50, '', {
+            fontFamily: 'monospace', fontSize: '15px', color: '#aaffaa', align: 'center', lineSpacing: 4
+        }).setOrigin(0.5);
+        container.add([previewBox, previewText]);
+
+        // 戦闘開始ボタン
+        const startBtn = this.add.text(width / 2, height / 2 + modalH / 2 - 70, '⚔️ 戦闘開始！', {
+            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
+            backgroundColor: '#aa2244', padding: { x: 35, y: 12 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        startBtn.on('pointerdown', () => {
+            const enemyParty = PvpEnemyGenerator.generateEnemyParty(selectedPresetId, selectedLevel);
+            console.log('[PvP Test] Starting battle with enemies:', enemyParty);
+            if (this._pvpModalContainer) {
+                this._pvpModalContainer.destroy();
+                this._pvpModalContainer = null;
+            }
+
+            TransitionManager.transitionTo(this, 'BattleScene', {
+                isPvpBattle: true,
+                pvpEnemies: enemyParty,
+                party: this.party && this.party.length > 0 ? this.party : ['001', '002', '003', '004', '005'],
+                returnScene: 'AdventureScene'
+            });
+        });
+        container.add(startBtn);
+
+        // 閉じるボタン（右上）
+        const closeBtn = this.add.text(width / 2 + modalW / 2 - 25, height / 2 - modalH / 2 + 25, '✕', {
+            fontFamily: 'sans-serif', fontSize: '26px', color: '#ffaaaa', fontStyle: 'bold'
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        closeBtn.on('pointerdown', () => {
+            if (this._pvpModalContainer) {
+                this._pvpModalContainer.destroy();
+                this._pvpModalContainer = null;
+            }
+        });
+        container.add(closeBtn);
+
+        // ビュー更新関数
+        const updateView = () => {
+            levelText.setText(`Lv ${selectedLevel}`);
+
+            presetButtons.forEach(pb => {
+                if (pb.id === selectedPresetId) {
+                    pb.btn.setBackgroundColor('#883344');
+                    pb.btn.setColor('#ffff00');
+                } else {
+                    pb.btn.setBackgroundColor('#2a2a3a');
+                    pb.btn.setColor('#ffffff');
+                }
+            });
+
+            // プレビューテキスト作成
+            const dummyParty = PvpEnemyGenerator.generateEnemyParty(selectedPresetId, selectedLevel);
+            const first = dummyParty[0] || {};
+            const atk = 100 + selectedLevel * 50;
+            const wlv = Math.ceil(selectedLevel / 2) + 1;
+            previewText.setText(
+                `敵人数: ${dummyParty.length}人 | 敵Lv: ${selectedLevel}\n` +
+                `攻撃力: ${atk} (100 + Lv*50) | 技Lv: 近接Lv${wlv} / 遠隔Lv${wlv}\n` +
+                `基準HP: 約${first.maxHp || 1000} | 基準MP: 約${first.maxSp || 500}`
+            );
+        };
+
+        updateView();
     }
 }
 

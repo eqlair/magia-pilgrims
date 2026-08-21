@@ -1,4 +1,4 @@
-import { PlayerCharacter, EnemyCharacter, BossCharacter, Bullet, EffectEntity } from './BattleEntities';
+import { PlayerCharacter, EnemyCharacter, BossCharacter, Bullet, EffectEntity, PvpEnemyCharacter } from './BattleEntities';
 import { GlobalState } from './GlobalState';
 
 // 防御側から見た属性防御力（例: 赤(防御)は紫(攻撃)から75%ダメージを受ける）
@@ -166,6 +166,24 @@ export class BattleEngine {
             this.waveState = 'boss_presentation';
             this.bossPresTimer = 2.0; // 2秒の警告演出後に魔女出現
             this.waveTimer = 0;
+        }
+
+        // 対人戦（PvP魔法少女テスト）モード
+        this.isPvpBattle = (this.config.isPvpBattle === true);
+        this.pvpEnemies = [];
+        if (this.isPvpBattle) {
+            this.totalWaves = 1;
+            this.enemyCountPerWave = 0;
+            this.majoLevel = 0;
+            this.waveState = 'playing';
+            this.waveTimer = 0;
+
+            const pvpDataList = this.config.pvpEnemies || [];
+            for (const eData of pvpDataList) {
+                const ep = new PvpEnemyCharacter(eData.lane * 1.8, eData.isFront ? 12.0 : 17.0, eData);
+                ep.engine = this;
+                this.pvpEnemies.push(ep);
+            }
         }
 
         // パーティ情報を取得
@@ -1098,6 +1116,15 @@ export class BattleEngine {
                         }
                     }
                 }
+            } else if (this.isPvpBattle) {
+                // ── PvP対人戦モード ──
+                const alivePvpEnemies = this.pvpEnemies.filter(e => !e.isDead && e.hp > 0);
+                if (this.pvpEnemies.length > 0 && alivePvpEnemies.length === 0) {
+                    console.log('[BattleEngine] All PvP enemies defeated!');
+                    this.waveState = 'cleared';
+                    this.isCompleted = true;
+                    this.isVictory = true;
+                }
             } else if (this.rule === 3) {
                 // ── DPS計測モード (rule=3) ──
                 // サンドバッグ3匹のみ。追加スポーンや魔女出現、ウェーブ切替は一切行わない
@@ -1262,14 +1289,15 @@ export class BattleEngine {
             let target = null;
             let minDist = 9999;
             let minDistCenter = 9999;
-            for (const e of this.enemies) {
+            const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
+            for (const e of enemyList) {
                 // 死亡中、または実体化演出中（spawnDropTimer/spawnAnimTimer > 0）の敵はターゲットにしない
-                if (e.isDead || e.isDying || e.spawnDropTimer > 0 || e.spawnAnimTimer > 0) continue;
+                if (e.isDead || e.isDying || e.hp <= 0 || e.spawnDropTimer > 0 || e.spawnAnimTimer > 0) continue;
                 const dx = e.x - p.x;
 
                 const dz = e.z - p.z;
                 const distCenter = Math.sqrt(dx*dx + dz*dz);
-                const surfaceDist = Math.max(0, distCenter - (e.size / 2));
+                const surfaceDist = Math.max(0, distCenter - ((e.size || 1.0) / 2));
                 if (surfaceDist < minDist) { 
                     minDist = surfaceDist; 
                     minDistCenter = distCenter; 
@@ -2102,6 +2130,97 @@ export class BattleEngine {
                 e.isDead = true;
             }
             if (e.z > 30) e.z = 25.0; // 画面奥に行き過ぎた場合の安全装置
+        }
+
+        // ── PvP敵魔法少女たちの行動更新 ──
+        if (this.isPvpBattle && this.pvpEnemies) {
+            for (const ep of this.pvpEnemies) {
+                if (ep.isDead) continue;
+                ep.update(dt);
+
+                // 被弾後の定位置（Z=12.0 / Z=17.0, X=lane*1.8）への復帰スプリング
+                const baseTargetX = ep.lane * 1.8;
+                const baseTargetZ = ep.isFront ? 12.0 : 17.0;
+                ep.x += (baseTargetX - ep.x) * Math.min(1.0, dt * 5.0);
+                ep.z += (baseTargetZ - ep.z) * Math.min(1.0, dt * 5.0);
+
+                if (ep.hp <= 0) {
+                    ep.isDead = true;
+                    continue;
+                }
+
+                // ターゲット選定（正面レーンの味方、いなければ一番近い味方）
+                let target = null;
+                let minDist = 9999;
+                for (const p of this.players) {
+                    if (p.isDead || p.hp <= 0) continue;
+                    const dx = p.x - ep.x;
+                    const dz = p.z - ep.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        target = p;
+                    }
+                }
+
+                if (!target) continue;
+
+                // 攻撃タイマー
+                if (!ep.atkCooldown) ep.atkCooldown = 1.0 + Math.random() * 0.5;
+                ep.atkCooldown -= dt;
+
+                if (ep.atkCooldown <= 0) {
+                    ep.atkCooldown = 1.2; // 攻撃間隔
+
+                    if (ep.isFront) {
+                        // ── 近接攻撃 ──
+                        if (ep.triggerAttackShake) ep.triggerAttackShake();
+                        const swingKey = `swing_${ep.charId}`;
+                        const swingDmg = Math.floor(ep.atk * 0.8);
+                        
+                        // 手前へ踏み込み
+                        ep.z = 10.0;
+
+                        // 前方にスイング判定（Z=9.0〜11.0）
+                        const swing = new Bullet(ep.x, ep.z - 1.5, {
+                            vx: 0,
+                            vz: -15, // 手前へ
+                            damage: swingDmg,
+                            knockback: 100,
+                            owner: 'enemy',
+                            size: 1.5,
+                            type: swingKey,
+                            textureKey: swingKey,
+                            targetDist: 3.0,
+                            isPiercing: true
+                        });
+                        this.bullets.push(swing);
+                    } else {
+                        // ── 遠隔攻撃 ──
+                        if (ep.triggerAttackShake) ep.triggerAttackShake();
+                        const bulletType = (ep.charId === '003') ? 'weapon_003' : (ep.charId === '004' ? 'weapon_004' : 'bullet');
+                        const bulletDmg = Math.floor(ep.atk * 0.5);
+
+                        const dx = target.x - ep.x;
+                        const dz = target.z - ep.z; // マイナス方向（手前）
+                        const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
+                        const speed = 25.0;
+
+                        const bullet = new Bullet(ep.x, ep.z - 0.5, {
+                            vx: (dx / dist) * speed,
+                            vz: (dz / dist) * speed,
+                            damage: bulletDmg,
+                            knockback: 30,
+                            owner: 'enemy',
+                            size: 0.5,
+                            type: bulletType,
+                            textureKey: bulletType,
+                            targetDist: 20.0
+                        });
+                        this.bullets.push(bullet);
+                    }
+                }
+            }
         }
 
         // 敵同士の衝突判定と押し出し（体重比較）

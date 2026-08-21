@@ -1148,3 +1148,44 @@ export class EffectEntity extends BattleEntity {
         }
     }
 }
+
+export class PvpEnemyCharacter extends PlayerCharacter {
+    constructor(x, z, data = {}) {
+        super(x, z, data);
+        this.owner = 'enemy';
+        this.isEnemy = true;
+        this.name = data.name || '敵・魔法少女';
+        this.charId = data.charId || '001';
+        this.lane = data.lane !== undefined ? data.lane : 0;
+        this.isFront = data.isFront !== undefined ? data.isFront : true;
+
+        // 指定された完成ステータスを直接適用
+        this.level = data.level || 1;
+        this.maxHp = data.maxHp || 1000;
+        this.hp = this.maxHp;
+        this.maxSp = data.maxSp || 500;
+        this.sp = this.maxSp;
+        this.atk = data.atk || (100 + this.level * 50);
+        this.nearLevel = data.meleeLevel || (Math.ceil(this.level / 2) + 1);
+        this.farLevel = data.rangedLevel || (Math.ceil(this.level / 2) + 1);
+        this.wlv = this.nearLevel + this.farLevel;
+        this.weight = data.weight || 50;
+
+        // 座標: 前衛なら Z=12.0、後衛なら Z=17.0
+        this.x = this.lane * 1.8;
+        this.z = this.isFront ? 12.0 : 17.0;
+        this.targetZ = this.z;
+
+        const charIdToAttr = {
+            '001': 'purple',
+            '002': 'blue',
+            '003': 'red',
+            '004': 'yellow',
+            '005': 'green',
+            '010': 'blue'
+        };
+        this.attribute = charIdToAttr[this.charId] || 'red';
+
+        this.updateAttackPatterns();
+    }
+}
