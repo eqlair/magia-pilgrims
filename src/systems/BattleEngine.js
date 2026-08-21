@@ -1175,10 +1175,10 @@ export class BattleEngine {
             if (aliveEnemies.length === 0) {
                 this.waveState = 'cleared';
                 this.eventQueue.push('Silence returns...');
-                // 魔女撃破: stockSp加算 (majoLevel × 100)
+                // 魔女撃破: stockSp加算 (majoLevel × 100 + 400)
                 if (this.majoLevel > 0) {
                     const gs = GlobalState.getInstance();
-                    let spGained = this.majoLevel * 100;
+                    let spGained = this.majoLevel * 100 + 400;
                     spGained = Math.floor(spGained * gs.spMultiplier);
                     gs.addStockSp(spGained);
                     this.earnedSp = (this.earnedSp || 0) + spGained;
