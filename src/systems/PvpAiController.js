@@ -178,7 +178,6 @@ export class PvpAiController {
         }
 
         // 必殺技の実行
-        member.isUltimateActive = true;
         if (typeof member.triggerUltimate === 'function') {
             if (isPlayerTeam) {
                 member.triggerUltimate(

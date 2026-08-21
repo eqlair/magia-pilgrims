@@ -54,9 +54,15 @@ export class BattleEntity {
                 this.isKickAttacking = false;
             }
         }
-        if (this.ultimateCooldown > 0) {
-            this.ultimateCooldown -= dt;
-            if (this.ultimateCooldown < 0) this.ultimateCooldown = 0;
+        if (this.isUltimateActive) {
+            if (this.ultimateActiveTimer === undefined) this.ultimateActiveTimer = 5.0;
+            this.ultimateActiveTimer -= dt;
+            if (this.ultimateActiveTimer <= 0) {
+                this.isUltimateActive = false;
+                this.ultimateActiveTimer = 5.0;
+            }
+        } else {
+            this.ultimateActiveTimer = 5.0;
         }
 
         // 被弾による必殺技短縮のインターバル(1秒に1回制限)
@@ -434,11 +440,12 @@ export class PlayerCharacter extends BattleEntity {
         floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "ULTIMATE", type: "skill", lifeTime: 1.5, maxLife: 1.5 });
 
         // 各キャラの必殺技ロジック
+        this.isUltimateActive = false; // デフォルトは通常攻撃を妨げない
+
         if (this.charId === '001') {
             // 紫苑: リロード速度1/3, 命中率UP
             this.buffTimer = 4.0 + this.wlv;
             this.reloadMultiplier = 0.33;
-            // 弾丸の見た目を倍にするため、フラグを立てる（弾丸生成時に参照）
             this.isUltimateMode = true;
             for (const p of players) {
                 if (!p.isDead) {
