@@ -1372,12 +1372,13 @@ export class BattleEngine {
                     const kickRange = action.range !== undefined ? action.range : 2.0;
                     let kickTarget = null;
                     let minKickDist = 999;
-                    for (const e of this.enemies) {
-                        if (!e.isDead && !e.isDying) {
+                    const kickEnemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
+                    for (const e of kickEnemyList) {
+                        if (!e.isDead && !e.isDying && e.hp > 0) {
                             const edx = e.x - p.x;
                             const edz = e.z - p.z;
                             const edist = Math.sqrt(edx*edx + edz*edz);
-                            const surfDist = edist - (e.size / 2);
+                            const surfDist = edist - ((e.size || 1.0) / 2);
                             if (surfDist <= kickRange && surfDist < minKickDist) {
                                 minKickDist = surfDist;
                                 kickTarget = e;
@@ -2170,36 +2171,75 @@ export class BattleEngine {
                 ep.atkCooldown -= dt;
 
                 if (ep.atkCooldown <= 0) {
-                    ep.atkCooldown = 1.2; // 攻撃間隔
+                    ep.atkCooldown = 1.0 + Math.random() * 0.4; // 攻撃間隔
 
                     if (ep.isFront) {
-                        // ── 近接攻撃 ──
-                        if (ep.triggerAttackShake) ep.triggerAttackShake();
-                        const swingKey = `swing_${ep.charId}`;
-                        const swingDmg = Math.floor(ep.atk * 0.8);
-                        
-                        // 手前へ踏み込み
-                        ep.z = 10.0;
+                        // ── 前衛・近接攻撃 ──
+                        if (ep.charId === '001') {
+                            // ★ 紫苑: キック格闘（武器画像なし！キックモーション＋判定）
+                            ep.isKickAttacking = true;
+                            ep.kickTimer = 0.35;
+                            ep.targetOffsetX = (ep.targetOffsetX || 0);
+                            ep.targetOffsetZ = (ep.targetOffsetZ || 0) - 0.75; // 手前へ踏み込み
+                            if (ep.triggerAttackShake) ep.triggerAttackShake();
 
-                        // 前方にスイング判定（Z=9.0〜11.0）
-                        const swing = new Bullet(ep.x, ep.z - 1.5, {
-                            vx: 0,
-                            vz: -15, // 手前へ
-                            damage: swingDmg,
-                            knockback: 100,
-                            owner: 'enemy',
-                            size: 1.5,
-                            type: swingKey,
-                            textureKey: swingKey,
-                            targetDist: 3.0,
-                            isPiercing: true
-                        });
-                        this.bullets.push(swing);
+                            const kickDmg = Math.floor(ep.atk * 1.0);
+                            const kickBullet = new Bullet(ep.x, ep.z - 1.0, {
+                                vx: 0,
+                                vz: -20, // 手前へ
+                                damage: kickDmg,
+                                knockback: 100,
+                                owner: 'enemy',
+                                size: 1.2,
+                                type: 'kick',
+                                textureKey: null, // 画像なし（透明な当たり判定のみ）
+                                targetDist: 2.0,
+                                isPiercing: true
+                            });
+                            this.bullets.push(kickBullet);
+                        } else {
+                            // 蒼樹(002), 紅華(003), 黄蘭(004), 李乃果(005), 白蓮(010)
+                            if (ep.triggerAttackShake) ep.triggerAttackShake();
+                            const swingMap = {
+                                '002': { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.1, size: 2.0 },
+                                '003': { type: 'swing_003', textureKey: 'weapon_003', dmg: 1.0, size: 2.2 },
+                                '004': { type: 'swing_004', textureKey: 'weapon_004_ribbon', dmg: 0.9, size: 2.5 },
+                                '005': { type: 'swing_005', textureKey: 'weapon_005', dmg: 1.0, size: 1.8 },
+                                '010': { type: 'barrier_010', textureKey: 'weapon_010b', dmg: 0.8, size: 2.0 }
+                            };
+                            const info = swingMap[ep.charId] || { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.0, size: 1.5 };
+                            const swingDmg = Math.floor(ep.atk * info.dmg);
+
+                            // 手前へ踏み込み
+                            ep.z = 10.5;
+
+                            const swing = new Bullet(ep.x, ep.z - 1.5, {
+                                vx: 0,
+                                vz: -15, // 手前へ
+                                damage: swingDmg,
+                                knockback: 80,
+                                owner: 'enemy',
+                                size: info.size,
+                                type: info.type,
+                                textureKey: info.textureKey,
+                                targetDist: 3.0,
+                                isPiercing: true
+                            });
+                            this.bullets.push(swing);
+                        }
                     } else {
-                        // ── 遠隔攻撃 ──
+                        // ── 後衛・遠隔攻撃 ──
                         if (ep.triggerAttackShake) ep.triggerAttackShake();
-                        const bulletType = (ep.charId === '003') ? 'weapon_003' : (ep.charId === '004' ? 'weapon_004' : 'bullet');
-                        const bulletDmg = Math.floor(ep.atk * 0.5);
+                        const bulletTypeMap = {
+                            '001': 'bullet',
+                            '002': 'weapon_002',
+                            '003': 'weapon_003',
+                            '004': 'weapon_004_ribbon',
+                            '005': 'weapon_005',
+                            '010': 'laser_010'
+                        };
+                        const bType = bulletTypeMap[ep.charId] || 'bullet';
+                        const bulletDmg = Math.floor(ep.atk * 0.6);
 
                         const dx = target.x - ep.x;
                         const dz = target.z - ep.z; // マイナス方向（手前）
@@ -2213,11 +2253,27 @@ export class BattleEngine {
                             knockback: 30,
                             owner: 'enemy',
                             size: 0.5,
-                            type: bulletType,
-                            textureKey: bulletType,
+                            type: bType,
+                            textureKey: bType,
                             targetDist: 20.0
                         });
                         this.bullets.push(bullet);
+
+                        // 紫苑はたまに手りゅう弾も投げる
+                        if (ep.charId === '001' && Math.random() < 0.3) {
+                            const grenade = new Bullet(ep.x, ep.z - 0.5, {
+                                vx: (dx / dist) * 15.0,
+                                vz: (dz / dist) * 15.0,
+                                damage: Math.floor(ep.atk * 1.2),
+                                knockback: 150,
+                                owner: 'enemy',
+                                size: 0.8,
+                                type: 'grenade',
+                                textureKey: 'grenade',
+                                targetDist: dist
+                            });
+                            this.bullets.push(grenade);
+                        }
                     }
                 }
             }
@@ -2384,9 +2440,10 @@ export class BattleEngine {
                 if (b.type === 'grenade') {
                     this.effects.push(new EffectEntity(b.x, b.z, { type: 'grenade_explosion', radius: 2.0, lifeTime: 0.5 }));
 
-                    const targets = b.owner === 'player' ? this.enemies : this.players;
-                    for (const aoeTarget of targets) {
-                        if (aoeTarget.isDead || aoeTarget.isDying) continue;
+                    const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
+                    const aoeTargets = b.owner === 'player' ? enemyList : this.players;
+                    for (const aoeTarget of aoeTargets) {
+                        if (aoeTarget.isDead || aoeTarget.isDying || aoeTarget.hp <= 0) continue;
                         const adx = b.x - aoeTarget.x;
                         const adz = b.z - aoeTarget.z;
                         if (adx*adx + adz*adz <= 4.0) {
@@ -2400,9 +2457,10 @@ export class BattleEngine {
                 continue;
             }
 
-            const targets = b.owner === 'player' ? this.enemies : this.players;
+            const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
+            const targets = b.owner === 'player' ? enemyList : this.players;
             for (const t of targets) {
-                if (t.isDead || t.isDying) continue;
+                if (t.isDead || t.isDying || t.hp <= 0) continue;
 
                 if (!b.hitTimes) b.hitTimes = new Map();
                 const lastHitTime = b.hitTimes.get(t) || -999;

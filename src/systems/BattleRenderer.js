@@ -239,7 +239,11 @@ export class BattleRenderer {
 
                 // 近接攻撃（コンボ）中かどうかの判定
                 let isMeleeMotion = false;
-                if (cs && cs.comboType === 'near') {
+                if (entity.isEnemy) {
+                    if (charId === '001' || charId === '005') {
+                        isMeleeMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
+                    }
+                } else if (cs && cs.comboType === 'near') {
                     if (charId === '001' || charId === '005') {
                         // 紫苑・李乃果: 実際にキック発動中(kickTimer > 0 または isKickAttacking)のときのみ表示！
                         isMeleeMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
