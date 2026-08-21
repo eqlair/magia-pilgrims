@@ -258,23 +258,31 @@ export class BattleRenderer {
                 } else if (isMeleeMotion && this.scene.textures.exists(motionTex)) {
                     // 近接特殊モーション (_bシート: 0:上/奥, 1:左, 2:右, 3:下/手前)
                     sprite.setTexture(motionTex);
-                    const defaultMeleeFrame = entity.isEnemy ? 3 : 0;
-                    let frame = defaultMeleeFrame;
-                    let angle = null;
-                    if (entity.kickAngle !== undefined && entity.kickAngle !== null) {
-                        angle = entity.kickAngle;
-                    } else if (entity.targetEnemy) {
-                        const dx = entity.targetEnemy.x - entity.x;
-                        const dz = entity.targetEnemy.z - entity.z;
-                        angle = Math.atan2(dz, dx) * 180 / Math.PI;
+                    if (!entity.isEnemy) {
+                        // ── 味方プレイヤーの近接モーション: 基本は上(0:奥) ──
+                        let frame = 0;
+                        if (entity.targetEnemy) {
+                            const dx = entity.targetEnemy.x - entity.x;
+                            const dz = entity.targetEnemy.z - entity.z;
+                            if (dz < -1.0) frame = 3; // 手前
+                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
+                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
+                            else frame = 0; // 奥
+                        }
+                        sprite.setFrame(frame);
+                    } else {
+                        // ── 敵魔法少女の近接モーション: 基本は下(3:手前) ──
+                        let frame = 3;
+                        if (entity.targetEnemy) {
+                            const dx = entity.targetEnemy.x - entity.x;
+                            const dz = entity.targetEnemy.z - entity.z;
+                            if (dz > 1.0) frame = 0; // 奥
+                            else if (dx > 2.5 && Math.abs(dz) < 2.0) frame = 2; // 右
+                            else if (dx < -2.5 && Math.abs(dz) < 2.0) frame = 1; // 左
+                            else frame = 3; // 手前
+                        }
+                        sprite.setFrame(frame);
                     }
-                    if (angle !== null) {
-                        if (angle > 45 && angle < 135) frame = 0;          // 上/奥 (dz > 0)
-                        else if (angle < -45 && angle > -135) frame = 3;   // 下/手前 (dz < 0)
-                        else if (angle >= -45 && angle <= 45) frame = 2;   // 右 (dx > 0)
-                        else if (angle >= 135 || angle <= -135) frame = 1; // 左 (dx < 0)
-                    }
-                    sprite.setFrame(frame);
 
                 } else if (isBreakthrough) {
                     // 突破ステージ: 基本は全キャラ上向き走行(コマ4,5を0.25s交互)
@@ -284,35 +292,20 @@ export class BattleRenderer {
                     let targetFrame = null;
 
                     if (entity.targetEnemy && isMeleeMotion) {
-                        // 近接攻撃中: _bシート(motionTex)の近接攻撃コマ(0, 1, 2, 3)
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
-                        const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle < -45 && angle > -135)          targetFrame = 3; // 下(手前)向き攻撃
-                        else if (angle >= 135 || angle <= -135)   targetFrame = 1; // 左向き攻撃
-                        else if (angle >= -45 && angle <= 45)     targetFrame = 2; // 右向き攻撃
-                        else                                      targetFrame = 0; // 上(奥)向き攻撃
+                        if (dz < -1.0) targetFrame = 3;
+                        else if (dx > 2.5 && dz < 2.0) targetFrame = 2;
+                        else if (dx < -2.5 && dz < 2.0) targetFrame = 1;
+                        else targetFrame = 0;
                     } else if (entity.targetEnemy && isAttacking) {
-                        // 遠距離攻撃中(飛び道具): 
-                        // 横・手前向き射撃時は通常スプライト(baseTex)でその方向を向く。前(奥)向き射撃時は走行を継続！
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
-                        const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        if (angle < -45 && angle > -135) {
-                            useBaseTex = true;
-                            targetFrame = 3; // 手前(下)向き
-                        } else if (angle >= 135 || angle <= -135) {
-                            useBaseTex = true;
-                            targetFrame = 1; // 左向き
-                        } else if (angle >= -45 && angle <= 45) {
-                            useBaseTex = true;
-                            targetFrame = 2; // 右向き
-                        } else {
-                            // 前(奥)向き射撃 → 走行継続
-                            targetFrame = runFrame;
-                        }
+                        if (dz < -1.0) { useBaseTex = true; targetFrame = 3; }
+                        else if (dx > 2.5 && dz < 2.0) { useBaseTex = true; targetFrame = 2; }
+                        else if (dx < -2.5 && dz < 2.0) { useBaseTex = true; targetFrame = 1; }
+                        else targetFrame = runFrame;
                     } else {
-                        // 非攻撃時: 上向き走行継続
                         targetFrame = runFrame;
                     }
 
@@ -330,19 +323,30 @@ export class BattleRenderer {
                 } else {
                     // 通常のアニメーション (baseTex: 0:上/奥, 1:左, 2:右, 3:下/手前)
                     sprite.setTexture(baseTex);
-                    const defaultFrame = entity.isEnemy ? 3 : 0;
-                    if (entity.targetEnemy) {
-                        const dx = entity.targetEnemy.x - entity.x;
-                        const dz = entity.targetEnemy.z - entity.z;
-                        const angle = Math.atan2(dz, dx) * 180 / Math.PI;
-                        let frame = defaultFrame;
-                        if (angle > 45 && angle < 135) frame = 0;          // 上(奥・dz > 0)
-                        else if (angle < -45 && angle > -135) frame = 3;   // 下(手前・dz < 0)
-                        else if (angle >= -45 && angle <= 45) frame = 2;   // 右(dx > 0)
-                        else if (angle >= 135 || angle <= -135) frame = 1; // 左(dx < 0)
+                    if (!entity.isEnemy) {
+                        // ── 味方プレイヤー: デフォルト＆射撃は上向き(0:奥/背中) ──
+                        let frame = 0;
+                        if (entity.targetEnemy) {
+                            const dx = entity.targetEnemy.x - entity.x;
+                            const dz = entity.targetEnemy.z - entity.z;
+                            if (dz < -1.0) frame = 3; // 手前
+                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
+                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
+                            else frame = 0; // 奥
+                        }
                         sprite.setFrame(frame);
                     } else {
-                        sprite.setFrame(defaultFrame);
+                        // ── 敵魔法少女: デフォルト＆射撃は下向き(3:手前/正面) ──
+                        let frame = 3;
+                        if (entity.targetEnemy) {
+                            const dx = entity.targetEnemy.x - entity.x;
+                            const dz = entity.targetEnemy.z - entity.z;
+                            if (dz > 1.0) frame = 0; // 奥
+                            else if (dx > 2.5 && Math.abs(dz) < 2.0) frame = 2; // 右
+                            else if (dx < -2.5 && Math.abs(dz) < 2.0) frame = 1; // 左
+                            else frame = 3; // 手前
+                        }
+                        sprite.setFrame(frame);
                     }
                 }
             }
