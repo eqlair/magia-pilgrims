@@ -29,8 +29,9 @@ export class BattleRenderer {
         // 描画更新の最初に、削除されたエンティティのスプライトを消去する
         for (const [entity, sprite] of this.spriteMap.entries()) {
             if (entity.isDead) {
-                // プレイヤーキャラクターは死亡後も倒れ絵を描画し、突破戦では画面下に流すため即時消去しない
-                if (entity.owner === 'player') {
+                // プレイヤーキャラクター（charIdを持つ味方本体）は死亡後も倒れ絵を描画し、突破戦では画面下に流すため即時消去しない
+                const isPlayerChar = !!entity.charId;
+                if (isPlayerChar) {
                     const isBreakthrough = (this.scene.battleConfig && this.scene.battleConfig.rule === 2);
                     // 突破戦で完全に画面手前下端外（z < -2.0）に流れ去った場合のみ消去
                     if (isBreakthrough && entity.z < -2.0) {
