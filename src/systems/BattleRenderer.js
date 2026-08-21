@@ -94,6 +94,7 @@ export class BattleRenderer {
             else if (b.type === 'enemy_bullet') textureKey = 'enemy_bullet';
 
             else if (b.type === 'weapon_002' || b.type === 'swing_002') textureKey = 'weapon_002';
+            else if (b.type === 'weapon_003' || b.type === 'swing_003' || b.type === 'ultimate_003') textureKey = 'weapon_003';
             else if (b.type === 'weapon_004') textureKey = 'weapon_004';
             else if (b.type === 'swing_004' || b.type === 'weapon_004_ribbon') textureKey = 'weapon_004_ribbon';
             else if (b.type === 'weapon_005' || b.type === 'swing_005') textureKey = 'weapon_005';
