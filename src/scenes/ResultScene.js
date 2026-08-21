@@ -67,7 +67,7 @@ export default class ResultScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '18px', color: this.isExpBoosted ? '#ffdd00' : '#ffffff', fontStyle: this.isExpBoosted ? 'bold' : 'normal'
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, 190, `取得ストック経験値：${stockExpAdd}　SP：${stockExp}`, {
+        this.add.text(width / 2, 190, `取得ストック経験値：${stockExpAdd}`, {
             fontFamily: 'sans-serif', fontSize: '18px', color: '#aaaaff'
         }).setOrigin(0.5);
 

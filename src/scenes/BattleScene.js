@@ -348,7 +348,16 @@ export default class BattleScene extends Phaser.Scene {
             originY: 1
         }).setDepth(1500).setScale(0.36);
 
-
+        // ★デバッグ: メンバーHP/MP表示
+        this.debugStatText = this.add.text(10, 10, '', {
+            fontFamily: 'monospace',
+            fontSize: '22px',
+            color: '#ffff00',
+            stroke: '#000000',
+            strokeThickness: 4,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            padding: { x: 6, y: 4 }
+        }).setDepth(3000).setScrollFactor(0);
 
     }
 
@@ -686,6 +695,19 @@ export default class BattleScene extends Phaser.Scene {
                 `DPS ${Math.floor(oneSec)} 10S ${Math.floor(tenSecDps)} MAX ${Math.floor(this.engine.maxDps)}`
             );
         }
+
+        // ★デバッグ: メンバーHP/MP表示更新
+        if (this.debugStatText && this.engine && this.engine.players) {
+            const lines = this.engine.players.map(p => {
+                const maxHp = p.maxHp || 1;
+                const maxSp = p.maxSp || 1;
+                const hp = Math.max(0, Math.ceil(p.hp));
+                const sp = Math.max(0, Math.ceil(p.sp));
+                return `${p.name || p.charId}  HP:${hp}/${maxHp}  MP:${sp}/${maxSp}`;
+            });
+            this.debugStatText.setText(lines.join('\n'));
+        }
+
         } catch (err) {
             console.error("[BattleScene Update Exception]", err);
             if (window.showOnScreenError) {
