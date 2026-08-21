@@ -2153,24 +2153,31 @@ export class BattleEngine {
 
                 if (ep.attackAnimTimer > 0) {
                     ep.attackAnimTimer -= dt;
+                    if (ep.attackAnimTimer <= 0) {
+                        ep.targetOffsetX = 0;
+                        ep.targetOffsetZ = 0;
+                    }
                 }
                 if (ep.kickTimer > 0) {
                     ep.kickTimer -= dt;
-                    if (ep.kickTimer <= 0) ep.isKickAttacking = false;
+                    if (ep.kickTimer <= 0) {
+                        ep.isKickAttacking = false;
+                        ep.targetOffsetX = 0;
+                        ep.targetOffsetZ = 0;
+                    }
                 }
 
-                // 被弾後の定位置（targetZ, X=lane*1.8）への復帰スプリング
+                // 定位置 ＋ 踏み込みオフセット（animOffsetX, animOffsetZ）を反映
                 const baseTargetX = ep.lane * 1.8;
                 const baseTargetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.5 : 14.5);
-                ep.x += (baseTargetX - ep.x) * Math.min(1.0, dt * 5.0);
-                ep.z += (baseTargetZ - ep.z) * Math.min(1.0, dt * 5.0);
+                ep.x = baseTargetX + (ep.animOffsetX || 0);
+                ep.z = baseTargetZ + (ep.animOffsetZ || 0);
 
                 if (ep.hp <= 0) {
                     ep.isDead = true;
                     continue;
                 }
 
-                // ターゲット選定（正面レーンの味方、いなければ一番近い味方）
                 // 生存しているターゲット選定（正面レーン優先、HP>0, SP>0, !isDead）
                 let target = null;
                 let minDist = 9999;
@@ -2188,26 +2195,37 @@ export class BattleEngine {
                 if (!target) continue; // 生存プレイヤーがいなければ攻撃しない
 
                 // 攻撃タイマー
-                if (!ep.atkCooldown) ep.atkCooldown = 1.0 + Math.random() * 0.5;
+                if (!ep.atkCooldown) {
+                    const baseInterval = Math.max(0.45, 1.1 - (ep.nearLevel || 1) * 0.07);
+                    ep.atkCooldown = baseInterval + Math.random() * 0.3;
+                }
                 ep.atkCooldown -= dt;
 
                 if (ep.atkCooldown <= 0) {
-                    ep.atkCooldown = 1.0 + Math.random() * 0.4; // 攻撃間隔
+                    // 近接・遠隔攻撃レベルに応じた攻撃間隔（高Lvほど手数が多くなる）
+                    const effectiveLevel = ep.isFront ? (ep.nearLevel || 1) : (ep.farLevel || 1);
+                    const baseInterval = Math.max(0.45, 1.1 - effectiveLevel * 0.07);
+                    ep.atkCooldown = baseInterval + Math.random() * 0.25;
 
                     const dx = target.x - ep.x;
                     const dz = target.z - ep.z;
                     const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
+                    const dirX = dx / dist;
+                    const dirZ = dz / dist;
+
                     // 近接射程判定: 距離6m以内かつターゲットが前衛エリア(Z>=3.0)にいる場合
                     const isMeleeRange = (dist <= 6.0 && target.z >= 3.0);
 
                     if (ep.isFront && isMeleeRange) {
-                        // ── 前衛・近接攻撃 ──
+                        // ── 前衛・近接攻撃（ターゲットに向かって踏み込み！） ──
+                        const stepDist = 0.85; // 0.85m手前の相手に向かって突進踏み込み！
+                        ep.targetOffsetX = dirX * stepDist;
+                        ep.targetOffsetZ = dirZ * stepDist;
+
                         if (ep.charId === '001') {
-                            // ★ 紫苑: キック格闘（武器画像なし！キックモーション＋判定）
+                            // ★ 紫苑: キック格闘（キックモーション＋高速突進判定）
                             ep.isKickAttacking = true;
-                            ep.kickTimer = 0.35;
-                            ep.targetOffsetX = (ep.targetOffsetX || 0);
-                            ep.targetOffsetZ = (ep.targetOffsetZ || 0) - 0.75; // 手前へ踏み込み
+                            ep.kickTimer = 0.30;
                             if (ep.triggerAttackShake) ep.triggerAttackShake();
 
                             const kickDmg = Math.floor(ep.atk * 1.0);
@@ -2228,7 +2246,17 @@ export class BattleEngine {
                         } else {
                             // 蒼樹(002), 紅華(003), 黄蘭(004), 李乃果(005), 白蓮(010)
                             if (ep.triggerAttackShake) ep.triggerAttackShake();
-                            ep.attackAnimTimer = 0.35; // 0.35秒間攻撃モーション
+                            
+                            // スイング持続時間（蒼樹は0.18sの鋭い高速一閃！）
+                            const swingDurationMap = {
+                                '002': 0.18,
+                                '003': 0.50,
+                                '004': 0.20,
+                                '005': 0.20,
+                                '010': 0.25
+                            };
+                            const swingDuration = swingDurationMap[ep.charId] || 0.20;
+                            ep.attackAnimTimer = swingDuration + 0.15; // 攻撃モーション維持時間
 
                             const swingMap = {
                                 '002': { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.1, size: 3.0, hitRange: 3.5 },
@@ -2239,7 +2267,6 @@ export class BattleEngine {
                             };
                             const info = swingMap[ep.charId] || { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.0, size: 3.0, hitRange: 3.5 };
                             const swingDmg = Math.floor(ep.atk * info.dmg);
-                            const swingDuration = 0.35;
 
                             const swing = new Bullet(ep.x, ep.z, {
                                 vx: 0,
