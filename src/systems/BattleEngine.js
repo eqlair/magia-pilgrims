@@ -188,6 +188,10 @@ export class BattleEngine {
         }
         this.pvpAi = new PvpAiController(this);
 
+        // AUTO設定
+        this.autoLanes = gs.autoLanes || { '-2': false, '-1': false, '0': false, '1': false, '2': false };
+        this.isBattleAutoEnabled = gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true;
+
         // パーティ情報を取得
         this.players = [];
 

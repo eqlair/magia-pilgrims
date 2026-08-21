@@ -247,6 +247,41 @@ export default class BattleScene extends Phaser.Scene {
 
 
 
+        // ── 戦闘中 AUTOマスターボタン（左上） ──
+        this.isAutoEnabled = (this.globalState.isBattleAutoEnabled !== undefined) ? this.globalState.isBattleAutoEnabled : true;
+        this.engine.isBattleAutoEnabled = this.isAutoEnabled;
+
+        const autoBtnContainer = this.add.container(20, 20).setDepth(2000);
+        const autoBtnBg = this.add.rectangle(0, 0, 80, 36, this.isAutoEnabled ? 0x228844 : 0x333333, 0.85)
+            .setOrigin(0, 0)
+            .setStrokeStyle(2, this.isAutoEnabled ? 0x88ffaa : 0x666666)
+            .setInteractive({ useHandCursor: true });
+
+        const autoBtnText = this.add.text(40, 18, 'AUTO', {
+            fontFamily: 'sans-serif',
+            fontSize: '18px',
+            fontStyle: 'bold',
+            color: this.isAutoEnabled ? '#ffffff' : '#888888'
+        }).setOrigin(0.5, 0.5);
+
+        autoBtnContainer.add([autoBtnBg, autoBtnText]);
+
+        const updateAutoBtnDisplay = () => {
+            autoBtnBg.setFillStyle(this.isAutoEnabled ? 0x228844 : 0x333333, 0.85);
+            autoBtnBg.setStrokeStyle(2, this.isAutoEnabled ? 0x88ffaa : 0x666666);
+            autoBtnText.setColor(this.isAutoEnabled ? '#ffffff' : '#888888');
+        };
+
+        autoBtnBg.on('pointerdown', () => {
+            this.isAutoEnabled = !this.isAutoEnabled;
+            this.globalState.isBattleAutoEnabled = this.isAutoEnabled;
+            this.engine.isBattleAutoEnabled = this.isAutoEnabled;
+            updateAutoBtnDisplay();
+            if (this.sound && this.sound.play) {
+                try { this.sound.play('se_tap', { volume: 0.4 }); } catch (e) {}
+            }
+        });
+
         // --- 一時停止・撤退UI ---
         this.pauseBtn = this.add.text(this.scale.width - 20, 20, '⚙️', { fontSize: '32px' })
             .setOrigin(1, 0)

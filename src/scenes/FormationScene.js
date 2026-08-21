@@ -82,6 +82,9 @@ export default class FormationScene extends Phaser.Scene {
         this.updateCharacterPositions();
 
 
+        // AUTO設定の初期化
+        this.autoLanes = Object.assign({ '-2': false, '-1': false, '0': false, '1': false, '2': false }, this.globalState.autoLanes || {});
+
         // UI描画
         const saveBtn = this.add.text(width / 2, height * 0.05, '保存して戻る', {
             fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: '#aa3333', padding: { x: 20, y: 10 }
@@ -98,6 +101,7 @@ export default class FormationScene extends Phaser.Scene {
                     isFront: char.isFront
                 };
             }
+            this.globalState.autoLanes = JSON.parse(JSON.stringify(this.autoLanes));
             SaveManager.saveGame();
 
             // 終了処理
@@ -119,6 +123,46 @@ export default class FormationScene extends Phaser.Scene {
         this.add.text(width / 2, height * 0.15, '上下スワイプ：前衛・後衛\n左右スワイプ：レーン移動', {
             fontFamily: 'sans-serif', fontSize: '20px', color: '#aaaaaa', align: 'center'
         }).setOrigin(0.5, 0);
+
+        // ── 前衛と後衛の中間（Z = 8.0）に各レーンの「AUTO」ボタンを配置 ──
+        this.autoBtnObjects = {};
+        const lanes = [-2, -1, 0, 1, 2];
+        for (const lane of lanes) {
+            const p = this.projector.project(lane * 1.8, 8.0);
+            const isAuto = !!this.autoLanes[lane];
+
+            const btnContainer = this.add.container(p.x, p.y);
+            const btnBg = this.add.rectangle(0, 0, 72, 34, isAuto ? 0x228844 : 0x263328, 0.9)
+                .setStrokeStyle(2, isAuto ? 0x88ffaa : 0x445548)
+                .setInteractive({ useHandCursor: true });
+
+            const btnText = this.add.text(0, 0, 'AUTO', {
+                fontFamily: 'sans-serif',
+                fontSize: '16px',
+                fontStyle: 'bold',
+                color: isAuto ? '#ffffff' : '#668877'
+            }).setOrigin(0.5, 0.5);
+
+            btnContainer.add([btnBg, btnText]);
+            btnContainer.setDepth(150); // キャラクターより手前に
+
+            const updateBtnStyle = (active) => {
+                btnBg.setFillStyle(active ? 0x228844 : 0x263328, 0.9);
+                btnBg.setStrokeStyle(2, active ? 0x88ffaa : 0x445548);
+                btnText.setColor(active ? '#ffffff' : '#668877');
+            };
+
+            btnBg.on('pointerdown', () => {
+                this.autoLanes[lane] = !this.autoLanes[lane];
+                updateBtnStyle(this.autoLanes[lane]);
+                // 効果音などのフィードバック
+                if (this.sound && this.sound.play) {
+                    try { this.sound.play('se_tap', { volume: 0.4 }); } catch (e) {}
+                }
+            });
+
+            this.autoBtnObjects[lane] = { container: btnContainer, bg: btnBg, text: btnText, updateStyle: updateBtnStyle };
+        }
 
         // 前衛・後衛のラベルテキスト
         const posFront = this.projector.project(0, 10.0);

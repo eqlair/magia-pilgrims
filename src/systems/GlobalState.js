@@ -113,12 +113,9 @@ export class GlobalState {
         this.maxPastExp = 0;           // ① 過去最高獲得経験値 (1周での歴代最大)
         this.currentRunTotalExp = 0;   // ② 今周の総獲得経験値
 
-
-
-
-
-
-
+        // ── AUTO運転設定 ──
+        this.autoLanes = { '-2': false, '-1': false, '0': false, '1': false, '2': false };
+        this.isBattleAutoEnabled = true; // 戦闘中AUTOマスターボタン (デフォルトON)
 
         // ── オンデマンド・デバッグログシステム ──
         this.debugLogs = [];
@@ -926,6 +923,8 @@ export class GlobalState {
             stockSp: this.stockSp,
             inventory: JSON.parse(JSON.stringify(this.inventory)),
             savedFormation: JSON.parse(JSON.stringify(this.savedFormation)),
+            autoLanes: JSON.parse(JSON.stringify(this.autoLanes || { '-2': false, '-1': false, '0': false, '1': false, '2': false })),
+            isBattleAutoEnabled: this.isBattleAutoEnabled,
             activeTarots: JSON.parse(JSON.stringify(this.activeTarots)),
             drawnTarotCards: JSON.parse(JSON.stringify(this.drawnTarotCards || [])),
 

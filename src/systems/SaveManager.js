@@ -36,6 +36,8 @@ export class SaveManager {
                 inventory: gs.inventory,
                 characters: gs.characters,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
+                autoLanes: gs.autoLanes ? JSON.parse(JSON.stringify(gs.autoLanes)) : { '-2': false, '-1': false, '0': false, '1': false, '2': false },
+                isBattleAutoEnabled: gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true,
                 activeTarots: gs.activeTarots,
                 drawnTarotCards: gs.drawnTarotCards || [],
                 event1207Played: gs.event1207Played,
@@ -230,6 +232,8 @@ export class SaveManager {
             }
         }
         if (d.savedFormation) gs.savedFormation = d.savedFormation;
+        if (d.autoLanes) gs.autoLanes = d.autoLanes;
+        if (d.isBattleAutoEnabled !== undefined) gs.isBattleAutoEnabled = d.isBattleAutoEnabled;
         if (d.activeTarots) gs.activeTarots = d.activeTarots;
         if (d.drawnTarotCards) gs.drawnTarotCards = d.drawnTarotCards;
         if (d.event1207Played !== undefined) gs.event1207Played = d.event1207Played;

@@ -58,7 +58,22 @@ export class PvpAiController {
 
     /** 各チーム（プレイヤー側 / 敵側）の思考更新 */
     _updateTeamAi(myTeam, opponents, isPlayerTeam, dt, now) {
+        // プレイヤー側の場合、戦闘中AUTOマスターボタンがOFFなら全キャラ手動（AIスキップ）
+        if (isPlayerTeam && this.engine.isBattleAutoEnabled === false) {
+            return;
+        }
+
+        const autoLanes = this.engine.autoLanes || (this.engine.globalState ? this.engine.globalState.autoLanes : null) || {};
+
         for (const member of myTeam) {
+            // プレイヤー側の場合、隊列設定画面でAUTOがONになっているレーンのキャラのみ自動運転
+            if (isPlayerTeam) {
+                const isAuto = !!autoLanes[member.lane];
+                if (!isAuto) {
+                    continue; // 隊列設定でAUTOがOFFのキャラはずっと手動操作のまま
+                }
+            }
+
             if (!this.charTimers.has(member)) {
                 this.charTimers.set(member, {
                     ultCheckTimer: 1.0 + Math.random() * 2.0,
