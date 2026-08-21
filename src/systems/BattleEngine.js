@@ -2167,6 +2167,16 @@ export class BattleEngine {
                     }
                 }
 
+                // レーン移動＆前後列移動のスムーズなステップ移動（プレイヤー側と同じく秒速数mで滑らかに移動）
+                const targetX = ep.lane * 1.8;
+                const targetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.0 : 14.0);
+
+                if (ep.baseX === undefined) ep.baseX = targetX;
+                if (ep.baseZ === undefined) ep.baseZ = targetZ;
+
+                ep.baseX += (targetX - ep.baseX) * 8.0 * dt;
+                ep.baseZ += (targetZ - ep.baseZ) * 6.0 * dt;
+
                 // ノックバックオフセットの秒速3m復帰処理
                 const returnSpeed = 3.0; // 秒速3.0mで必死に前線へ戻る
                 const kbDist = Math.sqrt((ep.knockbackOffsetX || 0) ** 2 + (ep.knockbackOffsetZ || 0) ** 2);
@@ -2181,11 +2191,9 @@ export class BattleEngine {
                     }
                 }
 
-                // 定位置 ＋ 踏み込みオフセット ＋ ノックバックオフセットを反映
-                const baseTargetX = ep.lane * 1.8;
-                const baseTargetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.0 : 14.0);
-                ep.x = baseTargetX + (ep.animOffsetX || 0) + (ep.knockbackOffsetX || 0);
-                ep.z = baseTargetZ + (ep.animOffsetZ || 0) + (ep.knockbackOffsetZ || 0);
+                // 最終座標の合成（ベース座標 ＋ 踏み込みオフセット ＋ ノックバックオフセット）
+                ep.x = ep.baseX + (ep.animOffsetX || 0) + (ep.knockbackOffsetX || 0);
+                ep.z = ep.baseZ + (ep.animOffsetZ || 0) + (ep.knockbackOffsetZ || 0);
 
                 if (ep.hp <= 0) {
                     ep.isDead = true;

@@ -99,7 +99,6 @@ export class PvpAiController {
             this._swapLane(ep, 0, pvpEnemies, now);
             ep.isFront = true;
             ep.targetZ = 9.0;
-            ep.z = 9.0;
         }
 
         // 必殺技の実行
@@ -130,11 +129,9 @@ export class PvpAiController {
 
         if (occupant) {
             occupant.lane = oldLane;
-            occupant.x = oldLane * 1.8;
         }
 
         ep.lane = targetLane;
-        ep.x = targetLane * 1.8;
         this.teamLastLaneMoveTime = now;
     }
 

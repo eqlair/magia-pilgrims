@@ -1198,9 +1198,11 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.ultimateCooldown = this.maxUltimateCooldown;
 
         // 座標: 前衛なら Z=9.0、後衛なら Z=14.0
-        this.x = this.lane * 1.8;
-        this.z = this.isFront ? 9.0 : 14.0;
-        this.targetZ = this.z;
+        this.baseX = this.lane * 1.8;
+        this.baseZ = this.isFront ? 9.0 : 14.0;
+        this.x = this.baseX;
+        this.z = this.baseZ;
+        this.targetZ = this.baseZ;
 
         const charIdToAttr = {
             '001': 'purple',
