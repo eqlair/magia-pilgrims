@@ -2167,21 +2167,26 @@ export default class AdventureScene extends Phaser.Scene {
 
         // 前回より仲間が増えているかチェック
         if (this.party.length > this.previousPartySize) {
+            const isFirstJoinedMember = (this.previousPartySize === 1 && this.party.length === 2);
+
             // 仲間加入時: 現在値の20% + 10
             this.globalEnemyCount = Math.floor(this.globalEnemyCount * 1.20) + 10;
-            this.globalEnemyLevel += 1;
 
-            
-            // マップ上の残存する敵・魔女のレベルも更新する
-            for (const row of this.grid) {
-                for (const hex of row) {
-                    if (hex && hex.cellData) {
-                        if (hex.cellData.enemyLevel > 0) hex.cellData.enemyLevel += 1;
-                        if (hex.cellData.witchLevel > 0) hex.cellData.witchLevel += 1;
+            // ★ 一人目の仲間（1人→2人PT）のときだけはレベルを上げない（2人目以降の仲間加入時にレベル+1）
+            if (!isFirstJoinedMember) {
+                this.globalEnemyLevel += 1;
+
+                // マップ上の残存する敵・魔女のレベルも更新する
+                for (const row of this.grid) {
+                    for (const hex of row) {
+                        if (hex && hex.cellData) {
+                            if (hex.cellData.enemyLevel > 0) hex.cellData.enemyLevel += 1;
+                            if (hex.cellData.witchLevel > 0) hex.cellData.witchLevel += 1;
+                        }
                     }
                 }
+                this.updateVisibility();
             }
-            this.updateVisibility();
             
             this.previousPartySize = this.party.length;
         }
