@@ -112,9 +112,11 @@ export default class CampScene extends Phaser.Scene {
                 this.drawMainView(width, height);
             }
         });
+
+        this.events.on('shutdown', () => {
+            if (this.sound) this.sound.stopAll();
+        });
     }
-
-
 
     getRankColor(rank) {
         return CharacterDetailHelper.getRankColor(rank);
@@ -132,6 +134,7 @@ export default class CampScene extends Phaser.Scene {
             stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#ffaaaa', backgroundColor: '#333333'
         }).setInteractive().setPadding(10);
         backBtn.on('pointerdown', () => {
+            if (this.sound) this.sound.stopAll();
             this.scene.stop('CampScene');
             this.scene.resume('AdventureScene');
         });
