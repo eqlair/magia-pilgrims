@@ -567,6 +567,35 @@ export default class BattleScene extends Phaser.Scene {
             }
         }
 
+        // PvP対人戦テストモードの終了時（勝利クリア・全滅・撤退すべて離脱扱い）
+        if (this.battleConfig && this.battleConfig.isPvpBattle && (this.engine.waveState === 'cleared' || this.engine.waveState === 'gameover' || this.engine.waveState === 'retreated') && !this.isExiting) {
+            console.log('[BattleScene] PvP Test finished, returning to map as retreat');
+            this.isExiting = true;
+
+            if (this.fogEffect) {
+                this.fogEffect.fadeOut(1500);
+            }
+
+            const targetScene = this.battleConfig.returnScene || 'AdventureScene';
+            this.time.delayedCall(2000, () => {
+                if (this.sound) this.sound.stopAll();
+                const stateObj = {
+                    isRetreated: true,
+                    fromBattle: true
+                };
+
+                if (this.scene.isPaused(targetScene)) {
+                    TransitionManager.fadeOut(this, () => {
+                        this.scene.stop();
+                        this.scene.resume(targetScene, stateObj);
+                    });
+                } else {
+                    TransitionManager.transitionTo(this, targetScene, stateObj);
+                }
+            });
+            return;
+        }
+
         // ミッションクリア時の遷移
         if (this.engine.waveState === 'cleared' && !this.isExiting) {
             console.log('[BattleScene] cleared detected, starting exit sequence');
