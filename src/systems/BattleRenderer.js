@@ -87,7 +87,6 @@ export class BattleRenderer {
         // PvP敵魔法少女の描画更新
         if (this.engine.isPvpBattle && this.engine.pvpEnemies) {
             for (const ep of this.engine.pvpEnemies) {
-                if (ep.isDead) continue;
                 const charTex = `battle_${ep.charId}`;
                 this._updateSprite(ep, charTex);
                 this._updateUI(ep);
@@ -421,7 +420,7 @@ export class BattleRenderer {
             }
 
 
-            if (entity.owner === 'enemy') {
+            if (entity.owner === 'enemy' && !isPlayerChar) {
                 // フレームの更新
                 sprite.setFrame(entity.frame || 0);
 
@@ -725,13 +724,20 @@ export class BattleRenderer {
                 }
 
                 ui.hpBg.setAlpha(alpha); ui.hpBar.setAlpha(alpha);
-                
+
                 // 敵はSPなし
                 if (entity.owner === 'enemy') {
                     ui.spBg.setVisible(false); ui.spBar.setVisible(false);
                 } else {
                     ui.ultBg.setAlpha(alpha); ui.ultBar.setAlpha(alpha);
                     ui.spBg.setAlpha(alpha); ui.spBar.setAlpha(alpha);
+                }
+
+                // 死亡時は頭上ゲージを非表示
+                if (entity.isDead || entity.hp <= 0) {
+                    ui.hpBg.setVisible(false); ui.hpBar.setVisible(false);
+                    ui.ultBg.setVisible(false); ui.ultBar.setVisible(false);
+                    ui.spBg.setVisible(false); ui.spBar.setVisible(false);
                 }
             }
         } else {
