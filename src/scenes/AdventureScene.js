@@ -567,7 +567,6 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                 });
 
-                this.advanceTime();
                 SaveManager.saveGame(this);
                 TransitionManager.fadeIn(this);
                 return;
@@ -649,7 +648,6 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                 });
 
-                this.advanceTime();
                 SaveManager.saveGame(this);
                 TransitionManager.fadeIn(this);
                 return;
