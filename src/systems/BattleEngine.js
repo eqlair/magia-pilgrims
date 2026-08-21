@@ -2194,6 +2194,75 @@ export class BattleEngine {
 
                 if (!target) continue; // 生存プレイヤーがいなければ攻撃しない
 
+                // ── 敵紫苑(001)の進行中コンボ（バースト連射＆手りゅう弾）の更新 ──
+                if (ep.charId === '001' && ep.sionCombo && ep.sionCombo.phase !== 'idle') {
+                    ep.sionCombo.timer -= dt;
+                    if (ep.sionCombo.timer <= 0) {
+                        if (ep.sionCombo.phase === 'bursting') {
+                            // 弾丸発射！（プレイヤー紫苑と同じtype: 'bullet', size: 0.5, speed: 40）
+                            const dx = target.x - ep.x;
+                            const dz = target.z - ep.z;
+                            const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
+                            const speed = 40.0;
+                            const bDmg = Math.max(1, Math.floor(ep.atk * 0.15));
+
+                            const bullet = new Bullet(ep.x, ep.z - 0.5, {
+                                vx: (dx / dist) * speed,
+                                vz: (dz / dist) * speed,
+                                damage: bDmg,
+                                knockback: 5,
+                                owner: 'enemy',
+                                size: 0.5,
+                                type: 'bullet',
+                                textureKey: 'bullet',
+                                targetDist: 20.0,
+                                lifeTime: 2.0
+                            });
+                            bullet.sourceEntity = ep;
+                            this.bullets.push(bullet);
+                            if (ep.triggerAttackShake) ep.triggerAttackShake();
+
+                            ep.sionCombo.bulletCount++;
+                            if (ep.sionCombo.bulletCount < ep.sionCombo.maxBullets) {
+                                ep.sionCombo.timer = ep.sionCombo.bulletInterval;
+                            } else {
+                                // バースト連射完了 → 次は手りゅう弾投擲へ！
+                                ep.sionCombo.phase = 'grenade_wait';
+                                ep.sionCombo.timer = 0.35;
+                            }
+                        } else if (ep.sionCombo.phase === 'grenade_wait') {
+                            // 手りゅう弾投擲！（プレイヤー紫苑と同じtype: 'grenade', size: 0.8, speed: 20）
+                            const dx = target.x - ep.x;
+                            const dz = target.z - ep.z;
+                            const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
+                            const speed = 20.0;
+                            const gDmg = Math.max(1, Math.floor(ep.atk * 0.50));
+
+                            const grenade = new Bullet(ep.x, ep.z - 0.5, {
+                                vx: (dx / dist) * speed,
+                                vz: (dz / dist) * speed,
+                                damage: gDmg,
+                                knockback: 150,
+                                owner: 'enemy',
+                                size: 0.8,
+                                type: 'grenade',
+                                textureKey: 'grenade',
+                                targetDist: dist,
+                                lifeTime: (dist / speed) * 1.5 + 0.5
+                            });
+                            grenade.sourceEntity = ep;
+                            this.bullets.push(grenade);
+                            if (ep.triggerAttackShake) ep.triggerAttackShake();
+
+                            // コンボ全完了 → クールダウン設定
+                            ep.sionCombo.phase = 'idle';
+                            const baseInterval = Math.max(0.6, 1.4 - (ep.farLevel || 1) * 0.08);
+                            ep.atkCooldown = baseInterval + Math.random() * 0.3;
+                        }
+                    }
+                    continue; // コンボ進行中は新規攻撃判定をスキップ
+                }
+
                 // 攻撃タイマー
                 if (!ep.atkCooldown) {
                     const baseInterval = Math.max(0.45, 1.1 - (ep.nearLevel || 1) * 0.07);
@@ -2291,50 +2360,45 @@ export class BattleEngine {
                         }
                     } else {
                         // ── 後衛・遠隔攻撃 ──
-                        if (ep.triggerAttackShake) ep.triggerAttackShake();
-                        const bulletTypeMap = {
-                            '001': 'bullet',
-                            '002': 'weapon_002',
-                            '003': 'weapon_003',
-                            '004': 'weapon_004_ribbon',
-                            '005': 'weapon_005',
-                            '010': 'laser_010'
-                        };
-                        const bType = bulletTypeMap[ep.charId] || 'bullet';
-                        const bulletDmg = Math.floor(ep.atk * 0.6);
+                        if (ep.charId === '001') {
+                            // ★ 敵紫苑(001): 遠隔Lv連動のバースト射撃コンボ開始！
+                            ep.sionCombo = {
+                                phase: 'bursting',
+                                bulletCount: 0,
+                                maxBullets: Math.min(6, 2 + (ep.farLevel || 1)), // Lv1:3発, Lv2:4発, Lv3:5発, Lv4:6発
+                                bulletInterval: Math.max(0.16, 0.32 - (ep.farLevel || 1) * 0.04), // 高Lvほど高速連射
+                                timer: 0 // 即時1発目を発射
+                            };
+                            ep.atkCooldown = 999; // コンボ完了まで待機
+                        } else {
+                            if (ep.triggerAttackShake) ep.triggerAttackShake();
+                            const bulletTypeMap = {
+                                '002': 'weapon_002',
+                                '003': 'weapon_003',
+                                '004': 'weapon_004_ribbon',
+                                '005': 'weapon_005',
+                                '010': 'laser_010'
+                            };
+                            const bType = bulletTypeMap[ep.charId] || 'bullet';
+                            const bulletDmg = Math.floor(ep.atk * 0.6);
 
-                        const dx = target.x - ep.x;
-                        const dz = target.z - ep.z; // マイナス方向（手前）
-                        const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
-                        const speed = 25.0;
+                            const dx = target.x - ep.x;
+                            const dz = target.z - ep.z; // マイナス方向（手前）
+                            const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
+                            const speed = 25.0;
 
-                        const bullet = new Bullet(ep.x, ep.z - 0.5, {
-                            vx: (dx / dist) * speed,
-                            vz: (dz / dist) * speed,
-                            damage: bulletDmg,
-                            knockback: 30,
-                            owner: 'enemy',
-                            size: 0.5,
-                            type: bType,
-                            textureKey: bType,
-                            targetDist: 20.0
-                        });
-                        this.bullets.push(bullet);
-
-                        // 紫苑はたまに手りゅう弾も投げる
-                        if (ep.charId === '001' && Math.random() < 0.3) {
-                            const grenade = new Bullet(ep.x, ep.z - 0.5, {
-                                vx: (dx / dist) * 15.0,
-                                vz: (dz / dist) * 15.0,
-                                damage: Math.floor(ep.atk * 1.2),
-                                knockback: 150,
+                            const bullet = new Bullet(ep.x, ep.z - 0.5, {
+                                vx: (dx / dist) * speed,
+                                vz: (dz / dist) * speed,
+                                damage: bulletDmg,
+                                knockback: 30,
                                 owner: 'enemy',
-                                size: 0.8,
-                                type: 'grenade',
-                                textureKey: 'grenade',
-                                targetDist: dist
+                                size: 0.5,
+                                type: bType,
+                                textureKey: bType,
+                                targetDist: 20.0
                             });
-                            this.bullets.push(grenade);
+                            this.bullets.push(bullet);
                         }
                     }
                 }

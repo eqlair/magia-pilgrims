@@ -427,9 +427,8 @@ export class BattleRenderer {
                 const baseWidth = sprite.width || 100; 
                 
                 // ★視認性向上のための描画倍率（当たり判定はそのまま、見た目だけ大きくする）
-                // 敵の弾丸(ball.png)は画面で見やすく美しい球体サイズ(3.5倍)に調整
-                let visualMultiplier = (entity.owner === 'enemy') ? 3.5 : 1.5;
-                if (textureKey === 'enemy_bullet') visualMultiplier = 3.5;
+                // 雑魚敵の通常弾丸(ball.png / enemy_bullet)のみ3.5倍、魔法少女の弾丸・手りゅう弾等はプレイヤーと同じ1.5倍
+                let visualMultiplier = (textureKey === 'enemy_bullet') ? 3.5 : 1.5;
                 if (textureKey === 'weapon_002') {
                     // 回転中(swing_ultimate_002)は元のサイズ(1.5)、飛んでいく時のみ2倍(3.0)に拡大
                     visualMultiplier = (entity.type === 'swing_ultimate_002') ? 1.5 : 3.0;
