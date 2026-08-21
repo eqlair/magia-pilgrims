@@ -1144,14 +1144,6 @@ export class BattleEngine {
                     gs.addStockSp(spGained);
                     this.earnedSp = (this.earnedSp || 0) + spGained;
                     console.log(`[BattleEngine] Majo defeated, gained ${spGained} SP`);
-
-                    // 戦闘中プレイヤーのSPにも即時反映（あふれた分が分配された場合）
-                    for (const p of this.players) {
-                        const charData = gs.characters[p.charId];
-                        if (charData && charData.currentSp !== undefined) {
-                            p.sp = charData.currentSp;
-                        }
-                    }
                 }
 
             }
