@@ -1,5 +1,6 @@
 import { PlayerCharacter, EnemyCharacter, BossCharacter, Bullet, EffectEntity, PvpEnemyCharacter } from './BattleEntities';
 import { GlobalState } from './GlobalState';
+import { PvpAiController } from './PvpAiController';
 
 // 防御側から見た属性防御力（例: 赤(防御)は紫(攻撃)から75%ダメージを受ける）
 const ATTR_DEF = {
@@ -184,6 +185,7 @@ export class BattleEngine {
                 ep.engine = this;
                 this.pvpEnemies.push(ep);
             }
+            this.pvpAi = new PvpAiController(this);
         }
 
         // パーティ情報を取得
@@ -2135,6 +2137,10 @@ export class BattleEngine {
 
         // ── PvP敵魔法少女たちの行動更新 ──
         if (this.isPvpBattle && this.pvpEnemies) {
+            if (this.pvpAi) {
+                this.pvpAi.update(dt);
+            }
+
             for (const ep of this.pvpEnemies) {
                 if (ep.isDead) continue;
                 ep.update(dt);
