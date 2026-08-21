@@ -58,6 +58,11 @@ export class PvpAiController {
                 if (shouldCastUlt) {
                     let canCast = true;
 
+                    // 必殺技ゲージが溜まっていない（クールダウン中）なら撃てない
+                    if (ep.ultimateCooldown > 0) {
+                        canCast = false;
+                    }
+
                     // 近接型のみ: 6秒以内に他のメンバーが必殺技を撃っていたら撃たない
                     if (role === 'melee') {
                         if (now - this.teamLastUltTime < 6.0) {

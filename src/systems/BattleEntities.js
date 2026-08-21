@@ -1171,6 +1171,10 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.wlv = this.nearLevel + this.farLevel;
         this.weight = data.weight || 50;
 
+        // 必殺技ゲージ: 開幕は0%（最大クールダウン値）からスタート
+        this.maxUltimateCooldown = Math.max(0, 60.0 - (this.wlv * 2.0));
+        this.ultimateCooldown = this.maxUltimateCooldown;
+
         // 座標: 前衛なら Z=9.5、後衛なら Z=14.5 (-1.0m手前へ)
         this.x = this.lane * 1.8;
         this.z = this.isFront ? 9.5 : 14.5;
