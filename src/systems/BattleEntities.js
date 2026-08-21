@@ -712,6 +712,17 @@ export class PlayerCharacter extends BattleEntity {
     }
 
     update(dt) {
+        if (this.isDead || this.hp <= 0) {
+            // 戦闘不能時は定位置への引き戻しを行わず、スクロール移動（zの変化）をそのまま維持
+            this.animOffsetX = 0;
+            this.animOffsetZ = 0;
+            this.animY = 0;
+            this.baseX = this.x;
+            this.baseZ = this.z;
+            super.update(dt);
+            return;
+        }
+
         // ベース位置の更新
         const targetX = this.lane * 2.0;
         // base X/Z を計算するが、this.x, this.z自体はベース+オフセットになるため、ベース位置を裏で保持・計算する
