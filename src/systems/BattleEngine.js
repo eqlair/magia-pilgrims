@@ -826,7 +826,13 @@ export class BattleEngine {
             }
         }
 
+        // 対人戦(PvP魔法少女戦)モード限定: 互いの攻撃ダメージを1/10にする
+        if (this.isPvpBattle) {
+            finalDamage *= 0.10;
+        }
+
         if (finalDamage > 0) {
+            finalDamage = Math.max(1, Math.round(finalDamage));
             defender.hp -= finalDamage;
 
             // チュートリアル戦闘時: 紫苑(プレイヤー)のHPは1/8以下にならない保護
