@@ -122,15 +122,15 @@ export default class TarotScene extends Phaser.Scene {
             return;
         }
 
-        // 1周目かつ3日目までに 蒼樹(002)・紅華(003)・黄蘭(004) がいない場合の救済判定
+        // 1周目かつ12/3以降に 蒼樹(002)・紅華(003)・黄蘭(004) が誰もいない場合の救済判定（12/1〜12/2は完全ランダム自引き）
         const isFirstLoop = (gs.maxPastExp || 0) === 0;
-        const isEarlyDay = (gs.currentDay || 1) <= 3;
+        const isTargetDay = (gs.currentDay || 1) >= 3;
         const hasSpecificMember = (this.party || []).includes('002') || (this.party || []).includes('003') || (this.party || []).includes('004') ||
                                   !!(gs.characters?.['002']?.hasAccompanied) ||
                                   !!(gs.characters?.['003']?.hasAccompanied) ||
                                   !!(gs.characters?.['004']?.hasAccompanied);
 
-        const isGuaranteeMode = isFirstLoop && isEarlyDay && !hasSpecificMember;
+        const isGuaranteeMode = isFirstLoop && isTargetDay && !hasSpecificMember;
 
         this.drawnCardIds = [];
         if (isGuaranteeMode) {
