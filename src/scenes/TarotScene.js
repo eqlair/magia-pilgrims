@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 import { GlobalState } from '../systems/GlobalState';
+import { CharacterLossManager } from '../systems/CharacterLossManager';
 
 export default class TarotScene extends Phaser.Scene {
     constructor() {
@@ -352,6 +353,18 @@ export default class TarotScene extends Phaser.Scene {
                 if (this.bgm) {
                     this.bgm.stop();
                     this.bgm.destroy();
+                }
+
+                // 塔（正位置）で仲間が離脱した場合の喪失イベント
+                const gs = GlobalState.getInstance();
+                const removedCharId = gs.lastTowerRemovedCharId;
+                if (removedCharId) {
+                    gs.lastTowerRemovedCharId = null;
+                    CharacterLossManager.triggerSingleLoss(this, removedCharId, () => {
+                        this.scene.stop();
+                        this.scene.resume(this.returnScene, { fromTarot: true });
+                    });
+                    return;
                 }
 
                 // Check for join events (パーティが5人以上の場合は出会いイベントを不発にして6人目加入を防ぐ)

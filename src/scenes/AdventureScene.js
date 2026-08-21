@@ -12,6 +12,7 @@ import { build1221WildhuntCommands } from '../data/wildhuntEvents';
 import { SpriteText } from '../utils/SpriteText';
 import { EventEngine } from '../systems/EventEngine';
 import { Dec21Effect } from '../systems/Dec21Effect';
+import { CharacterLossManager } from '../systems/CharacterLossManager';
 
 
 
@@ -787,6 +788,11 @@ export default class AdventureScene extends Phaser.Scene {
                     this.checkTowerFloorClearAndFindStairs();
                 }
 
+                // 戦闘後の仲間精神力チェック（1/5以下なら喪失イベント発生）
+                CharacterLossManager.checkAndTriggerLoss(this, this.party, () => {
+                    this._updateDateTimeDisplay();
+                    SaveManager.saveGame(this);
+                });
 
                 // マップBGMを再開
                 this._playMapBgm(true);
@@ -2757,8 +2763,10 @@ export default class AdventureScene extends Phaser.Scene {
     // _resumeHandlerではなくここで advanceTime() を呼ぶことで、
     // 探索途中のfromExploration resumeが誤って時間を進めるのを防ぐ
     _advanceTimeAfterExploration() {
-        if (this.isTowerMode) return;
-        this.advanceTime();
+        CharacterLossManager.checkAndTriggerLoss(this, this.party, () => {
+            if (this.isTowerMode) return;
+            this.advanceTime();
+        });
     }
 
 

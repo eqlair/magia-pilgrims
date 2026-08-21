@@ -7,6 +7,7 @@ import { TimeReporter } from '../systems/TimeReporter';
 
 import { fontSize, FONT_MAIN } from '../config/GameFont';
 import { EventEngine } from '../systems/EventEngine';
+import { CharacterLossManager } from '../systems/CharacterLossManager';
 
 export default class RestScene extends Phaser.Scene {
 
@@ -350,21 +351,28 @@ export default class RestScene extends Phaser.Scene {
         this.globalState.isTutorialMode = false;
         SaveManager.saveGame();
 
-        if (this.bgm && this.bgm.isPlaying) {
-            this.tweens.add({
-                targets: this.bgm,
-                volume: 0,
-                duration: 1000,
-                onComplete: () => {
-                    this.bgm.stop();
-                    this.scene.stop('RestScene');
-                    this.scene.resume('AdventureScene', { fromRest: true });
-                }
-            });
-        } else {
-            this.scene.stop('RestScene');
-            this.scene.resume('AdventureScene', { fromRest: true });
-        }
+        const proceedToAdventure = () => {
+            if (this.bgm && this.bgm.isPlaying) {
+                this.tweens.add({
+                    targets: this.bgm,
+                    volume: 0,
+                    duration: 1000,
+                    onComplete: () => {
+                        this.bgm.stop();
+                        this.scene.stop('RestScene');
+                        this.scene.resume('AdventureScene', { fromRest: true });
+                    }
+                });
+            } else {
+                this.scene.stop('RestScene');
+                this.scene.resume('AdventureScene', { fromRest: true });
+            }
+        };
+
+        // 精神力1/5以下のキャラがいるかチェック
+        CharacterLossManager.checkAndTriggerLoss(this, this.party, () => {
+            proceedToAdventure();
+        });
     }
 
 

@@ -103,6 +103,13 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('ev_exprX', 'files/event/ev_exprX.jpg');
         this.load.image('ev_daycamp', 'files/event/ev_daycamp.jpg');
         this.load.image('ev_camp', 'files/event/ev_camp.jpg');
+
+        // 仲間喪失（死亡・離脱）一枚絵
+        this.load.image('evx_002', 'files/event/evx002.jpg');
+        this.load.image('evx_003', 'files/event/evx003.jpg');
+        this.load.image('evx_004', 'files/event/evx005.jpg');
+        this.load.image('evx_005', 'files/event/evx006.jpg');
+        this.load.image('evx_010', 'files/event/evx011.jpg');
         
         // 12/7, 12/14, 12/21, 周回イベント画像とBGM
         this.load.json('event_1207', 'files/DATA/event_1207.json');
