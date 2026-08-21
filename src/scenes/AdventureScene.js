@@ -3973,7 +3973,14 @@ export default class AdventureScene extends Phaser.Scene {
         const bgmKey = this._getMapBgmKey();
         const existing = this.sound.get(bgmKey);
 
-        if (!force && existing && existing.isPlaying) return;
+        // 同じキーのBGMがすでに再生中なら、force=trueでも止めずにそのまま継続
+        if (existing && existing.isPlaying) return;
+
+        if (!force && existing && !existing.isPlaying) {
+            // 止まっていたら再開（resume）
+            existing.resume && existing.resume();
+            return;
+        }
 
         if (this.tweens && typeof this.tweens.getTweens === 'function') {
             this.tweens.getTweens().forEach(t => {
