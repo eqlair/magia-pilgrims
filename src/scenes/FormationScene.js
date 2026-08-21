@@ -62,28 +62,20 @@ export default class FormationScene extends Phaser.Scene {
             });
         }
 
-        // 初期配置の重なり解消処理
-        const occupied = new Set();
+        // 初期配置のレーン重なり解消処理（前衛後衛問わず1レーンに1人のみ）
+        const occupiedLanes = new Set();
         for (const char of this.characters) {
-            const posKey = `${char.lane}_${char.isFront}`;
-            if (occupied.has(posKey)) {
+            if (occupiedLanes.has(char.lane)) {
                 const searchLanes = [0, -1, 1, -2, 2];
-                let resolved = false;
-                for (const isF of [false, true]) {
-                    for (const l of searchLanes) {
-                        const k = `${l}_${isF}`;
-                        if (!occupied.has(k)) {
-                            char.lane = l;
-                            char.isFront = isF;
-                            occupied.add(k);
-                            resolved = true;
-                            break;
-                        }
+                for (const l of searchLanes) {
+                    if (!occupiedLanes.has(l)) {
+                        char.lane = l;
+                        occupiedLanes.add(l);
+                        break;
                     }
-                    if (resolved) break;
                 }
             } else {
-                occupied.add(posKey);
+                occupiedLanes.add(char.lane);
             }
         }
         
@@ -296,10 +288,9 @@ export default class FormationScene extends Phaser.Scene {
         
         if (moved) {
             for (const otherChar of this.characters) {
-                // まったく同じ(lane, isFront)の位置に重なる場合はスワップ交換
-                if (otherChar !== this.grabbedChar && otherChar.lane === this.grabbedChar.lane && otherChar.isFront === this.grabbedChar.isFront) {
+                // 同じレーンに誰かがいる場合、前衛後衛を問わずレーンをスワップ入れ替え（戦闘中と同じ挙動）
+                if (otherChar !== this.grabbedChar && otherChar.lane === this.grabbedChar.lane) {
                     otherChar.lane = oldLane;
-                    otherChar.isFront = oldIsFront;
                     break;
                 }
             }
