@@ -37,42 +37,56 @@ export class CharacterDetailHelper {
      * @param {Phaser.GameObjects.Container} targetContainer - 描画対象コンテナ
      * @param {Function} onBack - 戻るボタン押下時のコールバック
      */
-    static showDetailView(scene, charId, parentSceneName, targetContainer, onBack) {
+    static showDetailView(scene, charId, parentSceneName, targetContainer, onBack, slideDir = null) {
         if (!targetContainer) return;
-        targetContainer.removeAll(true);
-        targetContainer.setPosition(0, 0);
-        targetContainer.setDepth(100);
-        targetContainer.setVisible(true);
-        if (scene.children && scene.children.bringToTop) {
-            scene.children.bringToTop(targetContainer);
-        }
 
         const width = scene.scale ? scene.scale.width : (scene.cameras ? scene.cameras.main.width : 800);
         const height = scene.scale ? scene.scale.height : (scene.cameras ? scene.cameras.main.height : 600);
 
-        // 詳細画面用の暗いバックドロップ（立ち絵や文字を見やすく覆う）
-        const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
-        targetContainer.add(bgBackdrop);
+        // 既存のページコンテナ（旧ページ）を取得
+        const oldPage = targetContainer.pageContentContainer || null;
+
+        if (!slideDir || !oldPage) {
+            targetContainer.removeAll(true);
+            targetContainer.setPosition(0, 0);
+            targetContainer.setDepth(100);
+            targetContainer.setVisible(true);
+            if (scene.children && scene.children.bringToTop) {
+                scene.children.bringToTop(targetContainer);
+            }
+
+            // 背景暗幕（常設）
+            const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
+            targetContainer.add(bgBackdrop);
+            targetContainer.bgBackdrop = bgBackdrop;
+        }
 
         const globalState = GlobalState.getInstance();
         const party = (scene.party && scene.party.length > 0) ? scene.party : (globalState.party || ['001']);
 
+        // 新しいキャラのコンテンツ用コンテナ
+        const pageContainer = scene.add.container(0, 0);
+        targetContainer.add(pageContainer);
+        targetContainer.pageContentContainer = pageContainer;
+
         // 左右スワイプによるキャラクター切り替え（2人以上の場合のみ）
-        if (party.length > 1) {
+        if (targetContainer.bgBackdrop && party.length > 1) {
+            targetContainer.bgBackdrop.removeAllListeners();
             let pointerDownX = 0;
             let pointerDownY = 0;
             let pointerDownTime = 0;
             let isSwiping = false;
 
-            bgBackdrop.on('pointerdown', (pointer) => {
+            targetContainer.bgBackdrop.on('pointerdown', (pointer) => {
+                if (scene.isDetailSliding) return;
                 pointerDownX = pointer.x;
                 pointerDownY = pointer.y;
                 pointerDownTime = Date.now();
                 isSwiping = true;
             });
 
-            bgBackdrop.on('pointerup', (pointer) => {
-                if (!isSwiping) return;
+            targetContainer.bgBackdrop.on('pointerup', (pointer) => {
+                if (!isSwiping || scene.isDetailSliding) return;
                 isSwiping = false;
                 const dx = pointer.x - pointerDownX;
                 const dy = pointer.y - pointerDownY;
@@ -83,19 +97,22 @@ export class CharacterDetailHelper {
                     const currentIdx = party.indexOf(charId);
                     if (currentIdx !== -1) {
                         let nextIdx = currentIdx;
+                        let direction = null;
                         if (dx < -40) {
-                            // 右から左にスワイプ: 次のキャラクター
+                            // 右から左にスワイプ: 次のキャラクター (左へ流れる)
                             nextIdx = (currentIdx + 1) % party.length;
+                            direction = 'left';
                         } else if (dx > 40) {
-                            // 左から右にスワイプ: 前のキャラクター
+                            // 左から右にスワイプ: 前のキャラクター (右へ流れる)
                             nextIdx = (currentIdx - 1 + party.length) % party.length;
+                            direction = 'right';
                         }
                         if (nextIdx !== currentIdx) {
                             const nextCharId = party[nextIdx];
                             if (scene.showDetailView) {
-                                scene.showDetailView(nextCharId, width, height);
+                                scene.showDetailView(nextCharId, width, height, direction);
                             } else {
-                                CharacterDetailHelper.showDetailView(scene, nextCharId, parentSceneName, targetContainer, onBack);
+                                CharacterDetailHelper.showDetailView(scene, nextCharId, parentSceneName, targetContainer, onBack, direction);
                             }
                         }
                     }
@@ -127,7 +144,7 @@ export class CharacterDetailHelper {
             targetContainer.setVisible(false);
             if (onBack) onBack();
         });
-        targetContainer.add(backBtn);
+        pageContainer.add(backBtn);
 
         // 左半分：立ち絵（テクスチャ存在チェック）
         const portraitKey = `portrait_${charId}`;
@@ -135,12 +152,12 @@ export class CharacterDetailHelper {
             const portrait = scene.add.image(width * 0.25, height * 0.6, portraitKey);
             const scale = (height * 0.8) / portrait.height;
             portrait.setScale(scale);
-            targetContainer.add(portrait);
+            pageContainer.add(portrait);
         } else {
             // テクスチャが無い場合のフォールバック枠
             const dummyBox = scene.add.rectangle(width * 0.25, height * 0.5, width * 0.35, height * 0.7, 0x333333, 0.5);
-            targetContainer.add(dummyBox);
-            targetContainer.add(scene.add.text(width * 0.25, height * 0.5, `${charData.name}`, { fontSize: '28px', color: '#ffffff' }).setOrigin(0.5));
+            pageContainer.add(dummyBox);
+            pageContainer.add(scene.add.text(width * 0.25, height * 0.5, `${charData.name}`, { fontSize: '28px', color: '#ffffff' }).setOrigin(0.5));
         }
 
 
@@ -172,7 +189,7 @@ export class CharacterDetailHelper {
                 ease: 'Sine.easeInOut'
             });
         }
-        targetContainer.add(elementIcon);
+        pageContainer.add(elementIcon);
         elementIcon.on('pointerdown', () => {
             if (!globalState.guideTappedElementResistBtn) {
                 globalState.guideTappedElementResistBtn = true;
@@ -194,14 +211,14 @@ export class CharacterDetailHelper {
             '010': { strong: 'red', weak: 'yellow' }
         };
 
-        targetContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
+        pageContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
         
         const lvlBonus = stats.charLevelBonus || 0;
         const levelTxt = scene.add.text(rx + 150, ry + 6, `Lv.${charData.level}`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#aaffaa' });
-        targetContainer.add(levelTxt);
+        pageContainer.add(levelTxt);
         if (lvlBonus > 0) {
             const bonusTxt = scene.add.text(levelTxt.x + levelTxt.width + 4, ry + 6, `(+${lvlBonus})`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#ff9900' });
-            targetContainer.add(bonusTxt);
+            pageContainer.add(bonusTxt);
         }
         ry += lineSpacing * 0.8;
 
@@ -209,7 +226,7 @@ export class CharacterDetailHelper {
         // 2行目: 経験値
         const expBonus = stats.expBonus || 0;
         const expBonusStr = expBonus > 0 ? ` (+${expBonus}%)` : '';
-        targetContainer.add(scene.add.text(rx, ry, `EXP: ${charData.exp}/${reqExp}${expBonusStr}`, {
+        pageContainer.add(scene.add.text(rx, ry, `EXP: ${charData.exp}/${reqExp}${expBonusStr}`, {
             stroke: '#000000', strokeThickness: 3, fontSize: '18px',
             color: expBonus > 0 ? '#ff9900' : '#ffffff',
             padding: { top: 4, bottom: 4 }
@@ -240,12 +257,12 @@ export class CharacterDetailHelper {
                 }
             }
         });
-        targetContainer.add(levelUpBtn);
+        pageContainer.add(levelUpBtn);
         ry += lineSpacing * 0.9;
 
         // 4行目: 親愛度・友好度ボタン
         const affectionValue = stats.affection || 0;
-        targetContainer.add(scene.add.text(rx, ry + 5, `親愛度: ${affectionValue}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px' }));
+        pageContainer.add(scene.add.text(rx, ry + 5, `親愛度: ${affectionValue}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px' }));
         const friendshipBtn = scene.add.text(rx + 120, ry, '友好度をみる', {
             fontSize: '18px', backgroundColor: '#3333aa', color: '#ffffff'
         }).setPadding(6).setInteractive();
@@ -272,7 +289,7 @@ export class CharacterDetailHelper {
                 CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
             });
         });
-        targetContainer.add(friendshipBtn);
+        pageContainer.add(friendshipBtn);
         ry += lineSpacing * 0.8;
 
         const hpDiff = stats.maxHp - baseStats.maxHp;
@@ -282,39 +299,39 @@ export class CharacterDetailHelper {
         const formatDiff = (d) => d === 0 ? '' : ` (${d>0?'+':''}${d})`;
 
         // 5行目: 各種ステータス1 (生命力 / 精神力)
-        targetContainer.add(scene.add.text(rx, ry, `生命力: ${Math.floor(charData.currentHp)}/${stats.maxHp}${formatDiff(hpDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `生命力: ${Math.floor(charData.currentHp)}/${stats.maxHp}${formatDiff(hpDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
-        targetContainer.add(scene.add.text(rx, ry, `精神力: ${Math.floor(charData.currentSp)}/${stats.maxSp}${formatDiff(spDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `精神力: ${Math.floor(charData.currentSp)}/${stats.maxSp}${formatDiff(spDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 
         // 6行目: 各種ステータス2 (攻撃力 / リロード)
-        targetContainer.add(scene.add.text(rx, ry, `攻撃力: ${stats.atk}${formatDiff(atkDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `攻撃力: ${stats.atk}${formatDiff(atkDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
-        targetContainer.add(scene.add.text(rx, ry, `リロード速度: ${stats.reload}${formatDiff(reloadDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `リロード速度: ${stats.reload}${formatDiff(reloadDiff)}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
         const hitBonus = Math.floor((stats.hitRateBonus || 0) * 100);
         const hitRateStr = `100%`;
         const hitRateDiffStr = hitBonus !== 0 ? ` (${hitBonus > 0 ? '+' : ''}${hitBonus})` : '';
-        targetContainer.add(scene.add.text(rx, ry, `命中率: ${hitRateStr}${hitRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `命中率: ${hitRateStr}${hitRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 
         const evadeBonus = Math.floor((stats.evadeRateBonus || 0) * 100);
         const evadeRateStr = `5%`;
         const evadeRateDiffStr = evadeBonus !== 0 ? ` (${evadeBonus > 0 ? '+' : ''}${evadeBonus}%)` : '';
-        targetContainer.add(scene.add.text(rx, ry, `回避率: ${evadeRateStr}${evadeRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `回避率: ${evadeRateStr}${evadeRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
         const critBonus = Math.floor((stats.critRateBonus || 0) * 100);
         const critRateStr = `5%`;
         const critRateDiffStr = critBonus !== 0 ? ` (${critBonus > 0 ? '+' : ''}${critBonus}%)` : '';
-        targetContainer.add(scene.add.text(rx, ry, `クリティカル率: ${critRateStr}${critRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `クリティカル率: ${critRateStr}${critRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
         const critMultBonus = Math.floor((stats.critMultBonus || 0) * 100);
         const critMultStr = `200%`;
         const critMultDiffStr = critMultBonus !== 0 ? ` (${critMultBonus > 0 ? '+' : ''}${critMultBonus}%)` : '';
-        targetContainer.add(scene.add.text(rx, ry, `クリティカル倍率: ${critMultStr}${critMultDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
+        pageContainer.add(scene.add.text(rx, ry, `クリティカル倍率: ${critMultStr}${critMultDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 
         // 7行目: 各種ステータス3 (近接 / 遠隔)
@@ -325,12 +342,12 @@ export class CharacterDetailHelper {
         const isMeleeBoosted = effMelee > baseMelee;
         const isRangedBoosted = effRanged > baseRanged;
 
-        targetContainer.add(scene.add.text(rx, ry, `近接: Lv.${effMelee}`, {
+        pageContainer.add(scene.add.text(rx, ry, `近接: Lv.${effMelee}`, {
             stroke: '#000000', strokeThickness: 3, fontSize: '18px',
             color: isMeleeBoosted ? '#ff9900' : '#ffffff',
             padding: { top: 4, bottom: 4 }
         }));
-        targetContainer.add(scene.add.text(rx + 130, ry, `遠隔: Lv.${effRanged}`, {
+        pageContainer.add(scene.add.text(rx + 130, ry, `遠隔: Lv.${effRanged}`, {
             stroke: '#000000', strokeThickness: 3, fontSize: '18px',
             color: isRangedBoosted ? '#ff9900' : '#ffffff',
             padding: { top: 4, bottom: 4 }
@@ -346,7 +363,7 @@ export class CharacterDetailHelper {
 
 
         // 8行目: 宝石
-        targetContainer.add(scene.add.text(rx, ry, '装備中の宝石', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
+        pageContainer.add(scene.add.text(rx, ry, '装備中の宝石', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
         ry += 25;
 
         let gemText = '装備なし';
@@ -376,16 +393,16 @@ export class CharacterDetailHelper {
             scene.scene.bringToTop('EquipmentScene');
         });
         
-        targetContainer.add(gemBg);
+        pageContainer.add(gemBg);
         
         const gemNameText = scene.add.text(rx + 10, ry + 5, gemText, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: gemColor, padding: { top: 4, bottom: 4 } }).setInteractive();
         gemNameText.on('pointerdown', () => gemBg.emit('pointerdown'));
-        targetContainer.add(gemNameText);
+        pageContainer.add(gemNameText);
         
         ry += 40;
 
         // 9行目: レリクス
-        targetContainer.add(scene.add.text(rx, ry, 'レリクス', { stroke: '#000000', strokeThickness: 3, fontSize: '18px' }));
+        pageContainer.add(scene.add.text(rx, ry, 'レリクス', { stroke: '#000000', strokeThickness: 3, fontSize: '18px' }));
         ry += 30;
         
         const relicStartX = width * 0.05;
@@ -418,7 +435,7 @@ export class CharacterDetailHelper {
                     scene.scene.bringToTop('EquipmentScene');
                 });
             }
-            targetContainer.add(relicBg);
+            pageContainer.add(relicBg);
             
             let relicText = `${i+1}. 装備なし`;
             let rColor = '#777777';
@@ -427,7 +444,7 @@ export class CharacterDetailHelper {
                 relicText = `${i+1}. レベル${requiredLevel}で装備可能`;
                 rColor = '#ffffff';
                 const rEmptyText = scene.add.text(relicStartX + 10, ry + 5, relicText, { stroke: '#000000', strokeThickness: 3, fontFamily: FONT_MAIN, fontSize: fontSize.body(width), color: rColor });
-                targetContainer.add(rEmptyText);
+                pageContainer.add(rEmptyText);
             } else if (isEquipped) {
                 const r = charData.equipRelics[i];
                 rColor = CharacterDetailHelper.getRankColor(r.rank);
@@ -436,7 +453,7 @@ export class CharacterDetailHelper {
                 const rankStr = CharacterDetailHelper.getRankString(r.rank || 1);
                 const rNameText = scene.add.text(relicStartX + 10, ry + 5, `[${rankStr}] ${rName}`, { stroke: '#000000', strokeThickness: 3, fontFamily: FONT_MAIN, fontSize: fontSize.body(width), color: rColor }).setInteractive();
                 rNameText.on('pointerdown', () => relicBg.emit('pointerdown'));
-                targetContainer.add(rNameText);
+                pageContainer.add(rNameText);
             } else {
                 if (isRelicAlert) {
                     relicText = `${i+1}. 装備なし (装備可能!)`;
@@ -444,7 +461,7 @@ export class CharacterDetailHelper {
                 }
                 const rEmptyText = scene.add.text(relicStartX + 10, ry + 5, relicText, { stroke: '#000000', strokeThickness: 3, fontFamily: FONT_MAIN, fontSize: fontSize.body(width), color: rColor }).setInteractive();
                 rEmptyText.on('pointerdown', () => relicBg.emit('pointerdown'));
-                targetContainer.add(rEmptyText);
+                pageContainer.add(rEmptyText);
             }
             
             ry += 35;
@@ -453,7 +470,7 @@ export class CharacterDetailHelper {
 
         // ストック経験値を右下に配置
         const stockExpText = scene.add.text(width - 20, height - 20, `ストックSP: ${globalState.stockSp}　ストックEXP: ${globalState.stockExp}`, { stroke: '#000000', strokeThickness: 3, fontSize: '20px', color: '#ffffaa' }).setOrigin(1, 1);
-        targetContainer.add(stockExpText);
+        pageContainer.add(stockExpText);
 
         // 「影響」ボタンを左下に配置
         const effectBtn = scene.add.text(20, height - 20, '影響', {
@@ -480,7 +497,51 @@ export class CharacterDetailHelper {
             }
             CharacterDetailHelper.showEffectView(scene);
         });
-        targetContainer.add(effectBtn);
+        pageContainer.add(effectBtn);
+
+        // --- 横スライドアニメーションの実行 ---
+        if (slideDir && oldPage) {
+            scene.isDetailSliding = true;
+            if (slideDir === 'left') {
+                // 新ページは右側(width)から0へ、旧ページは0から左(-width)へ流れる
+                pageContainer.setX(width);
+                scene.tweens.add({
+                    targets: oldPage,
+                    x: -width,
+                    duration: 200,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => {
+                        oldPage.destroy();
+                        scene.isDetailSliding = false;
+                    }
+                });
+                scene.tweens.add({
+                    targets: pageContainer,
+                    x: 0,
+                    duration: 200,
+                    ease: 'Cubic.easeOut'
+                });
+            } else if (slideDir === 'right') {
+                // 新ページは左側(-width)から0へ、旧ページは0から右(width)へ流れる
+                pageContainer.setX(-width);
+                scene.tweens.add({
+                    targets: oldPage,
+                    x: width,
+                    duration: 200,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => {
+                        oldPage.destroy();
+                        scene.isDetailSliding = false;
+                    }
+                });
+                scene.tweens.add({
+                    targets: pageContainer,
+                    x: 0,
+                    duration: 200,
+                    ease: 'Cubic.easeOut'
+                });
+            }
+        }
     }
 
     /**

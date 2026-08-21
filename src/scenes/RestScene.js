@@ -261,7 +261,7 @@ export default class RestScene extends Phaser.Scene {
         this.mainViewContainer.add(finishBtn);
     }
 
-    showDetailView(charId, width, height) {
+    showDetailView(charId, width, height, slideDir = null) {
         const w = width || this.scale.width;
         const h = height || this.scale.height;
         this.currentDetailCharId = charId;
@@ -269,7 +269,7 @@ export default class RestScene extends Phaser.Scene {
         CharacterDetailHelper.showDetailView(this, charId, 'RestScene', this.detailViewContainer, () => {
             this.drawMainView(w, h);
             this.mainViewContainer.setVisible(true);
-        });
+        }, slideDir);
     }
 
 

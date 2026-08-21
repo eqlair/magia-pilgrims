@@ -293,7 +293,7 @@ export default class CampScene extends Phaser.Scene {
     }
 
 
-    showDetailView(charId, width, height) {
+    showDetailView(charId, width, height, slideDir = null) {
         const w = width || this.scale.width;
         const h = height || this.scale.height;
         this.currentDetailCharId = charId;
@@ -301,7 +301,7 @@ export default class CampScene extends Phaser.Scene {
         CharacterDetailHelper.showDetailView(this, charId, 'CampScene', this.detailViewContainer, () => {
             this.drawMainView(w, h);
             this.mainViewContainer.setVisible(true);
-        });
+        }, slideDir);
     }
 
 
