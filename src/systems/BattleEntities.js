@@ -120,20 +120,20 @@ export class PlayerCharacter extends BattleEntity {
         // GlobalStateからステータスを取得（ベースATK100、ベースReload100を前提とした値）
         const globalState = GlobalState.getInstance();
         const party = data.party || [this.charId];
-        const stats = globalState.calcStats(this.charId, party, this.isFront);
+        const stats = globalState ? globalState.calcStats(this.charId, party, this.isFront) : null;
         
-        this.hp = stats.maxHp || this.charDef.baseHp;
+        this.hp = (stats && stats.maxHp) ? stats.maxHp : (this.charDef.baseHp || 1000);
         this.maxHp = this.hp;
-        this.sp = stats.maxSp || this.charDef.baseSp;
+        this.sp = (stats && stats.maxSp) ? stats.maxSp : (this.charDef.baseSp || 500);
         this.maxSp = this.sp;
-        this.atk = stats.atk || this.charDef.baseAtk || 100;
-        this.reloadStat = stats.reload || 100; // ベース100
-        this.hitRateBonus = stats.hitRateBonus || 0; // 命中率ボーナス
-        this.evadeRateBonus = (stats.evadeRateBonus || 0) + 0.05; // デフォルト回避率5% ＋ 装備補正
-        this.critRateBonus = stats.critRateBonus || 0; // クリティカル率ボーナス
-        this.critMultBonus = stats.critMultBonus || 0; // クリティカル倍率ボーナス
-        this.elemMods = stats.elemMods || { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
-        this.level = stats.level || 1;
+        this.atk = (stats && stats.atk) ? stats.atk : (this.charDef.baseAtk || 100);
+        this.reloadStat = (stats && stats.reload) ? stats.reload : 100; // ベース100
+        this.hitRateBonus = (stats && stats.hitRateBonus) ? stats.hitRateBonus : 0; // 命中率ボーナス
+        this.evadeRateBonus = ((stats && stats.evadeRateBonus) ? stats.evadeRateBonus : 0) + 0.05; // デフォルト回避率5% ＋ 装備補正
+        this.critRateBonus = (stats && stats.critRateBonus) ? stats.critRateBonus : 0; // クリティカル率ボーナス
+        this.critMultBonus = (stats && stats.critMultBonus) ? stats.critMultBonus : 0; // クリティカル倍率ボーナス
+        this.elemMods = (stats && stats.elemMods) ? stats.elemMods : { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
+        this.level = (stats && stats.level) ? stats.level : 1;
         
         this.weight = this.charDef.weight || 50;
 
