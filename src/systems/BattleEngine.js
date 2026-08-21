@@ -571,9 +571,9 @@ export class BattleEngine {
             const isPlayerAttacker = !!(attacker && attacker.owner === 'player');
 
             if (attacker && defender) {
-                // Playerの場合はWLV/2を仮のレベルとする。敵はlevelプロパティ
-                const atkLevel = isPlayerAttacker ? Math.floor(((attacker.wlv || 2)) / 2) : (attacker.level || 1);
-                const defLevel = defender.owner === 'player' ? Math.floor(((defender.wlv || 2)) / 2) : (defender.level || 1);
+                // キャラクターレベル（レリクス等の特性を含む実効レベル）を使用
+                const atkLevel = attacker.level || 1;
+                const defLevel = defender.level || 1;
 
                 const levelDiff = atkLevel - defLevel;
                 // 距離による低下: 1mあたり2%
@@ -721,10 +721,8 @@ export class BattleEngine {
                 return false; // 攻撃失敗
             }
             
-            // 攻撃力補正適用（プレイヤー攻撃時のみレベル差加算を適用）
-            if (attacker.owner === 'player') {
-                finalDamage += levelDmgBonusAmount;
-            }
+            // 攻撃力補正適用（レベル差加算・減算を適用）
+            finalDamage += levelDmgBonusAmount;
 
             
             // クリティカル判定

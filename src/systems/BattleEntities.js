@@ -133,6 +133,7 @@ export class PlayerCharacter extends BattleEntity {
         this.critRateBonus = stats.critRateBonus || 0; // クリティカル率ボーナス
         this.critMultBonus = stats.critMultBonus || 0; // クリティカル倍率ボーナス
         this.elemMods = stats.elemMods || { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
+        this.level = stats.level || 1;
         
         this.weight = this.charDef.weight || 50;
 
