@@ -844,15 +844,10 @@ export class BattleEngine {
                     }
                 }
 
-                // 10ダメージごとにSP-1（食料0時は-2）
-                if (defender.accumulatedDamage !== undefined) {
-                    defender.accumulatedDamage += finalDamage;
-                    const spDrainPerDmg = defender.isFoodEmpty ? 2 : 1;
-                    while (defender.accumulatedDamage >= 10) {
-                        defender.accumulatedDamage -= 10;
-                        defender.sp = Math.max(0, defender.sp - spDrainPerDmg);
-                    }
-                }
+                // ダメージの1/5が精神力から引かれる（小数点切り上げ、1ダメージ時は1減る）
+                const spDamage = Math.ceil(finalDamage / 5);
+                const spDrainPerHit = defender.isFoodEmpty ? spDamage * 2 : spDamage;
+                defender.sp = Math.max(0, defender.sp - spDrainPerHit);
             }
 
             
@@ -1223,6 +1218,7 @@ export class BattleEngine {
             if (p.hp <= 0 && !p.isDead) {
                 p.hp = 0;
                 p.isDead = true;
+                p.sp = Math.floor(p.sp / 2); // 戦闘不能時にその時の精神力の半分を失う
                 if (p.isFront) {
                     p.isFront = false;
                     if (this.rule !== 2) {
@@ -1240,6 +1236,7 @@ export class BattleEngine {
                     if (p.hp <= 0) {
                         p.hp = 0;
                         p.isDead = true;
+                        p.sp = Math.floor(p.sp / 2); // 戦闘不能時にその時の精神力の半分を失う
                         if (p.isFront) {
                             p.isFront = false;
                             if (this.rule !== 2) {

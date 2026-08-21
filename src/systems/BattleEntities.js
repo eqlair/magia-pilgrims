@@ -168,8 +168,8 @@ export class PlayerCharacter extends BattleEntity {
         this.hitUltBoostCooldown = 0; // 被弾による必殺技短縮インターバル(1秒制限)
 
 
-        // SP drainタイマー（10秒ごとに消費）
-        this.spDrainTimer = 10.0;
+        // SP drainタイマー（1秒ごとに消費）
+        this.spDrainTimer = 1.0;
         // ダメージ累積値（10ごとにSP-1）
         this.accumulatedDamage = 0;
 
@@ -224,10 +224,10 @@ export class PlayerCharacter extends BattleEntity {
     updateSpecialSkills(dt, players, effects, floatingTexts) {
         if (this.isDead) return;
 
-        // SP定期減少（10秒ごとに1削る、食料がない場合は+1削る）
+        // SP定期減少（1秒ごとに1削る、食料がない場合は+1削る）
         this.spDrainTimer -= dt;
         if (this.spDrainTimer <= 0) {
-            this.spDrainTimer += 10.0;
+            this.spDrainTimer += 1.0;
             const drainAmount = this.isFoodEmpty ? 2 : 1;
             this.sp = Math.max(0, this.sp - drainAmount);
         }

@@ -718,7 +718,23 @@ export class GlobalState {
                     if (party.length >= 2) {
                         const nonMain = party.filter(id => id !== '001');
                         if (nonMain.length > 0) {
-                            const targetId = nonMain[Math.floor(Math.random() * nonMain.length)];
+                            // 精神力の現在値の割合 (currentSp / maxSp) が最も低いキャラクターを選出
+                            let minSpRatio = Infinity;
+                            let targetId = nonMain[0];
+                            for (const cid of nonMain) {
+                                const c = this.characters[cid];
+                                if (c) {
+                                    const stats = this.calcStats(cid, party);
+                                    const maxSp = stats ? stats.maxSp : (c.baseSp || 500);
+                                    const curSp = c.currentSp !== undefined ? c.currentSp : maxSp;
+                                    const ratio = curSp / Math.max(1, maxSp);
+                                    if (ratio < minSpRatio) {
+                                        minSpRatio = ratio;
+                                        targetId = cid;
+                                    }
+                                }
+                            }
+
                             const targetChar = this.characters[targetId];
                             if (targetChar) {
                                 if (targetChar.equipGem) {
@@ -741,7 +757,7 @@ export class GlobalState {
                                 this.party = this.party.filter(id => id !== targetId);
                             }
                             this.lastTowerRemovedCharId = targetId;
-                            console.log(`[Tarot 17 Tower] Removed ${targetId} from party`);
+                            console.log(`[Tarot 17 Tower] Removed lowest SP ratio member: ${targetId} (ratio: ${(minSpRatio * 100).toFixed(1)}%)`);
                         }
                     }
                 } else {
