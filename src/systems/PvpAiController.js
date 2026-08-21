@@ -100,8 +100,8 @@ export class PvpAiController {
         if (moveToCenter) {
             this._swapLane(ep, 0, pvpEnemies, now);
             ep.isFront = true;
-            ep.targetZ = 12.0;
-            ep.z = 12.0;
+            ep.targetZ = 10.5;
+            ep.z = 10.5;
         }
 
         // 必殺技の実行
@@ -161,25 +161,25 @@ export class PvpAiController {
             if (lowestMember === ep && pvpEnemies.length > 1) {
                 // 最もHPが低い -> 後列に下がる
                 ep.isFront = false;
-                ep.targetZ = 17.0;
+                ep.targetZ = 15.5;
             } else {
                 // それ以外 -> 前衛に出る
                 ep.isFront = true;
-                ep.targetZ = 12.0;
+                ep.targetZ = 10.5;
             }
         } else if (role === 'ranged') {
             // 後列から動かない
             ep.isFront = false;
-            ep.targetZ = 17.0;
+            ep.targetZ = 15.5;
         } else if (role === 'support') {
             // 前衛に誰かがいれば後列から動かない。前衛がいなくなると前に出ようとする。
             const hasFrontAlly = pvpEnemies.some(m => m !== ep && m.isFront);
             if (hasFrontAlly) {
                 ep.isFront = false;
-                ep.targetZ = 17.0;
+                ep.targetZ = 15.5;
             } else {
                 ep.isFront = true;
-                ep.targetZ = 12.0;
+                ep.targetZ = 10.5;
             }
         }
 
