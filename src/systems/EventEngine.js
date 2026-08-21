@@ -248,14 +248,39 @@ export class EventEngine {
 
         const screenH = Math.max(this.H, this.scene.scale ? this.scene.scale.height : 0);
         const screenW = Math.max(this.W, this.scene.scale ? this.scene.scale.width : 0);
-        const newBg = this.scene.add.image(screenW / 2, screenH / 2, key)
-            .setDepth(this.DEPTH).setAlpha(0);
 
-        // 画面の縦サイズ(screenH)いっぱいに埋まるようアスペクト比保持で拡大（横方向は画面外へはみ出てもOK）
-        const bgW = newBg.width || 1;
-        const bgH = newBg.height || 1;
-        const scale = Math.max(screenW / bgW, screenH / bgH);
-        newBg.setScale(scale);
+        const isHexMapBg = key && (
+            key.startsWith('bg_img_') ||
+            key.startsWith('tower_bg_') ||
+            key.startsWith('map_img_') ||
+            key.startsWith('ikebukuro') ||
+            key.startsWith('bg_1207') ||
+            key.startsWith('bg_1214') ||
+            key.startsWith('bg_1221') ||
+            key.startsWith('ev_daycamp') ||
+            key.startsWith('ev_camp') ||
+            key.startsWith('bg_resp')
+        );
+
+        let newBg;
+        if (isHexMapBg) {
+            // ヘックス画像を背景としたマップ上の対話画面: 画面上部中央を支点に 0.36倍
+            newBg = this.scene.add.image(screenW / 2, 0, key)
+                .setOrigin(0.5, 0)
+                .setDepth(this.DEPTH)
+                .setAlpha(0)
+                .setScale(0.36);
+        } else {
+            newBg = this.scene.add.image(screenW / 2, screenH / 2, key)
+                .setDepth(this.DEPTH)
+                .setAlpha(0);
+
+            // 画面の縦サイズ(screenH)いっぱいに埋まるようアスペクト比保持で拡大
+            const bgW = newBg.width || 1;
+            const bgH = newBg.height || 1;
+            const scale = Math.max(screenW / bgW, screenH / bgH);
+            newBg.setScale(scale);
+        }
 
 
 
