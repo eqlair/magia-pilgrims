@@ -868,8 +868,8 @@ export class BattleEngine {
                     }
                 }
 
-                // ダメージの1/5が精神力から引かれる（小数点切り上げ、1ダメージ時は1減る）
-                const spDamage = Math.ceil(finalDamage / 5);
+                // ダメージの1/5が精神力から引かれる（小数点切り上げずそのまま減少）
+                const spDamage = finalDamage / 5;
                 const spDrainPerHit = defender.isFoodEmpty ? spDamage * 2 : spDamage;
                 defender.sp = Math.max(0, defender.sp - spDrainPerHit);
             }
