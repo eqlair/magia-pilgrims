@@ -54,9 +54,54 @@ export class CharacterDetailHelper {
         const bgBackdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.85).setOrigin(0, 0).setInteractive();
         targetContainer.add(bgBackdrop);
 
-
         const globalState = GlobalState.getInstance();
-        const party = scene.party || ['001'];
+        const party = (scene.party && scene.party.length > 0) ? scene.party : (globalState.party || ['001']);
+
+        // 左右スワイプによるキャラクター切り替え（2人以上の場合のみ）
+        if (party.length > 1) {
+            let pointerDownX = 0;
+            let pointerDownY = 0;
+            let pointerDownTime = 0;
+            let isSwiping = false;
+
+            bgBackdrop.on('pointerdown', (pointer) => {
+                pointerDownX = pointer.x;
+                pointerDownY = pointer.y;
+                pointerDownTime = Date.now();
+                isSwiping = true;
+            });
+
+            bgBackdrop.on('pointerup', (pointer) => {
+                if (!isSwiping) return;
+                isSwiping = false;
+                const dx = pointer.x - pointerDownX;
+                const dy = pointer.y - pointerDownY;
+                const dt = Date.now() - pointerDownTime;
+
+                // スワイプ判定: 横移動が40px以上、かつ縦移動の1.2倍以上、かつ600ms以内
+                if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.2 && dt < 600) {
+                    const currentIdx = party.indexOf(charId);
+                    if (currentIdx !== -1) {
+                        let nextIdx = currentIdx;
+                        if (dx < -40) {
+                            // 右から左にスワイプ: 次のキャラクター
+                            nextIdx = (currentIdx + 1) % party.length;
+                        } else if (dx > 40) {
+                            // 左から右にスワイプ: 前のキャラクター
+                            nextIdx = (currentIdx - 1 + party.length) % party.length;
+                        }
+                        if (nextIdx !== currentIdx) {
+                            const nextCharId = party[nextIdx];
+                            if (scene.showDetailView) {
+                                scene.showDetailView(nextCharId, width, height);
+                            } else {
+                                CharacterDetailHelper.showDetailView(scene, nextCharId, parentSceneName, targetContainer, onBack);
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         // レベル低下によるスロット不足のレリクスを事前に自動パージ
         const purgedRelics = globalState.validateEquippedRelics(charId, party);
