@@ -545,6 +545,21 @@ export default class AdventureScene extends Phaser.Scene {
                 this.scene.stop('EventScene');
             }
 
+            // ★ タワー内での全滅時は tow_res イベントを起動！
+            if (this.isTowerMode && data.isGameOver) {
+                const towerRespData = this.cache.json.get('event_tow_res');
+                if (towerRespData) {
+                    GlobalState.getInstance().addLog(`💀 [GameOver] Tower Defeat -> Launching event_tow_res!`);
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: towerRespData,
+                        returnScene: 'AdventureScene',
+                        fromTowerRespEvent: true
+                    });
+                    return; // ★ 後続の全滅メッセージや時報・セーブ処理を完全ブロック！(スナップショットは保持)
+                }
+            }
+
             // 12/21の全滅、または12/21以降(一度も全滅・撤退したことがない場合含む)の全滅時は周回リセット(event_resp)へ突入
             const isDec21Defeat = data.isGameOver && (data.is1221NightBattle || this.currentDay >= 21 || (this.currentMonth === 12 && this.currentDay >= 21));
             if (isDec21Defeat) {
@@ -941,6 +956,76 @@ export default class AdventureScene extends Phaser.Scene {
                     SaveManager.saveGame(this);
                     TransitionManager.fadeIn(this);
                     return;
+                }
+
+                // ★ タワー周回イベント(event_tow_res)完了時
+                if (data && data.fromTowerRespEvent) {
+                    if (data.choice === 'yes') {
+                        // 【はい】を選んだ場合: リスポーン時と同じように12/1の東京に戻る（周回リセット）
+                        const gs = GlobalState.getInstance();
+                        gs.isTowerMode = false;
+                        this.isTowerMode = false;
+                        gs.resetForNewLoop();
+
+                        this.eventQueue = []; // 残存イベントキューを完全クリア
+                        this._pendingTimeSignal = false; // 古い時報フラグを完全消去！
+                        this._preBattleSnapshot = null;
+
+                        this.party = ['001']; // 紫苑を残してみんなお別れ（初期メンバーのみ）
+                        this.currentMonth = 12;
+                        this.currentDay = 1;
+                        this.timePeriodIndex = 0;
+                        this.timeOfDay = this.timePeriods[0];
+                        this._dec21MorningApplied = false;
+                        this._dec21AfternoonApplied = false;
+
+                        this.globalEnemyLevel = 1;
+                        this.globalEnemyCount = 10;
+                        this.globalWaveCount = 1;
+
+                        this._updateDateTimeDisplay();
+
+                        // 周回報酬: URレリクス（Rank 5）を付与
+                        const urRelic = RelicGenerator.generateRelic(5);
+                        if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                        if (!gs.inventory.relics) gs.inventory.relics = [];
+                        gs.inventory.relics.push(urRelic);
+                        this.showToast(`✨ 周回報酬: URレリクス『${urRelic.name}』を獲得！`);
+
+                        this.resetMapForNewLoop();
+                        SaveManager.saveGame(this);
+                        TransitionManager.fadeIn(this);
+                        return;
+                    } else {
+                        // 【いいえ】を選んだ場合: 突入前の状態（HP・SP・アイテム等）に復旧してタワー内に復帰
+                        if (this._preBattleSnapshot) {
+                            this.restoreSnapshot(this._preBattleSnapshot);
+                            this._preBattleSnapshot = null;
+                        }
+                        this._justReturnedFromGameOverOrRetreat = true;
+                        if (this._retreatMsgText) {
+                            this._retreatMsgText.destroy();
+                            this._retreatMsgText = null;
+                        }
+                        this._retreatMsgText = this.add.text(this.scale.width / 2, this.scale.height / 2, '部隊は全滅した…', {
+                            fontFamily: 'sans-serif',
+                            fontSize: '28px',
+                            color: '#ff6666',
+                            backgroundColor: '#000000aa',
+                            padding: { x: 20, y: 10 }
+                        }).setOrigin(0.5).setDepth(9999).setScrollFactor(0);
+
+                        this.time.delayedCall(2000, () => {
+                            if (this._retreatMsgText) {
+                                this._retreatMsgText.destroy();
+                                this._retreatMsgText = null;
+                            }
+                        });
+
+                        SaveManager.saveGame(this);
+                        TransitionManager.fadeIn(this);
+                        return;
+                    }
                 }
 
                 if (this._pendingTarot) {

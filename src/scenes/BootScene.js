@@ -129,6 +129,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_1221c', 'files/event/1221c.jpg');
         this.load.image('bg_wildhunt', 'files/event/wildhunt.jpg');
         this.load.json('event_resp', 'files/DATA/event_resp.json');
+        this.load.image('bg_tow_spo01', 'files/event/tou_spo01.jpg');
+        this.load.json('event_tow_res', 'files/DATA/event_tow_res.json');
 
         // 池袋イベントアセット
         this.load.json('event_ikebukuro01', 'files/DATA/event_ikebukuro01.json');

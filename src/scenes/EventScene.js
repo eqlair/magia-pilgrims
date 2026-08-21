@@ -35,6 +35,7 @@ export default class EventScene extends Phaser.Scene {
         this.from1221Event = data.from1221Event || false;
         this.from1221WildhuntEvent = data.from1221WildhuntEvent || false;
         this.fromRespEvent = data.fromRespEvent || false;
+        this.fromTowerRespEvent = data.fromTowerRespEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
         this.isTowerBattle = data.isTowerBattle || false;
@@ -293,6 +294,11 @@ export default class EventScene extends Phaser.Scene {
                     return;
                 }
 
+                if (this.fromTowerRespEvent) {
+                    this._showTowerRespDialog();
+                    return;
+                }
+
                 if (this.enemyLevel > 0 || this.isTowerBattle) {
                     console.log('[EventScene] Direct transition to BattleScene (No map resume intermediate)');
                     const partySize = (party && party.length) ? party.length : 1;
@@ -330,7 +336,7 @@ export default class EventScene extends Phaser.Scene {
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.fromRespEvent && !this.fromOpTutorial,
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.fromRespEvent && !this.fromTowerRespEvent && !this.fromOpTutorial,
                         fromExploration: this.fromExploration,
                         fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
                         isNotification: this.isNotification,
@@ -339,12 +345,86 @@ export default class EventScene extends Phaser.Scene {
                         from1217Event: this.from1217Event,
                         from1221Event: this.from1221Event,
                         fromRespEvent: this.fromRespEvent,
+                        fromTowerRespEvent: this.fromTowerRespEvent,
 
                         joinCharacterId: this.joinCharacterId 
                     });
                 }
 
             }
+        });
+    }
+
+    /** タワー内全滅時の選択肢ダイアログ */
+    _showTowerRespDialog() {
+        const { width, height } = this.scale;
+        const container = this.add.container(0, 0).setDepth(6000);
+
+        // 暗転背景
+        const mask = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6)
+            .setInteractive();
+        container.add(mask);
+
+        // ダイアログボックス
+        const dialogW = Math.min(width * 0.85, 520);
+        const dialogH = 220;
+        const box = this.add.rectangle(width / 2, height / 2, dialogW, dialogH, 0x181822, 0.95)
+            .setStrokeStyle(2, 0x9966cc);
+        container.add(box);
+
+        const promptText = this.add.text(width / 2, height / 2 - 50, '『――もう少し前まで、もどってみる？』', {
+            fontFamily: 'sans-serif',
+            fontSize: '19px',
+            color: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(promptText);
+
+        const subText = this.add.text(width / 2, height / 2 - 15, '（はい：12/1の東京に戻る ／ いいえ：タワー内に復旧）', {
+            fontFamily: 'sans-serif',
+            fontSize: '14px',
+            color: '#aaaaaa',
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(subText);
+
+        // 「はい」ボタン
+        const yesBtn = this.add.text(width / 2 - 100, height / 2 + 45, 'はい', {
+            fontFamily: 'sans-serif',
+            fontSize: '22px',
+            color: '#ffffff',
+            backgroundColor: '#663399',
+            padding: { x: 30, y: 10 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        yesBtn.on('pointerdown', () => {
+            container.destroy();
+            this._finishTowerResp('yes');
+        });
+
+        // 「いいえ」ボタン
+        const noBtn = this.add.text(width / 2 + 100, height / 2 + 45, 'いいえ', {
+            fontFamily: 'sans-serif',
+            fontSize: '22px',
+            color: '#ffffff',
+            backgroundColor: '#333344',
+            padding: { x: 30, y: 10 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        noBtn.on('pointerdown', () => {
+            container.destroy();
+            this._finishTowerResp('no');
+        });
+
+        container.add([yesBtn, noBtn]);
+    }
+
+    _finishTowerResp(choice) {
+        if (this.engine) this.engine.cleanup();
+        this.scene.stop();
+        this.scene.resume(this.returnScene, {
+            fromTowerRespEvent: true,
+            choice: choice
         });
     }
 }
