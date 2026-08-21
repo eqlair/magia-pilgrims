@@ -90,19 +90,26 @@ export default class DemoScene extends Phaser.Scene {
                         party: ['001', '002', '003', '004', '005']
                     });
                 }
+            },
+            {
+                label: '⑪ 🎭 マップイベント調整\n（背景・キャラ拡縮・位置設定）',
+                color: 0x6a2c5a,
+                action: () => {
+                    TransitionManager.transitionTo(this, 'MapEventAdjustScene');
+                }
             }
         ];
 
-        const startY = 105;
-        const spacing = 58;
+        const startY = 95;
+        const spacing = 50;
         buttons.forEach((btn, i) => {
             const y = startY + i * spacing;
-            const bg = this.add.rectangle(width / 2, y, width * 0.82, 50, btn.color)
+            const bg = this.add.rectangle(width / 2, y, width * 0.82, 44, btn.color)
                 .setInteractive({ useHandCursor: true });
 
             this.add.text(width / 2, y, btn.label, {
                 fontFamily: FONT_MAIN,
-                fontSize: '14px', color: '#ffffff', align: 'center'
+                fontSize: '13px', color: '#ffffff', align: 'center'
             }).setOrigin(0.5);
 
             bg.on('pointerdown', () => {

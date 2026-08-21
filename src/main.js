@@ -18,6 +18,7 @@ import CampScene from './scenes/CampScene';
 import RestScene from './scenes/RestScene';
 import FormationScene from './scenes/FormationScene';
 import { DebugMenuScene } from './scenes/DebugMenuScene';
+import MapEventAdjustScene from './scenes/MapEventAdjustScene';
 
 // --- 画面上エラーオーバーレイシステム ---
 
@@ -77,7 +78,7 @@ const config = {
     pixelArt: false,
     // canvasは透明にして背面の動画が見えるようにする
     transparent: true,
-    scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DebugMenuScene]
+    scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DebugMenuScene, MapEventAdjustScene]
 };
 
 
