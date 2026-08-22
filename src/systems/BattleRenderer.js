@@ -207,7 +207,8 @@ export class BattleRenderer {
 
             let finalX = p.x;
             let finalY = p.y - heightOffset;
-            if (!isProjectile && entity.attackShakeTimer > 0) {
+            const isDown = (entity.hp <= 0 || entity.isDead || entity.isDying);
+            if (!isProjectile && entity.attackShakeTimer > 0 && !isDown) {
                 const shakeMag = 0.2 * p.scale;
                 finalX += (Math.random() - 0.5) * shakeMag;
                 finalY += (Math.random() - 0.5) * shakeMag;
@@ -355,27 +356,24 @@ export class BattleRenderer {
 
 
 
-            // プレイヤーキャラ等のダメージ傾き
+            // プレイヤーキャラ等のダメージ傾き（倒れている時は傾けず安定）
             if (entity.owner === 'player' && !isProjectile) {
-                if (entity.damageTiltTimer > 0) {
+                if (!isDown && entity.damageTiltTimer > 0) {
                     sprite.setAngle(-15 * (entity.damageTiltTimer / 0.2));
                 } else {
-                    if (entity.damageTiltTimer > 0) {
-                        sprite.setAngle(-15 * (entity.damageTiltTimer / 0.2));
-                    } else {
-                        sprite.setAngle(0);
-                    }
+                    sprite.setAngle(0);
                 }
             }
 
-            // 呼吸アニメーション（±5%の拡縮）
+            // 呼吸アニメーション（生存時: ±5%, 倒れ時: ±1.5%の微弱な息遣い）
             let scaleAnim = 1.0;
             if (entity.breathPhase !== undefined) {
-                scaleAnim = 1.0 + Math.sin(entity.breathPhase) * 0.05;
+                const breathAmp = isDown ? 0.015 : 0.05;
+                scaleAnim = 1.0 + Math.sin(entity.breathPhase) * breathAmp;
             }
 
             // 色付け（デバフ状態や属性ごとの敵弾丸用など）
-            if (entity.owner === 'enemy' && entity.stunTimer > 0) {
+            if (entity.owner === 'enemy' && entity.stunTimer > 0 && !isDown) {
                 // スタン/デバフ状態：デバフ属性カラー（黄欄=黄色 0xffff22）のフィルターを被せる
                 const debuffColor = entity.debuffColor !== undefined ? entity.debuffColor : 0xffff22;
                 sprite.setTint(debuffColor);
@@ -405,11 +403,13 @@ export class BattleRenderer {
                 sprite.setFrame(entity.frame || 0);
 
                 if (!entity.isBoss) {
-                    // 通常の敵は少し揺れるアニメーション
-                    if (entity.damageTiltTimer > 0) {
+                    // 通常の敵は少し揺れるアニメーション (死亡消滅中は静止)
+                    if (entity.damageTiltTimer > 0 && !entity.isDying) {
                         sprite.setAngle(-15 * (entity.damageTiltTimer / 0.2));
-                    } else {
+                    } else if (!entity.isDying) {
                         sprite.setAngle(Math.sin(this.scene.time.now / 300 + entity.z) * 5);
+                    } else {
+                        sprite.setAngle(0);
                     }
                 } else {
                     // ボス(魔女)撃破時の小爆発振動角度

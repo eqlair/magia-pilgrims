@@ -4267,19 +4267,55 @@ export default class AdventureScene extends Phaser.Scene {
 
         container.add([levelMinusBtn, levelPlusBtn, levelText]);
 
+        // ── PvPダメージ倍率調整エリア ──
+        let pvpDenom = GlobalState.getInstance().pvpDamageDenominator || 30;
+        const denomY = levelY + 68;
+        const denomHeader = this.add.text(width / 2 - modalW / 2 + 30, denomY, '【PvPダメージ倍率】', {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
+        });
+        container.add(denomHeader);
+
+        const denomMinusBtn = this.add.text(width / 2 - 120, denomY + 32, '◀ -5 (強)', {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 12, y: 6 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        const denomPlusBtn = this.add.text(width / 2 + 120, denomY + 32, '+5 (弱) ▶', {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 12, y: 6 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        const denomText = this.add.text(width / 2, denomY + 32, `1 / ${pvpDenom}`, {
+            fontFamily: 'sans-serif', fontSize: '22px', color: '#ff99aa', fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        denomMinusBtn.on('pointerdown', () => {
+            pvpDenom = Math.max(5, pvpDenom - 5);
+            GlobalState.getInstance().pvpDamageDenominator = pvpDenom;
+            denomText.setText(`1 / ${pvpDenom}`);
+        });
+
+        denomPlusBtn.on('pointerdown', () => {
+            pvpDenom = Math.min(100, pvpDenom + 5);
+            GlobalState.getInstance().pvpDamageDenominator = pvpDenom;
+            denomText.setText(`1 / ${pvpDenom}`);
+        });
+
+        container.add([denomMinusBtn, denomPlusBtn, denomText]);
+
         // ステータスプレビューエリア
-        const previewY = levelY + 80;
-        const previewBox = this.add.rectangle(width / 2, previewY + 45, modalW - 60, 90, 0x11111a, 0.8)
+        const previewY = denomY + 65;
+        const previewBox = this.add.rectangle(width / 2, previewY + 38, modalW - 60, 75, 0x11111a, 0.8)
             .setStrokeStyle(1, 0x444466);
-        const previewText = this.add.text(width / 2, previewY + 45, '', {
-            fontFamily: 'monospace', fontSize: '14px', color: '#aaffaa', align: 'center', lineSpacing: 4
+        const previewText = this.add.text(width / 2, previewY + 38, '', {
+            fontFamily: 'monospace', fontSize: '13px', color: '#aaffaa', align: 'center', lineSpacing: 3
         }).setOrigin(0.5);
         container.add([previewBox, previewText]);
 
         // 戦闘開始ボタン
-        const startBtn = this.add.text(width / 2, height / 2 + modalH / 2 - 50, '⚔️ 戦闘開始！', {
-            fontFamily: 'sans-serif', fontSize: '23px', color: '#ffffff', fontStyle: 'bold',
-            backgroundColor: '#aa2244', padding: { x: 35, y: 12 }
+        const startBtn = this.add.text(width / 2, height / 2 + modalH / 2 - 45, '⚔️ 戦闘開始！', {
+            fontFamily: 'sans-serif', fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+            backgroundColor: '#aa2244', padding: { x: 35, y: 10 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         startBtn.on('pointerdown', () => {
@@ -4315,6 +4351,7 @@ export default class AdventureScene extends Phaser.Scene {
         // ビュー更新関数
         const updateView = () => {
             levelText.setText(`Lv ${selectedLevel}`);
+            denomText.setText(`1 / ${pvpDenom}`);
 
             presetButtons.forEach(pb => {
                 if (pb.id === selectedPresetId) {
@@ -4332,7 +4369,7 @@ export default class AdventureScene extends Phaser.Scene {
             const atk = 100 + selectedLevel * 50;
             const wlv = Math.ceil(selectedLevel / 2) + 1;
             previewText.setText(
-                `敵人数: ${dummyParty.length}人 | 敵Lv: ${selectedLevel}\n` +
+                `敵人数: ${dummyParty.length}人 | 敵Lv: ${selectedLevel} | PvP補正: 1/${pvpDenom}\n` +
                 `攻撃力: ${atk} (100 + Lv*50) | 技Lv: 近接Lv${wlv} / 遠隔Lv${wlv}\n` +
                 `基準HP: 約${first.maxHp || 1000} | 基準MP: 約${first.maxSp || 500}`
             );
