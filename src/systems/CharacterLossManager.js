@@ -1,4 +1,4 @@
-﻿import { GlobalState } from './GlobalState';
+import { GlobalState } from './GlobalState';
 import { EventEngine } from './EventEngine';
 import { SaveManager } from './SaveManager';
 
@@ -113,7 +113,7 @@ export class CharacterLossManager {
                 }
             }
 
-            // 4. パーティ・所持キャラクターから除外
+            // 4. パーティ・隊列（同行メンバー）から除外（※キャラデータ・友好度は大切に保持！）
             if (gs.party) {
                 gs.party = gs.party.filter(id => id !== charId);
             }
@@ -121,12 +121,17 @@ export class CharacterLossManager {
                 scene.party = scene.party.filter(id => id !== charId);
             }
             delete gs.savedFormation[charId];
-            delete gs.characters[charId];
+            
+            // AdventureSceneが起動中・バックグラウンドに存在する場合はそちらのpartyからも同期除外
+            const advScene = scene.scene ? scene.scene.get('AdventureScene') : null;
+            if (advScene && advScene.party) {
+                advScene.party = advScene.party.filter(id => id !== charId);
+            }
 
             // 5. 即時自動セーブ
             SaveManager.saveGame(scene);
 
-            console.log(`🥀 [CharacterLossManager] 離脱・返還処理完了: ${charName}`);
+            console.log(`🥀 [CharacterLossManager] 離脱・返還処理完了(友好度は保持): ${charName}`);
 
             if (onComplete) onComplete();
         });

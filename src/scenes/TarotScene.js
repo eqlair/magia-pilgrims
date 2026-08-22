@@ -363,7 +363,7 @@ export default class TarotScene extends Phaser.Scene {
                 const gs = GlobalState.getInstance();
                 const removedCharId = gs.lastTowerRemovedCharId;
                 if (removedCharId) {
-                    gs.lastTowerRemovedCharId = null;
+                    if (whiteScreen) whiteScreen.destroy();
                     CharacterLossManager.triggerSingleLoss(this, removedCharId, () => {
                         this.scene.stop();
                         this.scene.resume(this.returnScene, { fromTarot: true });

@@ -737,17 +737,12 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            // GlobalState.savedFormation に存在するキャラクターを this.party に同期
-            for (const charId of this.party) {
-                gs.assignFormationForNewMember(gs.normalizeCharId(charId));
-            }
-            if (gs.savedFormation) {
-                for (const rawCid of Object.keys(gs.savedFormation)) {
-                    const normCid = gs.normalizeCharId(rawCid);
-                    if (!this.party.includes(normCid)) {
-                        this.party.push(normCid);
-                        console.log('[AdventureScene] Synced missing character to party:', normCid);
-                    }
+            // GlobalState.savedFormation と this.party を相互同期（離脱キャラがいない有効な同行メンバーのみ）
+            if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+                this.party = Object.keys(gs.savedFormation);
+            } else {
+                for (const charId of this.party) {
+                    gs.assignFormationForNewMember(gs.normalizeCharId(charId));
                 }
             }
 

@@ -267,9 +267,6 @@ export class EventEngine {
             key.startsWith('tower_bg_') ||
             key.startsWith('map_img_') ||
             key.startsWith('ikebukuro') ||
-            key.startsWith('bg_1207') ||
-            key.startsWith('bg_1214') ||
-            key.startsWith('bg_1221') ||
             key.startsWith('bg_resp')
         );
 
