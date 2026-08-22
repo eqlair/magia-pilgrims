@@ -200,22 +200,27 @@ export class PvpAiController {
         }
     }
 
-    /** レーン移動およびスワップ（入れ替え）処理 */
+    /** レーン移動およびスワップ（入れ替え）処理 - 必ず隣接レーン(±1)との1ステップ入れ替えに制限 */
     _swapLane(member, targetLane, myTeam, now, teamKey) {
-        if (member.lane === targetLane) return;
+        const currentLane = member.lane !== undefined ? member.lane : 0;
+        if (targetLane === currentLane) return;
 
-        const oldLane = member.lane !== undefined ? member.lane : 0;
-        const occupant = myTeam.find(m => m !== member && m.lane === targetLane);
+        // 隣接レーン（±1）への1ステップ移動に制限（離れたレーンとの瞬間スワップを禁止）
+        const step = targetLane > currentLane ? 1 : -1;
+        const nextLane = Math.max(-2, Math.min(2, currentLane + step));
+        if (nextLane === currentLane) return;
+
+        const occupant = myTeam.find(m => m !== member && m.lane === nextLane);
 
         if (occupant) {
-            occupant.lane = oldLane;
+            occupant.lane = currentLane;
         }
 
-        member.lane = targetLane;
+        member.lane = nextLane;
         this.teamLastLaneMoveTime[teamKey] = now;
     }
 
-    /** ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する */
+    /** ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する */
     _tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey) {
         const currentLane = member.lane !== undefined ? member.lane : 0;
         const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
@@ -289,7 +294,7 @@ export class PvpAiController {
 
         if (role === 'melee') {
             // 【近接攻撃型】
-            // ① 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たらレーンを移動する
+            // ① 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たら隣接レーンへ移動する
             let facingHighDef = false;
             if (facingOpponent) {
                 const defAttr = facingOpponent.attribute || 'red';
@@ -302,16 +307,16 @@ export class PvpAiController {
 
             if (facingHighDef) {
                 if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
-                    const candidates = [-2, -1, 0, 1, 2].filter(l => l !== currentLane);
-                    if (candidates.length > 0) {
-                        const targetLane = candidates[Math.floor(Math.random() * candidates.length)];
+                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
+                    if (adjacentCandidates.length > 0) {
+                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
                         this._swapLane(member, targetLane, myTeam, now, teamKey);
                     }
                 }
                 return;
             }
 
-            // ② 敵の前列にいるキャラクターが自分の属性の防御力の高い(属性値100未満)キャラクターでなければその正面に移動する
+            // ② 敵の前列にいるキャラクターが自分の属性の防御力の高い(属性値100未満)キャラクターでなければその正面へ1歩近づく
             const validFrontOpponents = opponents.filter(p => {
                 const isFrontOpp = p.isFront !== undefined ? p.isFront : (p.z < 15.0);
                 if (!isFrontOpp) return false;
@@ -334,18 +339,18 @@ export class PvpAiController {
                 }
             }
 
-            // ③ ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する
+            // ③ ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する
             if (Math.random() < 0.35) {
                 this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey);
             }
         } else if (role === 'ranged') {
             // 【後衛型】
-            // ① 前衛にいるとき、目の前に誰かがいたら左右どちらかのレーンへ移動する
+            // ① 前衛にいるとき、目の前に誰かがいたら左右どちらかの隣接レーンへ移動する
             if (member.isFront && facingOpponent) {
                 if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
-                    const candidates = [-2, -1, 0, 1, 2].filter(l => l !== currentLane);
-                    if (candidates.length > 0) {
-                        const targetLane = candidates[Math.floor(Math.random() * candidates.length)];
+                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
+                    if (adjacentCandidates.length > 0) {
+                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
                         this._swapLane(member, targetLane, myTeam, now, teamKey);
                     }
                 }
@@ -362,26 +367,26 @@ export class PvpAiController {
                 const nextLane = currentLane + step;
                 this._swapLane(member, nextLane, myTeam, now, teamKey);
             } else {
-                // ③ ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する
+                // ③ ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する
                 if (Math.random() < 0.35) {
                     this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey);
                 }
             }
         } else if (role === 'support') {
             // 【支援型】
-            // ① 前衛にいるとき、目の前に誰かがいたら左右どちらかのレーンへ移動する
+            // ① 前衛にいるとき、目の前に誰かがいたら左右どちらかの隣接レーンへ移動する
             if (member.isFront && facingOpponent) {
                 if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
-                    const candidates = [-2, -1, 0, 1, 2].filter(l => l !== currentLane);
-                    if (candidates.length > 0) {
-                        const targetLane = candidates[Math.floor(Math.random() * candidates.length)];
+                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
+                    if (adjacentCandidates.length > 0) {
+                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
                         this._swapLane(member, targetLane, myTeam, now, teamKey);
                     }
                 }
                 return;
             }
 
-            // ② 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たらレーンを移動する
+            // ② 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たら隣接レーンへ移動する
             let facingHighDef = false;
             if (facingOpponent) {
                 const defAttr = facingOpponent.attribute || 'red';
@@ -394,16 +399,16 @@ export class PvpAiController {
 
             if (facingHighDef) {
                 if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
-                    const candidates = [-2, -1, 0, 1, 2].filter(l => l !== currentLane);
-                    if (candidates.length > 0) {
-                        const targetLane = candidates[Math.floor(Math.random() * candidates.length)];
+                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
+                    if (adjacentCandidates.length > 0) {
+                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
                         this._swapLane(member, targetLane, myTeam, now, teamKey);
                     }
                 }
                 return;
             }
 
-            // ③ ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する
+            // ③ ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する
             if (Math.random() < 0.35) {
                 this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey);
             }
