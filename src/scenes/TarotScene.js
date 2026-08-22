@@ -18,6 +18,9 @@ export default class TarotScene extends Phaser.Scene {
         this.cameras.main.setBackgroundColor('#052210');
         TransitionManager.fadeIn(this);
 
+        // 前のシーン（マップ等）のBGMを確実に停止
+        this.sound.stopAll();
+
         this.bgm = this.sound.add('bgm_tarot', { loop: true, volume: 0.5 });
         this.bgm.play();
 
@@ -354,6 +357,7 @@ export default class TarotScene extends Phaser.Scene {
                     this.bgm.stop();
                     this.bgm.destroy();
                 }
+                this.sound.stopAll();
 
                 // 塔（正位置）で仲間が離脱した場合の喪失イベント
                 const gs = GlobalState.getInstance();
