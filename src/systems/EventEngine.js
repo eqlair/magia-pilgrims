@@ -33,6 +33,7 @@ export class EventEngine {
         this.baseBlackRect = null;
         this.bgImage     = null;
         this.bgOverlay   = null;
+        this.multiplyOverlay = null;
         this.illustImage = null;
         this.charaRight  = null;
         this.charaLeft   = null;
@@ -380,6 +381,20 @@ export class EventEngine {
             .setDepth(this.DEPTH + 2).setAlpha(0);
         chara.setScale((this.H * 0.6) / chara.height);
 
+        // 立ち絵表示時: キャラクターの足元を自然に暗く溶け込ませる乗算グラデーション(multiply.png)を配置
+        if (!this.multiplyOverlay && this.scene.textures.exists('ev_multiply')) {
+            this.multiplyOverlay = this.scene.add.image(this.W / 2, this.H / 2, 'ev_multiply')
+                .setDisplaySize(this.W, this.H)
+                .setDepth(this.DEPTH + 2.5) // キャラ(DEPTH+2)の上、メッセージ枠(DEPTH+3)の下
+                .setBlendMode(Phaser.BlendModes.MULTIPLY)
+                .setAlpha(0);
+            this.scene.tweens.add({
+                targets: this.multiplyOverlay,
+                alpha: 1,
+                duration: 400
+            });
+        }
+
         this.scene.tweens.add({
             targets: chara, x: destX, alpha: 1, duration: 400, ease: 'Back.easeOut',
             onComplete: () => { this[ref] = chara; cb(); }
@@ -475,6 +490,7 @@ export class EventEngine {
         if (this.baseBlackRect) { this.baseBlackRect.destroy(); this.baseBlackRect = null; }
         if (this.bgImage)     { this.bgImage.destroy();     this.bgImage     = null; }
         if (this.bgOverlay)   { this.bgOverlay.destroy();   this.bgOverlay   = null; }
+        if (this.multiplyOverlay) { this.multiplyOverlay.destroy(); this.multiplyOverlay = null; }
         if (this.illustImage) { this.illustImage.destroy(); this.illustImage = null; }
         if (this.charaRight)  { this.charaRight.destroy();  this.charaRight  = null; }
         if (this.charaLeft)   { this.charaLeft.destroy();   this.charaLeft   = null; }

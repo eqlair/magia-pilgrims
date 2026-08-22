@@ -88,6 +88,13 @@ export default class MapEventAdjustScene extends Phaser.Scene {
         this.char2Image.setOrigin(0.5, 0.5);
         this.char2Image.setScale(this.charScale);
 
+        // 乗算グラデーションオーバーレイ
+        if (this.textures.exists('ev_multiply')) {
+            this.multiplyOverlay = this.add.image(width / 2, height / 2, 'ev_multiply')
+                .setDisplaySize(width, height)
+                .setBlendMode(Phaser.BlendModes.MULTIPLY);
+        }
+
         // 3. メッセージ欄 (いつものEventEngineと完全に同じ位置・サイズ・デザイン)
         const BOX_TOP = height * 0.62;
         const BOX_H   = height * 0.38;

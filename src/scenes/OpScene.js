@@ -16,6 +16,7 @@ export default class OpScene extends Phaser.Scene {
         this.load.image('evp001', 'files/OP/evp001.jpg');
         this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
         this.load.image('portrait_001', 'files/CHR/001001.png');
+        this.load.image('ev_multiply', 'files/event/multiply.png');
         
         this.load.audio('bgm_hoshi', 'files/BGM/003_hoshihuru.mp3');
         this.load.audio('bgm_mad', 'files/BGM/007_stage_mad.mp3');
