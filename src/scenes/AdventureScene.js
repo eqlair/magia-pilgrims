@@ -2237,6 +2237,10 @@ export default class AdventureScene extends Phaser.Scene {
         let timeSignalCb = null;
         if (gs.food <= 0 && !wasZero && this.party.length > 0) {
             timeSignalCb = () => {
+                const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+                const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
+                const isNight = (this.timeOfDay === '夜' || this.isNightExploration);
+
                 const charId1 = this.party[0];
                 const charName1 = gs.characters[charId1]?.name || charId1;
                 const talkData1 = this.cache.json.get(`talk_${charId1}`);
@@ -2244,6 +2248,7 @@ export default class AdventureScene extends Phaser.Scene {
                 const body1 = lines1 ? lines1[Math.floor(Math.random() * lines1.length)] : '食べ物がなくなってしまった……';
                 
                 const events = [
+                    { cmd: 'bg', key: bgKey, darkOverlay: isNight ? 0.7 : 0 },
                     { cmd: 'chara', key: `portrait_${charId1}`, pos: 'right' },
                     { cmd: 'text', name: charName1, body: body1 }
                 ];
@@ -2256,7 +2261,6 @@ export default class AdventureScene extends Phaser.Scene {
                     if (lines2) {
                         const body2 = lines2[Math.floor(Math.random() * lines2.length)];
                         events.push({ cmd: 'chara', key: `portrait_${charId2}_b`, pos: 'left' });
-
                         events.push({ cmd: 'text', name: charName2, body: body2 });
                     }
                 }
