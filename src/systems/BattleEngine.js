@@ -2019,19 +2019,23 @@ export class BattleEngine {
                                 }
                             }
                         } else if (selectedSpecial === 7) {
-                            // 並列弾（緑）
+                            // 並列弾（緑）: 秒間20発、垂直真下から±2度ブレさせて自然にバラけさせる
                             if (e.triggerAttackShake) e.triggerAttackShake();
                             const durationSeconds = 2 + (e.level || 1);
-                            const bulletCount = 30 * durationSeconds;
+                            const bulletCount = 20 * durationSeconds;
                             for (let i = 0; i < bulletCount; i++) {
                                 if (!e.delayedActions) e.delayedActions = [];
                                 e.delayedActions.push({
                                     timer: (i / bulletCount) * durationSeconds,
                                     action: () => {
                                         const sx = (Math.random() - 0.5) * 10; // X: -5 ~ +5
-                                        const sz = e.z + 15.0; // 手前へ向かって落下してくる想定（Z=25~30など）
+                                        const sz = e.z + 15.0; // 手前へ向かって落下してくる想定
+                                        const angleDeg = -90 + (Math.random() - 0.5) * 4; // -90度 ± 2度のブレ
+                                        const angleRad = angleDeg * (Math.PI / 180);
+                                        const speed = 10;
                                         const bullet = new Bullet(sx, sz, {
-                                            vx: 0, vz: -10,
+                                            vx: Math.cos(angleRad) * speed,
+                                            vz: Math.sin(angleRad) * speed,
                                             damage: 5, knockback: 5, owner: 'enemy', size: 0.3, type: 'enemy_bullet', targetDist: 40, textureKey: 'enemy_bullet', color: 0x00ff00, opacity: 0.75
                                         });
                                         this.bullets.push(bullet);
