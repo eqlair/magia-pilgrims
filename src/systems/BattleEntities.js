@@ -784,8 +784,8 @@ export class PlayerCharacter extends BattleEntity {
             this.animY = 0;
         }
 
-        // ノックバックオフセットの秒速3m復帰処理
-        const returnSpeed = 3.0; // 秒速3.0mで必死に元の位置へ戻る
+        // ノックバックオフセットの復帰処理（スワイプ移動と同等の秒速8mで素早く復帰）
+        const returnSpeed = 8.0;
         const kbDist = Math.sqrt((this.knockbackOffsetX || 0) ** 2 + (this.knockbackOffsetZ || 0) ** 2);
         if (kbDist > 0.001) {
             const moveDist = returnSpeed * dt;

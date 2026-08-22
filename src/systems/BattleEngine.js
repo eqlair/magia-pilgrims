@@ -2184,8 +2184,8 @@ export class BattleEngine {
                 ep.baseX += (targetX - ep.baseX) * 8.0 * dt;
                 ep.baseZ += (targetZ - ep.baseZ) * 6.0 * dt;
 
-                // ノックバックオフセットの秒速3m復帰処理
-                const returnSpeed = 3.0; // 秒速3.0mで必死に前線へ戻る
+                // ノックバックオフセットの復帰処理（スワイプ移動と同等の秒速8mで素早く復帰）
+                const returnSpeed = 8.0;
                 const kbDist = Math.sqrt((ep.knockbackOffsetX || 0) ** 2 + (ep.knockbackOffsetZ || 0) ** 2);
                 if (kbDist > 0.001) {
                     const moveDist = returnSpeed * dt;
