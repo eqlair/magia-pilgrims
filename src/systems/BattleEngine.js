@@ -244,6 +244,7 @@ export class BattleEngine {
             }
             
             pc.charId = charId; // レンダラー用にIDを保存
+            pc.isAuto = !!this.autoLanes[pc.lane]; // 開幕配置レーンの設定に基づいてキャラ自身のAUTO属性を固定
             this.players.push(pc);
         }
 

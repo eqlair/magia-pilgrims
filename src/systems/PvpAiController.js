@@ -63,15 +63,10 @@ export class PvpAiController {
             return;
         }
 
-        const autoLanes = this.engine.autoLanes || (this.engine.globalState ? this.engine.globalState.autoLanes : null) || {};
-
         for (const member of myTeam) {
-            // プレイヤー側の場合、隊列設定画面でAUTOがONになっているレーンのキャラのみ自動運転
-            if (isPlayerTeam) {
-                const isAuto = !!autoLanes[member.lane];
-                if (!isAuto) {
-                    continue; // 隊列設定でAUTOがOFFのキャラはずっと手動操作のまま
-                }
+            // プレイヤー側の場合、開幕配置でAUTOがONだったキャラのみ自律行動（戦闘中のレーン移動によらずキャラ単位で固定）
+            if (isPlayerTeam && !member.isAuto) {
+                continue; // 隊列設定でAUTOがOFFだったキャラはずっと手動操作のまま
             }
 
             if (!this.charTimers.has(member)) {
