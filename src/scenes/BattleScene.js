@@ -375,13 +375,23 @@ export default class BattleScene extends Phaser.Scene {
             });
         }
 
-        // DPS表示（画面左下・スプライト文字）
-        this.dpsText = new SpriteText(this, 10, this.scale.height - 10, '', {
-            tint: 0x00ffaa,
-            spacing: 28,
-            originX: 0,
-            originY: 1
-        }).setDepth(1500).setScale(0.36);
+        // デバッグモード限定：戦闘統計・DPS表示（画面左下）
+        if (GlobalState.IS_DEBUG_MODE) {
+            this.dpsContainer = this.add.container(10, this.scale.height - 12).setDepth(2000);
+            
+            // 半透明の背景ボックス（視認性向上）
+            this.dpsBg = this.add.rectangle(0, 0, 360, 48, 0x000000, 0.65)
+                .setOrigin(0, 1);
+            
+            this.dpsText = this.add.text(6, -6, '', {
+                fontFamily: FONT_MAIN,
+                fontSize: '11px',
+                color: '#00ffcc',
+                lineSpacing: 3
+            }).setOrigin(0, 1);
+            
+            this.dpsContainer.add([this.dpsBg, this.dpsText]);
+        }
 
     }
 
@@ -730,24 +740,44 @@ export default class BattleScene extends Phaser.Scene {
         this.renderer.update();
         this.drawGrid();
 
-        // DPS表示更新
-        if (this.dpsText && this.engine) {
+        // デバッグ統計・DPS表示更新（デバッグモード限定）
+        if (GlobalState.IS_DEBUG_MODE && this.dpsText && this.engine) {
+            const gs = GlobalState.getInstance();
             const now = this.engine.time;
             const history = this.engine.damageHistory;
-            // 10秒以古の履歴を削除
+            
+            // 10秒より古い履歴を削除
             while (history.length > 0 && now - history[0].time > 10) {
                 history.shift();
             }
-            // 直近、1秒のDPS（最後1秒内の履歴サンプルから）
+
+            // ① 編成メンバーの合計レベル
+            let totalLevel = 0;
+            const party = this.battleConfig.party || ['001'];
+            for (const charId of party) {
+                const c = gs.characters ? gs.characters[charId] : null;
+                totalLevel += (c && c.level) ? c.level : 1;
+            }
+
+            // ② 瞬間DPS（直近1秒）
             const oneSec = history.filter(h => now - h.time <= 1).reduce((s, h) => s + h.damage, 0);
-            // 10秒平均DPS
+
+            // ③ 10秒間平均DPS
             const tenSecTotal = history.reduce((s, h) => s + h.damage, 0);
-            const elapsed = Math.min(now, 10);
-            const tenSecDps = elapsed > 0 ? tenSecTotal / elapsed : 0;
-            // 最大DPS更新
-            if (oneSec > this.engine.maxDps) this.engine.maxDps = oneSec;
+            const elapsed10 = Math.min(now, 10);
+            const tenSecDps = elapsed10 > 0 ? (tenSecTotal / elapsed10) : 0;
+
+            // ④ 10秒間平均DPSの最大値
+            if (tenSecDps > (this.engine.max10sDps || 0)) {
+                this.engine.max10sDps = tenSecDps;
+            }
+
+            // ⑤ 戦闘開始からの平均DPS
+            const totalAvgDps = now > 0 ? (this.engine.totalDamage / now) : 0;
+
             this.dpsText.setText(
-                `DPS ${Math.floor(oneSec)} 10S ${Math.floor(tenSecDps)} MAX ${Math.floor(this.engine.maxDps)}`
+                `合計Lv:${totalLevel}(PT:${party.length}人) | DPS:${Math.floor(oneSec).toLocaleString()}\n` +
+                `10s平均:${Math.floor(tenSecDps).toLocaleString()} (10s最大:${Math.floor(this.engine.max10sDps).toLocaleString()}) | 全体平均:${Math.floor(totalAvgDps).toLocaleString()}`
             );
         }
 

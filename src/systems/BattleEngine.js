@@ -43,7 +43,8 @@ export class BattleEngine {
         this.linkedUltimateTimer = 0;
         this.totalDamage = 0;       // DPS計算用：累計ダメージ
         this.damageHistory = [];    // DPS計算用：[{time, damage}] の履歴
-        this.maxDps = 0;            // DPS最大値
+        this.maxDps = 0;            // 瞬間DPS最大値
+        this.max10sDps = 0;         // 10秒平均DPS最大値
     }
 
     setup(config, chrData) {
@@ -125,6 +126,7 @@ export class BattleEngine {
         this.totalDamage = 0;
         this.damageHistory = [];
         this.maxDps = 0;
+        this.max10sDps = 0;
         gs.levelUpLogs = [];
 
         this.currentWave = 1;
