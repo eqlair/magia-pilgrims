@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 import { GlobalState } from '../systems/GlobalState';
 
