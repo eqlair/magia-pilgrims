@@ -368,12 +368,14 @@ export default class RestScene extends Phaser.Scene {
     confirmHealSp(charId, maxSp) {
         const charData = this.globalState.characters[charId];
         if (!charData) return;
-        const neededSp = maxSp - charData.currentSp;
-        const spToUse = Math.min(neededSp, this.globalState.stockSp);
+        const curSp = Math.floor(charData.currentSp !== undefined ? charData.currentSp : maxSp);
+        const neededSp = Math.max(0, Math.ceil(maxSp - curSp));
+        const stock = Math.floor(this.globalState.stockSp || 0);
+        const spToUse = Math.min(neededSp, stock);
         if (spToUse <= 0) return;
         this.showDialog(`精神力の回復にSP ${spToUse} 点が必要です。\n回復しますか？`, () => {
-            this.globalState.stockSp -= spToUse;
-            charData.currentSp += spToUse;
+            this.globalState.stockSp = Math.max(0, stock - spToUse);
+            charData.currentSp = Math.min(maxSp, curSp + spToUse);
             SaveManager.saveGame();
             this.drawMainView(this.cameras.main.width, this.cameras.main.height);
         });

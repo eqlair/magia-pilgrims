@@ -665,8 +665,8 @@ export default class BattleScene extends Phaser.Scene {
                 for (const p of this.engine.players) {
                     const charData = globalState.characters[p.charId];
                     if (charData) {
-                        charData.currentHp = Math.max(0, p.hp);
-                        charData.currentSp = Math.max(0, p.sp);
+                        charData.currentHp = Math.floor(Math.max(0, p.hp));
+                        charData.currentSp = Math.floor(Math.max(0, p.sp));
 
                         // チュートリアル戦闘後、紫苑(001)のHP・SPが減っていれば90%まで回復
                         if (this.battleConfig.isTutorial && p.charId === '001') {
@@ -706,7 +706,7 @@ export default class BattleScene extends Phaser.Scene {
                 isRetreated: this.engine.waveState === 'retreated',
                 isNightExploration: this.battleConfig.isNightExploration,
                 is1221NightBattle: this.battleConfig.is1221NightBattle || false,
-                sionFinalSp: sionPlayer ? sionPlayer.sp : null,
+                sionFinalSp: sionPlayer ? Math.floor(sionPlayer.sp) : null,
                 fromBattle: true
             };
 
