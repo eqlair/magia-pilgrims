@@ -482,6 +482,7 @@ export default class RestScene extends Phaser.Scene {
                 ];
 
                 eventData = [
+                    { cmd: "bg", key: "ev_camp" },
                     { cmd: "chara", key: "portrait_001", pos: "right" }
                 ];
                 for (let i = 0; i < restLines.length; i++) {

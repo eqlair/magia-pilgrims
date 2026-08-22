@@ -268,8 +268,6 @@ export class EventEngine {
             key.startsWith('bg_1207') ||
             key.startsWith('bg_1214') ||
             key.startsWith('bg_1221') ||
-            key.startsWith('ev_daycamp') ||
-            key.startsWith('ev_camp') ||
             key.startsWith('bg_resp')
         );
 
