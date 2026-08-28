@@ -446,14 +446,14 @@ export class PlayerCharacter extends BattleEntity {
                 }
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "WEAKEN FIELD!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '010') {
-                // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径2.5mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
+                // 白蓮 (特技: 8秒に1回、前方に初速15m/sで進みシャボン玉減速で漂う直径2.5mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
                 const specialBullet = new Bullet(this.x, this.z, {
                     owner: 'player',
                     vx: 0,
-                    vz: 0.5,
+                    vz: 15.0,
                     damage: 0,
                     knockback: 40,
-                    size: 2.5, // 直径2.5mの判定エリアで広範囲の敵弾を吸収！
+                    size: 0.5, // 発射時は0.5mから拡大
                     lifeTime: 10.0,
                     type: 'special_barrier_010',
                     erasesEnemyBullets: true,

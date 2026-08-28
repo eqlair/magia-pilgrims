@@ -2545,10 +2545,10 @@ export class BattleEngine {
             if (b.isDead) continue;
             b.update(dt);
 
-            // 白蓮(010)の近接バリア (barrier_010): 
+            // 白蓮(010)のバリア弾 (近接 barrier_010 / 8秒パッシブ special_barrier_010): 
             // ① 0.1秒ごとに速度が半減するシャボン玉のような減速（初速15m/s -> 約2.16mで滑らかに停止して漂う）
             // ② 0.5秒間で直径0.5mから2.5mへ滑らかに拡大
-            if (b.type === 'barrier_010') {
+            if (b.type === 'barrier_010' || b.type === 'special_barrier_010') {
                 const decayRate = Math.pow(0.5, dt / 0.1);
                 b.vx *= decayRate;
                 b.vz *= decayRate;
