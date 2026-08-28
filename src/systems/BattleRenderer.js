@@ -129,7 +129,7 @@ export class BattleRenderer {
 
             if (textureKey) {
                 this._updateSprite(b, textureKey);
-                if (b.type === 'special_barrier_010' || b.type === 'ultimate_010' || b.type === 'barrier_010') {
+                if (b.type === 'special_barrier_010' || b.type === 'ultimate_010' || b.type === 'barrier_010' || b.type === 'laser_010' || (b.type && b.type.includes('barrier'))) {
                     const sprite = this.spriteMap.get(b);
                     if (sprite) {
                         sprite.setTint(0x00ffff);
@@ -401,7 +401,7 @@ export class BattleRenderer {
                 const debuffColor = entity.debuffColor !== undefined ? entity.debuffColor : 0xffff22;
                 sprite.setTint(debuffColor);
                 sprite.setBlendMode(Phaser.BlendModes.NORMAL);
-            } else if (textureKey === 'enemy_bullet') {
+            } else if (textureKey === 'enemy_bullet' || (entity.owner === 'enemy' && (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'nrg'))) {
                 let tintColor = entity.color;
                 if (tintColor === undefined || tintColor === null) {
                     const attrColors = {
@@ -414,7 +414,10 @@ export class BattleRenderer {
                     tintColor = attrColors[entity.attribute] || 0xff4444;
                 }
                 sprite.setTint(tintColor);
-                sprite.setBlendMode(Phaser.BlendModes.ADD); // 発光感のある鮮やかな着色
+                sprite.setBlendMode(Phaser.BlendModes.ADD); // 💥 敵の放つ弾丸：加算合成（重なるほど明るく白熱発光！）
+            } else if (textureKey === 'weapon_010' || textureKey === 'weapon_010b' || textureKey === 'nrg' || (entity.type && (entity.type.includes('barrier') || entity.type.includes('010')))) {
+                // 🛡️ 白蓮のバリア弾各種・レーザー
+                sprite.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で鮮やかに発光！
             } else {
                 sprite.clearTint();
                 sprite.setBlendMode(Phaser.BlendModes.NORMAL);
@@ -487,8 +490,30 @@ export class BattleRenderer {
                     sprite.setScale(scaleX, scaleY);
                     const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                     sprite.setAngle(angle);
+                } else if (textureKey === 'weapon_010') {
+                    // 白蓮のレーザー弾: 青白いレーザービームを加算合成で発光
+                    const baseHeight = sprite.height || 360;
+                    const baseWidth = sprite.width || 180;
+                    const visualLength = 3.5;
+                    const scaleY = p.scale * (visualLength / baseHeight);
+                    const scaleX = scaleY * 1.5;
+                    sprite.setScale(scaleX, scaleY);
+                    const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
+                    sprite.setAngle(angle);
+                    sprite.setTint(0x00ffff);
                     sprite.setBlendMode(Phaser.BlendModes.ADD);
                     sprite.setDepth(1000 - p.depth + 40);
+                    sprite.setAlpha(1.0);
+                } else if (textureKey === 'weapon_010b' || textureKey === 'nrg') {
+                    // 白蓮のバリア弾各種 (barrier_010, special_barrier_010, ultimate_010): 直径サイズに合わせて加算合成で美しく回転発光
+                    const baseSize = sprite.width || 200;
+                    const visualSize = entity.size || 2.5;
+                    const targetScale = p.scale * (visualSize / baseSize);
+                    sprite.setScale(targetScale);
+                    sprite.setAngle((this.scene.time.now || 0) * 0.06);
+                    sprite.setTint(0x00ffff);
+                    sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    sprite.setDepth(1000 - p.depth + 35);
                     sprite.setAlpha(1.0);
                 } else if (textureKey === 'weapon_008_ult_a' || textureKey === 'weapon_008_ult_b') {
                     // 不死鳥フェニックス必殺技: 幅と高さの比率をそれぞれ独立にワールドスケール
