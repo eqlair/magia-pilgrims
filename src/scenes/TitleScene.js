@@ -127,22 +127,24 @@ export default class TitleScene extends Phaser.Scene {
             });
         }
 
-        // ── 右上 「🧪 テスト続き」インポートボタン ──
-        const testImportBtn = this.add.text(width - 80, 20, '🧪 テスト続き', {
-            fontSize: '14px', color: '#aaffaa', stroke: '#000000', strokeThickness: 3,
-            backgroundColor: '#003311cc', padding: { x: 8, y: 6 }
-        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        // ── 右上 「🧪 テスト続き」インポートボタン (デバッグモード時のみ表示) ──
+        if (GlobalState.IS_DEBUG_MODE) {
+            const testImportBtn = this.add.text(width - 80, 20, '🧪 テスト続き', {
+                fontSize: '14px', color: '#aaffaa', stroke: '#000000', strokeThickness: 3,
+                backgroundColor: '#003311cc', padding: { x: 8, y: 6 }
+            }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
 
-        testImportBtn.on('pointerdown', async (pointer) => {
-            if (pointer && pointer.event) pointer.event.stopPropagation();
-            await this._loadTestSnapshotSave();
-        });
+            testImportBtn.on('pointerdown', async (pointer) => {
+                if (pointer && pointer.event) pointer.event.stopPropagation();
+                await this._loadTestSnapshotSave();
+            });
 
-        // ── URLパラメータ ?load_test_save=1 の自動適用 ──
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('load_test_save') === '1' || urlParams.get('test_save') === '1') {
-            this._loadTestSnapshotSave();
-            return;
+            // ── URLパラメータ ?load_test_save=1 の自動適用 ──
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('load_test_save') === '1' || urlParams.get('test_save') === '1') {
+                this._loadTestSnapshotSave();
+                return;
+            }
         }
 
         // ── 明転フェードイン ─────────────────────
