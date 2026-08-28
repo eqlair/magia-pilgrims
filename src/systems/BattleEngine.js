@@ -2545,8 +2545,14 @@ export class BattleEngine {
             if (b.isDead) continue;
             b.update(dt);
 
-            // 白蓮(010)の近接バリア (barrier_010): 0.5秒間で直径0.5mから2.5mへ滑らかに拡大
+            // 白蓮(010)の近接バリア (barrier_010): 
+            // ① 0.1秒ごとに速度が半減するシャボン玉のような減速（初速15m/s -> 約2.16mで滑らかに停止して漂う）
+            // ② 0.5秒間で直径0.5mから2.5mへ滑らかに拡大
             if (b.type === 'barrier_010') {
+                const decayRate = Math.pow(0.5, dt / 0.1);
+                b.vx *= decayRate;
+                b.vz *= decayRate;
+
                 if (b.expandTimer === undefined) {
                     b.expandTimer = 0;
                     b.size = 0.5; // 発射時は直径0.5m
@@ -2951,6 +2957,10 @@ export class BattleEngine {
                         const dist = Math.sqrt(distSq);
                         const isHit = this.applyDamage(b.sourceEntity, t, finalDmg, type, b.distanceTraveled, b.x, b.z);
                         if (isHit) {
+                            // 🛡️ 白蓮のバリア弾(barrier_010): 敵に当たって威力が1未満になったら消滅！
+                            if (b.type === 'barrier_010' && finalDmg < 1.0) {
+                                b.isDead = true;
+                            }
                             if (b.stunDuration > 0 && Math.random() < b.stunChance) {
                                 const resist = t.debuffResist !== undefined ? t.debuffResist : 0;
                                 if (resist >= 100) {
