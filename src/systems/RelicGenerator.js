@@ -1,6 +1,6 @@
-import relicWords from '../data/relic_words.json';
-import gemEffects from '../data/gem_effects.json';
-import { GlobalState } from './GlobalState';
+import relicWords from '../data/relic_words.json' with { type: 'json' };
+import gemEffects from '../data/gem_effects.json' with { type: 'json' };
+import { GlobalState } from './GlobalState.js';
 
 
 export class RelicGenerator {
@@ -62,7 +62,8 @@ export class RelicGenerator {
     static generateGem(targetRank = null) {
         const gemNames = Object.keys(gemEffects);
         const name = gemNames[Math.floor(Math.random() * gemNames.length)];
-        const rank = targetRank !== null ? targetRank : (gemEffects[name]?.minRank || 1);
+        const minR = gemEffects[name]?.minRank || 1;
+        const rank = targetRank !== null ? Math.max(minR, targetRank) : minR;
         
         // 3つの異なる特性を選ぶ
         const shuffled = [...this.TRAIT_LIST].sort(() => 0.5 - Math.random());

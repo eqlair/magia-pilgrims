@@ -2274,7 +2274,142 @@
             { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
           ]
         }
-
+      }
+    },
+    "007": {
+      "name": "ななよ",
+      "baseHp": 1500,
+      "baseSp": 1000,
+      "baseAtk": 120,
+      "weight": 62,
+      "element": "yellow",
+      "tarot": 0,
+      "patterns": {
+        "far": {
+          "1": [
+            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 75, "reload": 0.3, "count": 1, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "2": [
+            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 1, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "3": [
+            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 1, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "4": [
+            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 2, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "5": [
+            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 2, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "6": [
+            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 2, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ],
+          "7": [
+            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 3, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+          ]
+        },
+        "near": {
+          "1": [
+            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 90, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
+            { "name": "パンチorリロード", "type": "punch_007", "power": 60, "reload": 0.4, "count": 2, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "2": [
+            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
+            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 2, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "3": [
+            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
+            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 2, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "4": [
+            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
+            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 3, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "5": [
+            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
+            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 3, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "6": [
+            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
+            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 3, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "7": [
+            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
+            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 4, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ]
+        }
+      }
+    },
+    "008": {
+      "name": "ノア",
+      "level": 1,
+      "tarot": 4,
+      "baseHp": 800,
+      "baseSp": 1200,
+      "baseAtk": 100,
+      "weight": 44,
+      "attribute": "red",
+      "patterns": {
+        "far": {
+          "1": [
+            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+          ],
+          "2": [
+            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+          ],
+          "3": [
+            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+          ],
+          "4": [
+            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+          ],
+          "5": [
+            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+          ],
+          "6": [
+            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+          ],
+          "7": [
+            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
+            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+          ]
+        },
+        "near": {
+          "1": [
+            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "2": [
+            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "3": [
+            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "4": [
+            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "5": [
+            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "6": [
+            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ],
+          "7": [
+            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+          ]
+        }
       }
     }
   }

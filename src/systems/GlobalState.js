@@ -1,12 +1,13 @@
-import charDataJson from '../data/characters.json';
-import gemEffectsJson from '../data/gem_effects.json';
-import { SaveManager } from './SaveManager';
+import charDataJson from '../data/characters.json' with { type: 'json' };
+import gemEffectsJson from '../data/gem_effects.json' with { type: 'json' };
+import { SaveManager } from './SaveManager.js';
+import { RelicGenerator } from './RelicGenerator.js';
 
 
 
 export class GlobalState {
     static instance = null;
-    static IS_DEBUG_MODE = true; // デバッグモードフラグ（デバッグ版ON）
+    static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
 
     constructor() {
         if (GlobalState.instance) {
@@ -70,6 +71,7 @@ export class GlobalState {
         this.event1221Played = false;
         this.ikebukuro01Played = false;
         this.ikebukuro02Played = false;
+        this.hasEnteredTower = false; // 塔に突入したことがあるフラグ（ノア・ななよのタロット解放条件）
 
 
         // --- タロット用の一時・永続フラグ ---
@@ -122,12 +124,19 @@ export class GlobalState {
         this.debugLogs = [];
         this.onLogCallback = null;
 
+        // ── 🎁 デイリー報酬ルーレットシステム ──
+        this.dailyRewardMonth = '';      // 取得月のキー (YYYY-MM)
+        this.dailyRewardCount = 0;       // 今月取得した回数 (0~30)
+        this.lastDailyRewardDate = '';   // 最後に取得した日付 (YYYY-MM-DD)
+
         this.characters = {
             '001': this.createInitialCharData('001', '紫苑', 1),
             '002': this.createInitialCharData('002', '蒼樹', 1),
             '003': this.createInitialCharData('003', '紅華', 1),
             '004': this.createInitialCharData('004', '黄蘭', 1),
             '005': this.createInitialCharData('005', '李乃果', 1),
+            '007': this.createInitialCharData('007', 'ななよ', 1),
+            '008': this.createInitialCharData('008', 'ノア', 1),
             '010': this.createInitialCharData('010', '白蓮', 1)
         };
 
@@ -150,6 +159,8 @@ export class GlobalState {
         if (!id) return '001';
         const str = id.toString().trim();
         if (str === '10' || str === '010') return '010';
+        if (str === '8' || str === '008') return '008';
+        if (str === '7' || str === '007') return '007';
         if (str === '1' || str === '001') return '001';
         if (str === '2' || str === '002' || str === '12') return '002';
         if (str === '3' || str === '003' || str === '9') return '003';
@@ -161,12 +172,17 @@ export class GlobalState {
     getCharacter(id) {
         if (!id) return null;
         const normId = this.normalizeCharId(id);
-        return this.characters[normId] || this.characters[id] || null;
+        if (!this.characters[normId]) {
+            const charNames = { '001': '紫苑', '002': '蒼樹', '003': '紅華', '004': '黄蘭', '005': '李乃果', '007': 'ななよ', '008': 'ノア', '010': '白蓮' };
+            const name = charNames[normId] || `キャラ_${normId}`;
+            this.characters[normId] = this.createInitialCharData(normId, name, 1);
+        }
+        return this.characters[normId];
     }
 
     getTotalAffection() {
         let total = 0;
-        const uniqueChars = ['001', '002', '003', '004', '005', '010'];
+        const uniqueChars = ['001', '002', '003', '004', '005', '007', '008', '010'];
         for (const id of uniqueChars) {
             const char = this.characters[id];
             if (char) {
@@ -190,10 +206,14 @@ export class GlobalState {
         return GlobalState.instance;
     }
 
-    createInitialCharData(id, name, level) {
+    createInitialCharData(id, name, level = 1) {
         const def = charDataJson.characters[id] || {};
-        const baseHp = def.baseHp || 1000;
-        const baseSp = def.baseSp || 500;
+        let baseHp = def.baseHp || 1000;
+        let baseSp = def.baseSp || 500;
+        let baseAtk = def.baseAtk || 100;
+        if (id === '007') { baseHp = 1500; baseSp = 1000; baseAtk = 120; }
+        if (id === '008') { baseHp = 800; baseSp = 1200; baseAtk = 100; }
+        if (id === '010') { baseHp = 1000; baseSp = 500; baseAtk = 80; }
 
         const charData = {
             id: id,
@@ -210,7 +230,7 @@ export class GlobalState {
             gachaFails: 0, // 攻撃レベル上昇ガチャのハズレ回数
             baseHp: baseHp,
             baseSp: baseSp,
-            baseAtk: 100, // ベース攻撃力
+            baseAtk: baseAtk, // ベース攻撃力
             baseReload: 100, // ベースリロード速度 (100 = 1.0倍速)
             equipGem: null, // 宝石（1枠）
             equipRelics: [null, null, null, null, null], // レリクス（5枠）
@@ -942,6 +962,7 @@ export class GlobalState {
             event1214Played: this.event1214Played,
             event1217Played: this.event1217Played,
             event1221Played: this.event1221Played,
+            hasEnteredTower: this.hasEnteredTower || false,
 
             maxPastExp: this.maxPastExp || 0,
             currentRunTotalExp: this.currentRunTotalExp || 0,
@@ -1386,6 +1407,125 @@ export class GlobalState {
             this.adventureScene.updateVisibility();
         }
         console.log(`[GlobalState] Tarot Hanged Man (Reversed): Spawned enemies & witch on ${targets.length} visited cells.`);
+    }
+
+    // ── 🎁 デイリー報酬ルーレットシステム ──
+
+    static DAILY_REWARDS = [
+        { day: 1, type: 'gem', rank: 2, label: '宝石' },
+        { day: 2, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 3, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 4, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 5, type: 'relic', rank: 4, label: 'SSRレリクス' },
+        { day: 6, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 7, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 8, type: 'gem', rank: 2, label: '宝石' },
+        { day: 9, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 10, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 11, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 12, type: 'relic', rank: 4, label: 'SSRレリクス' },
+        { day: 13, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 14, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 15, type: 'relic', rank: 5, label: 'URレリクス' },
+        { day: 16, type: 'gem', rank: 2, label: '宝石' },
+        { day: 17, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 18, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 19, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 20, type: 'relic', rank: 4, label: 'SSRレリクス' },
+        { day: 21, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 22, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 23, type: 'gem', rank: 2, label: '宝石' },
+        { day: 24, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 25, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 26, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 27, type: 'relic', rank: 4, label: 'SSRレリクス' },
+        { day: 28, type: 'exp', amount: 10000, label: 'EXP 10,000' },
+        { day: 29, type: 'relic', rank: 3, label: 'SRレリクス' },
+        { day: 30, type: 'relic', rank: 6, label: 'MRレリクス' }
+    ];
+
+    /** 現在のリアル日付文字列を取得 (YYYY-MM-DD) */
+    getTodayDateStr() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    /** 現在のリアル年月文字列を取得 (YYYY-MM) */
+    getCurrentMonthStr() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        return `${y}-${m}`;
+    }
+
+    /** 月度更新の確認・初期化 */
+    _checkDailyRewardMonthReset() {
+        const currentMonth = this.getCurrentMonthStr();
+        if (this.dailyRewardMonth !== currentMonth) {
+            this.dailyRewardMonth = currentMonth;
+            this.dailyRewardCount = 0; // 新しい月になったら30回カウントをリセット
+        }
+    }
+
+    /** デイリー報酬が本日受取可能か確認 */
+    canClaimDailyReward() {
+        this._checkDailyRewardMonthReset();
+        const today = this.getTodayDateStr();
+        if (this.lastDailyRewardDate === today) {
+            return false; // 今日はすでに受取済み
+        }
+        if (this.dailyRewardCount >= 30) {
+            return false; // 今月の上限30回受取済み
+        }
+        return true;
+    }
+
+    /** 次に受け取れるデイリー報酬情報を取得 */
+    getNextDailyReward() {
+        this._checkDailyRewardMonthReset();
+        const nextIndex = Math.min(29, this.dailyRewardCount);
+        return GlobalState.DAILY_REWARDS[nextIndex];
+    }
+
+    /** デイリー報酬を受け取る処理 */
+    claimDailyReward() {
+        if (!this.canClaimDailyReward()) {
+            return { success: false, reason: 'Already claimed today or monthly limit reached' };
+        }
+
+        const rewardDef = this.getNextDailyReward();
+        const today = this.getTodayDateStr();
+
+        this.lastDailyRewardDate = today;
+        this.dailyRewardCount++;
+
+        let itemResult = null;
+        if (!this.inventory) this.inventory = { relics: [], gems: [] };
+
+        if (rewardDef.type === 'exp') {
+            this.stockExp = (this.stockExp || 0) + rewardDef.amount;
+        } else if (rewardDef.type === 'relic') {
+            const relic = RelicGenerator.generateRelic(rewardDef.rank);
+            if (!this.inventory.relics) this.inventory.relics = [];
+            this.inventory.relics.push(relic);
+            itemResult = relic;
+        } else if (rewardDef.type === 'gem') {
+            const gem = RelicGenerator.generateGem(rewardDef.rank);
+            if (!this.inventory.gems) this.inventory.gems = [];
+            this.inventory.gems.push(gem);
+            itemResult = gem;
+        }
+
+        this.save();
+        return {
+            success: true,
+            dayCount: this.dailyRewardCount,
+            reward: rewardDef,
+            item: itemResult
+        };
     }
 }
 

@@ -48,6 +48,17 @@ export default class BattleScene extends Phaser.Scene {
         this.load.spritesheet('battle_005_b', '/files/CHR/005002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_005', '/files/CHR/005003.png');
 
+        this.load.spritesheet('battle_007', '/files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_007_b', '/files/CHR/007002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_007', '/files/CHR/007003.png');
+
+        this.load.spritesheet('battle_008', '/files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_008_b', '/files/CHR/008002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_008_orb', '/files/CHR/008003.png');
+        this.load.image('weapon_008_bullet', '/files/CHR/008004.png');
+        this.load.image('weapon_008_ult_a', '/files/CHR/008004a.png');
+        this.load.image('weapon_008_ult_b', '/files/CHR/008004b.png');
+
         this.load.spritesheet('battle_010', '/files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('battle_010_b', '/files/CHR/011002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_010', '/files/CHR/011003.png');
@@ -115,6 +126,9 @@ export default class BattleScene extends Phaser.Scene {
             'battle_003', 'battle_003_b', 'weapon_003',
             'battle_004', 'battle_004_b', 'weapon_004',
             'battle_005', 'battle_005_b', 'weapon_005',
+            'battle_007', 'battle_007_b', 'weapon_007',
+            'battle_008', 'battle_008_b', 'weapon_008_orb', 'weapon_008_bullet', 'weapon_008_ult_a', 'weapon_008_ult_b',
+            'battle_010', 'battle_010_b', 'weapon_010',
             'en001', 'en002', 'en003',
             'boss001', 'boss002', 'boss003', 'boss004',
             'bullet', 'grenade'
@@ -384,7 +398,7 @@ export default class BattleScene extends Phaser.Scene {
                 .setOrigin(0, 1);
             
             this.dpsText = this.add.text(6, -6, '', {
-                fontFamily: FONT_MAIN,
+                fontFamily: 'sans-serif',
                 fontSize: '11px',
                 color: '#00ffcc',
                 lineSpacing: 3
@@ -701,6 +715,7 @@ export default class BattleScene extends Phaser.Scene {
                     isTutorial: this.battleConfig.isTutorial || false,
                     enemyLevel: this.battleConfig.enemyLevel || this.battleConfig.majoLevel || 1,
                     majoLevel: this.battleConfig.majoLevel || 0,
+                    isNightExploration: this.battleConfig.isNightExploration || false,
                     returnScene: this.battleConfig.returnScene || 'AdventureScene'
                 });
 

@@ -26,6 +26,7 @@ export default class TitleScene extends Phaser.Scene {
         this.load.image('title_logo', '/files/OP/title.png');
         this.load.audio('bgm_op',   '/files/BGM/001_OP001.mp3');
         this.load.audio('bgm_menu', '/files/BGM/002_menu.mp3');
+        this.load.json('test_save_snapshot', '/test_save_snapshot.json');
     }
 
     create() {
@@ -77,26 +78,38 @@ export default class TitleScene extends Phaser.Scene {
         });
 
         // ── バージョン ─────────────────────────
-        this.add.text(width - 10, height - 10, 'ver.0.0.1', {
-            fontSize: '14px', color: '#666666'
+        const buildVer = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : (() => {
+            const d = new Date();
+            const yy = String(d.getFullYear()).slice(-2);
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            const hex = parseInt(`${yy}${mm}${dd}${hh}${min}`, 10).toString(16).toUpperCase();
+            return `ver.0.1${hex}`;
+        })();
+
+        this.add.text(width - 12, height - 12, buildVer, {
+            fontFamily: FONT_MAIN,
+            fontSize: '13px',
+            color: '#888888',
+            fontStyle: 'bold'
         }).setOrigin(1, 1);
 
-        // ── 左上 歯車ボタン (デバッグモード時のみ表示) ──
+        // ── 左上 歯車ボタン & 戦闘テストボタン (デバッグモード時のみ表示) ──
         if (GlobalState.IS_DEBUG_MODE) {
-            const gearBtnBg = this.add.circle(40, 40, 24, 0x000000, 0.6).setInteractive({ useHandCursor: true });
-            const gearIcon = this.add.text(40, 40, '⚙', {
-                fontSize: '28px', color: '#ffffff'
+            const gearBtnBg = this.add.circle(35, 35, 20, 0x000000, 0.6).setInteractive({ useHandCursor: true });
+            const gearIcon = this.add.text(35, 35, '⚙', {
+                fontSize: '24px', color: '#ffffff'
             }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
             const openMenu = (pointer) => {
-                if (pointer) pointer.event.stopPropagation();
+                if (pointer && pointer.event) pointer.event.stopPropagation();
                 this._goToMenu();
             };
 
             gearBtnBg.on('pointerdown', openMenu);
             gearIcon.on('pointerdown', openMenu);
-
-            // ⚙ ボタンのホバー演出
             gearBtnBg.on('pointerover', () => gearBtnBg.setFillStyle(0x333333, 0.8));
             gearBtnBg.on('pointerout', () => gearBtnBg.setFillStyle(0x000000, 0.6));
         }
@@ -114,6 +127,24 @@ export default class TitleScene extends Phaser.Scene {
             });
         }
 
+        // ── 右上 「🧪 テスト続き」インポートボタン ──
+        const testImportBtn = this.add.text(width - 80, 20, '🧪 テスト続き', {
+            fontSize: '14px', color: '#aaffaa', stroke: '#000000', strokeThickness: 3,
+            backgroundColor: '#003311cc', padding: { x: 8, y: 6 }
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+
+        testImportBtn.on('pointerdown', async (pointer) => {
+            if (pointer && pointer.event) pointer.event.stopPropagation();
+            await this._loadTestSnapshotSave();
+        });
+
+        // ── URLパラメータ ?load_test_save=1 の自動適用 ──
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('load_test_save') === '1' || urlParams.get('test_save') === '1') {
+            this._loadTestSnapshotSave();
+            return;
+        }
+
         // ── 明転フェードイン ─────────────────────
         TransitionManager.fadeIn(this);
 
@@ -122,9 +153,9 @@ export default class TitleScene extends Phaser.Scene {
             // ダイアログ表示中は一切反応しない
             if (this._isConfirmDialogOpen) return;
             // 左上歯車ボタンのタップは除外
-            if (GlobalState.IS_DEBUG_MODE && pointer.x <= 80 && pointer.y <= 80) return;
+            if (GlobalState.IS_DEBUG_MODE && pointer && pointer.x <= 80 && pointer.y <= 80) return;
             // 右上「新規」ボタンの領域タップは除外
-            if (SaveManager.hasSaveData() && pointer.x >= width - 90 && pointer.y <= 70) return;
+            if (SaveManager.hasSaveData() && pointer && pointer.x >= width - 90 && pointer.y <= 70) return;
             this._startDirectGame();
         });
 
@@ -366,6 +397,28 @@ export default class TitleScene extends Phaser.Scene {
         v.style.top    = r.top    + 'px';
         v.style.width  = r.width  + 'px';
         v.style.height = r.height + 'px';
+    }
+
+    /**
+     * 🧪 テストプレイで進めたセーブデータスナップショットをロードして即時開始
+     */
+    _loadTestSnapshotSave() {
+        try {
+            const data = this.cache.json.get('test_save_snapshot');
+            if (data) {
+                localStorage.setItem('antigravity_game_save', JSON.stringify(data));
+                console.log('[TitleScene] 🧪 Test snapshot save loaded into localStorage successfully!');
+                this._startDirectGame();
+            } else {
+                fetch('/test_save_snapshot.json').then(r => r.json()).then(d => {
+                    localStorage.setItem('antigravity_game_save', JSON.stringify(d));
+                    this._startDirectGame();
+                });
+            }
+        } catch (e) {
+            console.error('[TitleScene] Failed to load test snapshot save:', e);
+            this._startDirectGame();
+        }
     }
 
     shutdown() {

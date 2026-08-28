@@ -87,7 +87,8 @@ export class EventEngine {
 
         switch (cmd.cmd) {
             case 'bg':        this._showBg(cmd.key, cmd.darkOverlay, () => this._processNext()); break;
-            case 'image':     this._showIllust(cmd.key, () => this._processNext());       break;
+            case 'image':
+            case 'illust':    this._showIllust(cmd.key, () => this._processNext());       break;
             case 'chara':     this._showChara(cmd.key, cmd.pos, () => this._processNext()); break;
             case 'text':      this._showText(cmd.name, cmd.body || cmd.text);             break; // タップ待ち
             case 'clearText': this._clearText(() => this._processNext());                 break;

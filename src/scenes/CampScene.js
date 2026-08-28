@@ -53,6 +53,11 @@ export default class CampScene extends Phaser.Scene {
 
         // デバッグ用キーバインド (デバッグモード時のみ)
         if (GlobalState.IS_DEBUG_MODE) {
+            // Jキー: 全員の攻撃レベル（近接・遠隔）をALL 7にするチート
+            this.input.keyboard.on('keydown-J', () => {
+                this.applyAllAttackLevel7();
+            });
+
             // Pキー: 宝石ドロップフラグ
             this.input.keyboard.on('keydown-P', () => {
                 this.globalState.debugForceGemDrop = !this.globalState.debugForceGemDrop;
@@ -91,6 +96,16 @@ export default class CampScene extends Phaser.Scene {
                 SaveManager.saveGame(this);
                 this.showDebugToast('[DEBUG] レリクス(SSR:10, UR:2, MR:1) ＆ 宝石(1) を生成しました！');
                 this.refreshCurrentView();
+            });
+
+            // 画面上部右側にタップ操作可能なチートボタンも設置
+            const cheatLv7Btn = this.add.text(width - 20, 20, '⚔️ 全Lv7 (J)', {
+                fontFamily: 'sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffea00',
+                backgroundColor: '#000000cc', padding: { x: 10, y: 6 }
+            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            cheatLv7Btn.on('pointerdown', () => {
+                this.applyAllAttackLevel7();
             });
         }
 
@@ -347,6 +362,24 @@ export default class CampScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5).setDepth(9999);
         this.time.delayedCall(2200, () => text.destroy());
+    }
+
+    /**
+     * チート機能: 全キャラクターの近接・遠隔攻撃レベルをすべて 7 に設定
+     */
+    applyAllAttackLevel7() {
+        if (this.globalState.characters) {
+            for (const cid in this.globalState.characters) {
+                const c = this.globalState.characters[cid];
+                if (c) {
+                    c.meleeLevel = 7;
+                    c.rangedLevel = 7;
+                }
+            }
+        }
+        SaveManager.saveGame(this);
+        this.showDebugToast('[DEBUG] みんなの攻撃レベルを全部7にしました！(近接7 / 遠隔7)');
+        this.refreshCurrentView();
     }
 }
 

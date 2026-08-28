@@ -1,4 +1,5 @@
 [
+  { "cmd": "bg", "key": "ev_camp" },
   { "cmd": "chara", "key": "portrait_001", "pos": "right" },
   { "cmd": "text", "name": "紫苑", "body": "そういえば東京駅で化け物の親玉？が何か落としていたな" },
   { "cmd": "text", "name": "紫苑", "body": "黒いガラス玉みたいな…" },

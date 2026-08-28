@@ -75,6 +75,11 @@ export class BattleRenderer {
             const charTex = `battle_${p.charId}`;
             this._updateSprite(p, charTex);
             this._updateUI(p);
+
+            // ノア(008)の自律浮遊エネルギー球体の描画
+            if (p.charId === '008') {
+                this._updateNoahOrbs(p);
+            }
         }
 
         // 敵の描画更新
@@ -107,6 +112,10 @@ export class BattleRenderer {
             else if (b.type === 'weapon_004') textureKey = 'weapon_004';
             else if (b.type === 'swing_004' || b.type === 'weapon_004_ribbon') textureKey = 'weapon_004_ribbon';
             else if (b.type === 'weapon_005' || b.type === 'swing_005') textureKey = 'weapon_005';
+            else if (b.type === 'sankosho_007' || b.type === 'sankosho_circle_007' || b.type === 'weapon_007' || b.type === 'ultimate_007') textureKey = 'weapon_007';
+            else if (b.type === 'noah_bullet_008' || b.type === 'weapon_008_bullet') textureKey = 'weapon_008_bullet';
+            else if (b.type === 'special_field_008') textureKey = 'weapon_008_orb';
+            else if (b.type === 'ultimate_008') textureKey = b.textureKey || 'weapon_008_ult_a';
             else if (b.type === 'swing_ultimate_002') textureKey = 'weapon_002';
             else if (b.type === 'laser_010') textureKey = 'weapon_010';
             else if (b.type === 'barrier_010') textureKey = 'weapon_010b';
@@ -129,7 +138,21 @@ export class BattleRenderer {
                 }
             }
 
+            // ノア(008)の必殺技フェニックス残像描画 (0.1秒遅れ: 75%, 0.2秒遅れ: 50%)
+            if (b.type === 'ultimate_008' && !b.isDead) {
+                this._updateNoahUltTrails(b);
+            }
+        }
 
+        // ノア必殺技残像のクリーンアップ（本体が死んだり弾丸リストから消えた場合に即座に消去）
+        if (this.noahUltTrailMap) {
+            for (const [ultBullet, trails] of this.noahUltTrailMap.entries()) {
+                if (!this.engine.bullets.includes(ultBullet) || ultBullet.isDead) {
+                    if (trails.s1) trails.s1.destroy();
+                    if (trails.s2) trails.s2.destroy();
+                    this.noahUltTrailMap.delete(ultBullet);
+                }
+            }
         }
 
         
@@ -443,7 +466,44 @@ export class BattleRenderer {
 
                 
                 // 進行方向に向ける（弾丸のみ、手りゅう弾は回転させないかクルクル回すか）
-                if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'hit_effect6' || textureKey.startsWith('weapon_')) {
+                if (textureKey === 'weapon_008_orb') {
+                    // ノアのエネルギー球体 / 特技フィールド (special_field_008)
+                    const baseSize = sprite.height || 200;
+                    const isSpecialField = entity.type === 'special_field_008';
+                    const visualSize = isSpecialField ? 3.0 : (entity.size || 0.30) * 2.0;
+                    const targetScale = p.scale * (visualSize / baseSize);
+                    sprite.setScale(targetScale);
+                    sprite.setAngle((this.scene.time.now || 0) * 0.08);
+                    sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    sprite.setDepth(1000 - p.depth + 30);
+                    sprite.setAlpha(isSpecialField ? 0.20 : 1.0); // 特技フィールドは不透明度20%でほんのり光る！
+                } else if (textureKey === 'weapon_008_bullet') {
+                    // 赤いレーザー弾丸: 進行方向に向けて鮮やかに発光（大きく太く見やすく！）
+                    const baseHeight = sprite.height || 360;
+                    const baseWidth = sprite.width || 180;
+                    const visualLength = 4.0; // 長さ約4m相当の太いレーザービーム
+                    const scaleY = p.scale * (visualLength / baseHeight);
+                    const scaleX = scaleY * 1.8; // 横幅も1.8倍に太く
+                    sprite.setScale(scaleX, scaleY);
+                    const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
+                    sprite.setAngle(angle);
+                    sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    sprite.setDepth(1000 - p.depth + 40);
+                    sprite.setAlpha(1.0);
+                } else if (textureKey === 'weapon_008_ult_a' || textureKey === 'weapon_008_ult_b') {
+                    // 不死鳥フェニックス必殺技: 幅と高さの比率をそれぞれ独立にワールドスケール
+                    const baseWidth = sprite.width || 300;
+                    const baseHeight = sprite.height || 200;
+                    const visualW = entity.visualWidth || (entity.size ? entity.size * 1.5 : 6.0);
+                    const visualH = entity.visualHeight || (entity.size || 4.0);
+                    const scaleX = p.scale * (visualW / baseWidth);
+                    const scaleY = p.scale * (visualH / baseHeight);
+                    sprite.setScale(scaleX, scaleY);
+                    sprite.setAngle(0);
+                    sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    sprite.setDepth(1000 - p.depth + 45);
+                    sprite.setAlpha(1.0);
+                } else if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'hit_effect6' || textureKey.startsWith('weapon_')) {
                     if (entity.type && entity.type.startsWith('swing_')) {
                         // 扇状にスイングさせる
                         const progress = 1.0 - (entity.lifeTime / (entity.maxLife || 0.5)); 
@@ -524,6 +584,12 @@ export class BattleRenderer {
                         sprite2.setPosition(sprite.x, sprite.y);
                         sprite2.setScale(sprite.scaleX, sprite.scaleY);
                         sprite2.setAngle(sprite.angle + 180);
+                    } else if (entity.spinAngle !== undefined) {
+                        // ななよの三鈷杵やスピン武器
+                        sprite.setAngle(entity.spinAngle * 180 / Math.PI);
+                        const baseHeight = sprite.height || 100;
+                        const targetScale = p.scale * (1.8 / baseHeight);
+                        sprite.setScale(targetScale);
                     } else if (entity.spinSpeed !== undefined) {
                         // 黄蘭の必殺技後に舞う004003b.png: 全てをランダムな回転方向、速度でゆっくり回転
                         const dt = (this.scene.game.loop.delta / 1000);
@@ -534,7 +600,6 @@ export class BattleRenderer {
                         const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                         sprite.setAngle(angle);
                     }
-
                 } else if (textureKey === 'grenade') {
                     // 手りゅう弾はクルクル回る
                     sprite.setAngle(this.scene.time.now * 0.5);
@@ -746,21 +811,43 @@ export class BattleRenderer {
         for (const ft of this.engine.floatingTexts) {
             let textObj = this.floatingTextMap.get(ft.id);
             if (!textObj) {
-                let tint = 0xff3333; // 赤:通常
-                if (ft.type === 'critical') tint = 0xffff00; // 黄:クリティカル
-                else if (ft.type === 'resist') tint = 0xcc33ff; // 紫:軽減
-                else if (ft.type === 'miss') tint = 0xaaaaaa; // グレー:miss/reloading
-                else if (ft.type === 'heal') tint = 0x33ff66; // 緑:回復
-                else if (ft.type === 'barrier') tint = 0x00ccff; // 青:バリア
-                else if (ft.type === 'skill') tint = 0xffaa00; // オレンジ:スキル
-                
-                textObj = new SpriteText(this.scene, 0, 0, ft.amount.toString(), {
-                    tint: tint,
-                    spacing: 28,
-                    originX: 0.5,
-                    originY: 0.5
-                });
-                
+                if (ft.type === 'kuji_word') {
+                    textObj = this.scene.add.text(0, 0, ft.amount.toString(), {
+                        fontSize: ft.fontSize || '36px',
+                        fontFamily: 'sans-serif',
+                        color: ft.color || '#ffd700',
+                        stroke: ft.stroke || '#000000',
+                        strokeThickness: ft.strokeThickness || 6,
+                        fontStyle: 'bold',
+                        shadow: { offsetX: 0, offsetY: 0, color: '#ff8800', blur: 12, stroke: true, fill: true }
+                    }).setOrigin(0.5, 0.5);
+                    textObj.isPhaserText = true;
+                } else if (ft.type === 'skill' || /[^\x00-\x7F]/.test(ft.amount.toString())) {
+                    textObj = this.scene.add.text(0, 0, ft.amount.toString(), {
+                        fontSize: '20px',
+                        fontFamily: 'sans-serif',
+                        color: '#ffdd00',
+                        stroke: '#000000',
+                        strokeThickness: 4,
+                        fontStyle: 'bold'
+                    }).setOrigin(0.5, 0.5);
+                    textObj.isPhaserText = true;
+                } else {
+                    let tint = 0xff3333; // 赤:通常
+                    if (ft.type === 'critical') tint = 0xffff00; // 黄:クリティカル
+                    else if (ft.type === 'resist') tint = 0xcc33ff; // 紫:軽減
+                    else if (ft.type === 'miss') tint = 0xaaaaaa; // グレー:miss/reloading
+                    else if (ft.type === 'heal') tint = 0x33ff66; // 緑:回復
+                    else if (ft.type === 'barrier') tint = 0x00ccff; // 青:バリア
+                    else if (ft.type === 'skill') tint = 0xffaa00; // オレンジ:スキル
+                    
+                    textObj = new SpriteText(this.scene, 0, 0, ft.amount.toString(), {
+                        tint: tint,
+                        spacing: 28,
+                        originX: 0.5,
+                        originY: 0.5
+                    });
+                }
                 this.floatingTextMap.set(ft.id, textObj);
             } else {
                 textObj.setText(ft.amount.toString());
@@ -769,18 +856,21 @@ export class BattleRenderer {
             const p = this.projector.project(ft.x, ft.z);
             if (p.visible) {
                 textObj.setVisible(true);
-                // スプライト文字（30x60px）の適正スケール計算 (全体で2割小さく)
-                let textScale = (p.scale / 70.0) * 0.8;
-                if (ft.type === 'skill') {
-                    textScale *= 0.7; // スキルテキストは少し小型化
+                if (textObj.isPhaserText) {
+                    let scale = (p.scale / 70.0);
+                    if (ft.type === 'kuji_word') {
+                        scale = Math.max(1.0, (p.scale / 70.0) * 1.5);
+                    }
+                    textObj.setPosition(p.x, p.y - p.scale * 2.0 - (ft.yOffset || 0) * p.scale);
+                    textObj.setScale(scale);
+                } else {
+                    let textScale = (p.scale / 70.0) * 0.8;
+                    textObj.setPosition(p.x, p.y - p.scale * 2.0 - (ft.yOffset || 0) * p.scale);
+                    textObj.setScale(textScale);
                 }
-
                 
-                textObj.setPosition(p.x, p.y - p.scale * 2.0 - ft.yOffset * p.scale);
-                textObj.setScale(textScale);
-                
-                // 寿命0.5秒以下(後半の0.5秒)からフェードアウト
-                const fadeProgress = Math.max(0, (0.5 - ft.lifeTime) / 0.5);
+                // 寿命0.4秒以下からフェードアウト
+                const fadeProgress = Math.max(0, (0.4 - ft.lifeTime) / 0.4);
                 textObj.setAlpha(1.0 - fadeProgress);
                 textObj.setDepth(2000); // 常に最前面
             } else {
@@ -819,21 +909,22 @@ export class BattleRenderer {
                 obj = this.scene.add.sprite(0, 0, 'nrg');
                 obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で黒枠を完全透明化しエネルギー発光！
                 obj.setDepth(1500);
-            }
- else if (eff.type === 'grenade_explosion') {
+            } else if (eff.type === 'grenade_explosion') {
                 obj = this.scene.add.sprite(0, 0, 'grenade_explosion');
                 const fx = Math.random() < 0.5;
                 const fy = Math.random() < 0.5;
                 obj.setFlip(fx, fy);
                 obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
+                obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成（重なるほど明るく発光）
                 obj.setDepth(1800);
-            } else if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
+            } else if (eff.type === 'explosion' || eff.type === 'noah_bullet_explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
                 obj = this.scene.add.sprite(0, 0, 'bomb');
                 // 毎回「通常」「左右反転」「上下反転」「上下左右反転」の4パターン全種＋90度刻みの角度バリエーションをランダム付与
                 const fx = Math.random() < 0.5;
                 const fy = Math.random() < 0.5;
                 obj.setFlip(fx, fy);
                 obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
+                obj.setBlendMode(Phaser.BlendModes.ADD); // 💥 加算合成（重なるほど明るく白熱発光！）
                 obj.setDepth(1800);
             } else {
 
@@ -949,15 +1040,16 @@ export class BattleRenderer {
                 return;
             }
 
-            if (eff.type === 'explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && eff.type.startsWith('majo_death'))) {
+            if (eff.type === 'explosion' || eff.type === 'noah_bullet_explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && eff.type.startsWith('majo_death'))) {
 
-                // 爆発エフェクト (魔女死亡・雑魚死亡時含む): bomb.png (300x300) を使用。加算合成で急拡大＆発光フェード
+                // 爆発エフェクト (魔女死亡・雑魚死亡・ノア弾丸爆発時含む): bomb.png (300x300) を使用。加算合成で急拡大＆発光フェード
                 obj.setPosition(p.x, p.y - p.scale * 0.5);
                 const radiusPx = (eff.radius || 1.5) * p.scale;
                 const baseWidth = obj.width || 300;
                 
                 // 魔女死亡時の小爆発(majo_death_2)はサイズ5倍、最終大爆発(majo_death_3)は超巨大に拡大
                 let sizeMult = 2.5;
+                if (eff.type === 'noah_bullet_explosion') sizeMult = 2.0;
                 if (eff.type === 'enemy_death') sizeMult = 1.5;
                 if (eff.type === 'majo_death_2') sizeMult = 5.0;
                 if (eff.type === 'majo_death_3') sizeMult = 8.5;
@@ -978,7 +1070,7 @@ export class BattleRenderer {
                 } else {
                     obj.setAlpha(alpha * 0.9);
                 }
-                obj.clearTint();
+                if (obj.clearTint) obj.clearTint();
                 return;
             }
 
@@ -1228,12 +1320,145 @@ export class BattleRenderer {
 
 
 
+    // ノア(008)のエネルギー球体描画更新
+    _updateNoahOrbs(p) {
+        if (!this.noahOrbSpriteMap) this.noahOrbSpriteMap = new Map();
+
+        const activeOrbs = (!p.isDead && p.noahOrbs) ? p.noahOrbs : [];
+
+        // 不要になったスプライトの削除
+        for (const [orb, sprite] of this.noahOrbSpriteMap.entries()) {
+            if (!activeOrbs.includes(orb) || orb.isDead) {
+                sprite.destroy();
+                this.noahOrbSpriteMap.delete(orb);
+            }
+        }
+
+        // アクティブな球体の描画
+        for (const orb of activeOrbs) {
+            if (orb.isDead) continue;
+            let sprite = this.noahOrbSpriteMap.get(orb);
+            if (!sprite) {
+                sprite = this.scene.add.sprite(0, 0, 'weapon_008_orb', 0).setOrigin(0.5, 0.5);
+                sprite.setBlendMode(Phaser.BlendModes.ADD);
+                this.noahOrbSpriteMap.set(orb, sprite);
+            }
+
+            const proj = this.projector.project(orb.x, orb.z);
+            if (proj.visible) {
+                sprite.setVisible(true);
+                sprite.setPosition(proj.x, proj.y - proj.scale * 1.0); // 腰〜胸の高さ
+                sprite.setDepth(1000 - proj.depth + 50); // 最前面
+
+                const baseSize = sprite.height || 200;
+                const visualSize = (orb.size || 0.30) * 2.0; // 直径30cm相当の小ぶりで可愛いサイズ（約0.6m相当）
+                const targetScale = proj.scale * (visualSize / baseSize);
+                sprite.setScale(targetScale);
+                sprite.setAngle((this.scene.time.now || 0) * 0.08);
+                sprite.setAlpha(1.0);
+            } else {
+                sprite.setVisible(false);
+            }
+        }
+    }
+
+    // ノア(008)の必殺技フェニックスの残像描画 (0.1秒遅れ: 不透明度75%、0.2秒遅れ: 不透明度50%、加算合成)
+    _updateNoahUltTrails(ultBullet) {
+        if (!this.noahUltTrailMap) this.noahUltTrailMap = new Map();
+        let trails = this.noahUltTrailMap.get(ultBullet);
+        if (!trails) {
+            const s1 = this.scene.add.sprite(0, 0, 'weapon_008_ult_a', 0).setOrigin(0.5, 0.5);
+            s1.setBlendMode(Phaser.BlendModes.ADD);
+            s1.setAlpha(0.75); // 1つ目の残像: 不透明度75%
+
+            const s2 = this.scene.add.sprite(0, 0, 'weapon_008_ult_a', 0).setOrigin(0.5, 0.5);
+            s2.setBlendMode(Phaser.BlendModes.ADD);
+            s2.setAlpha(0.50); // 2つ目の残像: 不透明度50%
+
+            trails = { s1, s2 };
+            this.noahUltTrailMap.set(ultBullet, trails);
+        }
+
+        const history = ultBullet.poseHistory || [];
+
+        // 0.1秒前のポーズを検索 (age が 0.1s に最も近いもの)
+        let pose1 = null, minDiff1 = 999;
+        // 0.2秒前のポーズを検索 (age が 0.2s に最も近いもの)
+        let pose2 = null, minDiff2 = 999;
+
+        for (const h of history) {
+            const diff1 = Math.abs(h.age - 0.10);
+            if (diff1 < minDiff1) {
+                minDiff1 = diff1;
+                pose1 = h;
+            }
+            const diff2 = Math.abs(h.age - 0.20);
+            if (diff2 < minDiff2) {
+                minDiff2 = diff2;
+                pose2 = h;
+            }
+        }
+
+        // 残像1 (0.1秒前、不透明度75%)
+        if (pose1 && minDiff1 < 0.08) {
+            const p1 = this.projector.project(pose1.x, pose1.z);
+            if (p1.visible) {
+                trails.s1.setVisible(true);
+                trails.s1.setTexture(pose1.textureKey || 'weapon_008_ult_a');
+                trails.s1.setPosition(p1.x, p1.y - p1.scale * 1.0);
+                const bW = trails.s1.width || 300;
+                const bH = trails.s1.height || 200;
+                trails.s1.setScale(p1.scale * ((pose1.width || 6.0) / bW), p1.scale * ((pose1.height || 4.0) / bH));
+                trails.s1.setDepth(1000 - p1.depth + 44);
+                trails.s1.setAlpha(0.75);
+            } else {
+                trails.s1.setVisible(false);
+            }
+        } else {
+            trails.s1.setVisible(false);
+        }
+
+        // 残像2 (0.2秒前、不透明度50%)
+        if (pose2 && minDiff2 < 0.08) {
+            const p2 = this.projector.project(pose2.x, pose2.z);
+            if (p2.visible) {
+                trails.s2.setVisible(true);
+                trails.s2.setTexture(pose2.textureKey || 'weapon_008_ult_a');
+                trails.s2.setPosition(p2.x, p2.y - p2.scale * 1.0);
+                const bW = trails.s2.width || 300;
+                const bH = trails.s2.height || 200;
+                trails.s2.setScale(p2.scale * ((pose2.width || 6.0) / bW), p2.scale * ((pose2.height || 4.0) / bH));
+                trails.s2.setDepth(1000 - p2.depth + 43);
+                trails.s2.setAlpha(0.50);
+            } else {
+                trails.s2.setVisible(false);
+            }
+        } else {
+            trails.s2.setVisible(false);
+        }
+    }
+
     // クリーンアップ
     destroy() {
         for (const sprite of this.spriteMap.values()) {
             sprite.destroy();
         }
         this.spriteMap.clear();
+
+        if (this.noahOrbSpriteMap) {
+            for (const sprite of this.noahOrbSpriteMap.values()) {
+                sprite.destroy();
+            }
+            this.noahOrbSpriteMap.clear();
+        }
+
+        if (this.noahUltTrailMap) {
+            for (const trails of this.noahUltTrailMap.values()) {
+                if (trails.s1) trails.s1.destroy();
+                if (trails.s2) trails.s2.destroy();
+            }
+            this.noahUltTrailMap.clear();
+        }
 
         for (const ui of this.uiMap.values()) {
             ui.hpBg.destroy(); ui.hpBar.destroy(); 
@@ -1254,3 +1479,4 @@ export class BattleRenderer {
         }
     }
 }
+

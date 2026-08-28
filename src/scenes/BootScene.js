@@ -10,6 +10,7 @@ export default class BootScene extends Phaser.Scene {
     preload() {
         // キャラクター立ち絵画像（portrait_XXX: アドベンチャー/UI用）
         this.load.image('map_witch', 'files/MAP/map_witch.png');
+        this.load.image('daily_roulette', 'files/OP/rour.png');
         
         // マップエフェクト
         for (let i = 1; i <= 5; i++) {
@@ -29,16 +30,27 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('portrait_003', 'files/CHR/003001.png');
         this.load.image('portrait_004', 'files/CHR/004001.png');
         this.load.image('portrait_005', 'files/CHR/005001.png');
+        this.load.image('portrait_007', 'files/CHR/007001.png');
+        this.load.image('portrait_008', 'files/CHR/008001.png');
         this.load.image('portrait_010', 'files/CHR/011001.png');
 
-        // 2人目用立ち絵 (001001b.png ~ 005001b.png, 011001b.png)
+        // 2人目用立ち絵 (001001b.png ~ 005001b.png, 007001b.png, 011001b.png)
         this.load.image('portrait_001_b', 'files/CHR/001001b.png');
         this.load.image('portrait_002_b', 'files/CHR/002001b.png');
         this.load.image('portrait_003_b', 'files/CHR/003001b.png');
         this.load.image('portrait_004_b', 'files/CHR/004001b.png');
         this.load.image('portrait_005_b', 'files/CHR/005001b.png');
+        this.load.image('portrait_007_b', 'files/CHR/007001.png');
+        this.load.image('portrait_008_b', 'files/CHR/008001.png');
         this.load.image('portrait_010_b', 'files/CHR/011001b.png');
+        this.load.spritesheet('mini_007', 'files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_008', 'files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('mini_010', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_007', 'files/CHR/007003.png');
+        this.load.image('weapon_008_orb', 'files/CHR/008003.png');
+        this.load.image('weapon_008_bullet', 'files/CHR/008004.png');
+        this.load.image('weapon_008_ult_a', 'files/CHR/008004a.png');
+        this.load.image('weapon_008_ult_b', 'files/CHR/008004b.png');
         this.load.image('weapon_010', 'files/CHR/011003.png');
         this.load.image('weapon_010b', 'files/CHR/011003b.png');
 
@@ -60,6 +72,8 @@ export default class BootScene extends Phaser.Scene {
 
 
         }
+        this.load.image('face_007', 'files/CHR/007p.jpg');
+        this.load.image('face_008', 'files/CHR/008p.jpg');
         this.load.image('face_010', 'files/CHR/011p.jpg');
         
         // キャラクター固有トークデータ(JSON)
@@ -68,6 +82,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('talk_003', 'files/CHR/talk_紅華.json');
         this.load.json('talk_004', 'files/CHR/talk_黄蘭.json');
         this.load.json('talk_005', 'files/CHR/talk_李乃果.json');
+        this.load.json('talk_007', 'files/CHR/talk_ななよ.json');
+        this.load.json('talk_008', 'files/CHR/talk_ノア.json');
         this.load.json('talk_010', 'files/CHR/talk_白蓮.json');
         
         // タロットデータとイベントとキャラデータ
@@ -93,8 +109,9 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).jpg`);
         }
         
-        // イベント一枚絵 (evp002 ~ evp015)
-        for (let i = 2; i <= 15; i++) {
+        // イベント一枚絵 (実在するevp002 ~ 007, 011をロード)
+        const validEvpNums = [2, 3, 4, 5, 6, 7, 11];
+        for (const i of validEvpNums) {
             const numStr = i.toString().padStart(3, '0');
             this.load.image(`evp${numStr}`, `files/event/evp${numStr}.jpg`);
         }
@@ -144,6 +161,10 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.image('bg_tower01', 'files/MAP/tower01.jpg');
+        this.load.image('bg_tow1', 'files/MAP/tow1.jpg');
+        this.load.image('bg_tow2', 'files/MAP/tow2.jpg');
+        this.load.image('bg_tow3', 'files/MAP/tow3.jpg');
+        this.load.image('bg_tow4', 'files/MAP/tow4.jpg');
 
         // タワー用エリア画像 (ヘクス用 200x200六角形PNG & 画面背景用JPG)
         const towerAreaAssets = {
@@ -199,6 +220,7 @@ export default class BootScene extends Phaser.Scene {
         for (let i = 1; i <= 3; i++) {
             this.load.audio(`bgm_boss${i}`, `files/BGM/BOSS00${i}.mp3`);
         }
+        this.load.audio('se_get', 'files/SOUND/get.mp3');
     }
 
     create() {

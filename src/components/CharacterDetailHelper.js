@@ -174,6 +174,8 @@ export class CharacterDetailHelper {
                 case '003': return 'em_1'; // 情熱
                 case '004': return 'em_4'; // 犠牲
                 case '005': return 'em_3'; // 調和
+                case '007': return 'em_4'; // 犠牲 (ななよ・黄)
+                case '008': return 'em_1'; // 情熱 (ノア・赤)
                 case '010': return 'em_5'; // 統制 (白蓮)
                 default: return 'em_1';
             }
@@ -208,6 +210,8 @@ export class CharacterDetailHelper {
             '003': { strong: 'purple', weak: 'blue' },
             '004': { strong: 'blue', weak: 'green' },
             '005': { strong: 'yellow', weak: 'purple' },
+            '007': { strong: 'blue', weak: 'green' },
+            '008': { strong: 'purple', weak: 'blue' },
             '010': { strong: 'red', weak: 'yellow' }
         };
 
@@ -589,6 +593,8 @@ export class CharacterDetailHelper {
             '003': { strong: 'purple', weak: 'blue' },
             '004': { strong: 'blue', weak: 'green' },
             '005': { strong: 'yellow', weak: 'purple' },
+            '007': { strong: 'blue', weak: 'green' },
+            '008': { strong: 'purple', weak: 'blue' },
             '010': { strong: 'red', weak: 'yellow' }
         };
 

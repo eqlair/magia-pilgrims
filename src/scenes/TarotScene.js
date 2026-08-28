@@ -376,10 +376,31 @@ export default class TarotScene extends Phaser.Scene {
                 const joinCharId = this.getCharacterId(drawnCardId);
                 const alreadyInParty = joinCharId && this.party.includes(joinCharId);
                 const isPartyFull = this.party && this.party.length >= 5;
+
+                // キャラごとのタロット加入解放条件チェック
+                let isUnlockedForTarot = true;
                 
-                if (joinEvents && joinEvents[drawnCardId] && !alreadyInParty && !isPartyFull) {
+                // ① ノア(008)・ななよ(007): 一度でも塔に突入したことがある実績(hasEnteredTower)が必要
+                // ※ 単純に地上でリスポーンしただけでは解放されない
+                if (joinCharId === '007' || joinCharId === '008') {
+                    if (!gs.hasEnteredTower) {
+                        isUnlockedForTarot = false;
+                    }
+                }
+
+                // ② 白蓮(010): 1周目(リスポーン未経験)はタロット遭遇不可。
+                // 秋葉原で探索して出会った後(hasAccompanied)か、1度以上リスポーンした後に解放
+                if (joinCharId === '010') {
+                    const hasMetInAkiba = !!(gs.characters?.['010']?.hasAccompanied);
+                    const hasRespawned = (gs.maxPastExp || 0) > 0;
+                    if (!hasMetInAkiba && !hasRespawned) {
+                        isUnlockedForTarot = false;
+                    }
+                }
+                
+                if (joinEvents && (joinEvents[drawnCardId] || (joinCharId && joinEvents[joinCharId])) && !alreadyInParty && !isPartyFull && isUnlockedForTarot) {
                     this.scene.stop();
-                    const script = joinEvents[drawnCardId];
+                    const script = joinEvents[drawnCardId] || joinEvents[joinCharId];
                     this.scene.start('EventScene', { 
                         returnScene: this.returnScene,
                         events: script,
@@ -397,11 +418,13 @@ export default class TarotScene extends Phaser.Scene {
 
     getCharacterId(tarotId) {
         const map = {
-            4: '004',   // 黄蘭
-            9: '003',   // 紅華
-            10: '010',  // 白蓮
-            12: '002',  // 蒼樹
-            15: '005'   // 李乃果
+            1: '007',   // ななよ (愚者)
+            4: '004',   // 黄蘭 (女帝)
+            5: '008',   // ノア (皇帝)
+            9: '003',   // 紅華 (力)
+            10: '010',  // 白蓮 (隠者)
+            12: '002',  // 蒼樹 (正義)
+            15: '005'   // 李乃果 (節制)
         };
         return map[tarotId] || null;
     }

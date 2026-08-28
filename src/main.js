@@ -20,6 +20,22 @@ import FormationScene from './scenes/FormationScene';
 import { DebugMenuScene } from './scenes/DebugMenuScene';
 import MapEventAdjustScene from './scenes/MapEventAdjustScene';
 
+// ── ?load_test_save=1 クエリ検知時の即時セーブデータ注入 ──
+try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('load_test_save') === '1' || params.get('test_save') === '1') {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/test_save_snapshot.json', false); // 同期取得
+        xhr.send(null);
+        if (xhr.status === 200) {
+            localStorage.setItem('antigravity_game_save', xhr.responseText);
+            console.log('[main.js] 🧪 Test snapshot save injected into localStorage via query param!');
+        }
+    }
+} catch (e) {
+    console.error('[main.js] Failed to inject test save:', e);
+}
+
 // --- 画面上エラーオーバーレイシステム ---
 
 window.__DEBUG_ERRORS__ = [];

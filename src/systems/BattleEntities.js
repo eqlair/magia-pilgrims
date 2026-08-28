@@ -1,5 +1,5 @@
-import charDataJson from '../data/characters.json';
-import { GlobalState } from './GlobalState';
+import charDataJson from '../data/characters.json' with { type: 'json' };
+import { GlobalState } from './GlobalState.js';
 
 /**
  * 戦闘用エンティティのベースクラス群
@@ -127,6 +127,11 @@ export class PlayerCharacter extends BattleEntity {
         
         this.charId = data.charId || '001';
         this.size = 1.0;
+
+        this.baseX = (typeof x === 'number' && !isNaN(x)) ? x : (this.lane * 2.0);
+        this.baseZ = (typeof z === 'number' && !isNaN(z)) ? z : (this.isFront ? 6.0 : 1.0);
+        this.x = this.baseX;
+        this.z = this.baseZ;
         
         // キャラクター定義の取得
         this.charDef = charDataJson.characters[this.charId] || charDataJson.characters['001'];
@@ -150,6 +155,18 @@ export class PlayerCharacter extends BattleEntity {
         this.level = (stats && stats.level) ? stats.level : 1;
         
         this.weight = this.charDef.weight || 50;
+
+        const charIdToAttr = {
+            '001': 'purple',
+            '002': 'blue',
+            '003': 'red',
+            '004': 'yellow',
+            '005': 'green',
+            '007': 'yellow',
+            '008': 'red',
+            '010': 'blue'
+        };
+        this.attribute = charIdToAttr[this.charId] || 'yellow';
 
         // レベルと成長の管理
         // レベルと成長の管理
@@ -224,6 +241,13 @@ export class PlayerCharacter extends BattleEntity {
         this.hopDuration = 0.3; // 跳び戻る時間
         
         this.delayedActions = [];
+
+        // ノア(008)のお供のエネルギー球体
+        if (this.charId === '008') {
+            this.noahOrbs = [];
+            this.maxNoahOrbs = Math.min(5, Math.floor(this.wlv / 4) + 1);
+            this.noahOrbSpawnTimer = 0.2; // 開始0.2秒後に1個目、以降1秒ごとに生成
+        }
     }
 
     updateAttackPatterns() {
@@ -288,8 +312,12 @@ export class PlayerCharacter extends BattleEntity {
             this.atkMultiplier = 1.0;
         }
 
+
         // --- 定期発動特技 ---
-        const specialInterval = this.charId === '003' ? 12.0 : 10.0;
+        let specialInterval = 10.0;
+        if (this.charId === '003' || this.charId === '007') specialInterval = 12.0;
+        if (this.charId === '008') specialInterval = 15.0;
+
         this.specialTimer -= dt;
         if (this.specialTimer <= 0) {
             this.specialTimer += specialInterval;
@@ -376,6 +404,47 @@ export class PlayerCharacter extends BattleEntity {
                     floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "BARRIER", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
                     effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
                 }
+            } else if (this.charId === '007') {
+                // ななよ (特技: 12秒に1回、自身と隣接レーンの味方の属性防御・デバフ抵抗を30下げる＝ダメージ軽減、持続 3 + wlv/2 秒)
+                const buffDuration = 3.0 + (this.wlv / 2.0);
+                const targets = players.filter(p => !p.isDead && Math.abs((p.lane !== undefined ? p.lane : 1) - (this.lane !== undefined ? this.lane : 1)) <= 1);
+                for (const t of targets) {
+                    t.elementalDefBuff = 30;
+                    t.elementalDefBuffTimer = buffDuration;
+                    floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "DEF UP!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
+                    effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'yellow' } }));
+                }
+            } else if (this.charId === '008') {
+                // ノア (特技: 15秒に1回、エネルギー球の位置に直径3mのフィールドを形成。5秒間維持、攻撃力0、触れた敵の属性防御力を50上げる(弱体化、敵のデバフ抵抗力で増減)。デバフ効果は 5 + WLV 秒維持)
+                const debuffDuration = 5.0 + this.wlv;
+                const activeOrbs = (this.noahOrbs || []).filter(o => !o.isDead);
+                
+                // 生きているエネルギー球体の位置、なければノアの前方にフィールドを形成
+                const spawnPoints = activeOrbs.length > 0 
+                    ? activeOrbs.map(o => ({ x: o.x, z: o.z }))
+                    : [{ x: this.x, z: this.z + 1.5 }];
+
+                for (const pt of spawnPoints) {
+                    const specialField = new Bullet(pt.x, pt.z, {
+                        owner: 'player',
+                        vx: 0,
+                        vz: 0, // その場に固定で5秒間維持
+                        damage: 0,
+                        knockback: 0,
+                        size: 3.0, // 直径3m
+                        lifeTime: 5.0,
+                        type: 'special_field_008',
+                        textureKey: 'weapon_008_orb',
+                        isPiercing: true,
+                        debuffDuration: debuffDuration,
+                        baseDebuff: 50
+                    });
+                    specialField.sourceEntity = this;
+                    if (this.engine) {
+                        this.engine.bullets.push(specialField);
+                    }
+                }
+                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "WEAKEN FIELD!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '010') {
                 // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径2.5mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
                 const specialBullet = new Bullet(this.x, this.z, {
@@ -587,12 +656,8 @@ export class PlayerCharacter extends BattleEntity {
         } else if (this.charId === '003') {
             // 紅華: 4m槍投げ（両端を繋げた形）
             const dmg = 2.0 * this.atk * ultimateDamageMultiplier;
-            // baseX, baseZ を使用してキャラクターの現在位置から発射
-
             const spawnX = this.x;
             const spawnZ = this.z;
-            
-            // 向いている方向を計算（設定通り前方へ）
             let dirX = 0; let dirZ = 1;
             
             const bObj = new Bullet(spawnX, spawnZ, {
@@ -601,39 +666,28 @@ export class PlayerCharacter extends BattleEntity {
                 damage: dmg, knockback: 200, size: 30.0, hitRange: 3.0, lifeTime: 10.0, type: 'ultimate_003'
             });
             bObj.sourceEntity = this;
-            
-            // 独自の往復ロジックのためにカスタムデータを持たせる
             bObj.isReturning = false;
             bObj.distanceTraveled = 0;
             bObj.spinAngle = 0;
             
-            // 特別なupdateを上書きして往復させる
             bObj.update = function(dt) {
-                // スピン
-                this.spinAngle += 5 * Math.PI * dt; // 回転速度を1/2に
-                
-                // 往復処理
+                this.spinAngle += 5 * Math.PI * dt;
                 if (!this.isReturning) {
                     this.x += this.vx * dt; 
                     this.z += this.vz * dt; 
-                    // 100(エクセル値)の速度は 5.0m/s。距離はそのままmで計算
                     this.distanceTraveled += 5.0 * dt;
                     if (this.distanceTraveled >= 16.0) {
                         this.isReturning = true;
                     }
                 } else {
-                    // 戻る速度200(エクセル値) = 10.0m/s
                     const dx = this.sourceEntity.x - this.x;
                     const dz = this.sourceEntity.z - this.z;
                     const dist = Math.sqrt(dx*dx + dz*dz) || 0.001;
-                    
                     if (dist < 1.0) {
-                        // 自身に接触して消滅
                         this.isDead = true;
                         this.sourceEntity.isUltimateActive = false;
                         return;
                     }
-                    
                     const spd = 10.0 * dt;
                     this.x += (dx / dist) * spd;
                     this.z += (dz / dist) * spd;
@@ -647,17 +701,182 @@ export class PlayerCharacter extends BattleEntity {
             } else {
                 bullets.push(bObj); if (bObj && bObj.sourceEntity && bObj.sourceEntity.triggerAttackShake) bObj.sourceEntity.triggerAttackShake();
             }
-        } else if (this.charId === '005') {
-            // 李乃果: 全体回復
-            const totalHeal = 3.0 * this.maxHp;
-            const alivePlayers = players.filter(p => !p.isDead);
-            if (alivePlayers.length > 0) {
-                const healPerPlayer = totalHeal / alivePlayers.length;
-                for (const p of alivePlayers) {
-                    p.hp = Math.min(p.maxHp, p.hp + healPerPlayer);
-                    floatingTexts.push({ id: Math.random(), x: p.x, yOffset: 0, z: p.z, amount: Math.ceil(healPerPlayer), type: "heal", lifeTime: 1.0, maxLife: 1.0 });
+        } else if (this.charId === '007') {
+            // ななよ 必殺技:
+            // 消費SP: 10 + WLV, CD: 60 - WLV*2
+            // 三鈷杵が一番耐久力のある敵に向かって秒速35mで15m進む。全貫通。
+            // 突進ごとに「臨・兵・闘・者・皆・陣・烈・在・前」が頭上に1文字ずつ表示される！
+            // 9回突進を行ったあと、最後はななよに向かって戻り、ななよに接触すると消滅。
+            const spCost = Math.floor((10 + this.wlv) * spCostMultiplier);
+            if (this.sp < spCost) return;
+            this.sp -= spCost;
+
+            const cdVal = Math.max(10, 60 - (this.wlv * 2));
+            this.ultimateCooldown = cdVal;
+
+            const ultDamage = Math.max(1, Math.floor((this.atk * (1.5 + this.wlv * 0.1)) * ultimateDamageMultiplier));
+            const self = this;
+
+            // 必殺技発動中: 印を結んでいるため通常攻撃・格闘攻撃は一切行えない
+            this.isUltimateActive = true;
+
+            const ultBullet = new Bullet(this.x, this.z + 1.0, {
+                owner: 'player',
+                isPiercing: true,
+                vx: 0,
+                vz: 35.0,
+                damage: ultDamage,
+                knockback: 30,
+                size: 1.8,
+                lifeTime: 25.0,
+                type: 'ultimate_007'
+            });
+            ultBullet.sourceEntity = this;
+            ultBullet.hitEnemyIds = new Set();
+            ultBullet.thrustStep = 1; // 1〜9
+            ultBullet.stepState = 'moving'; // 'moving' | 'pausing' | 'returning'
+            ultBullet.pauseTimer = 0;
+            ultBullet.travelDist = 0;
+            ultBullet.maxDistForStep = 15.0; // 1回目は15m、2〜9回目は12m
+            ultBullet.speed = 35.0;
+
+            const KUJI_CHARS = ['臨', '兵', '闘', '者', '皆', '陣', '烈', '在', '前'];
+
+            const showKujiWord = (step) => {
+                const char = KUJI_CHARS[step - 1] || '前';
+                const ft = {
+                    id: Math.random(),
+                    x: self.x,
+                    yOffset: 0.2, // ななよの頭上
+                    z: self.z,
+                    amount: char,
+                    type: 'kuji_word',
+                    color: '#ffd700',
+                    stroke: '#000000',
+                    strokeThickness: 6,
+                    fontSize: '36px',
+                    fontStyle: 'bold',
+                    lifeTime: 0.85,
+                    maxLife: 0.85
+                };
+                if (self.engine) {
+                    self.engine.floatingTexts.push(ft);
+                    self.engine.effects.push(new EffectEntity(self.x, self.z, { type: 'buff_circle', radius: 1.2, lifeTime: 0.35, customData: { color: 'yellow' } }));
+                } else {
+                    floatingTexts.push(ft);
                 }
+            };
+
+            // 最もHP（耐久力）の高い敵の方向へ速度ベクトルを設定
+            ultBullet.aimAtToughestEnemy = function() {
+                this.hitEnemyIds.clear();
+                const aliveEnemies = (self.engine ? self.engine.enemies : enemies).filter(e => !e.isDead);
+                if (aliveEnemies.length > 0) {
+                    aliveEnemies.sort((a, b) => b.hp - a.hp);
+                    const target = aliveEnemies[0];
+                    const dx = target.x - this.x;
+                    const dz = target.z - this.z;
+                    const dist = Math.hypot(dx, dz) || 1.0;
+                    this.vx = (dx / dist) * this.speed;
+                    this.vz = (dz / dist) * this.speed;
+                } else {
+                    this.vx = 0;
+                    this.vz = this.speed;
+                }
+                this.travelDist = 0;
+                showKujiWord(this.thrustStep);
+            };
+
+            ultBullet.aimAtToughestEnemy();
+
+            ultBullet.update = function(dt) {
+                if (this.stepState === 'moving') {
+                    this.x += this.vx * dt;
+                    this.z += this.vz * dt;
+                    this.travelDist += this.speed * dt;
+
+                    if (this.travelDist >= this.maxDistForStep) {
+                        if (this.thrustStep < 9) {
+                            this.stepState = 'pausing';
+                            this.pauseTimer = 0.20; // 0.2秒のタメで次の一閃へ！
+                            this.vx = 0;
+                            this.vz = 0;
+                        } else {
+                            // 9回突進完了（「前」まで到達） ➔ ななよへ帰還！
+                            this.stepState = 'returning';
+                        }
+                    }
+                } else if (this.stepState === 'pausing') {
+                    this.pauseTimer -= dt;
+                    if (this.pauseTimer <= 0) {
+                        this.thrustStep++;
+                        this.stepState = 'moving';
+                        this.maxDistForStep = 12.0;
+                        this.aimAtToughestEnemy();
+                    }
+                } else if (this.stepState === 'returning') {
+                    const targetX = self.x;
+                    const targetZ = self.z;
+                    const dx = targetX - this.x;
+                    const dz = targetZ - this.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist < 1.0) {
+                        this.isDead = true;
+                        self.isUltimateActive = false; // 三鈷杵帰還完了！通常行動再開
+                    } else {
+                        const returnSpd = 40.0;
+                        this.vx = (dx / dist) * returnSpd;
+                        this.vz = (dz / dist) * returnSpd;
+                        this.x += this.vx * dt;
+                        this.z += this.vz * dt;
+                    }
+                }
+            };
+
+            if (this.engine) {
+                this.engine.bullets.push(ultBullet);
+            } else {
+                bullets.push(ultBullet);
             }
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "九字結界・破！", type: "skill", lifeTime: 1.2, maxLife: 1.2 });
+        } else if (this.charId === '008') {
+            // ノア 必殺技:
+            // 消費SP: 20 + WLV, CD: 60 - WLV*2
+            // ノアの前方1mに 008004a.png を出現させ、1秒かけて高さ1mから高さ3mまで拡大しながら秒速0.5mで前進。
+            // 同じ大きさの 008004b.png に変化したあと、0.1秒ごとに秒速1mづつ加速して前進。
+            // 全貫通、攻撃力 60 + 5 * WLV、接触した弾丸を消す！
+            const spCost = Math.floor((20 + this.wlv) * spCostMultiplier);
+            if (this.sp < spCost) return;
+            this.sp -= spCost;
+
+            const cdVal = Math.max(10, 60 - (this.wlv * 2));
+            this.ultimateCooldown = cdVal;
+
+            const ultDmg = Math.max(1, Math.floor((this.atk * ((60 + 5 * this.wlv) / 100)) * ultimateDamageMultiplier));
+            const ultBullet = new Bullet(this.x, this.z + 1.0, {
+                owner: 'player',
+                isPiercing: true,
+                vx: 0,
+                vz: 0.5,
+                damage: ultDmg,
+                knockback: 100,
+                size: 1.0,
+                type: 'ultimate_008',
+                textureKey: 'weapon_008_ult_a',
+                lifeTime: 15.0,
+                erasesEnemyBullets: true
+            });
+            ultBullet.sourceEntity = this;
+            ultBullet.expandTimer = 0;
+            ultBullet.currentVz = 0.5;
+            ultBullet.isWingExpanded = false;
+
+            if (this.engine) {
+                this.engine.bullets.push(ultBullet);
+            } else {
+                bullets.push(ultBullet);
+            }
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "不滅の不死鳥！", type: "skill", lifeTime: 1.2, maxLife: 1.2 });
         } else if (this.charId === '010') {
             // 白蓮 必殺技:
             // 消費SP: 10 + WLV, CD: 60 - WLV*2
@@ -740,18 +959,18 @@ export class PlayerCharacter extends BattleEntity {
         }
 
         // ベース位置の更新
-        const targetX = this.lane * 2.0;
-        // base X/Z を計算するが、this.x, this.z自体はベース+オフセットになるため、ベース位置を裏で保持・計算する
-        // 簡単のため、this.x, this.z は実座標とし、baseX, baseZ を別に持たずに差分で動かすか？
-        // いや、this.x += ... だと animOffset が乗った値から戻ろうとしてしまう。
-        // よって baseX, baseZ を明示的に持つのが安全。
-        if (this.baseX === undefined) {
-            this.baseX = this.x;
-            this.baseZ = this.z;
+        const targetX = (typeof this.lane === 'number' ? this.lane : 0) * 2.0;
+        const targetZ = typeof this.targetZ === 'number' ? this.targetZ : (this.isFront ? 6.0 : 1.0);
+
+        if (this.baseX === undefined || isNaN(this.baseX)) {
+            this.baseX = targetX;
+        }
+        if (this.baseZ === undefined || isNaN(this.baseZ)) {
+            this.baseZ = targetZ;
         }
         
         this.baseX += (targetX - this.baseX) * 10.0 * dt;
-        this.baseZ += (this.targetZ - this.baseZ) * 5.0 * dt;
+        this.baseZ += (targetZ - this.baseZ) * 5.0 * dt;
 
         // オフセットの更新（跳び戻り中の場合は特別な補間）
         for (let i = this.delayedActions.length - 1; i >= 0; i--) {
@@ -817,7 +1036,182 @@ export class PlayerCharacter extends BattleEntity {
             }
         }
         
-        // (GlobalStateで一元管理するため、ここでのガチャ抽選処理は削除)
+        // --- ノア(008)のお供エネルギー球体の自律更新 ---
+        if (this.charId === '008' && this.engine && !this.isDead) {
+            if (!this.noahOrbs) this.noahOrbs = [];
+            this.maxNoahOrbs = Math.min(5, Math.floor((this.wlv || 0) / 3) + 2);
+            
+            const noahX = typeof this.x === 'number' && !isNaN(this.x) ? this.x : (this.baseX || 0);
+            const noahZ = typeof this.z === 'number' && !isNaN(this.z) ? this.z : (this.baseZ || 1.0);
+
+            // 初回: 最初から2個生成（最大個数まで）
+            if (this.noahOrbs.length === 0) {
+                const initCount = Math.min(2, this.maxNoahOrbs);
+                for (let i = 0; i < initCount; i++) {
+                    const initAngle = Math.random() * Math.PI * 2;
+                    this.noahOrbs.push({
+                        x: noahX + (Math.random() - 0.5) * 0.8,
+                        z: noahZ + (Math.random() - 0.5) * 0.8,
+                        size: 0.30, // 直径30cm
+                        speed: 1.0, // 秒速1m
+                        moveAngle: initAngle,
+                        targetAngle: initAngle,
+                        changeDirTimer: 0.5 + Math.random() * 1.0,
+                        wavePhase: Math.random() * Math.PI * 2,
+                        shootTimer: 0.3 + (i * 0.4), // 少しズラして発射開始
+                        isDead: false,
+                        textureKey: 'weapon_008_orb'
+                    });
+                }
+                this.noahOrbSpawnTimer = 1.0;
+            }
+
+            // 1秒に1個ずつ生成（最大個数まで）
+            if (this.noahOrbs.length < this.maxNoahOrbs) {
+                this.noahOrbSpawnTimer = (this.noahOrbSpawnTimer !== undefined ? this.noahOrbSpawnTimer : 1.0) - dt;
+                if (this.noahOrbSpawnTimer <= 0) {
+                    this.noahOrbSpawnTimer = 1.0;
+                    const initAngle = Math.random() * Math.PI * 2;
+                    this.noahOrbs.push({
+                        x: noahX + (Math.random() - 0.5) * 0.8,
+                        z: noahZ + (Math.random() - 0.5) * 0.8,
+                        size: 0.30, // 直径30cm
+                        speed: 1.0, // 秒速1m
+                        moveAngle: initAngle,
+                        targetAngle: initAngle,
+                        changeDirTimer: 0.5 + Math.random() * 1.0,
+                        wavePhase: Math.random() * Math.PI * 2,
+                        shootTimer: 0.5 + Math.random() * 0.5, // 1秒に1回弾丸発射
+                        isDead: false,
+                        textureKey: 'weapon_008_orb'
+                    });
+                }
+            }
+
+            const enemyList = this.engine.isPvpBattle ? this.engine.pvpEnemies : this.engine.enemies;
+            const aliveEnemies = (enemyList || []).filter(e => !e.isDead && !e.isDying && e.hp > 0 && typeof e.x === 'number');
+
+            for (const orb of this.noahOrbs) {
+                if (orb.isDead) continue;
+                if (isNaN(orb.x) || isNaN(orb.z)) {
+                    orb.x = noahX;
+                    orb.z = noahZ;
+                }
+
+                // 距離制限なしで一番近い敵を検索（ゼロ距離から遠距離まで全対応）
+                let nearestEnemy = null;
+                let minDist = 99999;
+                for (const e of aliveEnemies) {
+                    const d = Math.hypot(e.x - orb.x, e.z - orb.z);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearestEnemy = e;
+                    }
+                }
+
+                // ノアからの距離
+                const distFromNoah = Math.hypot(orb.x - noahX, orb.z - noahZ);
+
+                // --- うろうろ移動（ランダム方向転換＋波状蛇行） ---
+                orb.changeDirTimer = (orb.changeDirTimer || 0) - dt;
+                if (orb.changeDirTimer <= 0) {
+                    orb.changeDirTimer = 1.0 + Math.random() * 1.5;
+                    // 新しいランダムな目標方向（-120度〜+120度旋回）
+                    orb.targetAngle = (orb.moveAngle || 0) + (Math.random() - 0.5) * (Math.PI * 1.3);
+                }
+
+                // 目標角度へ滑らかに旋回
+                if (orb.moveAngle === undefined) orb.moveAngle = 0;
+                let angleDiff = orb.targetAngle - orb.moveAngle;
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                orb.moveAngle += angleDiff * 3.0 * dt;
+
+                // 基本のランダムうろうろベクトル
+                let vx = Math.cos(orb.moveAngle);
+                let vz = Math.sin(orb.moveAngle);
+
+                // 左右のふわふわ波状揺らぎ
+                orb.wavePhase = (orb.wavePhase || 0) + dt * 3.0;
+                const waveMag = Math.sin(orb.wavePhase) * 0.4;
+                const perpX = -Math.sin(orb.moveAngle) * waveMag;
+                const perpZ = Math.cos(orb.moveAngle) * waveMag;
+                vx += perpX;
+                vz += perpZ;
+
+                // 敵がいる場合は、敵の方向へ適度に引力（重み0.5）を合成してうろうろ接近
+                if (nearestEnemy) {
+                    const enemyDx = (nearestEnemy.x - orb.x) / Math.max(0.001, minDist);
+                    const enemyDz = (nearestEnemy.z - orb.z) / Math.max(0.001, minDist);
+                    vx = vx * 0.5 + enemyDx * 0.5;
+                    vz = vz * 0.5 + enemyDz * 0.5;
+                }
+
+                // ノアから離れすぎた場合（6m以上）はノア方向へ戻す引力を加える
+                if (distFromNoah >= 6.0) {
+                    const noahDx = (noahX - orb.x) / distFromNoah;
+                    const noahDz = (noahZ - orb.z) / distFromNoah;
+                    const returnWeight = Math.min(0.8, (distFromNoah - 6.0) * 0.4);
+                    vx = vx * (1.0 - returnWeight) + noahDx * returnWeight;
+                    vz = vz * (1.0 - returnWeight) + noahDz * returnWeight;
+                }
+
+                // フィールド外壁の反発
+                if (orb.x < -4.5) vx += 0.8;
+                if (orb.x > 4.5) vx -= 0.8;
+                if (orb.z < 0.5) vz += 0.8;
+                if (orb.z > 16.0) vz -= 0.8;
+
+                // ベクトルの正規化
+                const vLen = Math.hypot(vx, vz) || 1.0;
+                const moveSpeed = orb.speed || 1.0; // 秒速1m
+                orb.x += (vx / vLen) * moveSpeed * dt;
+                orb.z += (vz / vLen) * moveSpeed * dt;
+
+                // 攻撃: 1秒に1回、赤いレーザー弾丸を発射（ゼロ距離でも至近距離でも即座に発射！）
+                orb.shootTimer = (orb.shootTimer !== undefined ? orb.shootTimer : 0.2) - dt;
+                if (nearestEnemy) {
+                    if (orb.shootTimer <= 0) {
+                        orb.shootTimer = 1.0;
+                        const targetDx = nearestEnemy.x - orb.x;
+                        const targetDz = nearestEnemy.z - orb.z;
+                        const targetDist = Math.hypot(targetDx, targetDz);
+                        
+                        // ゼロ距離(重なっている時)でも前方へ確実に発射
+                        let baseAngle = Math.PI / 2; // デフォルト真上(Z正方向)
+                        if (targetDist > 0.01) {
+                            baseAngle = Math.atan2(targetDz, targetDx);
+                        }
+                        const deviationRad = (Math.random() - 0.5) * (6 * Math.PI / 180); // 3度ブレ
+                        const shootAngle = baseAngle + deviationRad;
+
+                        const bulletSpeed = 25.0; // 速度25m/s
+                        const bulletDmg = Math.max(1, Math.floor(this.atk * 0.50)); // 威力: 攻撃力の50%
+
+                        const bullet = new Bullet(orb.x, orb.z, {
+                            owner: 'player',
+                            vx: Math.cos(shootAngle) * bulletSpeed,
+                            vz: Math.sin(shootAngle) * bulletSpeed,
+                            damage: bulletDmg,
+                            knockback: 20,
+                            size: 0.8,
+                            isPiercing: false,
+                            type: 'noah_bullet_008',
+                            textureKey: 'weapon_008_bullet',
+                            targetDist: 15.0,
+                            lifeTime: 15.0 / bulletSpeed + 0.1 // 射程15m
+                        });
+                        bullet.sourceEntity = this;
+                        bullet.textureKey = 'weapon_008_bullet';
+                        this.engine.bullets.push(bullet);
+
+                    }
+                } else {
+                    // 敵がいない時はタイマーを0付近で待機（敵が出現した瞬間即発射）
+                    if (orb.shootTimer < 0) orb.shootTimer = 0;
+                }
+            }
+        }
     }
 }
 
@@ -1217,9 +1611,11 @@ export class PvpEnemyCharacter extends PlayerCharacter {
             '003': 'red',
             '004': 'yellow',
             '005': 'green',
+            '007': 'yellow',
+            '008': 'red',
             '010': 'blue'
         };
-        this.attribute = charIdToAttr[this.charId] || 'red';
+        this.attribute = charIdToAttr[this.charId] || 'yellow';
 
         this.updateAttackPatterns();
     }

@@ -4,6 +4,7 @@ import { TutorialUI } from '../systems/TutorialUI';
 import { TimeReporter } from '../systems/TimeReporter';
 import { EventEngine } from '../systems/EventEngine';
 import { SaveManager } from '../systems/SaveManager';
+import { GlobalState } from '../systems/GlobalState';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 
 /**
@@ -216,9 +217,11 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="bc-party" value="003"> 3.紅華</label><br>
                 <label><input type="checkbox" class="bc-party" value="004"> 4.黄蘭</label><br>
                 <label><input type="checkbox" class="bc-party" value="005"> 5.李乃果</label><br>
-                <label><input type="checkbox" class="bc-party" value="010"> 6.白蓮</label>
+                <label><input type="checkbox" class="bc-party" value="007"> 7.ななよ</label><br>
+                <label><input type="checkbox" class="bc-party" value="008"> 8.ノア</label><br>
+                <label><input type="checkbox" class="bc-party" value="010"> 10.白蓮</label>
             </div>
-            <div style="display:flex; justify-style:space-between;">
+            <div style="display:flex; justify-content:space-between;">
                 <button id="bc-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>
                 <button id="bc-start" style="padding:5px 10px; background-color:#a54a4a; color:#fff; border:none; cursor:pointer;">START</button>
             </div>
@@ -294,7 +297,9 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="ac-party" value="003"> 3.紅華</label><br>
                 <label><input type="checkbox" class="ac-party" value="004"> 4.黄蘭</label><br>
                 <label><input type="checkbox" class="ac-party" value="005"> 5.李乃果</label><br>
-                <label><input type="checkbox" class="ac-party" value="010"> 6.白蓮</label>
+                <label><input type="checkbox" class="ac-party" value="007"> 7.ななよ</label><br>
+                <label><input type="checkbox" class="ac-party" value="008"> 8.ノア</label><br>
+                <label><input type="checkbox" class="ac-party" value="010"> 10.白蓮</label>
             </div>
             <div style="display:flex; justify-content:space-between;">
                 <button id="ac-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>

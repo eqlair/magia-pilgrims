@@ -28,11 +28,15 @@ export default class AdventureScene extends Phaser.Scene {
 
     init(data) {
         this._initData = data || {};
+        window.GlobalState = GlobalState;
         const gs = GlobalState.getInstance();
         if (this._initData.isTower !== undefined) {
             gs.isTowerMode = !!this._initData.isTower;
         }
         this.isTowerMode = !!gs.isTowerMode;
+        if (this.isTowerMode) {
+            gs.hasEnteredTower = true;
+        }
     }
 
     preload() {
@@ -475,7 +479,10 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
 
-
+        // タワー広域表示時の背景セットアップ (tow1〜tow4)
+        if (this.isTowerMode) {
+            this._setupTowerWideBackground();
+        }
 
         // 休息モード中であればRestSceneへ直接接続して再開（時間の踏み倒し裏技防止）
         if (this.inRestMode) {
@@ -506,10 +513,27 @@ export default class AdventureScene extends Phaser.Scene {
         // スマホ画面用リアルタイム・デバッグオーバーレイの配置 (非表示化)
         // this.setupDebugOverlay();
 
-        // アイドル時間計測用
+        // アイドル時間計測用＆広域表示ドラッグスクロール操作
         this.idleTime = 0;
-        this.input.on('pointerdown', () => this.resetIdleTime());
-        this.input.on('pointermove', () => this.resetIdleTime());
+        this.input.on('pointerdown', (pointer) => {
+            this.resetIdleTime();
+            if (this.isWideMap) {
+                this._isDraggingWideMap = true;
+                this._dragStartY = pointer.y;
+                this._dragCamStartY = this.cameras.main.scrollY;
+                this.cameras.main.stopFollow();
+            }
+        });
+        this.input.on('pointermove', (pointer) => {
+            this.resetIdleTime();
+            if (this.isWideMap && this._isDraggingWideMap && pointer.isDown) {
+                const dy = (pointer.y - this._dragStartY) / this.cameras.main.zoom;
+                this.cameras.main.scrollY = this._dragCamStartY - dy;
+            }
+        });
+        this.input.on('pointerup', () => {
+            this._isDraggingWideMap = false;
+        });
 
         
         // 他のシーン（EventSceneなど）から復帰したときの処理
@@ -828,6 +852,34 @@ export default class AdventureScene extends Phaser.Scene {
 
                     // タワー内であればフロア敵全滅による階段自動発見チェック
                     this.checkTowerFloorClearAndFindStairs();
+                }
+
+                // ★ タワー内での仲間遭遇判定 (戦闘終了後、メンバーが4人未満かつ、ノアとななよのどちらもパーティにいない場合)
+                console.log(`[DEBUG TowerEncounter] isTowerMode=${this.isTowerMode}, partyLen=${this.party?.length}, party=${JSON.stringify(this.party)}`);
+                if (this.isTowerMode && (this.party || []).length < 4) {
+                    const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+                    const hasNoahOrNanayo = currentNormParty.includes('007') || currentNormParty.includes('008');
+                    console.log(`[DEBUG TowerEncounter] hasNoahOrNanayo=${hasNoahOrNanayo}`);
+                    if (!hasNoahOrNanayo) {
+                        // ノア(008)またはななよ(007)のどちらかと遭遇（50%ランダム）
+                        const candidates = ['007', '008'];
+                        const chosenCharId = candidates[Math.floor(Math.random() * candidates.length)];
+                        
+                        const joinEventsJson = this.cache.json.get('join_events');
+                        const storyEvents = joinEventsJson ? (joinEventsJson[chosenCharId] || joinEventsJson[parseInt(chosenCharId, 10)]) : null;
+                        console.log(`[DEBUG TowerEncounter] chosenCharId=${chosenCharId}, storyEventsCount=${storyEvents?.length}`);
+                        if (storyEvents && storyEvents.length > 0) {
+                            console.log(`[AdventureScene] Tower post-battle encounter triggered: ${chosenCharId}`);
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: storyEvents,
+                                returnScene: 'AdventureScene',
+                                joinCharacterId: chosenCharId,
+                                fromExploration: true
+                            });
+                            return;
+                        }
+                    }
                 }
 
                 // 戦闘後の仲間精神力チェック（1/5以下なら喪失イベント発生）
@@ -1209,8 +1261,8 @@ export default class AdventureScene extends Phaser.Scene {
         // UI: 広域表示ボタン
         this.isWideMap = false;
         const wideBtn = this.add.text(20, 20, '広域表示にする', {
-            fontFamily: 'sans-serif', fontSize: '24px', color: '#aaffaa', backgroundColor: '#333333'
-        }).setOrigin(0, 0).setInteractive().setPadding(10);
+            fontFamily: 'sans-serif', fontSize: '20px', color: '#aaffaa', backgroundColor: '#333333', padding: { x: 10, y: 6 }
+        }).setOrigin(0, 0).setInteractive().setDepth(500).setScrollFactor(0);
         wideBtn.on('pointerdown', () => {
             if (this.isTransitioningMode) return;
             this.isTransitioningMode = true;
@@ -1222,9 +1274,11 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.isWideMap) {
                 this._setUIVisibilityForWideMap(false);
             }
+            if (this.isTowerMode && this.towerWideBgContainer) {
+                this.towerWideBgContainer.setVisible(this.isWideMap);
+            }
 
             // ── 最適化: アニメーション中はマップチップ(bgSprite)とテキストを全非表示にする ──
-            // outline(六角枠)だけを残すことで毎フレームの重いsetScale処理を省きスマホ負荷を激減
             for (const h of this.hexes) {
                 if (h.bgSprite) h.bgSprite.setVisible(false);
                 if (h.text) h.text.setVisible(false);
@@ -1253,7 +1307,6 @@ export default class AdventureScene extends Phaser.Scene {
                 duration: 400,
                 ease: 'Cubic.easeInOut',
                 onUpdate: () => {
-                    // カメラ・tilt・Y位置・outline(枠)のみ更新。bgSpriteのsetScaleは省略して軽量化
                     this.cameras.main.setZoom(tweenObj.zoom);
                     this.cameras.main.setFollowOffset(0, tweenObj.offsetY);
                     this.mapTiltY = tweenObj.tilt;
@@ -1262,14 +1315,16 @@ export default class AdventureScene extends Phaser.Scene {
                         h.py = h.row * this.hexVertSpacing * this.mapTiltY;
                         h.container.setY(h.py);
                         if (h.outline) h.outline.scaleY = this.mapTiltY;
-                        // bgSpriteは非表示中なのでsetScaleをスキップ（軽量化）
                     }
                     
                     const currentHex = this.grid[this.playerRow][this.playerCol];
                     if (currentHex) this.player.setY(currentHex.py - this.CHAR_OFFSET_Y);
+
+                    if (this.isTowerMode) {
+                        this._updateTowerWideBackgroundPositions(this.mapTiltY);
+                    }
                 },
                 onComplete: () => {
-                    // アニメーション完了後にbgSpriteのスケールをまとめて1回だけ更新して再表示
                     for (const h of this.hexes) {
                         if (h.bgSprite && h.bgSprite.width > 0) {
                             h.bgSprite.setScale(
@@ -1283,16 +1338,24 @@ export default class AdventureScene extends Phaser.Scene {
                     this.isTransitioningMode = false;
                     if (!this.isWideMap) {
                         this._setUIVisibilityForWideMap(true);
+                        // 通常表示に戻ったときはプレイヤーにカメラ追従を再開
+                        this.cameras.main.startFollow(this.player, true, 0.1, 0.1, 0, this.normalOffsetY);
                     }
-                    // updateVisibility()でテキスト・敵表示などを正しい状態に反映
+                    if (this.isTowerMode && this.towerWideBgContainer) {
+                        this.towerWideBgContainer.setVisible(this.isWideMap);
+                        this._updateTowerWideBackgroundPositions(this.mapTiltY);
+                    }
                     this.updateVisibility();
                 }
             });
         });
 
+        // ── 🎁 UI: デイリー報酬ボタン（画面左上少し下） ──
+        this.dailyRewardBtn = this._createDailyRewardButton(20, 65);
 
         this.uiContainer.add([
             wideBtn,
+            this.dailyRewardBtn,
             this.dateBg,
             this.dateTimeText,
             this.exploreBtn,
@@ -1377,6 +1440,20 @@ export default class AdventureScene extends Phaser.Scene {
             });
 
             this.uiContainer.add([this.towerTestBtn]);
+
+            // タワー内部専用: フロア移動デバッグボタン
+            if (this.isTowerMode) {
+                this.floorJumpBtn = this.add.text(width - 20, 235, '🔼 フロア移動', {
+                    fontFamily: 'sans-serif', fontSize: '15px', color: '#ffea00', fontStyle: 'bold',
+                    backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+                }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+                this.floorJumpBtn.on('pointerdown', () => {
+                    this._showFloorJumpModal();
+                });
+
+                this.uiContainer.add([this.floorJumpBtn]);
+            }
 
             // 対人戦（PvP魔法少女）テストボタン（画面左側）
             this.pvpTestBtn = this.add.text(20, 145, '⚔️ 対人戦テスト', {
@@ -1656,6 +1733,8 @@ export default class AdventureScene extends Phaser.Scene {
             '003': { strong: 'purple', weak: 'blue' },
             '004': { strong: 'blue', weak: 'green' },
             '005': { strong: 'yellow', weak: 'purple' },
+            '007': { strong: 'blue', weak: 'green' },
+            '008': { strong: 'purple', weak: 'blue' },
             '010': { strong: 'red', weak: 'yellow' }
         };
 
@@ -1715,7 +1794,25 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.breakTestBtn) this.breakTestBtn.setVisible(isVisible);
         if (this.dpsTestBtn) this.dpsTestBtn.setVisible(isVisible);
         if (this.towerTestBtn) this.towerTestBtn.setVisible(isVisible);
+        if (this.floorJumpBtn) this.floorJumpBtn.setVisible(isVisible);
         if (this.pvpTestBtn) this.pvpTestBtn.setVisible(isVisible);
+        if (this.dailyRewardBtn) this.dailyRewardBtn.setVisible(isVisible);
+
+        // 通常表示の固定背景の制御 (広域表示時は非表示にしてマップ全体・タワー背景を見せる)
+        if (this.bgCurrent) this.bgCurrent.setVisible(isVisible);
+        if (this.bgNext && !isVisible) this.bgNext.setVisible(false);
+        if (!this.isTowerMode) {
+            if (this.baseBg) this.baseBg.setVisible(isVisible);
+            if (this.towerBottomBgContainer) this.towerBottomBgContainer.setVisible(false);
+        } else {
+            if (this.baseBg) this.baseBg.setVisible(false);
+            if (this.towerBottomBgContainer) this.towerBottomBgContainer.setVisible(isVisible);
+        }
+
+        // タワー広域背景の制御
+        if (this.isTowerMode && this.towerWideBgContainer) {
+            this.towerWideBgContainer.setVisible(!isVisible);
+        }
 
         if (!isVisible) {
             if (this.towerGuideText) this.towerGuideText.setVisible(false);
@@ -1796,6 +1893,10 @@ export default class AdventureScene extends Phaser.Scene {
                     if (this.breatheTween) this.breatheTween.resume();
                     
                     this.updateVisibility();
+                    if (this.isTowerMode) {
+                        const newFloor = 59 - hex.row + 1;
+                        this._updateTowerBottomBgScroll(newFloor, true);
+                    }
                     
                     if (isUnexplored && animate) {
                         // 未踏破への移動なら1秒待ってイベントシーンへ
@@ -2119,6 +2220,10 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.timePeriodIndex >= this.timePeriods.length) {
             this.timePeriodIndex = 0;
             this.currentDay++;
+            // 🌅 朝の動的ヘクスレベル変動（東京マップ限定・周囲弱体化＆遠方強化）
+            if (!this.isTowerMode) {
+                this.applyDailyHexLevelShift();
+            }
         }
         this.timeOfDay = this.timePeriods[this.timePeriodIndex];
 
@@ -2273,6 +2378,61 @@ export default class AdventureScene extends Phaser.Scene {
         this.updateNightOverlay();
         
         this._updateDateTimeDisplay();
+    }
+
+    /** 🌅 日替わり動的ヘクスレベル変動（東京マップ限定・朝に発動） */
+    applyDailyHexLevelShift() {
+        if (this.isTowerMode || !this.hexes || this.hexes.length === 0) return;
+
+        // 1. プレイヤーの隣接マスを取得
+        const adjacentHexes = this.hexes.filter(h => h.cellData && h.cellData.isAdjacent && h.cellData.name !== '水域' && h.cellData.name !== '密林');
+        if (adjacentHexes.length === 0) return;
+
+        // 2. 周囲の弱体化対象を検索（魔女最優先）
+        // ① 魔女Lv.2以上
+        const adjWitches = adjacentHexes.filter(h => (h.cellData.witchLevel || 0) >= 2);
+        // ② 通常敵Lv.2以上
+        const adjEnemies = adjacentHexes.filter(h => (h.cellData.enemyLevel || 0) >= 2 && (h.cellData.witchLevel || 0) === 0);
+
+        let downgradedType = null; // 'witch' | 'enemy'
+        let targetAdjHex = null;
+
+        if (adjWitches.length > 0) {
+            targetAdjHex = adjWitches[Math.floor(Math.random() * adjWitches.length)];
+            targetAdjHex.cellData.witchLevel -= 1;
+            downgradedType = 'witch';
+            console.log(`[DailyHexShift] 🌅 朝の救済: 周囲の魔女が弱体化！ [col:${targetAdjHex.col}, row:${targetAdjHex.row}] 魔女Lv -> ${targetAdjHex.cellData.witchLevel}`);
+        } else if (adjEnemies.length > 0) {
+            targetAdjHex = adjEnemies[Math.floor(Math.random() * adjEnemies.length)];
+            targetAdjHex.cellData.enemyLevel -= 1;
+            downgradedType = 'enemy';
+            console.log(`[DailyHexShift] 🌅 朝の救済: 周囲の敵が弱体化！ [col:${targetAdjHex.col}, row:${targetAdjHex.row}] 敵Lv -> ${targetAdjHex.cellData.enemyLevel}`);
+        }
+
+        // 周囲に下がる対象がいなかった場合、遠方のレベル上げも行わない（完全スキップ）
+        if (!downgradedType || !targetAdjHex) return;
+
+        // 3. 遠方の強化対象を検索してレベル+1
+        const distantHexes = this.hexes.filter(h => h.cellData && !h.cellData.isAdjacent && h !== targetAdjHex && h.cellData.name !== '水域' && h.cellData.name !== '密林');
+
+        if (downgradedType === 'witch') {
+            const distantWitches = distantHexes.filter(h => (h.cellData.witchLevel || 0) > 0);
+            if (distantWitches.length > 0) {
+                const targetDistant = distantWitches[Math.floor(Math.random() * distantWitches.length)];
+                targetDistant.cellData.witchLevel = Math.min(13, (targetDistant.cellData.witchLevel || 0) + 1);
+                console.log(`[DailyHexShift] ⚡ 世界の流動: 遠くの魔女が強化！ [col:${targetDistant.col}, row:${targetDistant.row}] 魔女Lv -> ${targetDistant.cellData.witchLevel}`);
+            }
+        } else if (downgradedType === 'enemy') {
+            const distantEnemies = distantHexes.filter(h => (h.cellData.enemyLevel || 0) > 0 && (h.cellData.witchLevel || 0) === 0);
+            if (distantEnemies.length > 0) {
+                const targetDistant = distantEnemies[Math.floor(Math.random() * distantEnemies.length)];
+                targetDistant.cellData.enemyLevel = Math.min(13, (targetDistant.cellData.enemyLevel || 0) + 1);
+                console.log(`[DailyHexShift] ⚡ 世界の流動: 遠くの敵が強化！ [col:${targetDistant.col}, row:${targetDistant.row}] 敵Lv -> ${targetDistant.cellData.enemyLevel}`);
+            }
+        }
+
+        // 4. マップUIの更新
+        this.updateVisibility();
     }
 
     /** 時間経過後の各種イベント・タロットチェックと時報の優先度制御 */
@@ -2913,12 +3073,58 @@ export default class AdventureScene extends Phaser.Scene {
     setupBackground() {
         const { width, height } = this.scale;
         
-        // 最背面ベース背景 (画面下半分用)
+        // 最背面ベース背景 (通常マップ画面下半分用)
         // bgCurrentと同じY座標(height/2)に配置し、下方向へ描画させることで隙間を防ぐ
         this.baseBg = this.add.image(width / 2, height / 2, 'bg_map_base')
             .setScrollFactor(0)
             .setDepth(-200)
             .setOrigin(0.5, 0);
+
+        // 🗼 タワー専用: シームレス縦連結下部背景 (tow4, tow3, tow2, tow1)
+        this.towerBottomBgContainer = this.add.container(width / 2, height / 2)
+            .setScrollFactor(0)
+            .setDepth(-200);
+
+        // 4枚のスプライトを上(tow4: 60F)から下(tow1: 1F)へ隙間なく連結
+        // tow4: 47F〜60F, tow3: 31F〜46F, tow2: 15F〜30F, tow1: 1F〜14F
+        this.towerBottomSegments = [
+            { key: 'bg_tow4', floorRange: '47F-60F' },
+            { key: 'bg_tow3', floorRange: '31F-46F' },
+            { key: 'bg_tow2', floorRange: '15F-30F' },
+            { key: 'bg_tow1', floorRange: '1F-14F' }
+        ];
+
+        this.towerBottomSprites = [];
+        this.towerBottomInnerContainer = this.add.container(0, 0);
+        this.towerBottomBgContainer.add(this.towerBottomInnerContainer);
+
+        const imgH = width; // 540px
+        this.towerBottomImgH = imgH;
+        this.towerBottomTotalH = imgH * 4; // 2160px
+        this.towerBottomViewH = height / 2; // 480px
+
+        this.towerBottomSegments.forEach((seg, idx) => {
+            if (this.textures.exists(seg.key)) {
+                const sprY = idx * imgH + imgH / 2;
+                const spr = this.add.image(0, sprY, seg.key).setOrigin(0.5, 0.5);
+                const scale = width / (spr.width || 160);
+                spr.setScale(scale);
+                this.towerBottomInnerContainer.add(spr);
+                this.towerBottomSprites.push(spr);
+            }
+        });
+
+        const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1;
+        this._towerBottomScrollY = this._calcTowerBottomScrollY(currentFloor);
+        this.towerBottomInnerContainer.setY(this._towerBottomScrollY);
+
+        if (this.isTowerMode) {
+            this.baseBg.setVisible(false);
+            this.towerBottomBgContainer.setVisible(!this.isWideMap);
+        } else {
+            this.baseBg.setVisible(!this.isWideMap);
+            this.towerBottomBgContainer.setVisible(false);
+        }
         
         // 現在地の背景（最底面）
         this.bgCurrent = this.add.image(width / 2, height / 2, 'map_img_woods.jpg')
@@ -2940,7 +3146,7 @@ export default class AdventureScene extends Phaser.Scene {
             .setOrigin(0.5, 0.5)
             .setVisible(false);
             
-        this.uiCamera.ignore([this.bgCurrent, this.bgNext, this.baseBg, this.nightOverlay]);
+        this.uiCamera.ignore([this.bgCurrent, this.bgNext, this.baseBg, this.towerBottomBgContainer, this.nightOverlay]);
         
         this.bgCurrent.setOrigin(0.5, 1);
         this.bgNext.setOrigin(0.5, 1);
@@ -3096,6 +3302,12 @@ export default class AdventureScene extends Phaser.Scene {
             const baseScale = width / this.baseBg.width;
             this.baseBg.setScale(baseScale / zoom);
             this.baseBg.setPosition(width / 2, height / 2);
+        }
+
+        // タワー下部シームレス背景コンテナの配置（上端を画面中心に合わせる）
+        if (this.isTowerMode && this.towerBottomBgContainer) {
+            this.towerBottomBgContainer.setScale(1 / zoom);
+            this.towerBottomBgContainer.setPosition(width / 2, height / 2);
         }
 
         // アイドル時間（無操作）のチェック
@@ -4376,7 +4588,642 @@ export default class AdventureScene extends Phaser.Scene {
 
         updateView();
     }
+
+    // ── 🎁 デイリー報酬ルーレットシステム ──
+
+    _createDailyRewardButton(x, y) {
+        const gs = GlobalState.getInstance();
+        const canClaim = gs.canClaimDailyReward();
+
+        const label = canClaim ? '🎁 デイリー ❗️' : '🎁 デイリー';
+        const color = canClaim ? '#ffea00' : '#888888';
+        const bgColor = canClaim ? '#884400dd' : '#222222cc';
+
+        const btn = this.add.text(x, y, label, {
+            fontFamily: 'sans-serif',
+            fontSize: '15px',
+            fontStyle: 'bold',
+            color: color,
+            backgroundColor: bgColor,
+            padding: { x: 12, y: 7 }
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+        // 🌟 使用可能時の明滅アニメーション
+        let blinkTween = null;
+        const startBlinking = () => {
+            if (!blinkTween) {
+                blinkTween = this.tweens.add({
+                    targets: btn,
+                    alpha: { from: 1.0, to: 0.4 },
+                    duration: 650,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        };
+
+        const stopBlinking = () => {
+            if (blinkTween) {
+                blinkTween.stop();
+                blinkTween = null;
+            }
+            btn.setAlpha(1.0);
+        };
+
+        if (canClaim) {
+            startBlinking();
+        }
+
+        btn.on('pointerdown', () => {
+            btn.setScale(0.92);
+            this._showDailyRouletteModal();
+        });
+        btn.on('pointerup', () => btn.setScale(1.0));
+        btn.on('pointerout', () => btn.setScale(1.0));
+
+        btn.updateStatus = () => {
+            const available = gs.canClaimDailyReward();
+            btn.setText(available ? '🎁 デイリー ❗️' : '🎁 デイリー');
+            btn.setColor(available ? '#ffea00' : '#888888');
+            btn.setBackgroundColor(available ? '#884400dd' : '#222222cc');
+            if (available) {
+                startBlinking();
+            } else {
+                stopBlinking();
+            }
+        };
+
+        return btn;
+    }
+
+    _showDailyRouletteModal() {
+        if (this._dailyModalContainer) {
+            this._dailyModalContainer.destroy();
+            this._dailyModalContainer = null;
+        }
+
+        const { width, height } = this.scale;
+        const gs = GlobalState.getInstance();
+        const container = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
+        this._dailyModalContainer = container;
+        this.uiContainer.add(container);
+
+        // 全画面暗転マスク
+        const mask = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85)
+            .setInteractive();
+        container.add(mask);
+
+        // ダイアログ背景
+        const modalW = Math.min(width * 0.92, 500);
+        const modalH = 740;
+        const modalBg = this.add.rectangle(width / 2, height / 2, modalW, modalH, 0x141422, 0.98)
+            .setStrokeStyle(3, 0xffcc00);
+        container.add(modalBg);
+
+        // ヘッダータイトル
+        const title = this.add.text(width / 2, height / 2 - 320, '🎁 デイリー報酬ルーレット', {
+            fontFamily: 'sans-serif', fontSize: '24px', fontStyle: 'bold', color: '#ffea00'
+        }).setOrigin(0.5);
+        container.add(title);
+
+        const curCount = gs.dailyRewardCount || 0;
+        const subTitle = this.add.text(width / 2, height / 2 - 280, `📅 今月の獲得回数: ${curCount} / 30日（毎日0:00更新）`, {
+            fontFamily: 'sans-serif', fontSize: '14px', color: '#ccccff'
+        }).setOrigin(0.5);
+        container.add(subTitle);
+
+        // ルーレット針（上部マーカー ▼）
+        const needle = this.add.text(width / 2, height / 2 - 195, '▼', {
+            fontFamily: 'sans-serif', fontSize: '32px', fontStyle: 'bold', color: '#ff2222', stroke: '#ffffff', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(10002);
+        container.add(needle);
+
+        // ルーレット本体 (rour.png)
+        const roulette = this.add.image(width / 2, height / 2 - 30, 'daily_roulette')
+            .setDisplaySize(300, 300)
+            .setOrigin(0.5);
+        container.add(roulette);
+
+        // ルーレット中央ピン
+        const centerPin = this.add.circle(width / 2, height / 2 - 30, 14, 0xffcc00)
+            .setStrokeStyle(3, 0x331100);
+        container.add(centerPin);
+
+        // ── 🌟 左下のマスコットミニキャラ演出 ──
+        const availableChars = ['001', '002', '003', '004', '005', '010'];
+        const randomCharId = Phaser.Math.RND.pick(availableChars);
+        const charBaseX = width / 2 - 170;
+        const charBaseY = height / 2 + 75;
+        const mascotSprite = this.add.sprite(charBaseX, charBaseY, `mini_${randomCharId}`, 0)
+            .setScale(0.72)
+            .setDepth(10005);
+        container.add(mascotSprite);
+
+        // 待機時の小さくぴょんぴょん跳ねるアニメーション
+        let mascotBouncingTween = this.tweens.add({
+            targets: mascotSprite,
+            y: charBaseY - 8,
+            duration: 420,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        let mascotRunTimer = null;
+
+        // 次回/本日の報酬プレビュー（開いた時点ではネタバレしない）
+        const nextReward = gs.getNextDailyReward();
+        const canClaim = gs.canClaimDailyReward();
+
+        const previewBox = this.add.rectangle(width / 2, height / 2 + 160, modalW - 40, 60, 0x22223a, 0.9)
+            .setStrokeStyle(1, 0x7777aa);
+        container.add(previewBox);
+
+        let previewLabel = '';
+        if (canClaim) {
+            previewLabel = `🎰 ルーレットを回して今日の報酬をゲットしよう！`;
+        } else if (curCount >= 30) {
+            previewLabel = `🎉 今月分（30回）のデイリー報酬を全て獲得しました！`;
+        } else {
+            previewLabel = `✅ 本日の報酬は獲得済みです（次回 0:00 更新）`;
+        }
+
+        const previewText = this.add.text(width / 2, height / 2 + 160, previewLabel, {
+            fontFamily: 'sans-serif', fontSize: '15px', fontStyle: 'bold', color: canClaim ? '#ffff88' : '#aaaaaa', align: 'center'
+        }).setOrigin(0.5);
+        container.add(previewText);
+
+        // SPIN / 受取ボタン
+        const spinBtn = this.add.rectangle(width / 2, height / 2 + 235, 260, 50, canClaim ? 0xcc3366 : 0x444444, 1.0)
+            .setStrokeStyle(2, canClaim ? 0xffcc88 : 0x777777);
+        container.add(spinBtn);
+
+        const spinBtnText = this.add.text(width / 2, height / 2 + 235, canClaim ? '🎰 ルーレットを回す！' : '受取済み', {
+            fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', color: canClaim ? '#ffffff' : '#888888'
+        }).setOrigin(0.5);
+        container.add(spinBtnText);
+
+        let isSpinning = false;
+        if (canClaim) {
+            spinBtn.setInteractive({ useHandCursor: true });
+            spinBtn.on('pointerdown', () => {
+                if (isSpinning) return;
+                isSpinning = true;
+                spinBtn.disableInteractive();
+                spinBtn.setFillStyle(0x444444);
+                spinBtnText.setText('抽選中...');
+
+                // ── 🏃‍♀️ キャラのモーション: 正面走りへ切り替え ──
+                if (mascotBouncingTween) {
+                    mascotBouncingTween.stop();
+                    mascotBouncingTween = null;
+                }
+                mascotSprite.setY(charBaseY);
+
+                let runFrameIndex = 0;
+                const runFrames = [0, 1, 0, 2];
+                mascotRunTimer = this.time.addEvent({
+                    delay: 130,
+                    callback: () => {
+                        runFrameIndex = (runFrameIndex + 1) % runFrames.length;
+                        mascotSprite.setFrame(runFrames[runFrameIndex]);
+                    },
+                    loop: true
+                });
+
+                // ── 🎯 景品に対応する回転角度（反時計回り計算） ──
+                // 角度0: EXP10000 / 45度: 宝石 / 90度: SSR / 135度: MR / 180度: SR / 270度: R / 315度: UR
+                let stopAngle = 0;
+                if (nextReward.type === 'exp') {
+                    stopAngle = 0; // EXP 10000（0度）
+                } else if (nextReward.type === 'gem') {
+                    stopAngle = 315; // 宝石（45度の位置）
+                } else if (nextReward.type === 'relic') {
+                    if (nextReward.rank === 2) {
+                        stopAngle = 90;  // Rレリクス（270度の位置）
+                    } else if (nextReward.rank === 3) {
+                        stopAngle = 180; // SRレリクス（180度の位置）
+                    } else if (nextReward.rank === 4) {
+                        stopAngle = 270; // SSRレリクス（90度の位置）
+                    } else if (nextReward.rank === 5) {
+                        stopAngle = 45;  // URレリクス（315度の位置）
+                    } else if (nextReward.rank >= 6) {
+                        stopAngle = 225; // MRレリクス（135度の位置）
+                    }
+                }
+
+                console.log(`[ROULETTE_DEBUG] Day ${nextReward.day} Reward: ${nextReward.label}, type: ${nextReward.type}, rank: ${nextReward.rank} => stopAngle: ${stopAngle} deg`);
+
+                // 6周 + 目的角度
+                const totalRotationDeg = 360 * 6 + stopAngle;
+                roulette.setRotation(0);
+
+                const spinTweenObj = { deg: 0 };
+                this.tweens.add({
+                    targets: spinTweenObj,
+                    deg: totalRotationDeg,
+                    duration: 3400,
+                    ease: 'Cubic.easeOut',
+                    onUpdate: () => {
+                        const rad = Phaser.Math.DegToRad(spinTweenObj.deg);
+                        roulette.setRotation(rad);
+                        roulette.rotation = rad;
+                    },
+                    onComplete: () => {
+                        const finalRad = Phaser.Math.DegToRad(stopAngle);
+                        roulette.setRotation(finalRad);
+                        roulette.rotation = finalRad;
+                        console.log(`[ROULETTE_DEBUG] Spin completed at rotation: ${stopAngle} deg (${finalRad} rad)`);
+                        // ── 🎉 キャラのモーション: 4番（喜ぶポーズ）で大きくぴょんぴょん！ ──
+                        if (mascotRunTimer) {
+                            mascotRunTimer.remove();
+                            mascotRunTimer = null;
+                        }
+                        mascotSprite.setFrame(4); // 喜んでるポーズ（万歳）
+                        mascotSprite.setY(charBaseY);
+
+                        this.tweens.add({
+                            targets: mascotSprite,
+                            y: charBaseY - 18,
+                            duration: 300,
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+
+                        // 報酬付与の実行
+                        const claimResult = gs.claimDailyReward();
+                        SaveManager.saveGame(this);
+
+                        // 🎵 停止時SE（get.mp3）再生！
+                        if (this.sound && this.cache.audio.exists('se_get')) {
+                            this.sound.play('se_get', { volume: 0.9 });
+                        } else if (this.sound && this.cache.audio.exists('se_card')) {
+                            this.sound.play('se_card', { volume: 0.8 });
+                        }
+
+                        // ボタン表示更新
+                        spinBtnText.setText('獲得完了！');
+                        subTitle.setText(`📅 今月の獲得回数: ${gs.dailyRewardCount} / 30日（毎日0:00更新）`);
+                        previewText.setText(`✨ 【${claimResult.reward.day}日目】${claimResult.reward.label} を獲得！ ✨`);
+                        previewText.setColor('#ffff00');
+
+                        if (this.dailyRewardBtn && this.dailyRewardBtn.updateStatus) {
+                            this.dailyRewardBtn.updateStatus();
+                        }
+
+                        // 獲得ポップアップ演出
+                        this._showRewardPopup(container, claimResult);
+                    }
+                });
+            });
+        }
+
+        // 閉じるボタン
+        const closeBtn = this.add.text(width / 2, height / 2 + 310, '✖ 閉じる', {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', backgroundColor: '#333344', padding: { x: 25, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        closeBtn.on('pointerdown', () => {
+            if (mascotRunTimer) {
+                mascotRunTimer.remove();
+                mascotRunTimer = null;
+            }
+            if (this._dailyModalContainer) {
+                this._dailyModalContainer.destroy();
+                this._dailyModalContainer = null;
+            }
+        });
+        container.add(closeBtn);
+    }
+
+    _showRewardPopup(parentContainer, claimResult) {
+        const { width, height } = this.scale;
+        const popContainer = this.add.container(0, 0).setDepth(10010);
+
+        const popBg = this.add.rectangle(width / 2, height / 2 - 30, 360, 150, 0x000000, 0.9)
+            .setStrokeStyle(3, 0xffdd44);
+        popContainer.add(popBg);
+
+        const congratsText = this.add.text(width / 2, height / 2 - 70, '✨ 報酬獲得！ ✨', {
+            fontFamily: 'sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#ffea00'
+        }).setOrigin(0.5);
+        popContainer.add(congratsText);
+
+        let itemName = claimResult.reward.label;
+        if (claimResult.item && claimResult.item.name) {
+            itemName = `${claimResult.reward.label}\n『${claimResult.item.name}』`;
+        }
+
+        const itemText = this.add.text(width / 2, height / 2 - 25, itemName, {
+            fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffffff', align: 'center'
+        }).setOrigin(0.5);
+        popContainer.add(itemText);
+
+        const okBtn = this.add.text(width / 2, height / 2 + 25, 'OK', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff', backgroundColor: '#663399', padding: { x: 30, y: 6 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        okBtn.on('pointerdown', () => {
+            popContainer.destroy();
+        });
+        popContainer.add(okBtn);
+
+        parentContainer.add(popContainer);
+    }
+
+    /**
+     * タワー内部専用: フロア移動デバッグモーダル表示
+     */
+    _showFloorJumpModal() {
+        const { width, height } = this.scale;
+        const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1;
+        let selectedFloor = currentFloor;
+
+        const modalContainer = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
+
+        // 暗幕背景
+        const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75)
+            .setInteractive();
+        modalContainer.add(backdrop);
+
+        // メインパネル
+        const panelWidth = Math.min(width - 40, 480);
+        const panelHeight = 520;
+        const panelBg = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x111122, 0.95)
+            .setStrokeStyle(3, 0xffea00);
+        modalContainer.add(panelBg);
+
+        // タイトル
+        const title = this.add.text(width / 2, height / 2 - 220, '🗼 タワー フロア移動デバッグ', {
+            fontFamily: 'sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#ffea00'
+        }).setOrigin(0.5);
+        modalContainer.add(title);
+
+        // 現在地情報
+        const currentInfo = this.add.text(width / 2, height / 2 - 180, `現在地: ${currentFloor}F (Row: ${this.playerRow}, Col: ${this.playerCol})`, {
+            fontFamily: 'sans-serif', fontSize: '14px', color: '#aaccff'
+        }).setOrigin(0.5);
+        modalContainer.add(currentInfo);
+
+        // 移動先フロア表示
+        const targetText = this.add.text(width / 2, height / 2 - 130, `移動先: 【 ${selectedFloor} F 】`, {
+            fontFamily: 'sans-serif', fontSize: '26px', fontStyle: 'bold', color: '#00ffcc',
+            backgroundColor: '#000000aa', padding: { x: 20, y: 8 }
+        }).setOrigin(0.5);
+        modalContainer.add(targetText);
+
+        const updateDisplay = (f) => {
+            selectedFloor = Math.max(1, Math.min(60, f));
+            targetText.setText(`移動先: 【 ${selectedFloor} F 】`);
+        };
+
+        // 調整ボタン行（±1, ±5, ±10）
+        const adjustSteps = [-10, -5, -1, 1, 5, 10];
+        const stepStartX = width / 2 - 200;
+        adjustSteps.forEach((step, idx) => {
+            const btnX = stepStartX + idx * 80 + 40;
+            const btnLabel = (step > 0 ? `+${step}` : `${step}`) + 'F';
+            const btnColor = step > 0 ? '#66bbff' : '#ff9999';
+            const btn = this.add.text(btnX, height / 2 - 60, btnLabel, {
+                fontFamily: 'sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#ffffff',
+                backgroundColor: '#223344', padding: { x: 8, y: 6 }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+            btn.on('pointerdown', () => updateDisplay(selectedFloor + step));
+            modalContainer.add(btn);
+        });
+
+        // クイックジャンプボタン行 (1F, 10F, 20F, 30F, 40F, 50F, 60F)
+        const quickFloors = [1, 10, 20, 30, 40, 50, 60];
+        const quickStartX = width / 2 - 210;
+        quickFloors.forEach((f, idx) => {
+            const btnX = quickStartX + idx * 70 + 35;
+            const btn = this.add.text(btnX, height / 2 + 10, `${f}F`, {
+                fontFamily: 'sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffea00',
+                backgroundColor: '#332244', padding: { x: 10, y: 6 }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+            btn.on('pointerdown', () => updateDisplay(f));
+            modalContainer.add(btn);
+        });
+
+        // 直接数値入力ボタン (prompt)
+        const promptBtn = this.add.text(width / 2, height / 2 + 75, '⌨️ 階数を直接入力 (1〜60)', {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 20, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        promptBtn.on('pointerdown', () => {
+            const input = window.prompt('移動したい階数を入力してください (1〜60):', String(selectedFloor));
+            if (input !== null) {
+                const parsed = parseInt(input, 10);
+                if (!isNaN(parsed)) {
+                    updateDisplay(parsed);
+                }
+            }
+        });
+        modalContainer.add(promptBtn);
+
+        // 実行ボタン
+        const jumpBtn = this.add.text(width / 2 - 90, height / 2 + 160, '🚀 この階へ移動', {
+            fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
+            backgroundColor: '#008855', padding: { x: 18, y: 10 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        jumpBtn.on('pointerdown', () => {
+            modalContainer.destroy();
+            this.jumpToTowerFloor(selectedFloor);
+        });
+        modalContainer.add(jumpBtn);
+
+        // 閉じるボタン
+        const closeBtn = this.add.text(width / 2 + 110, height / 2 + 160, '✖ 閉じる', {
+            fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff',
+            backgroundColor: '#662222', padding: { x: 18, y: 10 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        closeBtn.on('pointerdown', () => {
+            modalContainer.destroy();
+        });
+        modalContainer.add(closeBtn);
+    }
+
+    /**
+     * 指定したタワー階層（1〜60F）へプレイヤーをワープ移動
+     * @param {number} targetFloor 目標階数 (1〜60)
+     */
+    jumpToTowerFloor(targetFloor) {
+        if (!this.isTowerMode) return;
+        targetFloor = Math.max(1, Math.min(60, Math.floor(targetFloor)));
+        const targetRow = 60 - targetFloor; // 1F -> 59, 60F -> 0
+
+        const rowHexes = this.grid[targetRow];
+        if (!rowHexes || rowHexes.length === 0) {
+            console.warn(`[AdventureScene] Invalid tower targetRow: ${targetRow}`);
+            return;
+        }
+
+        // 現在のcol、または存在するマスを優先して選択
+        let targetCol = this.playerCol;
+        if (rowHexes[targetCol] && rowHexes[targetCol].cellData && rowHexes[targetCol].cellData.exists !== false) {
+            // そのまま使用
+        } else {
+            const validHex = rowHexes.find(h => h && h.cellData && h.cellData.exists !== false);
+            if (validHex) {
+                targetCol = validHex.col;
+            }
+        }
+
+        this.playerRow = targetRow;
+        this.playerCol = targetCol;
+
+        const gs = GlobalState.getInstance();
+        gs.towerPlayerRow = targetRow;
+        gs.towerPlayerCol = targetCol;
+
+        const targetHex = this.grid[targetRow]?.[targetCol];
+        if (targetHex && this.player) {
+            this.player.setPosition(targetHex.px, targetHex.py - this.CHAR_OFFSET_Y);
+            this.cameras.main.centerOn(targetHex.px, targetHex.py);
+
+            // 背景画像(bgCurrent)も現在のヘクス画像へ更新
+            const bgKey = this.findBgImageFile(targetHex.col, targetHex.row, targetHex.cellData);
+            if (this.textures.exists(bgKey) && this.bgCurrent) {
+                this.bgCurrent.setTexture(bgKey).setVisible(true).setAlpha(1);
+            }
+        }
+
+        // 可視性・隣接状態を更新
+        this.updateVisibility();
+        this._updateDateTimeDisplay();
+
+        // タワー下部シームレス背景を目標フロアへスクロール
+        this._updateTowerBottomBgScroll(targetFloor, true);
+
+        // フロアテロップ演出
+        TimeReporter.showFloor(this, targetFloor);
+
+        // 自動保存
+        SaveManager.saveGame(this);
+
+        this.showToast(`🗼 ${targetFloor}F へ移動しました`);
+        console.log(`[AdventureScene] Debug jumpToTowerFloor -> ${targetFloor}F (Row: ${targetRow}, Col: ${targetCol})`);
+    }
+
+    /**
+     * タワー下部シームレス背景の目標スクロールY座標を計算
+     * @param {number} floor 1〜60階
+     * @returns {number}
+     */
+    _calcTowerBottomScrollY(floor) {
+        const f = Math.max(1, Math.min(60, floor));
+        const progress = (f - 1) / 59; // 1F: 0.0, 60F: 1.0
+        const totalH = this.towerBottomTotalH || (this.scale.width * 4);
+        const viewH = this.towerBottomViewH || (this.scale.height / 2);
+        const maxScroll = totalH - viewH;
+        // 1F (progress=0): 最下部(tow1底)が見える -> scrollY = -maxScroll
+        // 60F (progress=1): 最上部(tow4頂)が見える -> scrollY = 0
+        return -maxScroll * (1 - progress);
+    }
+
+    /**
+     * タワー下部シームレス背景を目標フロアに合わせて滑らかにスクロール
+     * @param {number} targetFloor 目標階数 (1〜60)
+     * @param {boolean} animate アニメーションさせるか
+     */
+    _updateTowerBottomBgScroll(targetFloor, animate = true) {
+        if (!this.isTowerMode || !this.towerBottomInnerContainer) return;
+        targetFloor = Math.max(1, Math.min(60, targetFloor));
+        const targetScrollY = this._calcTowerBottomScrollY(targetFloor);
+
+        if (this._towerBottomTween) {
+            this._towerBottomTween.stop();
+            this._towerBottomTween = null;
+        }
+
+        if (animate) {
+            this._towerBottomTween = this.tweens.add({
+                targets: this.towerBottomInnerContainer,
+                y: targetScrollY,
+                duration: 800,
+                ease: 'Cubic.easeOut',
+                onUpdate: () => {
+                    this._towerBottomScrollY = this.towerBottomInnerContainer.y;
+                },
+                onComplete: () => {
+                    this._towerBottomTween = null;
+                }
+            });
+        } else {
+            this.towerBottomInnerContainer.setY(targetScrollY);
+            this._towerBottomScrollY = targetScrollY;
+        }
+    }
+
+    /**
+     * タワー広域表示用背景 (tow1〜tow4) のセットアップ
+     * 1が一番下(1F〜14F)、2(15F〜30F)、3(31F〜46F)、4が一番上(47F〜60F)
+     */
+    _setupTowerWideBackground() {
+        if (!this.isTowerMode) return;
+
+        this.towerWideBgContainer = this.add.container(0, 0).setDepth(-10);
+        this.towerWideBgContainer.setVisible(this.isWideMap);
+        if (this.uiCamera) {
+            this.uiCamera.ignore([this.towerWideBgContainer]);
+        }
+
+        const centerX = 2 * this.hexWidth;
+
+        this.towerWideSegments = [
+            { key: 'bg_tow4', topRow: -0.5, btmRow: 13.5, floorRange: '47F-60F' },
+            { key: 'bg_tow3', topRow: 13.5, btmRow: 29.5, floorRange: '31F-46F' },
+            { key: 'bg_tow2', topRow: 29.5, btmRow: 45.5, floorRange: '15F-30F' },
+            { key: 'bg_tow1', topRow: 45.5, btmRow: 59.5, floorRange: '1F-14F' }
+        ];
+
+        this.towerWideSprites = [];
+
+        this.towerWideSegments.forEach(seg => {
+            if (!this.textures.exists(seg.key)) {
+                console.warn(`[AdventureScene] Texture not found: ${seg.key}`);
+                return;
+            }
+            const spr = this.add.image(centerX, 0, seg.key).setOrigin(0.5, 0.5);
+            spr.segData = seg;
+            this.towerWideBgContainer.add(spr);
+            this.towerWideSprites.push(spr);
+        });
+
+        this._updateTowerWideBackgroundPositions(this.mapTiltY);
+    }
+
+    /**
+     * タワー広域背景の位置とスケールをカメラ傾きに合わせて更新
+     * @param {number} tiltY 
+     */
+    _updateTowerWideBackgroundPositions(tiltY = 1.0) {
+        if (!this.towerWideSprites || this.towerWideSprites.length === 0) return;
+
+        const centerX = 2 * this.hexWidth;
+
+        this.towerWideSprites.forEach(spr => {
+            const seg = spr.segData;
+            const topY = seg.topRow * this.hexVertSpacing * tiltY;
+            const btmY = seg.btmRow * this.hexVertSpacing * tiltY;
+            const centerY = (topY + btmY) / 2;
+            const height = btmY - topY;
+
+            spr.setPosition(centerX, centerY);
+            spr.setDisplaySize(height, height);
+            spr.scaleY = (height / (spr.height || 160)) * tiltY;
+        });
+    }
 }
+
+
 
 
 

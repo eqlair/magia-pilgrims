@@ -1,0 +1,85 @@
+{
+  "records": [
+    {
+      "partyCount": 1,
+      "totalLevel": 1,
+      "partyCp": 280,
+      "enemyLevel": 2,
+      "witchLevel": 1,
+      "result": "Victory",
+      "avgDps": 90
+    },
+    {
+      "partyCount": 1,
+      "totalLevel": 2,
+      "partyCp": 301,
+      "enemyLevel": 1,
+      "witchLevel": 0,
+      "result": "Victory",
+      "avgDps": 57
+    },
+    {
+      "partyCount": 2,
+      "totalLevel": 3,
+      "partyCp": 567,
+      "enemyLevel": 2,
+      "witchLevel": 0,
+      "result": "Victory",
+      "avgDps": 178
+    },
+    {
+      "partyCount": 2,
+      "totalLevel": 3,
+      "partyCp": 681,
+      "enemyLevel": 1,
+      "witchLevel": 1,
+      "result": "Victory",
+      "avgDps": 118
+    },
+    {
+      "partyCount": 2,
+      "totalLevel": 4,
+      "partyCp": 706,
+      "enemyLevel": 3,
+      "witchLevel": 0,
+      "result": "Retreated",
+      "avgDps": 205
+    },
+    {
+      "partyCount": 1,
+      "totalLevel": 1,
+      "partyCp": 220,
+      "enemyLevel": 2,
+      "witchLevel": 1,
+      "result": "Victory",
+      "avgDps": 71
+    },
+    {
+      "partyCount": 1,
+      "totalLevel": 2,
+      "partyCp": 237,
+      "enemyLevel": 1,
+      "witchLevel": 0,
+      "result": "Victory",
+      "avgDps": 55
+    },
+    {
+      "partyCount": 1,
+      "totalLevel": 2,
+      "partyCp": 267,
+      "enemyLevel": 1,
+      "witchLevel": 0,
+      "result": "Victory",
+      "avgDps": 74
+    },
+    {
+      "partyCount": 1,
+      "totalLevel": 2,
+      "partyCp": 267,
+      "enemyLevel": 1,
+      "witchLevel": 0,
+      "result": "Victory",
+      "avgDps": 57
+    }
+  ]
+}

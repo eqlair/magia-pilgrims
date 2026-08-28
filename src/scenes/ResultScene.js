@@ -20,6 +20,7 @@ export default class ResultScene extends Phaser.Scene {
         this.isBoss = data.isBoss || false;
         this.enemyLevel = data.enemyLevel || 1;
         this.majoLevel = data.majoLevel || 0;
+        this.isNightExploration = data.isNightExploration || false;
         this.isRelicScreen = false;
 
         this.relicAnimationPlaying = false;
@@ -195,7 +196,12 @@ export default class ResultScene extends Phaser.Scene {
                     alpha: 1,
                     duration: 1000,
                     onComplete: () => {
-                        const retParams = { fromBattle: true, party: this.party, isTutorialStart: this.isTutorial };
+                        const retParams = { 
+                            fromBattle: true, 
+                            party: this.party, 
+                            isTutorialStart: this.isTutorial,
+                            isNightExploration: this.isNightExploration 
+                        };
                         if (this.scene.isPaused(this.returnScene)) {
                             this.scene.stop();
                             this.scene.resume(this.returnScene, retParams);

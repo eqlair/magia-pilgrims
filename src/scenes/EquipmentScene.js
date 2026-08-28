@@ -439,7 +439,7 @@ export default class EquipmentScene extends Phaser.Scene {
             return;
         }
 
-        // Scrollable list simulation (WebGL対応マスク)
+        // Scrollable list simulation (WebGL対応マスク ＋ 上下2ページ仮想スクロール)
         const listHeight = this.height - 420 - 20;
         const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
         maskShape.fillStyle(0xffffff, 1);
@@ -451,83 +451,127 @@ export default class EquipmentScene extends Phaser.Scene {
         this.bottomContainer.add(scrollContainer);
         scrollContainer.setMask(mask);
 
-
-        let currentY = 0;
         const itemSpacing = 35;
+        const bgHeight = this.expandedLayout ? itemSpacing + 25 : itemSpacing;
+        const totalHeight = items.length * bgHeight;
+        const minY = Math.min(0, listHeight - totalHeight);
 
-        items.forEach((item, index) => {
-            // Is it selected for enhance?
-            const isMat = this.enhanceMaterials.includes(item);
-            let bgColor = index % 2 === 0 ? 0x222222 : 0x111111;
-            if (this.selectedItem && !this.selectedItem.isEquipped && this.selectedItem.index === index) bgColor = 0x334433;
-            if (isMat) bgColor = 0x552222;
+        // 前回スクロール位置の復元 (範囲内にクランプ)
+        this.inventoryScrollY = Math.max(minY, Math.min(0, this.inventoryScrollY || 0));
 
-            const bgHeight = this.expandedLayout ? itemSpacing + 25 : itemSpacing;
-            const bg = this.add.rectangle(20, currentY, this.width - 90, bgHeight, bgColor).setOrigin(0, 0).setInteractive();
-            scrollContainer.add(bg);
-            
-            // Name
-            this.drawColoredItem(scrollContainer, 30, currentY + 8, '', item, '16px', this.expandedLayout);
+        // スクロール全体のタッチ受け皿 (余白部分用。itemsContainerの背面に配置)
+        const touchHitArea = this.add.rectangle(20, 0, this.width - 90, listHeight, 0x000000, 0.001)
+            .setOrigin(0, 0)
+            .setInteractive();
+        scrollContainer.add(touchHitArea);
 
-            // Lock icon - ロックのかかっているアイテムにのみ 🔒 アイコンを表示
-            if (item.isLocked) {
-                const lockY = currentY + Math.floor(bgHeight / 2);
-                const lockTxt = this.add.text(this.width - 65, lockY, '🔒', { fontSize: '18px' }).setOrigin(0.5, 0.5);
-                scrollContainer.add(lockTxt);
-            }
+        const itemsContainer = this.add.container(0, this.inventoryScrollY);
+        scrollContainer.add(itemsContainer);
 
-            // スワイプ判定用変数
-            let touchStartY = 0;
-            let touchStartX = 0;
-            let touchStartScrollY = 0;
-            let isSwiping = false;
+        // スワイプ判定用変数
+        let touchStartY = 0;
+        let touchStartScrollY = 0;
+        let isSwiping = false;
 
+        let lastStartIdx = -1;
+        let lastEndIdx = -1;
 
-            bg.on('pointerdown', (pointer) => {
-                touchStartY = pointer.y;
-                touchStartX = pointer.x;
-                touchStartScrollY = scrollContainer.y;
-                isSwiping = false;
-            });
+        // 仮想スクロール描画関数 (上下1.5〜2ページ分のバッファ範囲のみGameObjectsを生成)
+        const renderVisibleItems = (force = false) => {
+            const currentScrollY = -itemsContainer.y;
+            const buffer = listHeight * 1.5; // 上下1.5〜2ページ分のバッファ
+            const startIdx = Math.max(0, Math.floor((currentScrollY - buffer) / bgHeight));
+            const endIdx = Math.min(items.length, Math.ceil((currentScrollY + listHeight + buffer) / bgHeight));
 
-            bg.on('pointermove', (pointer) => {
-                if (!pointer.isDown) return;
-                const dy = pointer.y - touchStartY;
-                if (Math.abs(dy) > 8 || isSwiping) {
-                    isSwiping = true;
-                    let targetY = touchStartScrollY + dy;
-                    const minY = listHeight - currentY < 0 ? listHeight - currentY : 40;
-                    if (targetY > 40) targetY = 40;
-                    if (targetY < minY) targetY = minY;
-                    scrollContainer.y = targetY;
+            if (!force && startIdx === lastStartIdx && endIdx === lastEndIdx) return;
+            lastStartIdx = startIdx;
+            lastEndIdx = endIdx;
+
+            itemsContainer.removeAll(true);
+
+            for (let index = startIdx; index < endIdx; index++) {
+                const item = items[index];
+                const itemY = index * bgHeight;
+                const isMat = this.enhanceMaterials.includes(item);
+
+                let bgColor = index % 2 === 0 ? 0x222222 : 0x111111;
+                if (this.selectedItem && !this.selectedItem.isEquipped && this.selectedItem.item === item) bgColor = 0x334433;
+                if (isMat) bgColor = 0x552222;
+
+                const bg = this.add.rectangle(20, itemY, this.width - 90, bgHeight, bgColor)
+                    .setOrigin(0, 0)
+                    .setInteractive({ useHandCursor: true });
+                itemsContainer.add(bg);
+                
+                // Name
+                this.drawColoredItem(itemsContainer, 30, itemY + 8, '', item, '16px', this.expandedLayout);
+
+                // Lock icon - ロックのかかっているアイテムにのみ 🔒 アイコンを表示
+                if (item.isLocked) {
+                    const lockY = itemY + Math.floor(bgHeight / 2);
+                    const lockTxt = this.add.text(this.width - 65, lockY, '🔒', { fontSize: '18px' }).setOrigin(0.5, 0.5);
+                    itemsContainer.add(lockTxt);
                 }
-            });
 
-            bg.on('pointerup', (pointer) => {
-                if (isSwiping) return; // スワイプした場合はタップ扱いしない
+                bg.on('pointerdown', (pointer) => {
+                    touchStartY = pointer.y;
+                    touchStartScrollY = itemsContainer.y;
+                    isSwiping = false;
+                });
 
-                if (this.enhanceMode) {
-                    if (item === this.enhanceBaseItem) return;
-                    if (item.isLocked) return; // Cannot use locked
-                    if (item.rank !== this.enhanceBaseItem.rank) return; // Must match rank
-                    
-                    if (isMat) {
-                        this.enhanceMaterials = this.enhanceMaterials.filter(m => m !== item);
-                    } else if (this.enhanceMaterials.length < 4) {
-                        this.enhanceMaterials.push(item);
+                bg.on('pointermove', (pointer) => {
+                    if (!pointer.isDown) return;
+                    const dy = pointer.y - touchStartY;
+                    if (Math.abs(dy) > 6 || isSwiping) {
+                        isSwiping = true;
+                        setScrollY(touchStartScrollY + dy);
                     }
-                    this.drawUI();
-                } else {
-                    this.selectedItem = { item, isEquipped: false, index };
-                    this.drawUI();
-                }
-            });
+                });
 
-            currentY += bgHeight;
+                bg.on('pointerup', () => {
+                    if (isSwiping) return;
+                    if (this.enhanceMode) {
+                        if (item === this.enhanceBaseItem) return;
+                        if (item.isLocked) return;
+                        if (item.rank !== this.enhanceBaseItem.rank) return;
+                        
+                        if (isMat) {
+                            this.enhanceMaterials = this.enhanceMaterials.filter(m => m !== item);
+                        } else if (this.enhanceMaterials.length < 4) {
+                            this.enhanceMaterials.push(item);
+                        }
+                        this.drawUI();
+                    } else {
+                        this.selectedItem = { item, isEquipped: false, index };
+                        this.drawUI();
+                    }
+                });
+            }
+        };
+
+        const setScrollY = (targetY) => {
+            this.inventoryScrollY = Math.max(minY, Math.min(0, targetY));
+            itemsContainer.y = this.inventoryScrollY;
+            renderVisibleItems();
+        };
+
+        touchHitArea.on('pointerdown', (pointer) => {
+            touchStartY = pointer.y;
+            touchStartScrollY = itemsContainer.y;
+            isSwiping = false;
         });
 
-        // スクロール限界計算
-        const minY = listHeight - currentY < 0 ? listHeight - currentY : 40;
+        touchHitArea.on('pointermove', (pointer) => {
+            if (!pointer.isDown) return;
+            const dy = pointer.y - touchStartY;
+            if (Math.abs(dy) > 6 || isSwiping) {
+                isSwiping = true;
+                setScrollY(touchStartScrollY + dy);
+            }
+        });
+
+        // 初回描画
+        renderVisibleItems(true);
 
         // ── スマホ用右端 ページ送り (▲ / ▼) ボタンの追加 ──
         const scrollBtnX = this.width - 35;
@@ -543,27 +587,25 @@ export default class EquipmentScene extends Phaser.Scene {
         this.bottomContainer.add(btnDown);
 
         const scrollByAmount = (amount) => {
-            let targetY = scrollContainer.y + amount;
-            if (targetY > 40) targetY = 40;
-            if (targetY < minY) targetY = minY;
+            let targetY = Math.max(minY, Math.min(0, itemsContainer.y + amount));
             this.tweens.add({
-                targets: scrollContainer,
+                targets: itemsContainer,
                 y: targetY,
                 duration: 200,
-                ease: 'Power1'
+                ease: 'Power1',
+                onUpdate: () => {
+                    this.inventoryScrollY = itemsContainer.y;
+                    renderVisibleItems();
+                }
             });
         };
 
-        btnUp.on('pointerdown', () => scrollByAmount(180));
-        btnDown.on('pointerdown', () => scrollByAmount(-180));
-
+        btnUp.on('pointerdown', () => scrollByAmount(220));
+        btnDown.on('pointerdown', () => scrollByAmount(-220));
 
         // PCマウスホイールスクロール
-        this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-            let targetY = scrollContainer.y - (deltaY * 0.5);
-            if (targetY > 40) targetY = 40;
-            if (targetY < minY) targetY = minY;
-            scrollContainer.y = targetY;
+        this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+            setScrollY(itemsContainer.y - (deltaY * 0.6));
         });
 
     }
@@ -1097,11 +1139,12 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     // ─────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────
     // 並べ替え（ソート）機能
     // ─────────────────────────────────────────────────────
     static SORT_OPTIONS = [
-        { id: 'lock', label: 'ロック' },
         { id: 'rank', label: 'レア度' },
+        { id: 'lock', label: 'ロック' },
         { id: 'max_val', label: '最高値' },
         { id: 'atk', label: '攻撃' },
         { id: 'hit', label: '命中' },
@@ -1178,15 +1221,11 @@ export default class EquipmentScene extends Phaser.Scene {
         return sum;
     }
 
-    getFinalSortKeys(selectedList = []) {
-        const list = [...selectedList];
-        const defaultFallbacks = ['lock', 'rank', 'max_val'];
-        for (const fb of defaultFallbacks) {
-            if (list.length >= 3) break;
-            if (!list.includes(fb)) {
-                list.push(fb);
-            }
-        }
+    getFinalSortKeys(primaryKey = 'rank') {
+        const list = [primaryKey];
+        if (!list.includes('lock')) list.push('lock');
+        if (!list.includes('rank')) list.push('rank');
+        if (!list.includes('max_val')) list.push('max_val');
         return list.slice(0, 3);
     }
 
@@ -1195,12 +1234,25 @@ export default class EquipmentScene extends Phaser.Scene {
         if (!items || items.length <= 1) return;
 
         const gs = GlobalState.getInstance();
-        const sortKeys = this.getFinalSortKeys(gs.relicSortKeys || ['lock', 'rank', 'max_val']);
+        const primaryKey = gs.relicSortKey || (Array.isArray(gs.relicSortKeys) ? gs.relicSortKeys[0] : 'rank') || 'rank';
+        const sortKeys = this.getFinalSortKeys(primaryKey);
+
+        // 高速化: ソート前に各アイテムのキー値を一括事前キャッシュ
+        const itemScores = new Map();
+        items.forEach(it => {
+            const scores = {};
+            sortKeys.forEach(k => {
+                scores[k] = this.getItemSortValue(it, k);
+            });
+            itemScores.set(it, scores);
+        });
 
         items.sort((a, b) => {
+            const sA = itemScores.get(a) || {};
+            const sB = itemScores.get(b) || {};
             for (const key of sortKeys) {
-                const valA = this.getItemSortValue(a, key);
-                const valB = this.getItemSortValue(b, key);
+                const valA = sA[key] !== undefined ? sA[key] : -999;
+                const valB = sB[key] !== undefined ? sB[key] : -999;
                 if (valB !== valA) {
                     return valB - valA; // 降順 (大きい順)
                 }
@@ -1219,8 +1271,8 @@ export default class EquipmentScene extends Phaser.Scene {
         const height = this.height;
         const gs = GlobalState.getInstance();
 
-        // 選択中の一時リスト (現在設定値からコピー)
-        this.tempSortKeys = [...(gs.relicSortKeys || ['lock', 'rank', 'max_val'])];
+        // 選択中の一時キー (1つのみ選択)
+        this.tempSortKey = gs.relicSortKey || (Array.isArray(gs.relicSortKeys) ? gs.relicSortKeys[0] : 'rank') || 'rank';
 
         this.sortDialogContainer = this.add.container(0, 0).setDepth(2000);
 
@@ -1232,7 +1284,7 @@ export default class EquipmentScene extends Phaser.Scene {
 
         // ダイアログ枠
         const diagW = Math.min(width - 30, 520);
-        const diagH = 430;
+        const diagH = 410;
         const diagX = (width - diagW) / 2;
         const diagY = (height - diagH) / 2;
 
@@ -1247,7 +1299,7 @@ export default class EquipmentScene extends Phaser.Scene {
         }).setOrigin(0.5, 0);
         this.sortDialogContainer.add(title);
 
-        const subTitle = this.add.text(width / 2, diagY + 45, '優先したい項目を最大3つまでタップしてください', {
+        const subTitle = this.add.text(width / 2, diagY + 45, '最優先したい項目を1つタップしてください', {
             fontSize: '13px', color: '#aaaaaa'
         }).setOrigin(0.5, 0);
         this.sortDialogContainer.add(subTitle);
@@ -1273,14 +1325,13 @@ export default class EquipmentScene extends Phaser.Scene {
             buttonsContainer.removeAll(true);
 
             // 優先順位テキストの更新
-            const finalKeys = this.getFinalSortKeys(this.tempSortKeys);
+            const finalKeys = this.getFinalSortKeys(this.tempSortKey);
             const labelMap = {};
             options.forEach(o => labelMap[o.id] = o.label);
 
             let pStr = '優先順: ';
             finalKeys.forEach((k, idx) => {
-                const isAuto = !this.tempSortKeys.includes(k);
-                pStr += `[${idx + 1}] ${labelMap[k] || k}${isAuto ? '(補完)' : ''} `;
+                pStr += `[${idx + 1}] ${labelMap[k] || k} `;
                 if (idx < 2) pStr += '➔ ';
             });
             priorityText.setText(pStr);
@@ -1292,26 +1343,18 @@ export default class EquipmentScene extends Phaser.Scene {
                 const bx = startX + c * (btnW + 8);
                 const by = startY + r * (btnH + 10);
 
-                const selectIndex = this.tempSortKeys.indexOf(opt.id);
-                const isSelected = selectIndex !== -1;
+                const isSelected = this.tempSortKey === opt.id;
 
-                const btnBgColor = isSelected ? 0x336644 : 0x282838;
+                const btnBgColor = isSelected ? 0x226633 : 0x282838;
                 const btnStrokeColor = isSelected ? 0x66ff88 : 0x555566;
 
                 const bg = this.add.rectangle(bx, by, btnW, btnH, btnBgColor)
                     .setOrigin(0, 0)
-                    .setStrokeStyle(isSelected ? 2 : 1, btnStrokeColor)
+                    .setStrokeStyle(isSelected ? 3 : 1, btnStrokeColor)
                     .setInteractive({ useHandCursor: true });
 
                 bg.on('pointerdown', () => {
-                    if (isSelected) {
-                        this.tempSortKeys.splice(selectIndex, 1);
-                    } else {
-                        if (this.tempSortKeys.length >= 3) {
-                            this.tempSortKeys.shift(); // 3つ超えたら古い順に押し出し
-                        }
-                        this.tempSortKeys.push(opt.id);
-                    }
+                    this.tempSortKey = opt.id;
                     updateDialogUI();
                 });
                 buttonsContainer.add(bg);
@@ -1321,10 +1364,9 @@ export default class EquipmentScene extends Phaser.Scene {
                 }).setOrigin(0.5, 0.5);
                 buttonsContainer.add(label);
 
-                // 選択順バッジ (①, ②, ③)
+                // 選択順バッジ (①)
                 if (isSelected) {
-                    const badgeNum = ['①', '②', '③'][selectIndex] || '';
-                    const badge = this.add.text(bx + 4, by + 2, badgeNum, {
+                    const badge = this.add.text(bx + 4, by + 2, '★', {
                         fontSize: '12px', color: '#ffff44', fontStyle: 'bold'
                     });
                     buttonsContainer.add(badge);
@@ -1337,19 +1379,9 @@ export default class EquipmentScene extends Phaser.Scene {
         // ダイアログ下部ボタン
         const btmY = diagY + diagH - 55;
 
-        // クリアボタン
-        const btnClear = this.add.text(diagX + 30, btmY, '🔄 クリア', {
-            fontSize: '16px', backgroundColor: '#553333', color: '#ffffff', padding: { x: 14, y: 8 }
-        }).setInteractive({ useHandCursor: true });
-        btnClear.on('pointerdown', () => {
-            this.tempSortKeys = [];
-            updateDialogUI();
-        });
-        this.sortDialogContainer.add(btnClear);
-
         // 閉じるボタン
-        const btnClose = this.add.text(width / 2 - 45, btmY, '✕ 閉じる', {
-            fontSize: '16px', backgroundColor: '#444455', color: '#ffffff', padding: { x: 14, y: 8 }
+        const btnClose = this.add.text(diagX + 50, btmY, '✕ キャンセル', {
+            fontSize: '16px', backgroundColor: '#444455', color: '#ffffff', padding: { x: 16, y: 8 }
         }).setInteractive({ useHandCursor: true });
         btnClose.on('pointerdown', () => {
             this.sortDialogContainer.destroy();
@@ -1358,11 +1390,12 @@ export default class EquipmentScene extends Phaser.Scene {
         this.sortDialogContainer.add(btnClose);
 
         // 決定ボタン
-        const btnConfirm = this.add.text(diagX + diagW - 130, btmY, '✓ 決定', {
-            fontSize: '18px', fontStyle: 'bold', backgroundColor: '#227733', color: '#ffffff', padding: { x: 20, y: 7 }
+        const btnConfirm = this.add.text(diagX + diagW - 150, btmY, '✓ 決定して適用', {
+            fontSize: '16px', fontStyle: 'bold', backgroundColor: '#227733', color: '#ffffff', padding: { x: 18, y: 8 }
         }).setInteractive({ useHandCursor: true });
         btnConfirm.on('pointerdown', () => {
-            const finalKeys = this.getFinalSortKeys(this.tempSortKeys);
+            const finalKeys = this.getFinalSortKeys(this.tempSortKey);
+            gs.relicSortKey = this.tempSortKey;
             gs.relicSortKeys = finalKeys;
             SaveManager.saveGame();
 

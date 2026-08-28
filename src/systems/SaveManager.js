@@ -1,4 +1,4 @@
-import { GlobalState } from './GlobalState';
+import { GlobalState } from './GlobalState.js';
 
 const SAVE_KEY = 'antigravity_game_save';
 
@@ -35,6 +35,9 @@ export class SaveManager {
                 timePeriodIndex: gs.timePeriodIndex,
                 inventory: gs.inventory,
                 characters: gs.characters,
+                dailyRewardMonth: gs.dailyRewardMonth || '',
+                dailyRewardCount: gs.dailyRewardCount || 0,
+                lastDailyRewardDate: gs.lastDailyRewardDate || '',
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
                 autoLanes: gs.autoLanes ? JSON.parse(JSON.stringify(gs.autoLanes)) : { '-2': false, '-1': false, '0': false, '1': false, '2': false },
                 isBattleAutoEnabled: gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true,
@@ -216,9 +219,28 @@ export class SaveManager {
         if (d.timePeriodIndex !== undefined) gs.timePeriodIndex = d.timePeriodIndex;
         if (d.inventory) gs.inventory = d.inventory;
         if (d.relicSortKeys) gs.relicSortKeys = d.relicSortKeys;
+        if (d.dailyRewardMonth !== undefined) gs.dailyRewardMonth = d.dailyRewardMonth;
+        if (d.dailyRewardCount !== undefined) gs.dailyRewardCount = d.dailyRewardCount;
+        if (d.lastDailyRewardDate !== undefined) gs.lastDailyRewardDate = d.lastDailyRewardDate;
 
         if (d.characters) {
             gs.characters = d.characters;
+            // 未登録キャラクターの自動補完
+            const requiredChars = [
+                { id: '001', name: '紫苑' },
+                { id: '002', name: '蒼樹' },
+                { id: '003', name: '紅華' },
+                { id: '004', name: '黄蘭' },
+                { id: '005', name: '李乃果' },
+                { id: '007', name: 'ななよ' },
+                { id: '008', name: 'ノア' },
+                { id: '010', name: '白蓮' }
+            ];
+            for (const req of requiredChars) {
+                if (!gs.characters[req.id]) {
+                    gs.characters[req.id] = gs.createInitialCharData(req.id, req.name, 1);
+                }
+            }
             // 既存キャラの hasAccompanied 自動補完
             for (const cid in gs.characters) {
                 const c = gs.characters[cid];

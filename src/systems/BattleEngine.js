@@ -230,6 +230,8 @@ export class BattleEngine {
                 '003': 'red',
                 '004': 'yellow',
                 '005': 'green',
+                '007': 'yellow',
+                '008': 'red',
                 '010': 'blue'
             };
             pc.attribute = charIdToAttr[charId] || 'red';
@@ -1564,20 +1566,40 @@ export class BattleEngine {
                             const vxDir = dirX * cosR - dirZ * sinR;
                             const vzDir = dirX * sinR + dirZ * cosR;
 
+                            const isSankoshoFar = (action.type === 'sankosho_007');
+                            const isSankoshoCircle = (action.type === 'sankosho_circle_007');
+                            const isSankosho = isSankoshoFar || isSankoshoCircle;
+                            const isNoahDirectBullet = (p.charId === '008' && action.type === 'noah_bullet_008');
+
+                            if (isNoahDirectBullet) {
+                                // ノアの遠距離攻撃はお供のエネルギー球体が担当するため、本体からの直接発射は行わない
+                                continue;
+                            }
+
+                            if (isSankoshoFar) {
+                                p.sankoshoFarCurveDir = (p.sankoshoFarCurveDir === 1 ? -1 : 1);
+                            }
+
                             const b = new Bullet(p.x, p.z, {
-                                vx:         vxDir * speed,
-                                vz:         vzDir * speed,
+                                vx:         isSankosho ? 0 : vxDir * speed,
+                                vz:         isSankosho ? 0 : vzDir * speed,
                                 damage:     damage,
                                 knockback:  action.knockback || 0,
                                 owner:      'player',
-                                size:       action.size || 0.5,
-                                isPiercing: action.isPiercing || false,
+                                size:       action.size || 0.6,
+                                isPiercing: isSankosho ? true : (action.isPiercing || false),
                                 type:       action.type,
-                                targetDist: action.range !== undefined ? action.range : 20.0,
-                                lifeTime:   action.speed ? (action.range / action.speed) * 2 + 1 : 5,
+                                targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
+                                lifeTime:   isSankosho ? 4.0 : (action.speed ? (action.range / action.speed) * 2 + 1 : 5),
                                 stunDuration: (p.charId === '004' ? 1.0 : (action.stunDuration || 0)),
                                 stunChance: 1.0
                             });
+
+                            if (isSankoshoFar) {
+                                b.targetX = target ? target.x : (p.x + dirX * 15.0);
+                                b.targetZ = target ? target.z : (p.z + dirZ * 15.0);
+                                b.curveDir = p.sankoshoFarCurveDir || 1;
+                            }
 
                             b.sourceEntity = p;
                             this.bullets.push(b); if (b && b.sourceEntity && b.sourceEntity.triggerAttackShake) b.sourceEntity.triggerAttackShake();
@@ -2325,6 +2347,8 @@ export class BattleEngine {
                         '003': 3.5, // 大剣
                         '004': 3.2, // リボン
                         '005': 2.5, // 拳
+                        '007': 4.5, // 三鈷杵ブーメラン
+                        '008': 2.0, // パンチ
                         '010': 3.0  // バリア
                     };
                     const maxMeleeDist = meleeRangeMap[ep.charId] || 3.0;
@@ -2360,7 +2384,7 @@ export class BattleEngine {
                             kickBullet.sourceEntity = ep;
                             this.bullets.push(kickBullet);
                         } else {
-                            // 蒼樹(002), 紅華(003), 黄蘭(004), 李乃果(005), 白蓮(010)
+                            // 蒼樹(002), 紅華(003), 黄蘭(004), 李乃果(005), ななよ(007), ノア(008), 白蓮(010)
                             if (ep.triggerAttackShake) ep.triggerAttackShake();
                             
                             // スイング持続時間（蒼樹は0.18sの鋭い高速一閃！）
@@ -2369,6 +2393,8 @@ export class BattleEngine {
                                 '003': 0.50,
                                 '004': 0.20,
                                 '005': 0.20,
+                                '007': 0.40,
+                                '008': 0.20,
                                 '010': 0.25
                             };
                             const swingDuration = swingDurationMap[ep.charId] || 0.20;
@@ -2379,6 +2405,8 @@ export class BattleEngine {
                                 '003': { type: 'swing_003', textureKey: 'weapon_003', dmg: 1.0, size: 3.0, hitRange: 4.0 },
                                 '004': { type: 'swing_004', textureKey: 'weapon_004_ribbon', dmg: 0.9, size: 3.0, hitRange: 3.5 },
                                 '005': { type: 'swing_005', textureKey: 'weapon_005', dmg: 1.0, size: 2.0, hitRange: 2.5 },
+                                '007': { type: 'sankosho_circle_007', textureKey: 'weapon_007', dmg: 0.9, size: 3.0, hitRange: 4.5 },
+                                '008': { type: 'punch_008', textureKey: null, dmg: 0.6, size: 2.0, hitRange: 2.0 },
                                 '010': { type: 'barrier_010', textureKey: 'weapon_010b', dmg: 0.8, size: 2.5, hitRange: 3.0 }
                             };
                             const info = swingMap[ep.charId] || { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.0, size: 3.0, hitRange: 3.5 };
@@ -2424,6 +2452,8 @@ export class BattleEngine {
                                 '003': 'weapon_003',
                                 '004': 'weapon_004_ribbon',
                                 '005': 'weapon_005',
+                                '007': 'sankosho_007',
+                                '008': 'weapon_008_bullet',
                                 '010': 'laser_010'
                             };
                             const bType = bulletTypeMap[ep.charId] || 'bullet';
@@ -2526,6 +2556,174 @@ export class BattleEngine {
                 b.size = 0.5 + (2.0 * expandProgress); // 直径0.5m -> 2.5mへ拡大！
             }
 
+            // ななよ(007)の遠距離三鈷杵投げ (sankosho_007): ななよと目標の中心を芯とし、最短直径1.5mの美しい楕円軌道ブーメラン
+            if (b.type === 'sankosho_007' && b.sourceEntity) {
+                const owner = b.sourceEntity;
+                if (b.ellipseProgress === undefined) {
+                    b.ellipseProgress = 0;
+                    b.destX = b.targetX !== undefined ? b.targetX : owner.x;
+                    b.destZ = b.targetZ !== undefined ? b.targetZ : (owner.z + 15.0);
+                    
+                    // 距離の長半径 a (最低3m、最大15m)
+                    const totalDist = Math.max(6.0, Math.min(16.0, Math.hypot(b.destX - owner.x, b.destZ - owner.z)));
+                    b.semiMajor = totalDist / 2; // 長半径 a
+                    b.semiMinor = 0.75;          // 短半径 b = 0.75m (最短直径 1.5m)
+                    
+                    // 飛行所要時間: 速度32m/sで長円周長を一周 (約0.6〜0.9秒)
+                    const perimeter = Math.PI * (3 * (b.semiMajor + b.semiMinor) - Math.sqrt((3 * b.semiMajor + b.semiMinor) * (b.semiMajor + 3 * b.semiMinor)));
+                    b.flightDuration = Math.max(0.55, perimeter / 32.0);
+                    b.spinAngle = 0;
+                    b.vx = 0;
+                    b.vz = 0;
+                    b.distanceTraveled = 0;
+                    b.targetDist = 9999;
+                    b.lifeTime = 4.0;
+                }
+
+                b.ellipseProgress += (dt / b.flightDuration);
+                b.spinAngle = (b.spinAngle || 0) + (Math.PI * 10 * dt); // 自転スピン
+
+                if (b.ellipseProgress >= 1.0) {
+                    b.isDead = true;
+                    b.x = owner.x;
+                    b.z = owner.z;
+                } else {
+                    // ななよの現在座標と目標地点の直線方向ベクトル
+                    const curStartX = owner.x;
+                    const curStartZ = owner.z;
+                    const dx = b.destX - curStartX;
+                    const dz = b.destZ - curStartZ;
+                    const dist = Math.hypot(dx, dz) || 1.0;
+                    
+                    const ux = dx / dist; // 長軸単位ベクトル
+                    const uz = dz / dist;
+                    const curveSign = b.curveDir || 1;
+                    const vx = -uz * curveSign; // 短軸単位ベクトル (垂直方向)
+                    const vz = ux * curveSign;
+
+                    // 芯(中心点)
+                    const midX = curStartX + (ux * b.semiMajor);
+                    const midZ = curStartZ + (uz * b.semiMajor);
+
+                    // 角度 θ: -π (手元) -> 0 (目標地点) -> π (手元帰還)
+                    const theta = -Math.PI + (b.ellipseProgress * Math.PI * 2);
+                    const cosT = Math.cos(theta);
+                    const sinT = Math.sin(theta);
+
+                    b.x = midX + (ux * b.semiMajor * cosT) + (vx * b.semiMinor * sinT);
+                    b.z = midZ + (uz * b.semiMajor * cosT) + (vz * b.semiMinor * sinT);
+                }
+            }
+
+            // ななよ(007)の近距離三鈷杵ブーメラン (sankosho_circle_007): 手元から360度回転してななよのところまで戻る
+            if (b.type === 'sankosho_circle_007' && b.sourceEntity) {
+                const owner = b.sourceEntity;
+                if (b.circleProgress === undefined) {
+                    b.circleProgress = 0;
+                    b.orbitRadius = 2.2; // 前方2.2m (直径4.4m)
+                    b.vx = 0;
+                    b.vz = 0;
+                    b.distanceTraveled = 0;
+                    b.targetDist = 9999;
+                    b.lifeTime = 2.0;
+                    b.spinAngle = 0;
+                }
+                b.circleProgress += (dt / 0.55); // 0.55秒かけて綺麗に360度一周！
+                b.spinAngle = (b.spinAngle || 0) + (Math.PI * 8 * dt); // 三鈷杵自体も高速スピン
+
+                if (b.circleProgress >= 1.0) {
+                    b.isDead = true;
+                    // ななよの手元でキャッチ
+                    b.x = owner.x;
+                    b.z = owner.z;
+                } else {
+                    const theta = -Math.PI / 2 + (b.circleProgress * Math.PI * 2);
+                    const centerX = owner.x;
+                    const centerZ = owner.z + b.orbitRadius;
+                    b.x = centerX + Math.cos(theta) * b.orbitRadius;
+                    b.z = centerZ + Math.sin(theta) * b.orbitRadius;
+                }
+            }
+
+            // ノア(008)の特技デバフフィールド (special_field_008): 触れた敵の属性防御力を50上げる(弱体化、敵のデバフ抵抗力で増減) - 直径3m
+            if (b.type === 'special_field_008') {
+                const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                const baseVal = b.baseDebuff || 50;
+                for (const t of targets) {
+                    const dx = t.x - b.x;
+                    const dz = t.z - b.z;
+                    if (dx * dx + dz * dz <= 2.25) { // 半径1.5m (直径3m)
+                        const resist = t.debuffResist !== undefined ? t.debuffResist : 0;
+                        const resistMult = Math.max(0, 1.0 - (resist / 100));
+                        const finalDebuff = Math.max(1, Math.round(baseVal * resistMult));
+                        t.elementalDefDebuff = finalDebuff;
+                        t.elementalDefDebuffTimer = b.debuffDuration || (5.0 + (b.sourceEntity?.wlv || 0));
+                        t.debuffColor = 0xff8800;
+                    }
+                }
+            }
+
+            // ノア(008)の必殺技フェニックス (ultimate_008):
+            // 1秒かけて高さ1m・幅0.5mから高さ4m・幅6mへ拡大しながら秒速0.5mで前進。
+            // 1秒後008004b.pngに変化し、0.1秒ごとに秒速2mずつ加速(20m/s^2)。
+            // 残像バッファ(0.1秒遅れ、0.2秒遅れ)を常時記録。
+            if (b.type === 'ultimate_008') {
+                if (b.expandTimer === undefined) b.expandTimer = 0;
+                b.expandTimer += dt;
+
+                if (b.expandTimer < 1.0) {
+                    const progress = Math.min(1.0, b.expandTimer / 1.0);
+                    b.visualWidth = 0.5 + (6.0 - 0.5) * progress;
+                    b.visualHeight = 1.0 + (4.0 - 1.0) * progress;
+                    b.size = b.visualHeight;
+                    b.vz = 0.5;
+                    b.textureKey = 'weapon_008_ult_a';
+                } else {
+                    b.textureKey = 'weapon_008_ult_b';
+                    b.visualWidth = 6.0;
+                    b.visualHeight = 4.0;
+                    b.size = 4.0;
+                    // 加速モード: 0.1秒ごとに2m/s加速 = 毎秒20m/s^2
+                    b.currentVz = (b.currentVz || 0.5) + (20.0 * dt);
+                    b.vz = b.currentVz;
+                }
+
+                // 残像記録 (直近0.3秒間の軌跡)
+                if (!b.poseHistory) b.poseHistory = [];
+                b.poseHistory.push({
+                    age: 0,
+                    x: b.x,
+                    z: b.z,
+                    width: b.visualWidth || 6.0,
+                    height: b.visualHeight || 4.0,
+                    textureKey: b.textureKey
+                });
+                for (const h of b.poseHistory) {
+                    h.age += dt;
+                }
+                // 0.35秒以上古い履歴は破棄
+                b.poseHistory = b.poseHistory.filter(h => h.age <= 0.35);
+            }
+
+            // ノア(008)の球体弾丸 (noah_bullet_008): 命中するか15m進むと半径1.5mの爆発
+            if (b.type === 'noah_bullet_008') {
+                b.distTravel = (b.distTravel || 0) + Math.hypot(b.vx, b.vz) * dt;
+                if (b.distTravel >= 15.0 && !b.isDead) {
+                    b.isDead = true;
+                    // 半径1.5mの範囲爆発
+                    this.effects.push(new EffectEntity(b.x, b.z, { type: 'fire_pillar', radius: 1.5, lifeTime: 0.4 }));
+                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                    for (const t of targets) {
+                        const dx = t.x - b.x;
+                        const dz = t.z - b.z;
+                        if (dx * dx + dz * dz <= 2.25) { // 半径1.5m
+                            this.applyDamage(b.sourceEntity, t, b.damage, 'normal', Math.sqrt(dx * dx + dz * dz), b.x, b.z);
+                            t.applyKnockback((20 * dx) / (Math.sqrt(dx * dx + dz * dz) || 1), (20 * dz) / (Math.sqrt(dx * dx + dz * dz) || 1));
+                        }
+                    }
+                }
+            }
+
             // 白蓮(010)の必殺技持続爆発フィールド (ultimate_burst_field_010): 範囲内の敵全員に毎秒(攻撃力の10%+WLV%)の継続ダメージ
             if (b.type === 'ultimate_burst_field_010' && b.sourceEntity) {
                 const owner = b.sourceEntity;
@@ -2609,7 +2807,7 @@ export class BattleEngine {
             }
 
 
-            if (b.type && !b.type.startsWith('swing_') && b.distanceTraveled >= b.targetDist) {
+            if (b.type && !b.type.startsWith('swing_') && b.type !== 'sankosho_circle_007' && b.type !== 'sankosho_007' && b.type !== 'ultimate_007' && b.distanceTraveled >= b.targetDist) {
                 if (b.type === 'grenade') {
                     this.effects.push(new EffectEntity(b.x, b.z, { type: 'grenade_explosion', radius: 2.0, lifeTime: 0.5 }));
 
@@ -2620,6 +2818,21 @@ export class BattleEngine {
                         const adx = b.x - aoeTarget.x;
                         const adz = b.z - aoeTarget.z;
                         if (adx*adx + adz*adz <= 4.0) {
+                            this.applyDamage(b.sourceEntity, aoeTarget, b.damage, 'normal', 0, b.x, b.z);
+                            const len = Math.sqrt(adx*adx + adz*adz) || 1.0;
+                            aoeTarget.applyKnockback((b.knockback * -adx)/len, (b.knockback * -adz)/len);
+                        }
+                    }
+                } else if (b.type === 'noah_bullet_008') {
+                    this.effects.push(new EffectEntity(b.x, b.z, { type: 'noah_bullet_explosion', radius: 1.5, lifeTime: 0.4, customData: { color: 'red' } }));
+
+                    const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
+                    const aoeTargets = b.owner === 'player' ? enemyList : this.players;
+                    for (const aoeTarget of aoeTargets) {
+                        if (aoeTarget.isDead || aoeTarget.isDying || aoeTarget.hp <= 0) continue;
+                        const adx = b.x - aoeTarget.x;
+                        const adz = b.z - aoeTarget.z;
+                        if (adx*adx + adz*adz <= 2.25) { // 半径1.5m (直径3.0m)
                             this.applyDamage(b.sourceEntity, aoeTarget, b.damage, 'normal', 0, b.x, b.z);
                             const len = Math.sqrt(adx*adx + adz*adz) || 1.0;
                             aoeTarget.applyKnockback((b.knockback * -adx)/len, (b.knockback * -adz)/len);
@@ -2701,16 +2914,37 @@ export class BattleEngine {
                                 }
                             }
                         }
+                    } else if (b.type === 'noah_bullet_008') {
+                        this.effects.push(new EffectEntity(b.x, b.z, { type: 'noah_bullet_explosion', radius: 1.5, lifeTime: 0.4, customData: { color: 'red' } }));
+
+                        for (const aoeTarget of targets) {
+                            if (aoeTarget.isDead || aoeTarget.isDying) continue;
+                            const adx = b.x - aoeTarget.x;
+                            const adz = b.z - aoeTarget.z;
+                            if (adx*adx + adz*adz <= 2.25) { // 半径1.5m (直径3.0m)
+                                const len = Math.sqrt(adx*adx + adz*adz) || 1.0;
+                                const isHit = this.applyDamage(b.sourceEntity, aoeTarget, b.damage, 'normal', b.distanceTraveled, b.x, b.z);
+                                if (isHit) {
+                                    aoeTarget.applyKnockback((b.knockback * -adx)/len, (b.knockback * -adz)/len);
+                                }
+                            }
+                        }
+                        b.isDead = true;
+                        break;
                     } else {
                         const isCrit = Math.random() < 0.1; 
                         const type = isCrit ? 'critical' : 'normal';
                         let finalDmg = isCrit ? b.damage * 1.5 : b.damage;
                         
-                        // 貫通弾はヒットごとに威力が2/3に減衰
+                        // 貫通弾の威力減衰
                         let isPiercing = b.isPiercing || b.type === 'weapon_003';
                         let isSwing = b.type && b.type.startsWith('swing_');
                         
-                        if (isPiercing && !isSwing && b.type !== 'ultimate_003' && b.type !== 'kick_bullet' && b.hitCount > 0) {
+                        if (b.type === 'sankosho_007') {
+                            // ななよの遠距離三鈷杵投げ: ヒットごとに1/3(33.3%)ずつ減衰
+                            const decayMult = Math.max(0, 1.0 - ((b.hitCount || 0) * (1 / 3)));
+                            finalDmg *= decayMult;
+                        } else if (isPiercing && !isSwing && b.type !== 'ultimate_003' && b.type !== 'kick_bullet' && b.hitCount > 0) {
                             finalDmg *= Math.pow(2/3, b.hitCount);
                         }
                         
