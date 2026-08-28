@@ -491,12 +491,12 @@ export class BattleRenderer {
                     const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                     sprite.setAngle(angle);
                 } else if (textureKey === 'weapon_010') {
-                    // 白蓮のレーザー弾: 青白いレーザービームを加算合成で発光
+                    // 白蓮のレーザー弾: 青白いレーザービームを加算合成で発光 (長さ2m, 幅等倍比率1.0)
                     const baseHeight = sprite.height || 360;
                     const baseWidth = sprite.width || 180;
-                    const visualLength = 3.5;
+                    const visualLength = 2.0;
                     const scaleY = p.scale * (visualLength / baseHeight);
-                    const scaleX = scaleY * 1.5;
+                    const scaleX = scaleY * 1.0;
                     sprite.setScale(scaleX, scaleY);
                     const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                     sprite.setAngle(angle);
