@@ -41,11 +41,12 @@ jobs:
 
       - name: Package into .ipa
         run: |
-          cd ios/App/build/Build/Products/Release-iphoneos
+          APP_PATH=$(find ios/App -name "App.app" -type d | head -n 1)
+          echo "Found App.app at: $APP_PATH"
           mkdir -p Payload
-          cp -r App.app Payload/
+          cp -r "$APP_PATH" Payload/
           zip -r magia_pilgrims.ipa Payload
-          mv magia_pilgrims.ipa ../../../../../
+          ls -la magia_pilgrims.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
