@@ -1,4 +1,5 @@
 import { GlobalState } from './GlobalState.js';
+import charDataJson from '../data/characters.json' with { type: 'json' };
 
 const SAVE_KEY = 'antigravity_game_save';
 
@@ -242,10 +243,14 @@ export class SaveManager {
                     gs.characters[req.id] = gs.createInitialCharData(req.id, req.name, 1);
                 }
             }
-            // 既存キャラの hasAccompanied 自動補完
+            // 既存キャラの基礎ステータス最新同期＆hasAccompanied 自動補完
             for (const cid in gs.characters) {
                 const c = gs.characters[cid];
                 if (c) {
+                    const def = charDataJson.characters[cid] || {};
+                    if (def.baseHp !== undefined) c.baseHp = def.baseHp;
+                    if (def.baseSp !== undefined) c.baseSp = def.baseSp;
+                    if (def.baseAtk !== undefined) c.baseAtk = def.baseAtk;
                     if (cid === '001') c.hasAccompanied = true;
                     if (c.hasAccompanied === undefined) {
                         const hasFriendship = c.friendships && Object.keys(c.friendships).length > 0;

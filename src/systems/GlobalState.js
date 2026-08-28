@@ -212,12 +212,9 @@ export class GlobalState {
 
     createInitialCharData(id, name, level = 1) {
         const def = charDataJson.characters[id] || {};
-        let baseHp = def.baseHp || 1000;
-        let baseSp = def.baseSp || 500;
-        let baseAtk = def.baseAtk || 100;
-        if (id === '007') { baseHp = 1500; baseSp = 1000; baseAtk = 120; }
-        if (id === '008') { baseHp = 800; baseSp = 1200; baseAtk = 100; }
-        if (id === '010') { baseHp = 1000; baseSp = 500; baseAtk = 80; }
+        let baseHp = (def.baseHp !== undefined) ? def.baseHp : 1000;
+        let baseSp = (def.baseSp !== undefined) ? def.baseSp : 1000;
+        let baseAtk = (def.baseAtk !== undefined) ? def.baseAtk : 100;
 
         const charData = {
             id: id,
