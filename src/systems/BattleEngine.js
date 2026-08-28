@@ -2547,19 +2547,21 @@ export class BattleEngine {
 
             // 白蓮(010)のバリア弾 (近接 barrier_010 / 8秒パッシブ special_barrier_010): 
             // ① 0.1秒ごとに速度が半減するシャボン玉のような減速（初速15m/s -> 約2.16mで滑らかに停止して漂う）
-            // ② 0.5秒間で直径0.5mから2.5mへ滑らかに拡大
             if (b.type === 'barrier_010' || b.type === 'special_barrier_010') {
                 const decayRate = Math.pow(0.5, dt / 0.1);
                 b.vx *= decayRate;
                 b.vz *= decayRate;
 
-                if (b.expandTimer === undefined) {
-                    b.expandTimer = 0;
-                    b.size = 0.5; // 発射時は直径0.5m
+                // 近接バリア(barrier_010)のみ、0.5秒間で直径0.5mから2.5mへ滑らかに拡大！(特技バリアは直径1.0m固定)
+                if (b.type === 'barrier_010') {
+                    if (b.expandTimer === undefined) {
+                        b.expandTimer = 0;
+                        b.size = 0.5; // 発射時は直径0.5m
+                    }
+                    b.expandTimer += dt;
+                    const expandProgress = Math.min(1.0, b.expandTimer / 0.5); // 0.5秒
+                    b.size = 0.5 + (2.0 * expandProgress); // 直径0.5m -> 2.5mへ拡大！
                 }
-                b.expandTimer += dt;
-                const expandProgress = Math.min(1.0, b.expandTimer / 0.5); // 0.5秒
-                b.size = 0.5 + (2.0 * expandProgress); // 直径0.5m -> 2.5mへ拡大！
             }
 
             // ななよ(007)の遠距離三鈷杵投げ (sankosho_007): ななよと目標の中心を芯とし、最短直径1.5mの美しい楕円軌道ブーメラン
