@@ -30,43 +30,43 @@ export default class BattleScene extends Phaser.Scene {
 
     preload() {
         // 戦闘用ミニキャラ（600x300, 横4列×縦2行 = frameWidth:150, frameHeight:150）
-        this.load.spritesheet('battle_001', '/files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_001_b', '/files/CHR/001002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_001', 'files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_001_b', 'files/CHR/001002b.png', { frameWidth: 150, frameHeight: 150 });
 
-        this.load.spritesheet('battle_002', '/files/CHR/002002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_002_b', '/files/CHR/002002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_002', '/files/CHR/002003.png');
-        this.load.spritesheet('battle_003', '/files/CHR/003002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_003_b', '/files/CHR/003002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_003', '/files/CHR/003003.png');
-        this.load.spritesheet('battle_004', '/files/CHR/004002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_004_b', '/files/CHR/004002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_002', 'files/CHR/002002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_002_b', 'files/CHR/002002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_002', 'files/CHR/002003.png');
+        this.load.spritesheet('battle_003', 'files/CHR/003002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_003_b', 'files/CHR/003002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_003', 'files/CHR/003003.png');
+        this.load.spritesheet('battle_004', 'files/CHR/004002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_004_b', 'files/CHR/004002b.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_004', 'files/CHR/004003.png');
         this.load.image('weapon_004_ribbon', 'files/CHR/004003b.png');
 
-        this.load.spritesheet('battle_005', '/files/CHR/005002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_005_b', '/files/CHR/005002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_005', '/files/CHR/005003.png');
+        this.load.spritesheet('battle_005', 'files/CHR/005002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_005_b', 'files/CHR/005002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_005', 'files/CHR/005003.png');
 
-        this.load.spritesheet('battle_007', '/files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_007_b', '/files/CHR/007002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_007', '/files/CHR/007003.png');
+        this.load.spritesheet('battle_007', 'files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_007_b', 'files/CHR/007002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_007', 'files/CHR/007003.png');
 
-        this.load.spritesheet('battle_008', '/files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_008_b', '/files/CHR/008002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_008_orb', '/files/CHR/008003.png');
-        this.load.image('weapon_008_bullet', '/files/CHR/008004.png');
-        this.load.image('weapon_008_ult_a', '/files/CHR/008004a.png');
-        this.load.image('weapon_008_ult_b', '/files/CHR/008004b.png');
+        this.load.spritesheet('battle_008', 'files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_008_b', 'files/CHR/008002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_008_orb', 'files/CHR/008003.png');
+        this.load.image('weapon_008_bullet', 'files/CHR/008004.png');
+        this.load.image('weapon_008_ult_a', 'files/CHR/008004a.png');
+        this.load.image('weapon_008_ult_b', 'files/CHR/008004b.png');
 
-        this.load.spritesheet('battle_010', '/files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_010_b', '/files/CHR/011002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_010', '/files/CHR/011003.png');
-        this.load.image('weapon_010b', '/files/CHR/011003b.png');
+        this.load.spritesheet('battle_010', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_010_b', 'files/CHR/011002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_010', 'files/CHR/011003.png');
+        this.load.image('weapon_010b', 'files/CHR/011003b.png');
 
         // 雑魚敵（画像全体の幅1200px, 高さ300px -> 4分割で300x300）
         for (let i = 1; i <= 3; i++) {
-            this.load.spritesheet(`en00${i}`, `/files/ENEMY/en00${i}.png`, {
+            this.load.spritesheet(`en00${i}`, `files/ENEMY/en00${i}.png`, {
                 frameWidth: 300,
                 frameHeight: 300
             });
@@ -74,7 +74,7 @@ export default class BattleScene extends Phaser.Scene {
 
         // ボス（魔女: 画像全体の幅4000px, 高さ1000px -> 4分割で1000x1000）
         for (let i = 1; i <= 4; i++) {
-            this.load.spritesheet(`boss00${i}`, `/files/ENEMY/boss00${i}.png`, {
+            this.load.spritesheet(`boss00${i}`, `files/ENEMY/boss00${i}.png`, {
                 frameWidth: 1000,
                 frameHeight: 1000
             });
@@ -96,21 +96,21 @@ export default class BattleScene extends Phaser.Scene {
 
 
         // 突破用背景画像
-        this.load.image('toppa_bg_1', '/files/BG_battle/yuka_enkin02.jpg');
-        this.load.image('toppa_bg_2', '/files/BG_battle/road_enkin02.jpg');
-        this.load.image('toppa_bg_3', '/files/BG_battle/grat_bg01.png');
+        this.load.image('toppa_bg_1', 'files/BG_battle/yuka_enkin02.jpg');
+        this.load.image('toppa_bg_2', 'files/BG_battle/road_enkin02.jpg');
+        this.load.image('toppa_bg_3', 'files/BG_battle/grat_bg01.png');
 
         // 背景とエフェクト
-        this.load.image('floor_a', '/files/BG_battle/floor_a.jpg');
-        this.load.image('yuka_enkin01', '/files/BG_battle/yuka_enkin01.jpg');
-        this.load.image('yuka_enkin02', '/files/BG_battle/yuka_enkin02.jpg');
-        this.load.image('yukamas', '/files/BG_battle/yukamas.jpg');
+        this.load.image('floor_a', 'files/BG_battle/floor_a.jpg');
+        this.load.image('yuka_enkin01', 'files/BG_battle/yuka_enkin01.jpg');
+        this.load.image('yuka_enkin02', 'files/BG_battle/yuka_enkin02.jpg');
+        this.load.image('yukamas', 'files/BG_battle/yukamas.jpg');
 
         for (let i = 1; i <= 3; i++) {
-            this.load.image(`bg00${i}`, `/files/BG_battle/bg00${i}.png`);
+            this.load.image(`bg00${i}`, `files/BG_battle/bg00${i}.png`);
         }
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`BG_0${i}`, `/files/BG_battle/BG_0${i}.png`);
+            this.load.image(`BG_0${i}`, `files/BG_battle/BG_0${i}.png`);
         }
     }
 

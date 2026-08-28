@@ -22,7 +22,7 @@ export default class DemoScene extends Phaser.Scene {
     preload() {
         // メニューBGMがまだロードされていない場合のみロード
         if (!this.cache.audio.exists('bgm_menu')) {
-            this.load.audio('bgm_menu', '/files/BGM/002_menu.mp3');
+            this.load.audio('bgm_menu', 'files/BGM/002_menu.mp3');
         }
     }
 

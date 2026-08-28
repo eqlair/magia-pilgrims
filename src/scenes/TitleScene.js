@@ -23,10 +23,10 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('title_logo', '/files/OP/title.png');
-        this.load.audio('bgm_op',   '/files/BGM/001_OP001.mp3');
-        this.load.audio('bgm_menu', '/files/BGM/002_menu.mp3');
-        this.load.json('test_save_snapshot', '/test_save_snapshot.json');
+        this.load.image('title_logo', 'files/OP/title.png');
+        this.load.audio('bgm_op',   'files/BGM/001_OP001.mp3');
+        this.load.audio('bgm_menu', 'files/BGM/002_menu.mp3');
+        this.load.json('test_save_snapshot', 'test_save_snapshot.json');
     }
 
     create() {
@@ -412,7 +412,7 @@ export default class TitleScene extends Phaser.Scene {
                 console.log('[TitleScene] 🧪 Test snapshot save loaded into localStorage successfully!');
                 this._startDirectGame();
             } else {
-                fetch('/test_save_snapshot.json').then(r => r.json()).then(d => {
+                fetch('test_save_snapshot.json').then(r => r.json()).then(d => {
                     localStorage.setItem('antigravity_game_save', JSON.stringify(d));
                     this._startDirectGame();
                 });
