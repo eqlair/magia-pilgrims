@@ -19,6 +19,7 @@
   "dependencies": {
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "canvas": "^3.2.3",
     "phaser": "^4.2.0",
     "puppeteer": "^25.3.0",
