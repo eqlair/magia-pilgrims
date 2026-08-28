@@ -19,6 +19,7 @@ import RestScene from './scenes/RestScene';
 import FormationScene from './scenes/FormationScene';
 import { DebugMenuScene } from './scenes/DebugMenuScene';
 import MapEventAdjustScene from './scenes/MapEventAdjustScene';
+import { AudioOptimizer } from './systems/AudioOptimizer';
 
 // ── ?load_test_save=1 クエリ検知時の即時セーブデータ注入 ──
 try {
@@ -100,6 +101,9 @@ const config = {
 
 export const game = new Phaser.Game(config);
 window.game = game;
+
+// ── スマホ向けサウンド最適化（85Hzローカット＆ソフトリミッター）初期化 ──
+AudioOptimizer.init(game);
 
 // ── バックグラウンド自動消音・一時停止（App LifeCycle & Web Visibility API）──
 const handleAppPause = () => {

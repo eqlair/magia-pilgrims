@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
+import { AudioOptimizer } from '../systems/AudioOptimizer';
 
 export default class BootScene extends Phaser.Scene {
     constructor() {
@@ -224,6 +225,9 @@ export default class BootScene extends Phaser.Scene {
     }
 
     create() {
+        // ── スマホ向けサウンド最適化初期化 ──
+        AudioOptimizer.init(this.game);
+
         // キャラクターの初期ステータスとストック経験値を初期化 (まだ初期化されていなければ)
         if (this.registry.get('charStats') === undefined) {
             const initialStats = {};
