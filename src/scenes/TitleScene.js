@@ -326,12 +326,10 @@ export default class TitleScene extends Phaser.Scene {
             SaveManager.restoreGlobalState(saveData);
             TransitionManager.transitionTo(this, 'AdventureScene', { fromSave: true });
         } else {
-            // データがなければ紫苑一人で新規スタート
-            const globalState = SaveManager.getGlobalState ? SaveManager.getGlobalState() : (window.globalStateInstance || null);
-            if (globalState && globalState.characters) {
-                globalState.savedFormation = { '001': { isFront: true, index: 0 } };
-            }
-            TransitionManager.transitionTo(this, 'AdventureScene', { party: ['001'], fromTitleNewGame: true });
+            // セーブデータがない（初回プレイ）時は、完全初期化してOP(OpScene)へ遷移！
+            SaveManager.clearSaveData();
+            GlobalState.getInstance().resetAll();
+            TransitionManager.transitionTo(this, 'OpScene');
         }
 
         // 遷移後に動画を隠す
