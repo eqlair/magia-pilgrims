@@ -3034,7 +3034,9 @@ export default class AdventureScene extends Phaser.Scene {
                     this.scene.launch('EventScene', {
                         events: storyEvents,
                         returnScene: 'AdventureScene',
-                        fromExploration: true
+                        fromExploration: true,
+                        joinCharacterId: normJoinId,
+                        eventId: `join_${normJoinId}`
                     });
                 });
             }

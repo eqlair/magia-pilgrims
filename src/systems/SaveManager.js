@@ -69,7 +69,8 @@ export class SaveManager {
                 guideTappedFriendshipBtn: gs.guideTappedFriendshipBtn || false,
                 guideTappedEffectBtn: gs.guideTappedEffectBtn || false,
                 guideTappedHealBtn: gs.guideTappedHealBtn || false,
-                relicSortKeys: gs.relicSortKeys || ['lock', 'rank', 'max_val']
+                relicSortKeys: gs.relicSortKeys || ['lock', 'rank', 'max_val'],
+                seenEventHistory: gs.seenEventHistory || []
             };
 
 
@@ -264,6 +265,7 @@ export class SaveManager {
         if (d.event1214Played !== undefined) gs.event1214Played = d.event1214Played;
         if (d.event1217Played !== undefined) gs.event1217Played = d.event1217Played;
         if (d.event1221Played !== undefined) gs.event1221Played = d.event1221Played;
+        if (d.seenEventHistory !== undefined) gs.seenEventHistory = d.seenEventHistory || [];
 
         if (d.extraEnemyLevel !== undefined) gs.extraEnemyLevel = d.extraEnemyLevel;
         if (d.extraWitchLevel !== undefined) gs.extraWitchLevel = d.extraWitchLevel;

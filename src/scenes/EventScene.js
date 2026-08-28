@@ -3,6 +3,7 @@ import { EventEngine } from '../systems/EventEngine';
 import { TransitionManager } from '../systems/TransitionManager';
 import { FogEffect } from '../systems/FogEffect';
 import { GlobalState } from '../systems/GlobalState';
+import { FONT_MAIN } from '../config/GameFont';
 
 /**
  * 汎用イベント再生用シーン
@@ -45,8 +46,36 @@ export default class EventScene extends Phaser.Scene {
         this.isWitchOnly = data.isWitchOnly || false;
         this.witchPattern = data.witchPattern !== undefined ? data.witchPattern : 1;
 
+        // ── 既読判定・周回スキップ用イベントIDの確定 ──
+        this.eventId = data.eventId || null;
+        if (!this.eventId) {
+            if (this.joinCharacterId) {
+                this.eventId = `join_${this.joinCharacterId}`;
+            } else if (this.from1207Event) {
+                this.eventId = 'event_1207';
+            } else if (this.from1214Event) {
+                this.eventId = 'event_1214';
+            } else if (this.from1217Event) {
+                this.eventId = 'event_1217';
+            } else if (this.from1221Event) {
+                this.eventId = 'event_1221';
+            } else if (this.from1221WildhuntEvent) {
+                this.eventId = 'event_1221_wildhunt';
+            } else if (this.fromRespEvent) {
+                this.eventId = 'event_resporn';
+            } else if (this.fromTowerRespEvent) {
+                this.eventId = 'event_tow_res';
+            } else if (data.fromIkebukuro01Event) {
+                this.eventId = 'event_ikebukuro01';
+            } else if (data.fromIkebukuro02Event) {
+                this.eventId = 'event_ikebukuro02';
+            } else if (this.fromOpTutorial) {
+                this.eventId = 'event_op_tutorial';
+            }
+        }
+
         const gs = GlobalState.getInstance();
-        gs.addLog(`🎬 [EventScene init] from1207=${this.from1207Event}, from1214=${this.from1214Event}, eventLen=${this.eventData ? this.eventData.length : 0}`);
+        gs.addLog(`🎬 [EventScene init] eventId=${this.eventId}, from1207=${this.from1207Event}, from1214=${this.from1214Event}, eventLen=${this.eventData ? this.eventData.length : 0}`);
     }
 
     setupDebugOverlay() {
@@ -69,7 +98,8 @@ export default class EventScene extends Phaser.Scene {
     create() {
         TransitionManager.fadeIn(this);
         // this.setupDebugOverlay();
-        GlobalState.getInstance().addLog(`🎬 [EventScene create] starting EventEngine...`);
+        const gs = GlobalState.getInstance();
+        gs.addLog(`🎬 [EventScene create] starting EventEngine...`);
 
         if (this.from1214Event) {
             if (this.sound && this.sound.stopAll) {
@@ -103,6 +133,44 @@ export default class EventScene extends Phaser.Scene {
         };
 
         this.engine.start();
+
+        // ── 2回目以降（既読イベント）またはデバッグモード時に「⏩ SKIP」ボタンを表示 ──
+        const isSeen = this.eventId ? gs.isEventSeen(this.eventId) : false;
+        if (isSeen || GlobalState.IS_DEBUG_MODE) {
+            this._createSkipButton();
+        }
+    }
+
+    _createSkipButton() {
+        const { width } = this.scale;
+        const skipBtn = this.add.text(width - 20, 20, '⏩ SKIP', {
+            fontFamily: FONT_MAIN,
+            fontSize: '18px',
+            color: '#ffffff',
+            backgroundColor: '#000000aa',
+            padding: { x: 12, y: 6 },
+            stroke: '#ffcc00',
+            strokeThickness: 2
+        }).setOrigin(1, 0).setDepth(20000).setInteractive({ useHandCursor: true });
+
+        skipBtn.on('pointerover', () => skipBtn.setStyle({ color: '#ffcc00', backgroundColor: '#333300cc' }));
+        skipBtn.on('pointerout', () => skipBtn.setStyle({ color: '#ffffff', backgroundColor: '#000000aa' }));
+
+        skipBtn.on('pointerdown', (pointer) => {
+            if (pointer && pointer.event) pointer.event.stopPropagation();
+            this._skipEvent();
+        });
+    }
+
+    _skipEvent() {
+        if (this._isSkipping) return;
+        this._isSkipping = true;
+        console.log(`[EventScene] ⏩ Event skipped: ${this.eventId}`);
+
+        if (this.engine) {
+            this.engine.cleanup();
+        }
+        this._onEventComplete();
     }
 
     _playBattleBgm(cb) {
@@ -159,7 +227,14 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _onEventComplete() {
-        GlobalState.getInstance().addLog(`🏁 [EventScene] _onEventComplete (from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
+        const gs = GlobalState.getInstance();
+        gs.addLog(`🏁 [EventScene] _onEventComplete (eventId=${this.eventId}, from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
+        
+        // 既読フラグを記録（周回しても永久保持）
+        if (this.eventId) {
+            gs.markEventSeen(this.eventId);
+        }
+
         if (this.engine) {
             this.engine.cleanup();
         }

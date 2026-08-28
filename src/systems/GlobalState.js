@@ -13,6 +13,7 @@ export class GlobalState {
         if (GlobalState.instance) {
             return GlobalState.instance;
         }
+        GlobalState.instance = this;
         
         // グローバルなストック経験値（共有）
         this.stockExp = 0;
@@ -72,6 +73,9 @@ export class GlobalState {
         this.ikebukuro01Played = false;
         this.ikebukuro02Played = false;
         this.hasEnteredTower = false; // 塔に突入したことがあるフラグ（ノア・ななよのタロット解放条件）
+
+        // 既読イベント履歴（周回しても永久保持されるイベントID一覧）
+        this.seenEventHistory = [];
 
 
         // --- タロット用の一時・永続フラグ ---
@@ -1061,6 +1065,24 @@ export class GlobalState {
         } catch (e) {
             console.error('[GlobalState] Save error:', e);
         }
+    }
+
+    /** イベントを既読として記録（周回しても永久保持） */
+    markEventSeen(eventId) {
+        if (!eventId) return;
+        if (!this.seenEventHistory) this.seenEventHistory = [];
+        if (!this.seenEventHistory.includes(eventId)) {
+            this.seenEventHistory.push(eventId);
+            console.log(`[GlobalState] 📖 Event marked as seen: ${eventId} (Total seen: ${this.seenEventHistory.length})`);
+            this.save();
+        }
+    }
+
+    /** イベントが既読（2回目以降の再生）か判定 */
+    isEventSeen(eventId) {
+        if (!eventId) return false;
+        if (!this.seenEventHistory) return false;
+        return this.seenEventHistory.includes(eventId);
     }
 
     /** 周回（ループ）用リセット処理 */

@@ -20,6 +20,7 @@ import FormationScene from './scenes/FormationScene';
 import { DebugMenuScene } from './scenes/DebugMenuScene';
 import MapEventAdjustScene from './scenes/MapEventAdjustScene';
 import { AudioOptimizer } from './systems/AudioOptimizer';
+import { GlobalState } from './systems/GlobalState';
 
 // ── ?load_test_save=1 クエリ検知時の即時セーブデータ注入 ──
 try {
@@ -101,6 +102,7 @@ const config = {
 
 export const game = new Phaser.Game(config);
 window.game = game;
+window.GlobalState = GlobalState;
 
 // ── スマホ向けサウンド最適化（85Hzローカット＆ソフトリミッター）初期化 ──
 AudioOptimizer.init(game);
