@@ -889,40 +889,41 @@ export class PlayerCharacter extends BattleEntity {
             const cdVal = Math.max(10, 60 - (this.wlv * 2));
             this.ultimateCooldown = cdVal;
             
-            // 白蓮 (必殺技: 前方8m進んだ地点で直径8mの大爆発を発生。5秒+(WLV/2)秒間持続し、敵に毎秒(攻撃力の10%+WLV%)の継続ダメージを与え、敵弾を連続吸い込み消去する)
+            // 白蓮 (必殺技: 初速6.5m/sから0.1秒ごと6%減速で3秒かけて8m前進し、8m到達で突然直径8mの特大バリアに大爆発拡大！
+            // 5秒+(WLV/2)秒持続し、範囲内の敵に毎秒(攻撃力の10%+WLV%)の継続ダメージを与え、敵弾を完全吸収しながら秒速1.0mでジワジワ前進)
             const ultBullet = new Bullet(this.x, this.z, {
                 owner: 'player', isPiercing: true,
-                vx: 0, vz: 2.0, // 秒速2m前進
-                damage: 0, knockback: 40, size: 2.5, lifeTime: 10.0, type: 'ultimate_010',
+                vx: 0, vz: 6.5, // 初速 6.5m/s
+                damage: 0, knockback: 40, size: 1.0, lifeTime: 30.0, type: 'ultimate_010',
                 erasesEnemyBullets: true
             });
             ultBullet.sourceEntity = this;
             ultBullet.travelDist = 0;
+            ultBullet.hasExploded = false;
 
             const self = this;
             ultBullet.update = function(dt) {
                 this.x += this.vx * dt;
                 this.z += this.vz * dt;
-                this.travelDist += 2.0 * dt;
-                if (this.travelDist >= 8.0) {
-                    // 8m進んだ地点で消滅し、持続型の爆発フィールドを生成！
-                    this.isDead = true;
-                    if (self.engine) {
-                        const duration = 5.0 + (self.wlv / 2.0); // 5秒 + (WLV/2)秒 持続
-                        const burstField = new Bullet(this.x, this.z, {
-                            owner: 'player',
-                            vx: 0, vz: 0,
-                            damage: 0,
-                            size: 8.0, // 直径8m (半径4m)
-                            lifeTime: duration,
-                            type: 'ultimate_burst_field_010',
-                            erasesEnemyBullets: true
-                        });
-                        burstField.sourceEntity = self;
-                        burstField.burstDuration = duration;
 
-                        self.engine.bullets.push(burstField);
-                        self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_010', radius: 4.0, lifeTime: duration }));
+                if (!this.hasExploded) {
+                    this.travelDist += Math.abs(this.vz) * dt;
+                    // 0.1秒ごとに約6%減速 (3.0秒で約8m到達し、最終速度は秒速1.0m)
+                    const decay = Math.pow(0.94, dt / 0.1);
+                    this.vz *= decay;
+
+                    if (this.travelDist >= 8.0) {
+                        // 8m到達！突然直径8mの超巨大バリアへ大爆発拡大！
+                        this.hasExploded = true;
+                        this.size = 8.0; // 直径8.0m (半径4m)
+                        this.vz = 1.0;   // 最終速度 1.0m/s でジワジワ前進
+                        this.type = 'ultimate_burst_field_010';
+                        const burstDuration = 5.0 + (self.wlv / 2.0); // 5秒 + (WLV/2)秒 持続
+                        this.lifeTime = burstDuration;
+
+                        if (self.engine) {
+                            self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_010', radius: 4.0, lifeTime: burstDuration }));
+                        }
                     }
                 }
             };

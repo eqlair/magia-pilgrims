@@ -119,7 +119,7 @@ export class BattleRenderer {
             else if (b.type === 'swing_ultimate_002') textureKey = 'weapon_002';
             else if (b.type === 'laser_010') textureKey = 'weapon_010';
             else if (b.type === 'barrier_010') textureKey = 'weapon_010b';
-            else if (b.type === 'special_barrier_010' || b.type === 'ultimate_010') textureKey = 'nrg';
+            else if (b.type === 'special_barrier_010' || b.type === 'ultimate_010' || b.type === 'ultimate_burst_field_010') textureKey = 'nrg';
             // 汎用: swing_XXX 形式
             else if (b.type && b.type.startsWith('swing_')) {
                 const id = b.type.replace('swing_', '');
