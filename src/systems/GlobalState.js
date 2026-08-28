@@ -7,7 +7,7 @@ import { RelicGenerator } from './RelicGenerator.js';
 
 export class GlobalState {
     static instance = null;
-    static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
+    static IS_DEBUG_MODE = true; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
 
     constructor() {
         if (GlobalState.instance) {
@@ -1080,6 +1080,7 @@ export class GlobalState {
 
     /** イベントが既読（2回目以降の再生）か判定 */
     isEventSeen(eventId) {
+        if (GlobalState.IS_DEBUG_MODE) return true; // 🛠️ デバッグモード時は全イベントを既読扱い
         if (!eventId) return false;
         if (!this.seenEventHistory) return false;
         return this.seenEventHistory.includes(eventId);
