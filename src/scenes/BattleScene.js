@@ -571,7 +571,8 @@ export default class BattleScene extends Phaser.Scene {
 
             const warnImg = this.add.image(startX, height / 2, 'warn001')
                 .setDepth(3000)
-                .setAlpha(0.8) // 不透明度80%
+                .setAlpha(1.0)
+                .setBlendMode(Phaser.BlendModes.ADD) // 💥 加算合成で赤く白熱発光！
                 .setScale(scaleFactor);
             
             this.tweens.add({
