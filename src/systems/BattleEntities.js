@@ -1051,6 +1051,7 @@ export class PlayerCharacter extends BattleEntity {
                 for (let i = 0; i < initCount; i++) {
                     const initAngle = Math.random() * Math.PI * 2;
                     this.noahOrbs.push({
+                        orbId: i + 1, // 1号, 2号...
                         x: noahX + (Math.random() - 0.5) * 0.8,
                         z: noahZ + (Math.random() - 0.5) * 0.8,
                         size: 0.30, // 直径30cm
@@ -1073,7 +1074,9 @@ export class PlayerCharacter extends BattleEntity {
                 if (this.noahOrbSpawnTimer <= 0) {
                     this.noahOrbSpawnTimer = 1.0;
                     const initAngle = Math.random() * Math.PI * 2;
+                    const nextId = this.noahOrbs.length + 1;
                     this.noahOrbs.push({
+                        orbId: nextId,
                         x: noahX + (Math.random() - 0.5) * 0.8,
                         z: noahZ + (Math.random() - 0.5) * 0.8,
                         size: 0.30, // 直径30cm
@@ -1092,12 +1095,29 @@ export class PlayerCharacter extends BattleEntity {
             const enemyList = this.engine.isPvpBattle ? this.engine.pvpEnemies : this.engine.enemies;
             const aliveEnemies = (enemyList || []).filter(e => !e.isDead && !e.isDying && e.hp > 0 && typeof e.x === 'number');
 
-            for (const orb of this.noahOrbs) {
+            // ノア本体に最も近い敵（ノアへの直接の脅威）を検索
+            let threatEnemy = null;
+            let minThreatDist = 99999;
+            for (const e of aliveEnemies) {
+                const d = Math.hypot(e.x - noahX, e.z - noahZ);
+                if (d < minThreatDist) {
+                    minThreatDist = d;
+                    threatEnemy = e;
+                }
+            }
+
+            for (let i = 0; i < this.noahOrbs.length; i++) {
+                const orb = this.noahOrbs[i];
                 if (orb.isDead) continue;
                 if (isNaN(orb.x) || isNaN(orb.z)) {
                     orb.x = noahX;
                     orb.z = noahZ;
                 }
+
+                const orbNum = orb.orbId || (i + 1); // 1号〜5号
+                // 個別防衛判定距離: 6 - ナンバー(m) （1号: 5m, 2号: 4m, 3号: 3m, 4号: 2m, 5号: 1m）
+                const defenseThreshold = Math.max(1.0, 6.0 - orbNum);
+                const isDefendingNoah = threatEnemy && (minThreatDist <= defenseThreshold);
 
                 // 距離制限なしで一番近い敵を検索（ゼロ距離から遠距離まで全対応）
                 let nearestEnemy = null;
@@ -1109,6 +1129,10 @@ export class PlayerCharacter extends BattleEntity {
                         nearestEnemy = e;
                     }
                 }
+
+                // 攻撃・移動のターゲット決定（防衛モード時はノアに迫る敵、通常時はオーブに近い敵）
+                const activeTarget = isDefendingNoah ? threatEnemy : nearestEnemy;
+                const activeTargetDist = activeTarget ? Math.hypot(activeTarget.x - orb.x, activeTarget.z - orb.z) : 99999;
 
                 // ノアからの距離
                 const distFromNoah = Math.hypot(orb.x - noahX, orb.z - noahZ);
@@ -1140,21 +1164,30 @@ export class PlayerCharacter extends BattleEntity {
                 vx += perpX;
                 vz += perpZ;
 
-                // 敵がいる場合は、敵の方向へ適度に引力（重み0.5）を合成してうろうろ接近
-                if (nearestEnemy) {
-                    const enemyDx = (nearestEnemy.x - orb.x) / Math.max(0.001, minDist);
-                    const enemyDz = (nearestEnemy.z - orb.z) / Math.max(0.001, minDist);
-                    vx = vx * 0.5 + enemyDx * 0.5;
-                    vz = vz * 0.5 + enemyDz * 0.5;
-                }
+                if (isDefendingNoah) {
+                    // 🛡️ ノア防衛モード: ノア本体（およびノアと敵の間）へ向かって強い引力で駆け戻る！
+                    const noahDx = (noahX - orb.x) / Math.max(0.001, distFromNoah);
+                    const noahDz = (noahZ - orb.z) / Math.max(0.001, distFromNoah);
+                    // ノアに戻る引力を強めに合成
+                    vx = vx * 0.25 + noahDx * 0.75;
+                    vz = vz * 0.25 + noahDz * 0.75;
+                } else {
+                    // 👾 通常索敵モード: 敵がいる場合は、敵の方向へ適度に引力（重み0.5）を合成して接近
+                    if (nearestEnemy) {
+                        const enemyDx = (nearestEnemy.x - orb.x) / Math.max(0.001, minDist);
+                        const enemyDz = (nearestEnemy.z - orb.z) / Math.max(0.001, minDist);
+                        vx = vx * 0.5 + enemyDx * 0.5;
+                        vz = vz * 0.5 + enemyDz * 0.5;
+                    }
 
-                // ノアから離れすぎた場合（6m以上）はノア方向へ戻す引力を加える
-                if (distFromNoah >= 6.0) {
-                    const noahDx = (noahX - orb.x) / distFromNoah;
-                    const noahDz = (noahZ - orb.z) / distFromNoah;
-                    const returnWeight = Math.min(0.8, (distFromNoah - 6.0) * 0.4);
-                    vx = vx * (1.0 - returnWeight) + noahDx * returnWeight;
-                    vz = vz * (1.0 - returnWeight) + noahDz * returnWeight;
+                    // ノアから離れすぎた場合（6m以上）はノア方向へ戻す引力を加える
+                    if (distFromNoah >= 6.0) {
+                        const noahDx = (noahX - orb.x) / distFromNoah;
+                        const noahDz = (noahZ - orb.z) / distFromNoah;
+                        const returnWeight = Math.min(0.8, (distFromNoah - 6.0) * 0.4);
+                        vx = vx * (1.0 - returnWeight) + noahDx * returnWeight;
+                        vz = vz * (1.0 - returnWeight) + noahDz * returnWeight;
+                    }
                 }
 
                 // フィールド外壁の反発
@@ -1169,13 +1202,13 @@ export class PlayerCharacter extends BattleEntity {
                 orb.x += (vx / vLen) * moveSpeed * dt;
                 orb.z += (vz / vLen) * moveSpeed * dt;
 
-                // 攻撃: 1秒に1回、赤いレーザー弾丸を発射（ゼロ距離でも至近距離でも即座に発射！）
+                // 攻撃: 1秒に1回、赤いレーザー弾丸を発射（防衛対象の敵 or 最寄りの敵）
                 orb.shootTimer = (orb.shootTimer !== undefined ? orb.shootTimer : 0.2) - dt;
-                if (nearestEnemy) {
+                if (activeTarget) {
                     if (orb.shootTimer <= 0) {
                         orb.shootTimer = 1.0;
-                        const targetDx = nearestEnemy.x - orb.x;
-                        const targetDz = nearestEnemy.z - orb.z;
+                        const targetDx = activeTarget.x - orb.x;
+                        const targetDz = activeTarget.z - orb.z;
                         const targetDist = Math.hypot(targetDx, targetDz);
                         
                         // ゼロ距離(重なっている時)でも前方へ確実に発射

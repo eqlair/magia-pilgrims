@@ -166,6 +166,10 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_tow2', 'files/MAP/tow2.jpg');
         this.load.image('bg_tow3', 'files/MAP/tow3.jpg');
         this.load.image('bg_tow4', 'files/MAP/tow4.jpg');
+        this.load.image('tow1', 'files/MAP/tow1.jpg');
+        this.load.image('tow2', 'files/MAP/tow2.jpg');
+        this.load.image('tow3', 'files/MAP/tow3.jpg');
+        this.load.image('tow4', 'files/MAP/tow4.jpg');
 
         // タワー用エリア画像 (ヘクス用 200x200六角形PNG & 画面背景用JPG)
         const towerAreaAssets = {

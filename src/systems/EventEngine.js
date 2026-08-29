@@ -156,6 +156,7 @@ export class EventEngine {
         if (this._currentBgm) {
             const old = this._currentBgm;
             this._currentBgm = null;
+            try { this.scene.tweens.killTweensOf(old); } catch(e){}
             this.scene.tweens.add({
                 targets: old, volume: 0, duration: 600,
                 onUpdate: (t, target) => {
@@ -172,7 +173,7 @@ export class EventEngine {
             bgm.play();
             this.scene.tweens.add({
                 targets: bgm, volume: 0.75, duration: 800,
-                onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); }
+                onUpdate: (t, target) => { if (!target || !target.manager) { try { t.stop(); } catch(e){} } }
             });
             this._currentBgm = bgm;
         } else {
@@ -186,9 +187,10 @@ export class EventEngine {
         if (this._currentBgm && this._currentBgm.isPlaying) {
             const old = this._currentBgm;
             this._currentBgm = null;
+            try { this.scene.tweens.killTweensOf(old); } catch(e){}
             this.scene.tweens.add({
                 targets: old, volume: 0, duration: 600,
-                onUpdate: (t, target) => { if (!target || !target.manager) t.stop(); },
+                onUpdate: (t, target) => { if (!target || !target.manager) { try { t.stop(); } catch(e){} } },
                 onComplete: () => { try { old.stop(); old.destroy(); } catch(e){} cb(); }
             });
         } else {
@@ -497,8 +499,11 @@ export class EventEngine {
         this._clearText(() => {});
 
         if (this._currentBgm && !keepBgm) {
-            if (this._currentBgm.isPlaying) this._currentBgm.stop();
-            this._currentBgm.destroy();
+            try {
+                this.scene.tweens.killTweensOf(this._currentBgm);
+                if (this._currentBgm.isPlaying) this._currentBgm.stop();
+                this._currentBgm.destroy();
+            } catch(e) {}
             this._currentBgm = null;
         }
     }

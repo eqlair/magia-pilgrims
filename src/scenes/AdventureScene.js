@@ -977,11 +977,16 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
-                // 池袋02イベント完了時 (12/21夜) -> タワー編移行ガード
+                // 池袋02イベント完了時 (12/21夜) -> タワー編突入
                 if (data && data.fromIkebukuro02Event) {
-                    this.showToast('池袋の深淵へと足を踏み入れた…（タワー編準備中）');
                     SaveManager.saveGame(this);
-                    TransitionManager.fadeIn(this);
+                    const gs = GlobalState.getInstance();
+                    gs.isTowerMode = true;
+                    gs.hasEnteredTower = true;
+                    TransitionManager.transitionTo(this, 'AdventureScene', {
+                        isTower: true,
+                        party: this.party && this.party.length > 0 ? this.party : ['001']
+                    });
                     return;
                 }
 

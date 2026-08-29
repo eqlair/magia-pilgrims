@@ -479,7 +479,7 @@ export class BattleRenderer {
                     sprite.setAngle((this.scene.time.now || 0) * 0.08);
                     sprite.setBlendMode(Phaser.BlendModes.ADD);
                     sprite.setDepth(1000 - p.depth + 30);
-                    sprite.setAlpha(isSpecialField ? 0.20 : 1.0); // 特技フィールドは不透明度20%でほんのり光る！
+                    sprite.setAlpha(isSpecialField ? 0.25 : 1.0); // 特技フィールドは不透明度25%で上品に発光！
                 } else if (textureKey === 'weapon_008_bullet') {
                     // 赤いレーザー弾丸: 進行方向に向けて鮮やかに発光（大きく太く見やすく！）
                     const baseHeight = sprite.height || 360;
