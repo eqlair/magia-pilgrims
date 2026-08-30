@@ -355,10 +355,11 @@ export default class RestScene extends Phaser.Scene {
     healHp(charId, maxHp) {
         const charData = this.globalState.characters[charId];
         if (!charData) return;
+        const hpRate = (charData.dojo && charData.dojo.statsBonus && charData.dojo.statsBonus.hpRecoveryRate) || 30;
         const neededHp = maxHp - charData.currentHp;
-        const neededSp = Math.ceil(neededHp / 30);
+        const neededSp = Math.ceil(neededHp / hpRate);
         const useSp = Math.min(charData.currentSp, neededSp);
-        const healAmount = useSp * 30;
+        const healAmount = Math.floor(useSp * hpRate);
         charData.currentHp = Math.min(maxHp, charData.currentHp + healAmount);
         charData.currentSp = Math.max(0, charData.currentSp - useSp);
         SaveManager.saveGame();
@@ -369,13 +370,24 @@ export default class RestScene extends Phaser.Scene {
         const charData = this.globalState.characters[charId];
         if (!charData) return;
         const curSp = Math.floor(charData.currentSp !== undefined ? charData.currentSp : maxSp);
-        const neededSp = Math.max(0, Math.ceil(maxSp - curSp));
+        const deficitSp = Math.max(0, maxSp - curSp);
+        if (deficitSp <= 0) return;
+
+        // 道場強化の回復効率 (デフォルト: 0.001 = 0.1%/SP)
+        const spRate = (charData.dojo && charData.dojo.statsBonus && charData.dojo.statsBonus.spEfficiency) || 0.001;
+        const neededStockSp = Math.max(1, Math.ceil(deficitSp / (maxSp * spRate)));
         const stock = Math.floor(this.globalState.stockSp || 0);
-        const spToUse = Math.min(neededSp, stock);
+        const spToUse = Math.min(neededStockSp, stock);
         if (spToUse <= 0) return;
-        this.showDialog(`精神力の回復にSP ${spToUse} 点が必要です。\n回復しますか？`, () => {
+
+        // 回復量の計算（全額払えたらキッチリ全快、不足時は割合分回復）
+        const healAmount = (spToUse >= neededStockSp)
+            ? deficitSp
+            : Math.min(deficitSp, Math.floor(maxSp * (spToUse * spRate)));
+
+        this.showDialog(`SP ${spToUse} 点を使用して\n精神力を ${healAmount} 回復します。\nよろしいですか？`, () => {
             this.globalState.stockSp = Math.max(0, stock - spToUse);
-            charData.currentSp = Math.min(maxSp, curSp + spToUse);
+            charData.currentSp = Math.min(maxSp, curSp + healAmount);
             SaveManager.saveGame();
             this.drawMainView(this.cameras.main.width, this.cameras.main.height);
         });

@@ -43,6 +43,15 @@ export class GlobalState {
         // 所持SP（魔女撃破時に獲得、休息でSP回復に使用）
         this.stockSp = 0;
         
+        // 悪魔のSP回収箱（リスポーン時に回収されたSPの累積）
+        this.devilStockSp = 0;
+        
+        // OP戦完了フラグ（OP戦をクリアして本編マップに突入したか）
+        this.isOpCompleted = false;
+        
+        // 道場解放フラグ（シナリオ進行で解放、デバッグ時は常時表示）
+        this.isDojoUnlocked = false;
+        
         // インベントリ
         this.inventory = {
             relics: [],
@@ -141,7 +150,9 @@ export class GlobalState {
             '005': this.createInitialCharData('005', '李乃果', 1),
             '007': this.createInitialCharData('007', 'ななよ', 1),
             '008': this.createInitialCharData('008', 'ノア', 1),
-            '010': this.createInitialCharData('010', '白蓮', 1)
+            '009': this.createInitialCharData('009', 'リフィエル', 1),
+            '010': this.createInitialCharData('010', 'プロセル', 1),
+            '011': this.createInitialCharData('011', '白蓮', 1)
         };
 
         GlobalState.instance = this;
@@ -162,12 +173,14 @@ export class GlobalState {
     normalizeCharId(id) {
         if (!id) return '001';
         const str = id.toString().trim();
-        if (str === '10' || str === '010') return '010';
+        if (str === '11' || str === '011') return '011';
+        if (str === '10' || str === '010' || str === '100' || str === '0100') return '010';
+        if (str === '9' || str === '009') return '009';
         if (str === '8' || str === '008') return '008';
         if (str === '7' || str === '007') return '007';
         if (str === '1' || str === '001') return '001';
         if (str === '2' || str === '002' || str === '12') return '002';
-        if (str === '3' || str === '003' || str === '9') return '003';
+        if (str === '3' || str === '003') return '003';
         if (str === '4' || str === '004') return '004';
         if (str === '5' || str === '005' || str === '15') return '005';
         return str.padStart(3, '0');
@@ -177,7 +190,7 @@ export class GlobalState {
         if (!id) return null;
         const normId = this.normalizeCharId(id);
         if (!this.characters[normId]) {
-            const charNames = { '001': '紫苑', '002': '蒼樹', '003': '紅華', '004': '黄蘭', '005': '李乃果', '007': 'ななよ', '008': 'ノア', '010': '白蓮' };
+            const charNames = { '001': '紫苑', '002': '蒼樹', '003': '紅華', '004': '黄蘭', '005': '李乃果', '007': 'ななよ', '008': 'ノア', '009': 'リフィエル', '010': 'プロセル', '011': '白蓮' };
             const name = charNames[normId] || `キャラ_${normId}`;
             this.characters[normId] = this.createInitialCharData(normId, name, 1);
         }
@@ -186,7 +199,7 @@ export class GlobalState {
 
     getTotalAffection() {
         let total = 0;
-        const uniqueChars = ['001', '002', '003', '004', '005', '007', '008', '010'];
+        const uniqueChars = ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'];
         for (const id of uniqueChars) {
             const char = this.characters[id];
             if (char) {
@@ -262,12 +275,22 @@ export class GlobalState {
         const char = this.characters[charId];
         if (!char) return null;
         
-        const levelBonus = (char.level - 1) * 0.05;
+        const sb = (char.dojo && char.dojo.statsBonus) ? char.dojo.statsBonus : {};
+        const baseHp = (char.baseHp || 1000) + (sb.hp || 0);
+        const baseSp = (char.baseSp || 500) + (sb.mp || 0);
+        const baseAtk = (char.baseAtk || 100) + (sb.atk || 0);
+
+        const hpGrowth = 0.05 + (sb.hpGrowth || 0);
+        const spGrowth = 0.05 + (sb.mpGrowth || 0);
+        const atkGrowth = 0.05 + (sb.atkGrowth || 0);
+
+        const levelDiff = Math.max(0, char.level - 1);
+
         return {
-            maxHp: Math.floor(char.baseHp * (1 + levelBonus)),
-            maxSp: Math.floor(char.baseSp * (1 + levelBonus)),
-            atk: Math.floor(char.baseAtk * (1 + levelBonus)),
-            reload: Math.floor(char.baseReload)
+            maxHp: Math.floor(baseHp * (1 + levelDiff * hpGrowth)),
+            maxSp: Math.floor(baseSp * (1 + levelDiff * spGrowth)),
+            atk: Math.floor(baseAtk * (1 + levelDiff * atkGrowth)),
+            reload: Math.floor(char.baseReload || 100)
         };
     }
 
@@ -598,6 +621,15 @@ export class GlobalState {
 
         const totalExpBonus = expBonusMod + (this.expMultiplier > 1.0 ? Math.floor((this.expMultiplier - 1.0) * 100) : 0);
 
+        const sb = (char.dojo && char.dojo.statsBonus) ? char.dojo.statsBonus : {};
+        const dojoEvadeBonus = (sb.evasion || 0) + ((sb.evasionPerLevel || 0) * char.level);
+        const dojoCritRateBonus = (sb.critRate || 0);
+        const dojoCritMultBonus = (sb.critDamage || 0);
+
+        const baseEvadeRate = 0.05 + dojoEvadeBonus;
+        const baseCritRate = 0.05 + dojoCritRateBonus;
+        const baseCritMult = 2.0 + dojoCritMultBonus;
+
         return {
             affection: affectionTotal,
             maxHp,
@@ -605,9 +637,20 @@ export class GlobalState {
             atk,
             reload,
             hitRateBonus: hitRateMod,
-            evadeRateBonus: evadeRateMod,
-            critRateBonus: critRateMod,
-            critMultBonus: critMultMod,
+            baseEvadeRate,
+            baseCritRate,
+            baseCritMult,
+            equipEvadeRateBonus: evadeRateMod,
+            equipCritRateBonus: critRateMod,
+            equipCritMultBonus: critMultMod,
+            evadeRateBonus: evadeRateMod + dojoEvadeBonus,
+            critRateBonus: critRateMod + dojoCritRateBonus,
+            critMultBonus: critMultMod + dojoCritMultBonus,
+            damageResist: sb.damageResist || 0,
+            spDrainRate: sb.spDrainRate || 1.0,
+            spEfficiency: sb.spEfficiency || 0.001,
+            hpRecoveryRate: sb.hpRecoveryRate || 30,
+            foodCostRate: sb.foodCostRate || 1.0,
             elemMods,
             meleeLevel: effectiveMeleeLevel,
             rangedLevel: effectiveRangedLevel,
@@ -1175,8 +1218,16 @@ export class GlobalState {
         this.currentDay = 1;
         this.timePeriodIndex = 0; // 0:午前
         this.food = 100;
-        this.stockSp = 0;
 
+        // リスポーン時のSP処理: 500点だけ手元に残し、超過分は悪魔の回収箱(devilStockSp)へ蓄積
+        const currentSp = this.stockSp || 0;
+        if (currentSp > 500) {
+            const spForDevil = currentSp - 500;
+            this.devilStockSp = (this.devilStockSp || 0) + spForDevil;
+            this.stockSp = 500;
+        } else {
+            this.stockSp = currentSp;
+        }
 
         // パーティ初期化（紫苑のみ：中央後衛）
         this.savedFormation = { '001': { lane: 0, isFront: false } };
@@ -1221,8 +1272,10 @@ export class GlobalState {
     /** ニューゲーム完全初期化処理 */
     resetAll() {
         this.resetForNewLoop();
+        this.isOpCompleted = false;
         this.stockExp = 0;
         this.stockSp = 0;
+        this.devilStockSp = 0;
         this.food = 100;
         this.currentMonth = 12;
         this.currentDay = 1;

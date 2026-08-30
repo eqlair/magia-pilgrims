@@ -1,3 +1,5 @@
+import { LoadingOverlay } from './LoadingOverlay';
+
 /**
  * 画面遷移の汎用システム「明転」
  *
@@ -11,6 +13,7 @@
  *   // 遷移元シーンで:
  *   TransitionManager.transitionTo(this, 'NextSceneName');
  *   TransitionManager.transitionTo(this, 'NextSceneName', { someData: 123 });
+ *   TransitionManager.transitionWithLoading(this, 'NextSceneName', { someData: 123 });
  *
  *   // 遷移先シーンのcreate()先頭で:
  *   TransitionManager.fadeIn(this);
@@ -27,15 +30,31 @@ export class TransitionManager {
      * @param {Phaser.Scene} scene       - 現在のシーン
      * @param {string}       nextSceneKey - 遷移先シーンのキー
      * @param {object}       [data={}]   - 遷移先シーンのinit()に渡すデータ
+     * @param {object}       [options={}] - { showLoading: boolean }
      */
-    static transitionTo(scene, nextSceneKey, data = {}) {
+    static transitionTo(scene, nextSceneKey, data = {}, options = {}) {
         // タップを即座に無効化
         scene.input.enabled = false;
 
         const { width, height } = scene.scale;
 
-        // 白いスクリーンを最前面に生成（初期は完全透明）
-        // ズームアウト時にも画面を覆い尽くすよう、サイズを3倍にし、スクロールしないように設定する
+        // 戦闘突入や明示的なshowLoading指定時
+        const needLoading = options.showLoading !== undefined
+            ? options.showLoading
+            : (nextSceneKey === 'BattleScene');
+
+        if (needLoading) {
+            // ローディング画面を表示（Now Loading + 走るミニキャラ + TIPS）
+            LoadingOverlay.show(scene, { depth: 10000 });
+
+            // 0.8秒しっかりローディング演出を見せてから新シーンへ切り替え
+            scene.time.delayedCall(options.loadingDuration || 800, () => {
+                scene.scene.start(nextSceneKey, data);
+            });
+            return;
+        }
+
+        // 通常シーン遷移: 白いスクリーンを最前面に生成（初期は完全透明）
         const whiteScreen = scene.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
             .setAlpha(0)
             .setDepth(9999)
@@ -45,13 +64,30 @@ export class TransitionManager {
         scene.tweens.add({
             targets: whiteScreen,
             alpha: 1,
-            duration: TransitionManager.DURATION,
+            duration: options.duration || TransitionManager.DURATION,
             ease: 'Linear',
             onComplete: () => {
-                // 完全に白くなった瞬間にシーンを切り替え
-                // この時点で新シーンのpreload→create()が走る
                 scene.scene.start(nextSceneKey, data);
             }
+        });
+    }
+
+    /**
+     * ローディング画面（Now Loading ･･･ ＋ ミニキャラ走行 ＋ TIPS）を表示しながら遷移する
+     * @param {Phaser.Scene} scene - 現在のシーン
+     * @param {string} nextSceneKey - 遷移先シーン
+     * @param {object} [data={}] - 遷移データ
+     * @param {number} [minLoadingTime=800] - 最低表示時間(ms)
+     */
+    static transitionWithLoading(scene, nextSceneKey, data = {}, minLoadingTime = 800) {
+        if (scene.input) scene.input.enabled = false;
+
+        // ローディング画面を表示
+        LoadingOverlay.show(scene, { depth: 10000 });
+
+        // 指定シーンへ遷移
+        scene.time.delayedCall(minLoadingTime, () => {
+            scene.scene.start(nextSceneKey, data);
         });
     }
 
@@ -65,6 +101,9 @@ export class TransitionManager {
     static fadeIn(scene) {
         // フェード中はタップ無効
         scene.input.enabled = false;
+
+        // 前シーンのローディングオーバーレイがあれば消去
+        LoadingOverlay.hide(scene, 150);
 
         const { width, height } = scene.scale;
 

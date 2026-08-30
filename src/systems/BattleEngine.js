@@ -232,9 +232,11 @@ export class BattleEngine {
                 '005': 'green',
                 '007': 'yellow',
                 '008': 'red',
-                '010': 'blue'
+                '009': 'green',
+                '010': 'purple',
+                '011': 'blue'
             };
-            pc.attribute = charIdToAttr[charId] || 'red';
+            pc.attribute = charIdToAttr[charId] || 'purple';
             
             // GlobalStateで計算されたHP(レベル・タロット補正込み)を維持するために上書きしない
             // もしGlobalStateの現在HPシステムを完全に稼働させるなら pc.hp = gs.characters[charId].currentHp とすべき
@@ -879,8 +881,8 @@ export class BattleEngine {
                     }
                 }
 
-                // ダメージの1/5が精神力から引かれる（小数点切り上げずそのまま減少）
-                const spDamage = finalDamage / 5;
+                // ダメージの1/5が精神力から引かれる（小数点切り上げずそのまま減少、道場強化で軽減）
+                const spDamage = (finalDamage / 5) * (defender.spDrainRate || 1.0);
                 const spDrainPerHit = defender.isFoodEmpty ? spDamage * 2 : spDamage;
                 defender.sp = Math.max(0, defender.sp - spDrainPerHit);
             }
@@ -1303,7 +1305,8 @@ export class BattleEngine {
                 continue;
             }
 
-            if (p.isUltimateActive) continue;
+            // 必殺技発動中はステートマシンをスキップ（ただしリフィエル(009)は変身中も自分でコンボを回すので除外）
+            if (p.isUltimateActive && p.charId !== '009') continue;
             
             let target = null;
             let minDist = 9999;
@@ -1513,8 +1516,8 @@ export class BattleEngine {
                     if (isSwing) {
                         // ── スイング系: キャラ位置に固定された範囲弾丸を生成 ──
                         let swingDuration = (action.swingDur || 0.25) / 1.5;
-                        if (p.charId === '003') {
-                            swingDuration = 0.5; // 紅華(003)の近接スイング持続時間はベストテンポの0.5秒
+                        if (p.charId === '003' || p.charId === '009') {
+                            swingDuration = 0.5; // 紅華(003) & リフィエル(009)の近接スイング持続時間は0.5秒
                         }
 
 
@@ -1534,10 +1537,23 @@ export class BattleEngine {
                         });
 
                         b.sourceEntity = p;
-
                         b.maxLife      = swingDuration;
                         b.baseAngle    = Math.atan2(dz, dx); // 固定する
                         b.swingDir     = Math.random() < 0.5 ? 1 : -1;
+
+                        if (p.charId === '009') {
+                            // 🌿 リフィエル(009): 1mアーム先端が目標から±90度からスタートして180度旋回する二重振り子機構！
+                            // リーチ = アーム(1m) + hitRange(2m) = 3m、踏み込み(3m)で最大6m先まで届く
+                            const armDir = Math.random() < 0.5 ? 1 : -1;
+                            b.armDir = armDir;
+                            b.armRadius = 1.0;
+                            b.armStartAngle = b.baseAngle + (Math.PI / 2) * armDir;
+                            b.armAngleSweep = Math.PI * (-armDir);
+                            b.hitRange = 2.0; // アーム1m + 槍先端2m = 合計3mのリーチ
+                            b.x = p.x + Math.cos(b.armStartAngle) * b.armRadius;
+                            b.z = p.z + Math.sin(b.armStartAngle) * b.armRadius;
+                        }
+
                         this.bullets.push(b); if (b && b.sourceEntity && b.sourceEntity.triggerAttackShake) b.sourceEntity.triggerAttackShake();
                     } else {
 
@@ -1580,7 +1596,15 @@ export class BattleEngine {
                                 p.sankoshoFarCurveDir = (p.sankoshoFarCurveDir === 1 ? -1 : 1);
                             }
 
-                            const b = new Bullet(p.x, p.z, {
+                            let spawnX = p.x;
+                            let spawnZ = p.z;
+                            if (action.spawnOffsetDist) {
+                                const offsetAngle = Math.random() * Math.PI * 2;
+                                spawnX += Math.cos(offsetAngle) * action.spawnOffsetDist;
+                                spawnZ += Math.sin(offsetAngle) * action.spawnOffsetDist;
+                            }
+
+                            const b = new Bullet(spawnX, spawnZ, {
                                 vx:         isSankosho ? 0 : vxDir * speed,
                                 vz:         isSankosho ? 0 : vzDir * speed,
                                 damage:     damage,
@@ -2753,6 +2777,115 @@ export class BattleEngine {
                 }
             }
 
+            // スイング系武器: プレイヤーの移動およびアーム旋回に合わせて座標を完全同期
+            if (b.type && b.type.startsWith('swing_') && b.sourceEntity) {
+                if (b.type === 'swing_009' && b.armStartAngle !== undefined) {
+                    // 🌿 リフィエル(009)の二重振り子槍回し: 1mアーム先端が180度旋回！
+                    const progress = 1.0 - (b.lifeTime / (b.maxLife || 0.5));
+                    const curAngle = b.armStartAngle + (b.armAngleSweep || Math.PI) * progress;
+                    const armR = b.armRadius || 1.0;
+                    b.currentArmAngle = curAngle; // Rendererで参照するために保存
+                    b.x = b.sourceEntity.x + Math.cos(curAngle) * armR;
+                    b.z = b.sourceEntity.z + Math.sin(curAngle) * armR;
+                } else {
+                    b.x = b.sourceEntity.x;
+                    b.z = b.sourceEntity.z;
+                }
+            }
+
+            // リフィエル(009)の花粉煙幕弾 (pollen_smoke_009): 命中するか15m進むと直径1.5mへ等減速拡大する花粉煙幕を展開
+            if (b.type === 'pollen_smoke_009') {
+                b.distTravel = (b.distTravel || 0) + Math.hypot(b.vx, b.vz) * dt;
+                if (b.distTravel >= 15.0 && !b.isDead) {
+                    b.isDead = true;
+                    // 直径30cmから開始し2秒かけて直径1.5mへ等減速拡大する花粉煙幕を生成
+                    const smokeField = new Bullet(b.x, b.z, {
+                        owner: 'player',
+                        vx: 0, vz: 0,
+                        damage: 0, knockback: 0,
+                        size: 0.30, // 初期直径30cm
+                        lifeTime: 2.0,
+                        maxLife: 2.0,
+                        type: 'smoke_field_009',
+                        erasesEnemyBullets: true,
+                        isPiercing: true
+                    });
+                    smokeField.sourceEntity = b.sourceEntity;
+                    this.bullets.push(smokeField);
+                }
+            }
+
+            // リフィエル(009)の花粉煙幕フィールド (smoke_field_009): 
+            // 初めの0.1秒で直径0.75mまで急拡大し、残りで減速しながら直径1.5mまで拡大しつつ2秒かけて薄れて消滅
+            if (b.type === 'smoke_field_009') {
+                const maxLife = b.maxLife || 2.0;
+                const elapsed = maxLife - b.lifeTime;
+                if (elapsed <= 0.1) {
+                    // 初めの0.1秒で直径0.30mから0.75mへ急拡大
+                    const p1 = elapsed / 0.1;
+                    b.size = 0.30 + (0.75 - 0.30) * p1;
+                } else {
+                    // 残りの1.9秒で直径0.75mから1.50mへ等減速拡大
+                    const p2 = Math.min(1.0, (elapsed - 0.1) / 1.9);
+                    const ease = 1 - Math.pow(1 - p2, 2); // 等減速イージング
+                    b.size = 0.75 + (1.50 - 0.75) * ease;
+                }
+                b.alpha = Math.max(0, 1.0 - (elapsed / maxLife));
+
+                const hitRadius = b.size / 2;
+                const hitRadiusSq = hitRadius * hitRadius;
+                const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                for (const t of targets) {
+                    const dx = t.x - b.x;
+                    const dz = t.z - b.z;
+                    if (dx * dx + dz * dz <= hitRadiusSq) {
+                        t.smokeDebuffTimer = 5.0; // 5秒間全属性被ダメ50%UP
+                        t.elementalDefDebuff = 50;
+                        t.elementalDefDebuffTimer = 5.0;
+                        t.debuffColor = 0x88ff88;
+                    }
+                }
+            }
+
+            // プロセル(010)のつらら大 (icicle_large_010): 命中するか18m進むと半径1.5mの氷塊(010004.png)を展開
+            if (b.type === 'icicle_large_010') {
+                b.distTravel = (b.distTravel || 0) + Math.hypot(b.vx, b.vz) * dt;
+                if (b.distTravel >= 18.0 && !b.isDead) {
+                    b.isDead = true;
+                    // 半径1.5mの氷塊フィールドを2秒間生成
+                    const iceBlock = new Bullet(b.x, b.z, {
+                        owner: 'player',
+                        vx: 0, vz: 0,
+                        damage: 0, knockback: 5,
+                        size: 3.0, // 直径3m (半径1.5m)
+                        lifeTime: 2.0,
+                        type: 'ice_block_010',
+                        erasesEnemyBullets: true,
+                        isPiercing: true
+                    });
+                    iceBlock.sourceEntity = b.sourceEntity;
+                    this.bullets.push(iceBlock);
+                    this.effects.push(new EffectEntity(b.x, b.z, { type: 'spark', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
+                }
+            }
+
+            // プロセル(010)の氷塊フィールド (ice_block_010): 範囲内の敵に継続ダメージ(攻撃力の10%)
+            if (b.type === 'ice_block_010' && b.sourceEntity) {
+                b.damageTimer = (b.damageTimer || 0) + dt;
+                if (b.damageTimer >= 0.2) {
+                    b.damageTimer -= 0.2;
+                    const tickDmg = Math.max(1, Math.floor(((b.sourceEntity.atk || 100) * 0.10) * 0.2));
+                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                    for (const t of targets) {
+                        const dx = t.x - b.x;
+                        const dz = t.z - b.z;
+                        if (dx * dx + dz * dz <= 2.25) { // 半径1.5m
+                            this.applyDamage(b.sourceEntity, t, tickDmg, 'normal', Math.sqrt(dx * dx + dz * dz), b.x, b.z);
+                        }
+                    }
+                }
+            }
+
 
             // 敵弾消去属性の処理（キック弾など）
             if (b.erasesEnemyBullets && b.owner === 'player') {
@@ -2770,15 +2903,18 @@ export class BattleEngine {
                 }
             }
 
-            // スイング系の武器はキャラクターの動きに追従させる（要件③: 攻撃判定はキャラクターと一緒に移動する）
+            // スイング系の武器はキャラクターの動きに追従させる
             if (b.type && b.type.startsWith('swing_') && b.sourceEntity) {
-                b.x = b.sourceEntity.x;
-                b.z = b.sourceEntity.z;
+                // swing_009 は上の二重振り子ブロックで既にアーム旋回座標に更新済みなのでキャラ中心には戻さない
+                if (b.type !== 'swing_009') {
+                    b.x = b.sourceEntity.x;
+                    b.z = b.sourceEntity.z;
+                }
 
                 const cid = b.sourceEntity.charId;
-                const isNoTrail = (cid === '002' || cid === '003' || cid === '004');
+                // swing_009(リフィエル)・002・003・004 は軌跡を描かない
+                const isNoTrail = (cid === '002' || cid === '003' || cid === '004' || cid === '009');
 
-                // 蒼樹(002)・紅華(003)・黄蘭(004)の場合は軌跡を描かない（要件①）
                 if (!isNoTrail && b.baseAngle !== undefined && b.baseAngle !== null) {
                     const progress = 1.0 - (b.lifeTime / b.maxLife);
                     let swingRange = 60 * (Math.PI / 180);
@@ -2796,8 +2932,8 @@ export class BattleEngine {
                     
                     let trailColor = 0x00ffff;
                     if (b.owner === 'player' && b.sourceEntity) {
-                        if (cid === '001') trailColor = 0xaa00aa; // 紫
-                        else if (cid === '005') trailColor = 0x8888ff; // 薄青
+                        if (cid === '001') trailColor = 0xaa00aa;
+                        else if (cid === '005') trailColor = 0x8888ff;
                     }
 
                     const prevX = b.lastTipX !== undefined ? b.lastTipX : tipX;
@@ -2892,7 +3028,7 @@ export class BattleEngine {
                             
                             let swingRange = 60 * (Math.PI / 180);
                             if (b.type === 'swing_004') swingRange = 90 * (Math.PI / 180);
-                            else if (b.type === 'swing_003') swingRange = 360 * (Math.PI / 180);
+                            else if (b.type === 'swing_003' || b.type === 'swing_009') swingRange = 360 * (Math.PI / 180);
                             else if (b.type === 'swing_ultimate_004') swingRange = 15 * (Math.PI / 180);
                             else if (b.type === 'swing_ultimate_002') swingRange = 180 * (Math.PI / 180);
                             
@@ -2945,7 +3081,7 @@ export class BattleEngine {
                         let finalDmg = isCrit ? b.damage * 1.5 : b.damage;
                         
                         // 貫通弾の威力減衰
-                        let isPiercing = b.isPiercing || b.type === 'weapon_003';
+                        let isPiercing = b.isPiercing || b.type === 'weapon_003' || b.type === 'weapon_009';
                         let isSwing = b.type && b.type.startsWith('swing_');
                         
                         if (b.type === 'sankosho_007') {
@@ -2983,15 +3119,16 @@ export class BattleEngine {
 
                                 const src = b.sourceEntity;
                                 const cid = src ? src.charId : '002';
-                                if (cid === '002' || cid === '003' || cid === '004') {
+                                if (cid === '002' || cid === '003' || cid === '004' || cid === '009') {
                                     // 命中した相手(t)と攻撃判定/キャラクター(src)の中間点
                                     const midX = src ? (src.x + t.x) / 2 : (b.x + t.x) / 2;
                                     const midZ = src ? (src.z + t.z) / 2 : (b.z + t.z) / 2;
 
-                                    // 各キャラクターの属性着色 (002:水/氷シアン, 003:炎の赤/オレンジ, 004:雷の黄色)
+                                    // 各キャラクターの属性着色 (002:水/氷シアン, 003:炎の赤/オレンジ, 004:雷の黄色, 009:風・草の緑)
                                     let elemColor = 0x00ccff; // 002: 蒼樹 (水色)
                                     if (cid === '003') elemColor = 0xff3300; // 003: 紅華 (赤/オレンジ)
                                     else if (cid === '004') elemColor = 0xffff00; // 004: 黄蘭 (黄色)
+                                    else if (cid === '009') elemColor = 0x33ff66; // 009: リフィエル (緑色)
 
                                     const px = src ? src.x : b.x;
                                     const pz = src ? src.z : b.z;
@@ -3032,13 +3169,48 @@ export class BattleEngine {
                                     radius: 1.5
                                 }));
                             }
+
+                            // 🌸 リフィエル(009)の花粉爆弾: 命中時に直径1.5mへ等減速拡大する花粉煙幕を展開して消滅
+                            if (b.type === 'pollen_smoke_009') {
+                                const smokeField = new Bullet(b.x, b.z, {
+                                    owner: 'player',
+                                    vx: 0, vz: 0,
+                                    damage: 0, knockback: 0,
+                                    size: 0.30, // 初期直径30cm
+                                    lifeTime: 2.0,
+                                    maxLife: 2.0,
+                                    type: 'smoke_field_009',
+                                    erasesEnemyBullets: true,
+                                    isPiercing: true
+                                });
+                                smokeField.sourceEntity = b.sourceEntity;
+                                this.bullets.push(smokeField);
+                            }
+
+                            // ❄️ プロセル(010)の大つらら: 貫通した敵すべての場所に半径1.5mの氷塊を生成
+                            if (b.type === 'icicle_large_010') {
+                                const iceBlock = new Bullet(t.x, t.z, {
+                                    owner: 'player',
+                                    vx: 0, vz: 0,
+                                    damage: 0, knockback: 5,
+                                    size: 3.0, // 直径3m (半径1.5m)
+                                    lifeTime: 2.0,
+                                    type: 'ice_block_010',
+                                    erasesEnemyBullets: true,
+                                    isPiercing: true
+                                });
+                                iceBlock.sourceEntity = b.sourceEntity;
+                                this.bullets.push(iceBlock);
+                                this.effects.push(new EffectEntity(t.x, t.z, { type: 'spark', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
+                            }
+
                             if (isPiercing) {
                                 b.hitCount = (b.hitCount || 0) + 1;
                             }
                         }
                     }
 
-                    let isPiercing = b.isPiercing || b.type === 'weapon_003';
+                    let isPiercing = b.isPiercing || b.type === 'weapon_003' || b.type === 'icicle_large_010';
                     let isSwing = b.type && b.type.startsWith('swing_');
                     
                     if (!isPiercing && !isSwing) {

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GlobalState } from '../systems/GlobalState';
+import { LoadingOverlay } from '../systems/LoadingOverlay';
 
 export class DebugMenuScene extends Phaser.Scene {
     constructor() {
@@ -48,12 +49,12 @@ export class DebugMenuScene extends Phaser.Scene {
         });
 
         // タワー編テスト開始ボタン
-        const towerBtn = this.add.text(centerX, 640, '🗼 タワー編テスト開始', {
-            fontSize: '22px',
+        const towerBtn = this.add.text(centerX, 630, '🗼 タワー編テスト開始', {
+            fontSize: '20px',
             color: '#00ffff',
             fontStyle: 'bold',
             backgroundColor: '#113355',
-            padding: { x: 20, y: 10 }
+            padding: { x: 20, y: 8 }
         }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
 
         towerBtn.on('pointerdown', () => {
@@ -69,12 +70,41 @@ export class DebugMenuScene extends Phaser.Scene {
             this.scene.stop();
         });
 
+        // 🏃‍♀️ ローディング画面テストボタン
+        const loadingTestBtn = this.add.text(centerX, 690, '🏃‍♀️ ローディング画面プレビュー', {
+            fontSize: '20px',
+            color: '#ffcc00',
+            fontStyle: 'bold',
+            backgroundColor: '#332211',
+            padding: { x: 20, y: 8 }
+        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+
+        loadingTestBtn.on('pointerdown', () => {
+            const overlay = LoadingOverlay.show(this, { depth: 20000 });
+            // タップで別キャラ・TIPSを再抽選、2秒後に自動で閉じるかタップで閉じる案内
+            const closeHint = this.add.text(centerX, height * 0.85, '【 タップすると閉じます 】', {
+                fontSize: '16px',
+                color: '#aaaaaa'
+            }).setOrigin(0.5, 0.5).setDepth(20001);
+
+            const clickZone = this.add.rectangle(0, 0, width, height, 0x000000, 0)
+                .setOrigin(0, 0)
+                .setDepth(20002)
+                .setInteractive({ useHandCursor: true });
+
+            clickZone.on('pointerdown', () => {
+                clickZone.destroy();
+                closeHint.destroy();
+                LoadingOverlay.hide(this, 150);
+            });
+        });
+
         // 閉じるボタン
-        const closeBtn = this.add.text(centerX, 720, '閉じる', {
-            fontSize: '24px',
+        const closeBtn = this.add.text(centerX, 750, '閉じる', {
+            fontSize: '22px',
             color: '#ffffff',
             backgroundColor: '#666666',
-            padding: { x: 20, y: 10 }
+            padding: { x: 20, y: 8 }
         }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
 
         closeBtn.on('pointerdown', () => {

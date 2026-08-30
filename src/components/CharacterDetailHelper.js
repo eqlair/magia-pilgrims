@@ -320,21 +320,24 @@ export class CharacterDetailHelper {
         pageContainer.add(scene.add.text(rx, ry, `命中率: ${hitRateStr}${hitRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 
-        const evadeBonus = Math.floor((stats.evadeRateBonus || 0) * 100);
-        const evadeRateStr = `5%`;
-        const evadeRateDiffStr = evadeBonus !== 0 ? ` (${evadeBonus > 0 ? '+' : ''}${evadeBonus}%)` : '';
+        const baseEvadeVal = Math.round((stats.baseEvadeRate !== undefined ? stats.baseEvadeRate : 0.05) * 100);
+        const equipEvadeBonus = Math.round((stats.equipEvadeRateBonus || 0) * 100);
+        const evadeRateStr = `${baseEvadeVal}%`;
+        const evadeRateDiffStr = equipEvadeBonus !== 0 ? ` (${equipEvadeBonus > 0 ? '+' : ''}${equipEvadeBonus}%)` : '';
         pageContainer.add(scene.add.text(rx, ry, `回避率: ${evadeRateStr}${evadeRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
-        const critBonus = Math.floor((stats.critRateBonus || 0) * 100);
-        const critRateStr = `5%`;
-        const critRateDiffStr = critBonus !== 0 ? ` (${critBonus > 0 ? '+' : ''}${critBonus}%)` : '';
+        const baseCritVal = Math.round((stats.baseCritRate !== undefined ? stats.baseCritRate : 0.05) * 100);
+        const equipCritBonus = Math.round((stats.equipCritRateBonus || 0) * 100);
+        const critRateStr = `${baseCritVal}%`;
+        const critRateDiffStr = equipCritBonus !== 0 ? ` (${equipCritBonus > 0 ? '+' : ''}${equipCritBonus}%)` : '';
         pageContainer.add(scene.add.text(rx, ry, `クリティカル率: ${critRateStr}${critRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
-        const critMultBonus = Math.floor((stats.critMultBonus || 0) * 100);
-        const critMultStr = `200%`;
-        const critMultDiffStr = critMultBonus !== 0 ? ` (${critMultBonus > 0 ? '+' : ''}${critMultBonus}%)` : '';
+        const baseCritMultVal = Math.round((stats.baseCritMult !== undefined ? stats.baseCritMult : 2.0) * 100);
+        const equipCritMultBonus = Math.round((stats.equipCritMultBonus || 0) * 100);
+        const critMultStr = `${baseCritMultVal}%`;
+        const critMultDiffStr = equipCritMultBonus !== 0 ? ` (${equipCritMultBonus > 0 ? '+' : ''}${equipCritMultBonus}%)` : '';
         pageContainer.add(scene.add.text(rx, ry, `クリティカル倍率: ${critMultStr}${critMultDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 

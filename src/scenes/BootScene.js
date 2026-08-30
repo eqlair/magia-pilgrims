@@ -12,6 +12,8 @@ export default class BootScene extends Phaser.Scene {
         // キャラクター立ち絵画像（portrait_XXX: アドベンチャー/UI用）
         this.load.image('map_witch', 'files/MAP/map_witch.png');
         this.load.image('daily_roulette', 'files/OP/rour.png');
+        this.load.image('dojo_banner', 'files/MAP/dojo.jpg');
+        this.load.image('dojo_icon', 'files/MAP/dojo2.jpg');
         
         // マップエフェクト
         for (let i = 1; i <= 5; i++) {
@@ -31,9 +33,12 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('portrait_003', 'files/CHR/003001.png');
         this.load.image('portrait_004', 'files/CHR/004001.png');
         this.load.image('portrait_005', 'files/CHR/005001.png');
+        this.load.image('portrait_006', 'files/CHR/006001.png');
         this.load.image('portrait_007', 'files/CHR/007001.png');
         this.load.image('portrait_008', 'files/CHR/008001.png');
-        this.load.image('portrait_010', 'files/CHR/011001.png');
+        this.load.image('portrait_009', 'files/CHR/009001.png');
+        this.load.image('portrait_010', 'files/CHR/010001.png');
+        this.load.image('portrait_011', 'files/CHR/011001.png');
 
         // 2人目用立ち絵 (001001b.png ~ 005001b.png, 007001b.png, 011001b.png)
         this.load.image('portrait_001_b', 'files/CHR/001001b.png');
@@ -43,17 +48,67 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('portrait_005_b', 'files/CHR/005001b.png');
         this.load.image('portrait_007_b', 'files/CHR/007001.png');
         this.load.image('portrait_008_b', 'files/CHR/008001.png');
-        this.load.image('portrait_010_b', 'files/CHR/011001b.png');
+        this.load.image('portrait_009_b', 'files/CHR/009001.png');
+        this.load.image('portrait_010_b', 'files/CHR/010001b.png');
+        this.load.image('portrait_011_b', 'files/CHR/011001b.png');
         this.load.spritesheet('mini_007', 'files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('mini_008', 'files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_010', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_009', 'files/CHR/009002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_010', 'files/CHR/010002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_010_b', 'files/CHR/010002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_011', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_007', 'files/CHR/007003.png');
         this.load.image('weapon_008_orb', 'files/CHR/008003.png');
         this.load.image('weapon_008_bullet', 'files/CHR/008004.png');
         this.load.image('weapon_008_ult_a', 'files/CHR/008004a.png');
+        this.load.image('weapon_009', 'files/CHR/090003.png');
+        this.load.image('weapon_009_spear', 'files/CHR/090003.png');
+        this.load.image('weapon_009_pollen', 'files/CHR/090004.png');
+        this.load.image('weapon_010_icicle', 'files/CHR/010003.png');
+        this.load.image('weapon_010_iceblock', 'files/CHR/010004.png');
+        this.load.image('weapon_011', 'files/CHR/011003.png');
+        this.load.image('weapon_011b', 'files/CHR/011003b.png');
+
+        // 戦闘用ミニキャラ・モーション・武器の事前ロード（初回バトル突入時の通信遅延を防止）
+        const battleCharIds = ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'];
+        for (const cid of battleCharIds) {
+            this.load.spritesheet(`battle_${cid}`, `files/CHR/${cid === '009' ? '009002' : `${cid}002`}.png`, { frameWidth: 150, frameHeight: 150 });
+            this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid === '009' ? '009002' : `${cid}002`}b.png`, { frameWidth: 150, frameHeight: 150 });
+        }
+        this.load.spritesheet('battle_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_002', 'files/CHR/002003.png');
+        this.load.image('weapon_003', 'files/CHR/003003.png');
+        this.load.image('weapon_004', 'files/CHR/004003.png');
+        this.load.image('weapon_004_ribbon', 'files/CHR/004003b.png');
+        this.load.image('weapon_005', 'files/CHR/005003.png');
         this.load.image('weapon_008_ult_b', 'files/CHR/008004b.png');
-        this.load.image('weapon_010', 'files/CHR/011003.png');
-        this.load.image('weapon_010b', 'files/CHR/011003b.png');
+        this.load.image('nrg', 'files/EFFECT/nrg.png');
+        this.load.image('bullet', 'files/CHR/001004.png');
+        this.load.image('enemy_bullet', 'files/EFFECT/ball.png');
+        this.load.image('bomb', 'files/EFFECT/bomb.png');
+        this.load.image('grenade', 'files/CHR/001003.png');
+        this.load.image('grenade_explosion', 'files/EFFECT/grenade.png');
+        for (let i = 1; i <= 6; i++) {
+            this.load.image(`hit_effect${i}`, `files/EFFECT/hit_effect${i}.png`);
+        }
+        for (let i = 1; i <= 3; i++) {
+            this.load.spritesheet(`en00${i}`, `files/ENEMY/en00${i}.png`, { frameWidth: 300, frameHeight: 300 });
+            this.load.image(`bg00${i}`, `files/BG_battle/bg00${i}.png`);
+        }
+        for (let i = 1; i <= 4; i++) {
+            this.load.spritesheet(`boss00${i}`, `files/ENEMY/boss00${i}.png`, { frameWidth: 1000, frameHeight: 1000 });
+        }
+        for (let i = 1; i <= 5; i++) {
+            this.load.image(`BG_0${i}`, `files/BG_battle/BG_0${i}.png`);
+        }
+        this.load.image('floor_a', 'files/BG_battle/floor_a.jpg');
+        this.load.image('yuka_enkin01', 'files/BG_battle/yuka_enkin01.jpg');
+        this.load.image('yuka_enkin02', 'files/BG_battle/yuka_enkin02.jpg');
+        this.load.image('yukamas', 'files/BG_battle/yukamas.jpg');
+        this.load.image('toppa_bg_1', 'files/BG_battle/yuka_enkin02.jpg');
+        this.load.image('toppa_bg_2', 'files/BG_battle/road_enkin02.jpg');
+        this.load.image('toppa_bg_3', 'files/BG_battle/grat_bg01.png');
 
 
 
@@ -75,7 +130,9 @@ export default class BootScene extends Phaser.Scene {
         }
         this.load.image('face_007', 'files/CHR/007p.jpg');
         this.load.image('face_008', 'files/CHR/008p.jpg');
-        this.load.image('face_010', 'files/CHR/011p.jpg');
+        this.load.image('face_009', 'files/CHR/009p.jpg');
+        this.load.image('face_010', 'files/CHR/010p.jpg');
+        this.load.image('face_011', 'files/CHR/011p.jpg');
         
         // キャラクター固有トークデータ(JSON)
         this.load.json('talk_001', 'files/CHR/talk_紫苑.json');
@@ -85,7 +142,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('talk_005', 'files/CHR/talk_李乃果.json');
         this.load.json('talk_007', 'files/CHR/talk_ななよ.json');
         this.load.json('talk_008', 'files/CHR/talk_ノア.json');
-        this.load.json('talk_010', 'files/CHR/talk_白蓮.json');
+        this.load.json('talk_009', 'files/CHR/talk_リフィエル.json');
+        this.load.json('talk_010', 'files/CHR/talk_プロセル.json');
+        this.load.json('talk_011', 'files/CHR/talk_白蓮.json');
         
         // タロットデータとイベントとキャラデータ
         this.load.json('tarot_data', 'files/DATA/tarot.json');
@@ -148,6 +207,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_1221c', 'files/event/1221c.jpg');
         this.load.image('bg_wildhunt', 'files/event/wildhunt.jpg');
         this.load.json('event_resp', 'files/DATA/event_resp.json');
+        this.load.json('event_2r1201', 'files/DATA/event_2r1201.json');
+        this.load.json('event_2rdevil', 'files/DATA/event_2rdevil.json');
+        this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
         this.load.image('bg_tow_spo01', 'files/event/tou_spo01.jpg');
         this.load.json('event_tow_res', 'files/DATA/event_tow_res.json');
 

@@ -5,11 +5,16 @@ const SAVE_KEY = 'antigravity_game_save';
 
 export class SaveManager {
     /**
-     * セーブデータが存在するか確認
+     * 有効なセーブデータが存在するか確認（OP戦を完了しているデータのみ有効と判定）
      */
     static hasSaveData() {
         try {
-            return localStorage.getItem(SAVE_KEY) !== null;
+            const raw = localStorage.getItem(SAVE_KEY);
+            if (!raw) return false;
+            const data = JSON.parse(raw);
+            if (!data || !data.globalState) return false;
+            // OP戦が完了している正常なデータのみ「続きから可能」と判定
+            return data.globalState.isOpCompleted === true;
         } catch (e) {
             console.error('[SaveManager] hasSaveData error:', e);
             return false;
@@ -26,8 +31,11 @@ export class SaveManager {
 
             // GlobalState の主要データをシリアライズ
             const globalData = {
+                isOpCompleted: gs.isOpCompleted !== undefined ? gs.isOpCompleted : true,
+                isDojoUnlocked: gs.isDojoUnlocked || false,
                 stockExp: gs.stockExp,
                 stockSp: gs.stockSp,
+                devilStockSp: gs.devilStockSp || 0,
                 maxPastExp: gs.maxPastExp || 0,
                 currentRunTotalExp: gs.currentRunTotalExp || 0,
                 food: gs.food,
@@ -211,8 +219,11 @@ export class SaveManager {
         const gs = GlobalState.getInstance();
         const d = saveData.globalState;
 
+        if (d.isOpCompleted !== undefined) gs.isOpCompleted = d.isOpCompleted;
+        if (d.isDojoUnlocked !== undefined) gs.isDojoUnlocked = d.isDojoUnlocked;
         if (d.stockExp !== undefined) gs.stockExp = d.stockExp;
         if (d.stockSp !== undefined) gs.stockSp = d.stockSp;
+        if (d.devilStockSp !== undefined) gs.devilStockSp = d.devilStockSp;
         if (d.maxPastExp !== undefined) gs.maxPastExp = d.maxPastExp;
         if (d.currentRunTotalExp !== undefined) gs.currentRunTotalExp = d.currentRunTotalExp;
         if (d.food !== undefined) gs.food = d.food;

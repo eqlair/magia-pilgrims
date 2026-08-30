@@ -219,7 +219,9 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="bc-party" value="005"> 5.李乃果</label><br>
                 <label><input type="checkbox" class="bc-party" value="007"> 7.ななよ</label><br>
                 <label><input type="checkbox" class="bc-party" value="008"> 8.ノア</label><br>
-                <label><input type="checkbox" class="bc-party" value="010"> 10.白蓮</label>
+                <label><input type="checkbox" class="bc-party" value="009"> 9.リフィエル</label><br>
+                <label><input type="checkbox" class="bc-party" value="010"> 10.プロセル</label><br>
+                <label><input type="checkbox" class="bc-party" value="011"> 11.白蓮</label>
             </div>
             <div style="display:flex; justify-content:space-between;">
                 <button id="bc-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>
@@ -299,7 +301,9 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="ac-party" value="005"> 5.李乃果</label><br>
                 <label><input type="checkbox" class="ac-party" value="007"> 7.ななよ</label><br>
                 <label><input type="checkbox" class="ac-party" value="008"> 8.ノア</label><br>
-                <label><input type="checkbox" class="ac-party" value="010"> 10.白蓮</label>
+                <label><input type="checkbox" class="ac-party" value="009"> 9.リフィエル</label><br>
+                <label><input type="checkbox" class="ac-party" value="010"> 10.プロセル</label><br>
+                <label><input type="checkbox" class="ac-party" value="011"> 11.白蓮</label>
             </div>
             <div style="display:flex; justify-content:space-between;">
                 <button id="ac-cancel" style="padding:5px 10px; cursor:pointer;">Cancel</button>

@@ -37,6 +37,8 @@ export default class EventScene extends Phaser.Scene {
         this.from1221WildhuntEvent = data.from1221WildhuntEvent || false;
         this.fromIkebukuro02Event = data.fromIkebukuro02Event || false;
         this.fromRespEvent = data.fromRespEvent || false;
+        this.from2R1201Event = data.from2R1201Event || false;
+        this.from2RDevilEvent = data.from2RDevilEvent || false;
         this.fromTowerRespEvent = data.fromTowerRespEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
@@ -528,7 +530,7 @@ export default class EventScene extends Phaser.Scene {
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.fromRespEvent && !this.fromTowerRespEvent && !this.fromOpTutorial,
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial,
                         fromExploration: this.fromExploration,
                         fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
                         isNotification: this.isNotification,
@@ -537,8 +539,9 @@ export default class EventScene extends Phaser.Scene {
                         from1217Event: this.from1217Event,
                         from1221Event: this.from1221Event,
                         fromRespEvent: this.fromRespEvent,
+                        from2R1201Event: this.from2R1201Event,
+                        from2RDevilEvent: this.from2RDevilEvent,
                         fromTowerRespEvent: this.fromTowerRespEvent,
-
                         joinCharacterId: this.joinCharacterId 
                     });
                 }

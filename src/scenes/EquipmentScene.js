@@ -60,11 +60,12 @@ export default class EquipmentScene extends Phaser.Scene {
 
         // デバッグ用キーバインド (デバッグモード時のみ)
         if (GlobalState.IS_DEBUG_MODE) {
-            // Lキー: ストック経験値 50,000 点付与
+            // Lキー: ストック経験値 50,000 点 ＆ SP 50,000 点付与
             this.input.keyboard.on('keydown-L', () => {
                 const addedExp = this.globalState.addDirectStockExp(50000);
+                this.globalState.stockSp = (this.globalState.stockSp || 0) + 50000;
                 SaveManager.saveGame(this);
-                const toast = this.add.text(this.width / 2, 50, `[DEBUG] ストック経験値 +${addedExp.toLocaleString()} (現在: ${this.globalState.stockExp.toLocaleString()})`, {
+                const toast = this.add.text(this.width / 2, 50, `[DEBUG] 経験値 +${addedExp.toLocaleString()} / SP +50,000 (SP: ${this.globalState.stockSp.toLocaleString()})`, {
                     fontSize: '18px', fontStyle: 'bold', color: '#ffffaa', backgroundColor: '#000000dd', padding: { x: 12, y: 6 }
                 }).setOrigin(0.5).setDepth(9999);
                 this.time.delayedCall(2200, () => toast.destroy());

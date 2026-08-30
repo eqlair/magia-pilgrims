@@ -72,7 +72,10 @@ export class BattleRenderer {
 
         // プレイヤーの描画更新
         for (const p of this.engine.players) {
-            const charTex = `battle_${p.charId}`;
+            let charTex = `battle_${p.charId}`;
+            if (p.charId === '009' && p.isUltimateActive) {
+                charTex = 'battle_009_adult';
+            }
             this._updateSprite(p, charTex);
             this._updateUI(p);
 
@@ -116,24 +119,47 @@ export class BattleRenderer {
             else if (b.type === 'noah_bullet_008' || b.type === 'weapon_008_bullet') textureKey = 'weapon_008_bullet';
             else if (b.type === 'special_field_008') textureKey = 'weapon_008_orb';
             else if (b.type === 'ultimate_008') textureKey = b.textureKey || 'weapon_008_ult_a';
+            else if (b.type === 'pollen_smoke_009' || b.type === 'smoke_field_009' || b.type === 'weapon_009_pollen') textureKey = 'weapon_009_pollen';
+            else if (b.type === 'spear_spin_009' || b.type === 'spear_throw_009' || b.type === 'weapon_009' || b.type === 'weapon_009_spear' || b.type === 'swing_009') textureKey = 'weapon_009';
+            else if (b.type === 'icicle_large_010' || b.type === 'icicle_small_010' || b.type === 'weapon_010_icicle') textureKey = 'weapon_010_icicle';
+            else if (b.type === 'ice_block_010' || b.type === 'ice_barrier_010' || b.type === 'weapon_010_iceblock') textureKey = 'weapon_010_iceblock';
             else if (b.type === 'swing_ultimate_002') textureKey = 'weapon_002';
-            else if (b.type === 'laser_010') textureKey = 'weapon_010';
-            else if (b.type === 'barrier_010') textureKey = 'weapon_010b';
-            else if (b.type === 'special_barrier_010' || b.type === 'ultimate_010' || b.type === 'ultimate_burst_field_010') textureKey = 'nrg';
+            else if (b.type === 'laser_011' || b.type === 'weapon_011') textureKey = 'weapon_011';
+            else if (b.type === 'barrier_011' || b.type === 'weapon_011b') textureKey = 'weapon_011b';
+            else if (b.type === 'special_barrier_011' || b.type === 'ultimate_011' || b.type === 'ultimate_burst_field_011' || b.type === 'special_barrier_010' || b.type === 'ultimate_010') textureKey = 'nrg';
             // 汎用: swing_XXX 形式
             else if (b.type && b.type.startsWith('swing_')) {
                 const id = b.type.replace('swing_', '');
                 textureKey = `weapon_${id}`;
             }
 
-
             if (textureKey) {
                 this._updateSprite(b, textureKey);
-                if (b.type === 'special_barrier_010' || b.type === 'ultimate_010' || b.type === 'barrier_010' || b.type === 'laser_010' || (b.type && b.type.includes('barrier'))) {
+                if (b.type === 'special_barrier_011' || b.type === 'ultimate_011' || b.type === 'special_barrier_010' || b.type === 'ultimate_010' || (b.type && b.type.includes('barrier') && !b.type.includes('ice'))) {
                     const sprite = this.spriteMap.get(b);
                     if (sprite) {
                         sprite.setTint(0x00ffff);
                         sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    }
+                } else if (b.type === 'smoke_field_009' || b.type === 'pollen_smoke_009') {
+                    const sprite = this.spriteMap.get(b);
+                    if (sprite) {
+                        sprite.setAlpha(0.85);
+                    }
+                } else if (b.type === 'smoke_field_009') {
+                    const sprite = this.spriteMap.get(b);
+                    if (sprite) {
+                        sprite.clearTint();
+                        sprite.setBlendMode(Phaser.BlendModes.NORMAL);
+                        const currentAlpha = b.alpha !== undefined ? b.alpha : Math.max(0, b.lifeTime / 2.0);
+                        sprite.setAlpha(currentAlpha);
+                    }
+                } else if (b.type === 'pollen_smoke_009') {
+                    const sprite = this.spriteMap.get(b);
+                    if (sprite) {
+                        sprite.clearTint();
+                        sprite.setBlendMode(Phaser.BlendModes.NORMAL);
+                        sprite.setAlpha(1.0);
                     }
                 }
             }
@@ -254,57 +280,76 @@ export class BattleRenderer {
 
             if (isPlayerChar) {
                 const charId = entity.charId || '001';
-                const baseTex = `battle_${charId}`;
-                const motionTex = `battle_${charId}_b`;
+                let baseTex = `battle_${charId}`;
+                let motionTex = `battle_${charId}_b`;
+
+                // 009 リフィエル変身時は大人姿のスプライトシートを使用
+                if (charId === '009' && entity.isUltimateActive) {
+                    baseTex = 'battle_009_adult';
+                    motionTex = 'battle_009_adult_b';
+                }
 
                 const cs = entity.combatState;
-                const isAttacking = cs && (cs.phase === 'acting' || cs.phase === 'reloading');
+                const isAttacking = cs && (cs.phase === 'acting');
+                const isReloading = cs && (cs.phase === 'reloading');
 
-                // 近接攻撃（コンボ）中かどうかの判定
-                let isMeleeMotion = false;
+                // 攻撃・近接モーション中かどうかの判定
+                let isAttackMotion = false;
                 if (entity.isEnemy) {
                     if (charId === '001' || charId === '005') {
-                        isMeleeMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
+                        isAttackMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
                     } else {
-                        isMeleeMotion = (entity.attackAnimTimer > 0);
+                        isAttackMotion = (entity.attackAnimTimer > 0);
                     }
-                } else if (cs && cs.comboType === 'near') {
+                } else {
                     if (charId === '001' || charId === '005') {
-                        // 紫苑・李乃果: 実際にキック発動中(kickTimer > 0 または isKickAttacking)のときのみ表示！
-                        isMeleeMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
+                        // 紫苑・李乃果: 実際にキック発動中のときのみ表示
+                        isAttackMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
+                    } else if (charId === '010') {
+                        // プロセル: 攻撃実行中(acting) または 必殺技乱射中
+                        isAttackMotion = isAttacking || !!entity.isUltimateActive;
+                    } else if (charId === '009') {
+                        // リフィエル: 攻撃実行中(acting) または 必殺技変身中
+                        isAttackMotion = isAttacking || !!entity.isUltimateActive;
                     } else {
                         // 蒼樹(002)・紅華(003)・黄蘭(004): 攻撃実行中(acting)のみ
-                        isMeleeMotion = (cs.phase === 'acting');
+                        isAttackMotion = isAttacking;
                     }
                 }
 
                 if (entity.hp <= 0 || entity.isDead) {
-                    sprite.setTexture(baseTex);
-                    sprite.setFrame(6); // 死亡フレーム（7番目, index 6）
-                } else if (isMeleeMotion && this.scene.textures.exists(motionTex)) {
-                    // 近接特殊モーション (_bシート: 0:正面/手前, 1:左, 2:右, 3:背面/奥)
+                    // 死亡ダウンフレーム
+                    if (charId === '009') {
+                        sprite.setTexture(motionTex);
+                        sprite.setFrame(6); // 倒れダウン
+                    } else {
+                        sprite.setTexture(baseTex);
+                        sprite.setFrame(6); // 死亡フレーム（index 6）
+                    }
+                } else if (isAttackMotion && this.scene.textures.exists(motionTex)) {
+                    // ── 攻撃特殊モーション (_bシート) ──
                     sprite.setTexture(motionTex);
                     if (!entity.isEnemy) {
-                        // ── 味方プレイヤーの近接: 基本は背面(3:奥向き) ──
+                        // 味方プレイヤーの攻撃: 基本は背面(3:奥向き攻撃)
                         let frame = 3;
                         if (entity.targetEnemy) {
                             const dx = entity.targetEnemy.x - entity.x;
                             const dz = entity.targetEnemy.z - entity.z;
                             if (dz < -1.0) frame = 0; // 手前
-                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
-                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
+                            else if (dx > 2.0 && dz < 2.0) frame = 2; // 右
+                            else if (dx < -2.0 && dz < 2.0) frame = 1; // 左
                             else frame = 3; // 奥
                         }
                         sprite.setFrame(frame);
                     } else {
-                        // ── 敵魔法少女の近接: 基本は正面(0:手前向き) ──
+                        // 敵魔法少女の攻撃: 基本は正面(0:手前向き攻撃)
                         let frame = 0;
                         if (entity.targetEnemy) {
                             const dx = entity.targetEnemy.x - entity.x;
                             const dz = entity.targetEnemy.z - entity.z;
                             if (dz > 1.0) frame = 3; // 奥
-                            else if (dx > 2.5 && Math.abs(dz) < 2.0) frame = 2; // 右
-                            else if (dx < -2.5 && Math.abs(dz) < 2.0) frame = 1; // 左
+                            else if (dx > 2.0 && Math.abs(dz) < 2.0) frame = 2; // 右
+                            else if (dx < -2.0 && Math.abs(dz) < 2.0) frame = 1; // 左
                             else frame = 0; // 手前
                         }
                         sprite.setFrame(frame);
@@ -317,19 +362,19 @@ export class BattleRenderer {
                     let useBaseTex = false;
                     let targetFrame = null;
 
-                    if (entity.targetEnemy && isMeleeMotion) {
+                    if (entity.targetEnemy && isAttackMotion) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         if (dz < -1.0) targetFrame = 0;
-                        else if (dx > 2.5 && dz < 2.0) targetFrame = 2;
-                        else if (dx < -2.5 && dz < 2.0) targetFrame = 1;
+                        else if (dx > 2.0 && dz < 2.0) targetFrame = 2;
+                        else if (dx < -2.0 && dz < 2.0) targetFrame = 1;
                         else targetFrame = 3;
-                    } else if (entity.targetEnemy && isAttacking) {
+                    } else if (entity.targetEnemy && (isAttacking || isReloading)) {
                         const dx = entity.targetEnemy.x - entity.x;
                         const dz = entity.targetEnemy.z - entity.z;
                         if (dz < -1.0) { useBaseTex = true; targetFrame = 0; }
-                        else if (dx > 2.5 && dz < 2.0) { useBaseTex = true; targetFrame = 2; }
-                        else if (dx < -2.5 && dz < 2.0) { useBaseTex = true; targetFrame = 1; }
+                        else if (dx > 2.0 && dz < 2.0) { useBaseTex = true; targetFrame = 2; }
+                        else if (dx < -2.0 && dz < 2.0) { useBaseTex = true; targetFrame = 1; }
                         else targetFrame = runFrame;
                     } else {
                         targetFrame = runFrame;
@@ -347,17 +392,17 @@ export class BattleRenderer {
                     }
 
                 } else {
-                    // 通常のアニメーション (baseTex: 0:正面/手前, 1:左, 2:右, 3:背面/奥)
+                    // 通常時 (baseTex: 0:正面/手前, 1:左, 2:右, 3:背面/奥)
                     sprite.setTexture(baseTex);
                     if (!entity.isEnemy) {
-                        // ── 味方プレイヤー: 基本は背面(3:奥/後ろ姿) ──
+                        // ── 味方プレイヤー: 基本は背面(3:奥/後ろ姿・通常立ち) ──
                         let frame = 3;
                         if (entity.targetEnemy) {
                             const dx = entity.targetEnemy.x - entity.x;
                             const dz = entity.targetEnemy.z - entity.z;
                             if (dz < -1.0) frame = 0; // 手前
-                            else if (dx > 2.5 && dz < 2.0) frame = 2; // 右
-                            else if (dx < -2.5 && dz < 2.0) frame = 1; // 左
+                            else if (dx > 2.0 && dz < 2.0) frame = 2; // 右
+                            else if (dx < -2.0 && dz < 2.0) frame = 1; // 左
                             else frame = 3; // 奥
                         }
                         sprite.setFrame(frame);
@@ -368,8 +413,8 @@ export class BattleRenderer {
                             const dx = entity.targetEnemy.x - entity.x;
                             const dz = entity.targetEnemy.z - entity.z;
                             if (dz > 1.0) frame = 3; // 奥
-                            else if (dx > 2.5 && Math.abs(dz) < 2.0) frame = 2; // 右
-                            else if (dx < -2.5 && Math.abs(dz) < 2.0) frame = 1; // 左
+                            else if (dx > 2.0 && Math.abs(dz) < 2.0) frame = 2; // 右
+                            else if (dx < -2.0 && Math.abs(dz) < 2.0) frame = 1; // 左
                             else frame = 0; // 手前
                         }
                         sprite.setFrame(frame);
@@ -386,6 +431,46 @@ export class BattleRenderer {
                 } else {
                     sprite.setAngle(0);
                 }
+            }
+
+            // 🌿 リフィエル変身中の継続オーラ: 大人姿に子供姿とnrgオーバーレイを重ねて光らせる
+            if (entity.charId === '009' && entity.isUltimateActive && !isProjectile && !isDown) {
+                // 子供姿（半透明）を重ねる
+                let childSprite = entity._ultChildSprite;
+                if (!childSprite) {
+                    childSprite = this.scene.add.sprite(0, 0, 'battle_009', 0).setOrigin(0.5, 1.0);
+                    entity._ultChildSprite = childSprite;
+                }
+                const childFrame = sprite.frame?.name ?? 3;
+                childSprite.setTexture('battle_009');
+                childSprite.setFrame(childFrame);
+                childSprite.setPosition(sprite.x, sprite.y);
+                childSprite.setScale(sprite.scaleX, sprite.scaleY);
+                childSprite.setDepth(sprite.depth - 1);
+                childSprite.setAlpha(0.35);
+                childSprite.setVisible(true);
+                childSprite.setTint(0xaaffaa);
+                childSprite.setBlendMode(Phaser.BlendModes.ADD);
+
+                // nrg 加算合成グロウ（ゆっくり点滅）
+                let nrgSprite = entity._ultNrgSprite;
+                if (!nrgSprite) {
+                    nrgSprite = this.scene.add.sprite(0, 0, 'nrg').setOrigin(0.5, 0.5);
+                    entity._ultNrgSprite = nrgSprite;
+                }
+                const pulse = 0.55 + 0.45 * Math.sin((this.scene.time.now || 0) * 0.004);
+                const nrgBase = nrgSprite.width || 200;
+                const nrgScale = p.scale * (2.5 / nrgBase);
+                nrgSprite.setPosition(sprite.x, sprite.y - p.scale * 1.0);
+                nrgSprite.setScale(nrgScale);
+                nrgSprite.setTint(0xaaffaa);
+                nrgSprite.setBlendMode(Phaser.BlendModes.ADD);
+                nrgSprite.setAlpha(pulse * 0.7);
+                nrgSprite.setDepth(sprite.depth + 1);
+                nrgSprite.setVisible(true);
+            } else if (entity._ultChildSprite) {
+                entity._ultChildSprite.setVisible(false);
+                if (entity._ultNrgSprite) entity._ultNrgSprite.setVisible(false);
             }
 
             // 呼吸アニメーション（生存時: ±5%, 倒れ時: ±1.5%の微弱な息遣い）
@@ -461,6 +546,7 @@ export class BattleRenderer {
                 }
                 if (textureKey === 'weapon_004') visualMultiplier = 0.75; // 黄蘭の弾丸は見た目1/2
                 if (textureKey === 'hit_effect6') visualMultiplier = 8.0;  // キック衝撃波
+                if (textureKey === 'weapon_009_pollen' || entity.type === 'pollen_smoke_009' || entity.type === 'smoke_field_009') visualMultiplier = 1.0;
 
 
 
@@ -546,28 +632,40 @@ export class BattleRenderer {
                         if (entity.type === 'swing_003') angleRange = 270; // 1.5回転分(±270度 = 計540度)
                         if (entity.type === 'swing_ultimate_002') angleRange = 180; // 360度薙ぎ払い
 
-                        
-                        // 軌跡（時計回り）と画像の回転方向を合わせるため、マイナス方向に回転させる
-                        const dir = entity.swingDir || 1;
-                        sprite.setAngle(baseAngle + (angleRange * dir) - (angleRange*2 * progress * dir));
+                        // 軌跡と画像の回転方向を合わせる
+                        const dir = entity.armDir || entity.swingDir || 1;
+                        if (entity.type === 'swing_009') {
+                            // 🌿 リフィエルの二重振り子槍回し
+                            // originY=1.0（根本基準）なので、setAngle は「根本→先端の方向」を指定
+                            // アームの現在角度から、槍自体は高速自転(720度/0.5秒)する
+                            const armAngleDeg = entity.currentArmAngle !== undefined
+                                ? entity.currentArmAngle * 180 / Math.PI  // ワールド角度をそのまま
+                                : entity.baseAngle * 180 / Math.PI;
+                            // Phaserのy軸反転補正: atan2(dz,dx) → +90でY軸合わせ
+                            // 槍が根本から先端方向＝アーム外向き＝curAngle方向、+ 自転スピン
+                            sprite.setAngle(-armAngleDeg + 90 + (progress * 720 * dir));
+                        } else {
+                            sprite.setAngle(baseAngle + (angleRange * dir) - (angleRange*2 * progress * dir));
+                        }
+
                         // サイズ調整
-                        if (entity.type === 'swing_003') {
-                            // 槍の見た目が長すぎたため、青樹と同じく3.0m相当に調整
+                        if (entity.type === 'swing_003' || entity.type === 'swing_009') {
+                            // 槍の見た目を2.5m相当に調整
                             const baseHeight = sprite.height || 100;
-                            const targetScale = p.scale * (3.0 / baseHeight);
+                            const targetScale = p.scale * (2.5 / baseHeight);
                             sprite.setScale(targetScale);
                         } else if (entity.type === 'swing_002') {
-                            // 青樹の剣: 画面上で3.0m相当の長さに設定（以前の1.5mから倍増）
+                            // 青樹の剣: 画面上で3.0m相当の長さに設定
                             const baseHeight = sprite.height || 100;
                             const targetScale = p.scale * (3.0 / baseHeight);
                             sprite.setScale(targetScale);
                         } else {
-                            let scaleMult = 1.5; // スイング時のデフォルト拡大率
+                            let scaleMult = 1.5;
                             sprite.setScale(sprite.scale * scaleMult);
                         }
 
+                        // swing_003 のみ双頭槍の対向スプライト2を表示 (swing_009 は1本で自転するので不要)
                         if (entity.type === 'swing_003') {
-                            // 180度反対方向の同じ槍を表示
                             let sprite2 = entity.sprite2;
                             if (!sprite2) {
                                 sprite2 = this.scene.add.sprite(0, 0, textureKey, 0).setOrigin(sprite.originX, sprite.originY);
@@ -578,6 +676,9 @@ export class BattleRenderer {
                             sprite2.setPosition(sprite.x, sprite.y);
                             sprite2.setScale(sprite.scaleX, sprite.scaleY);
                             sprite2.setAngle(sprite.angle + 180);
+                        } else if (entity.sprite2) {
+                            // swing_009 など不要なsprite2は非表示
+                            entity.sprite2.setVisible(false);
                         }
                         
                         if (entity.type === 'swing_004') {
@@ -622,6 +723,11 @@ export class BattleRenderer {
                         sprite.setAngle(entity.spinAngle * 180 / Math.PI);
                     } else {
                         // 通常の飛ぶ武器
+                        if (textureKey === 'weapon_009' || entity.type === 'weapon_009') {
+                            const baseHeight = sprite.height || 360;
+                            const targetScale = p.scale * (2.5 / baseHeight);
+                            sprite.setScale(targetScale);
+                        }
                         const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                         sprite.setAngle(angle);
                     }
@@ -930,7 +1036,7 @@ export class BattleRenderer {
                 obj = this.scene.add.sprite(0, 0, 'slash');
                 obj.setOrigin(0.5, 1.0); // 横長だけどグラフィック上側が先端。下側が手前
                 obj.setDepth(2500);
-            } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit' || eff.type === 'ultimate_burst_010') {
+            } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit' || eff.type === 'ultimate_burst_010' || eff.type === 'ultimate_burst_009') {
                 obj = this.scene.add.sprite(0, 0, 'nrg');
                 obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で黒枠を完全透明化しエネルギー発光！
                 obj.setDepth(1500);
@@ -1008,6 +1114,24 @@ export class BattleRenderer {
                 const baseWidth = obj.width || 200;
                 obj.setScale((currentRadius * 2.5) / baseWidth);
                 obj.setAlpha(1.0 - progress);
+                return;
+            }
+
+            if (eff.type === 'ultimate_burst_009') {
+                // 🌿 リフィエル必殺技発動: nrg.png 加算合成バーストフラッシュ
+                // 前半(0〜0.3s): 急速拡大しながら最大輝度 → 後半(0.3〜0.6s): フェードアウト
+                obj.setPosition(p.x, p.y - p.scale * 1.0);
+                obj.setTint(0xaaffaa); // 緑白の光
+                obj.setBlendMode(Phaser.BlendModes.ADD);
+                const baseWidth = obj.width || 200;
+                // 前半は急速拡大（0→1.5倍）、後半は維持
+                const expandProgress = Math.min(1.0, progress / 0.5);
+                const currentRadius = (eff.radius || 3.0) * p.scale * (0.3 + expandProgress * 0.7);
+                obj.setScale((currentRadius * 2.0) / baseWidth);
+                // アルファ: 前半はキープ、後半はフェードアウト
+                const alpha = progress < 0.5 ? 1.0 : (1.0 - (progress - 0.5) / 0.5);
+                obj.setAlpha(alpha);
+                obj.setDepth(1000 + 10); // キャラより前面
                 return;
             }
 

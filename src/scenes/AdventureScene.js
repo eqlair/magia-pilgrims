@@ -94,6 +94,7 @@ export default class AdventureScene extends Phaser.Scene {
 
         // セーブデータおよびGlobalStateから正確な日付を復元
         const gs = GlobalState.getInstance();
+        gs.isOpCompleted = true; // 本編マップに正式到達したためOP完了フラグを有効化
         if (isNewGame) {
             gs.currentMonth = 12;
             gs.currentDay = 1;
@@ -356,7 +357,7 @@ export default class AdventureScene extends Phaser.Scene {
         // カメラの自由な移動を保証するため、タワー(60フロア・縦4000px超)も含めて広大なBoundsを設定
         this.cameras.main.setBounds(-2000, -2000, 6000, 12000);
         
-        // デバッグ用: Pキーで宝石ドロップフラグをトグル (デバッグモード時のみ)
+        // デバッグ用キーバインド (デバッグモード時のみ)
         if (GlobalState.IS_DEBUG_MODE) {
             const globalState = GlobalState.getInstance();
             this.input.keyboard.on('keydown-P', () => {
@@ -365,6 +366,19 @@ export default class AdventureScene extends Phaser.Scene {
                     fontSize: '20px', color: '#ff0000', backgroundColor: '#ffffff', padding: { x: 5, y: 5 }
                 }).setOrigin(0.5).setDepth(9999);
                 this.time.delayedCall(2000, () => text.destroy());
+            });
+
+            this.input.keyboard.on('keydown-L', () => {
+                const addedExp = globalState.addDirectStockExp(50000);
+                globalState.stockSp = (globalState.stockSp || 0) + 50000;
+                SaveManager.saveGame(this);
+                if (this.spText) {
+                    this.spText.setText(`SP: ${Math.floor(globalState.stockSp).toLocaleString()}`);
+                }
+                const toast = this.add.text(this.scale.width / 2, 50, `[DEBUG] 経験値 +${addedExp.toLocaleString()} / SP +50,000 (SP: ${globalState.stockSp.toLocaleString()})`, {
+                    fontSize: '18px', fontStyle: 'bold', color: '#ffffaa', backgroundColor: '#000000dd', padding: { x: 12, y: 6 }
+                }).setOrigin(0.5).setDepth(9999);
+                this.time.delayedCall(2200, () => toast.destroy());
             });
         }
 
@@ -1037,6 +1051,19 @@ export default class AdventureScene extends Phaser.Scene {
 
                     this.resetMapForNewLoop();
                     SaveManager.saveGame(this);
+
+                    // 2R1201ev イベントの起動（12/1東京駅開始時の独白・対話イベント）
+                    const r2EvData = this.cache.json.get('event_2r1201');
+                    if (r2EvData) {
+                        this.scene.pause();
+                        this.scene.launch('EventScene', {
+                            events: r2EvData,
+                            returnScene: 'AdventureScene',
+                            from2R1201Event: true
+                        });
+                        return;
+                    }
+
                     TransitionManager.fadeIn(this);
                     return;
                 }
@@ -1077,6 +1104,19 @@ export default class AdventureScene extends Phaser.Scene {
 
                         this.resetMapForNewLoop();
                         SaveManager.saveGame(this);
+
+                        // 2R1201ev イベントの起動（12/1東京駅開始時の独白・対話イベント）
+                        const r2EvData = this.cache.json.get('event_2r1201');
+                        if (r2EvData) {
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: r2EvData,
+                                returnScene: 'AdventureScene',
+                                from2R1201Event: true
+                            });
+                            return;
+                        }
+
                         TransitionManager.fadeIn(this);
                         return;
                     } else {
@@ -1109,6 +1149,26 @@ export default class AdventureScene extends Phaser.Scene {
                         TransitionManager.fadeIn(this);
                         return;
                     }
+                }
+
+                // 2R1201ev イベント完了時 -> マップ操作へフェードイン復帰
+                if (data && data.from2R1201Event) {
+                    SaveManager.saveGame(this);
+                    TransitionManager.fadeIn(this);
+                    return;
+                }
+
+                // 2RDEVIL イベント完了時 -> 道場解放フラグON、道場ボタン表示、トースト通知、セーブ
+                if (data && data.from2RDevilEvent) {
+                    const gs = GlobalState.getInstance();
+                    gs.isDojoUnlocked = true;
+                    if (this.dojoBtn && this.dojoBtn.updateStatus) {
+                        this.dojoBtn.updateStatus();
+                    }
+                    this.showToast('🥋 魔法少女強化プログラム『道場』が解放されました！');
+                    SaveManager.saveGame(this);
+                    TransitionManager.fadeIn(this);
+                    return;
                 }
 
                 if (this._pendingTarot) {
@@ -1358,9 +1418,13 @@ export default class AdventureScene extends Phaser.Scene {
         // ── 🎁 UI: デイリー報酬ボタン（画面左上少し下） ──
         this.dailyRewardBtn = this._createDailyRewardButton(20, 65);
 
+        // ── 🥋 UI: 道場ボタン（デイリーの下、シナリオ解放またはデバッグ時に表示） ──
+        this.dojoBtn = this._createDojoButton(20, 105);
+
         this.uiContainer.add([
             wideBtn,
             this.dailyRewardBtn,
+            this.dojoBtn,
             this.dateBg,
             this.dateTimeText,
             this.exploreBtn,
@@ -1802,6 +1866,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.floorJumpBtn) this.floorJumpBtn.setVisible(isVisible);
         if (this.pvpTestBtn) this.pvpTestBtn.setVisible(isVisible);
         if (this.dailyRewardBtn) this.dailyRewardBtn.setVisible(isVisible);
+        if (this.dojoBtn) this.dojoBtn.setVisible(isVisible && (gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE));
 
         // 通常表示の固定背景の制御 (広域表示時は非表示にしてマップ全体・タワー背景を見せる)
         if (this.bgCurrent) this.bgCurrent.setVisible(isVisible);
@@ -4662,6 +4727,45 @@ export default class AdventureScene extends Phaser.Scene {
         };
 
         return btn;
+    }
+
+    /**
+     * 🥋 道場ボタン（dojo2.jpg）の生成
+     */
+    _createDojoButton(x, y) {
+        const gs = GlobalState.getInstance();
+        const isVisible = gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE;
+
+        const container = this.add.container(x, y);
+        container.setVisible(isVisible);
+
+        const btnImg = this.add.image(0, 0, 'dojo_icon').setOrigin(0, 0);
+        // 幅85px程度にリサイズ
+        const targetW = 84;
+        const scale = targetW / btnImg.width;
+        btnImg.setScale(scale);
+
+        // タップ領域と枠線
+        const hitArea = this.add.rectangle(0, 0, btnImg.displayWidth, btnImg.displayHeight, 0x000000, 0)
+            .setOrigin(0, 0)
+            .setStrokeStyle(1.5, 0x886644)
+            .setInteractive({ useHandCursor: true });
+
+        hitArea.on('pointerdown', () => {
+            container.setScale(0.92);
+            TransitionManager.transitionTo(this, 'DojoScene');
+        });
+        hitArea.on('pointerup', () => container.setScale(1.0));
+        hitArea.on('pointerout', () => container.setScale(1.0));
+
+        container.add([btnImg, hitArea]);
+
+        container.updateStatus = () => {
+            const visible = gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE;
+            container.setVisible(visible);
+        };
+
+        return container;
     }
 
     _showDailyRouletteModal() {

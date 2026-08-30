@@ -59,10 +59,22 @@ export default class BattleScene extends Phaser.Scene {
         this.load.image('weapon_008_ult_a', 'files/CHR/008004a.png');
         this.load.image('weapon_008_ult_b', 'files/CHR/008004b.png');
 
-        this.load.spritesheet('battle_010', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_010_b', 'files/CHR/011002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_010', 'files/CHR/011003.png');
-        this.load.image('weapon_010b', 'files/CHR/011003b.png');
+        this.load.spritesheet('battle_009', 'files/CHR/009002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_009_b', 'files/CHR/009002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_009', 'files/CHR/090003.png');
+        this.load.image('weapon_009_spear', 'files/CHR/090003.png');
+        this.load.image('weapon_009_pollen', 'files/CHR/090004.png');
+
+        this.load.spritesheet('battle_010', 'files/CHR/010002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_010_b', 'files/CHR/010002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_010_icicle', 'files/CHR/010003.png');
+        this.load.image('weapon_010_iceblock', 'files/CHR/010004.png');
+
+        this.load.spritesheet('battle_011', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_011_b', 'files/CHR/011002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_011', 'files/CHR/011003.png');
+        this.load.image('weapon_011b', 'files/CHR/011003b.png');
 
         // 雑魚敵（画像全体の幅1200px, 高さ300px -> 4分割で300x300）
         for (let i = 1; i <= 3; i++) {
@@ -128,7 +140,9 @@ export default class BattleScene extends Phaser.Scene {
             'battle_005', 'battle_005_b', 'weapon_005',
             'battle_007', 'battle_007_b', 'weapon_007',
             'battle_008', 'battle_008_b', 'weapon_008_orb', 'weapon_008_bullet', 'weapon_008_ult_a', 'weapon_008_ult_b',
-            'battle_010', 'battle_010_b', 'weapon_010',
+            'battle_009', 'battle_009_b', 'battle_009_adult', 'battle_009_adult_b', 'weapon_009', 'weapon_009_spear', 'weapon_009_pollen',
+            'battle_010', 'battle_010_b', 'weapon_010_icicle', 'weapon_010_iceblock',
+            'battle_011', 'battle_011_b', 'weapon_011', 'weapon_011b',
             'en001', 'en002', 'en003',
             'boss001', 'boss002', 'boss003', 'boss004',
             'bullet', 'grenade'

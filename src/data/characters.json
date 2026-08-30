@@ -2208,72 +2208,490 @@
       }
     },
     "010": {
-      "name": "白蓮",
-      "baseHp": 750,
-      "baseSp": 1250,
+      "name": "プロセル",
+      "baseHp": 1100,
+      "baseSp": 1100,
       "baseAtk": 100,
-      "weight": 41,
+      "weight": 70,
+      "attribute": "purple",
       "patterns": {
         "far": {
           "1": [
-            { "name": "レーザー", "type": "laser_010", "power": 50, "reload": 0.1, "count": 1, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "つらら大",
+              "type": "icicle_large_010",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 30,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 18,
+              "isPiercing": true,
+              "deviation": 5,
+              "spawnOffsetDist": 1,
+              "burstField": {
+                "type": "ice_block_010",
+                "radius": 1.5,
+                "duration": 2,
+                "damagePct": 10
+              }
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "2": [
-            { "name": "レーザー", "type": "laser_010", "power": 30, "reload": 0.1, "count": 2, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "つらら大",
+              "type": "icicle_large_010",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 30,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 18,
+              "isPiercing": true,
+              "deviation": 5,
+              "spawnOffsetDist": 1,
+              "burstField": {
+                "type": "ice_block_010",
+                "radius": 1.5,
+                "duration": 2,
+                "damagePct": 10
+              }
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "3": [
-            { "name": "レーザー", "type": "laser_010", "power": 24, "reload": 0.1, "count": 3, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "つらら大",
+              "type": "icicle_large_010",
+              "power": 50,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 30,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 18,
+              "isPiercing": true,
+              "deviation": 5,
+              "spawnOffsetDist": 1,
+              "burstField": {
+                "type": "ice_block_010",
+                "radius": 1.5,
+                "duration": 2,
+                "damagePct": 10
+              }
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "4": [
-            { "name": "レーザー", "type": "laser_010", "power": 20, "reload": 0.1, "count": 4, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "つらら大",
+              "type": "icicle_large_010",
+              "power": 50,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 30,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 18,
+              "isPiercing": true,
+              "deviation": 5,
+              "spawnOffsetDist": 1,
+              "burstField": {
+                "type": "ice_block_010",
+                "radius": 1.5,
+                "duration": 2,
+                "damagePct": 10
+              }
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "5": [
-            { "name": "レーザー", "type": "laser_010", "power": 18, "reload": 0.1, "count": 5, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "つらら大",
+              "type": "icicle_large_010",
+              "power": 50,
+              "reload": 0.5,
+              "count": 3,
+              "speed": 30,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 18,
+              "isPiercing": true,
+              "deviation": 5,
+              "spawnOffsetDist": 1,
+              "burstField": {
+                "type": "ice_block_010",
+                "radius": 1.5,
+                "duration": 2,
+                "damagePct": 10
+              }
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "6": [
-            { "name": "レーザー", "type": "laser_010", "power": 17, "reload": 0.1, "count": 6, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "つらら大",
+              "type": "icicle_large_010",
+              "power": 50,
+              "reload": 0.5,
+              "count": 3,
+              "speed": 30,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 18,
+              "isPiercing": true,
+              "deviation": 5,
+              "spawnOffsetDist": 1,
+              "burstField": {
+                "type": "ice_block_010",
+                "radius": 1.5,
+                "duration": 2,
+                "damagePct": 10
+              }
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "7": [
-            { "name": "レーザー", "type": "laser_010", "power": 17, "reload": 0.1, "count": 7, "speed": 45, "range": 19, "stepDist": 0, "knockback": 5, "weaponRange": 19, "isPiercing": true },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 2.0, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "つらら大",
+              "type": "icicle_large_010",
+              "power": 50,
+              "reload": 0.5,
+              "count": 4,
+              "speed": 30,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 20,
+              "weaponRange": 18,
+              "isPiercing": true,
+              "deviation": 5,
+              "spawnOffsetDist": 1,
+              "burstField": {
+                "type": "ice_block_010",
+                "radius": 1.5,
+                "duration": 2,
+                "damagePct": 10
+              }
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ]
         },
         "near": {
           "1": [
-            { "name": "バリア", "type": "barrier_010", "power": 75, "reload": 0.3, "count": 1, "speed": 15, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
-            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+            {
+              "name": "つらら小",
+              "type": "icicle_small_010",
+              "power": 10,
+              "reload": 0.2,
+              "count": 4,
+              "speed": 35,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 0,
+              "spawnOffsetDist": 1
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "2": [
-            { "name": "バリア", "type": "barrier_010", "power": 45, "reload": 0.3, "count": 2, "speed": 15, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
-            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+            {
+              "name": "つらら小",
+              "type": "icicle_small_010",
+              "power": 10,
+              "reload": 0.2,
+              "count": 4,
+              "speed": 35,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 0,
+              "spawnOffsetDist": 1
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "3": [
-            { "name": "バリア", "type": "barrier_010", "power": 36, "reload": 0.3, "count": 3, "speed": 15, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
-            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+            {
+              "name": "つらら小",
+              "type": "icicle_small_010",
+              "power": 10,
+              "reload": 0.2,
+              "count": 5,
+              "speed": 35,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 0,
+              "spawnOffsetDist": 1
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "4": [
-            { "name": "バリア", "type": "barrier_010", "power": 30, "reload": 0.3, "count": 4, "speed": 15, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
-            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+            {
+              "name": "つらら小",
+              "type": "icicle_small_010",
+              "power": 10,
+              "reload": 0.2,
+              "count": 5,
+              "speed": 35,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 0,
+              "spawnOffsetDist": 1
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "5": [
-            { "name": "バリア", "type": "barrier_010", "power": 27, "reload": 0.3, "count": 5, "speed": 15, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
-            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+            {
+              "name": "つらら小",
+              "type": "icicle_small_010",
+              "power": 10,
+              "reload": 0.2,
+              "count": 6,
+              "speed": 35,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 0,
+              "spawnOffsetDist": 1
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "6": [
-            { "name": "バリア", "type": "barrier_010", "power": 25, "reload": 0.3, "count": 6, "speed": 15, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
-            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+            {
+              "name": "つらら小",
+              "type": "icicle_small_010",
+              "power": 10,
+              "reload": 0.2,
+              "count": 6,
+              "speed": 35,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 0,
+              "spawnOffsetDist": 1
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "7": [
-            { "name": "バリア", "type": "barrier_010", "power": 24, "reload": 0.3, "count": 7, "speed": 15, "range": 6, "stepDist": 0, "knockback": 10, "weaponRange": 6, "isPiercing": true },
-            { "name": "キックリロード", "type": "kick", "power": 15, "reload": 1.0, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.5, "isPiercing": false }
+            {
+              "name": "つらら小",
+              "type": "icicle_small_010",
+              "power": 10,
+              "reload": 0.2,
+              "count": 7,
+              "speed": 35,
+              "range": 8,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 8,
+              "isPiercing": true,
+              "deviation": 0,
+              "spawnOffsetDist": 1
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ]
         }
+      },
+      "special": {
+        "name": "氷塊生成",
+        "description": "10秒に1回、氷塊(010004.png)を生成。前衛は2m前、後衛は8m前。直径1.5mまで拡大し敵弾を5+WLV吸収または6秒維持",
+        "interval": 10
+      },
+      "ultimate": {
+        "name": "吹雪乱射",
+        "description": "3+WLV/3秒間、本体周辺1mからつらら大(0.4s)とつらら小(0.2s)を真上±5度に乱射。つらら大は着弾で氷塊生成",
+        "spCost": "20+WLV",
+        "cooldown": "30-WLV*2"
       }
     },
     "007": {
@@ -2287,62 +2705,405 @@
       "patterns": {
         "far": {
           "1": [
-            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 75, "reload": 0.3, "count": 1, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "三鈷杵投げ",
+              "type": "sankosho_007",
+              "power": 75,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 15,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "2": [
-            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 1, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "三鈷杵投げ",
+              "type": "sankosho_007",
+              "power": 65,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 15,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "3": [
-            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 1, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "三鈷杵投げ",
+              "type": "sankosho_007",
+              "power": 65,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 15,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "4": [
-            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 2, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "三鈷杵投げ",
+              "type": "sankosho_007",
+              "power": 65,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 15,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "5": [
-            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 2, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "三鈷杵投げ",
+              "type": "sankosho_007",
+              "power": 65,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 15,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "6": [
-            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 2, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "三鈷杵投げ",
+              "type": "sankosho_007",
+              "power": 65,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 15,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ],
           "7": [
-            { "name": "三鈷杵投げ", "type": "sankosho_007", "power": 65, "reload": 0.3, "count": 3, "speed": 32, "range": 15, "stepDist": 0, "knockback": 40, "weaponRange": 15, "isPiercing": true, "deviation": 10 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.6, "count": 0, "speed": 0, "range": 0, "stepDist": 0, "knockback": 0, "weaponRange": 0, "isPiercing": false }
+            {
+              "name": "三鈷杵投げ",
+              "type": "sankosho_007",
+              "power": 65,
+              "reload": 0.3,
+              "count": 3,
+              "speed": 32,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 40,
+              "weaponRange": 15,
+              "isPiercing": true,
+              "deviation": 10
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.6,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
           ]
         },
         "near": {
           "1": [
-            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 90, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
-            { "name": "パンチorリロード", "type": "punch_007", "power": 60, "reload": 0.4, "count": 2, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "三鈷杵ブーメラン",
+              "type": "sankosho_circle_007",
+              "power": 90,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 28,
+              "range": 4.5,
+              "stepDist": 1.5,
+              "knockback": 10,
+              "weaponRange": 3,
+              "isPiercing": true
+            },
+            {
+              "name": "パンチorリロード",
+              "type": "punch_007",
+              "power": 60,
+              "reload": 0.4,
+              "count": 2,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "2": [
-            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
-            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 2, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "三鈷杵ブーメラン",
+              "type": "sankosho_circle_007",
+              "power": 70,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 28,
+              "range": 4.5,
+              "stepDist": 1.5,
+              "knockback": 10,
+              "weaponRange": 3,
+              "isPiercing": true
+            },
+            {
+              "name": "パンチorリロード",
+              "type": "punch_007",
+              "power": 40,
+              "reload": 0.4,
+              "count": 2,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "3": [
-            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
-            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 2, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "三鈷杵ブーメラン",
+              "type": "sankosho_circle_007",
+              "power": 70,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 28,
+              "range": 4.5,
+              "stepDist": 1.5,
+              "knockback": 10,
+              "weaponRange": 3,
+              "isPiercing": true
+            },
+            {
+              "name": "パンチorリロード",
+              "type": "punch_007",
+              "power": 40,
+              "reload": 0.4,
+              "count": 2,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "4": [
-            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
-            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 3, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "三鈷杵ブーメラン",
+              "type": "sankosho_circle_007",
+              "power": 70,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 28,
+              "range": 4.5,
+              "stepDist": 1.5,
+              "knockback": 10,
+              "weaponRange": 3,
+              "isPiercing": true
+            },
+            {
+              "name": "パンチorリロード",
+              "type": "punch_007",
+              "power": 40,
+              "reload": 0.4,
+              "count": 3,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "5": [
-            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
-            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 3, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "三鈷杵ブーメラン",
+              "type": "sankosho_circle_007",
+              "power": 70,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 28,
+              "range": 4.5,
+              "stepDist": 1.5,
+              "knockback": 10,
+              "weaponRange": 3,
+              "isPiercing": true
+            },
+            {
+              "name": "パンチorリロード",
+              "type": "punch_007",
+              "power": 40,
+              "reload": 0.4,
+              "count": 3,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "6": [
-            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
-            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 3, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "三鈷杵ブーメラン",
+              "type": "sankosho_circle_007",
+              "power": 70,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 28,
+              "range": 4.5,
+              "stepDist": 1.5,
+              "knockback": 10,
+              "weaponRange": 3,
+              "isPiercing": true
+            },
+            {
+              "name": "パンチorリロード",
+              "type": "punch_007",
+              "power": 40,
+              "reload": 0.4,
+              "count": 3,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "7": [
-            { "name": "三鈷杵ブーメラン", "type": "sankosho_circle_007", "power": 70, "reload": 0.4, "count": 1, "speed": 28, "range": 4.5, "stepDist": 1.5, "knockback": 10, "weaponRange": 3, "isPiercing": true },
-            { "name": "パンチorリロード", "type": "punch_007", "power": 40, "reload": 0.4, "count": 4, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "三鈷杵ブーメラン",
+              "type": "sankosho_circle_007",
+              "power": 70,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 28,
+              "range": 4.5,
+              "stepDist": 1.5,
+              "knockback": 10,
+              "weaponRange": 3,
+              "isPiercing": true
+            },
+            {
+              "name": "パンチorリロード",
+              "type": "punch_007",
+              "power": 40,
+              "reload": 0.4,
+              "count": 4,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ]
         }
       }
@@ -2359,55 +3120,1360 @@
       "patterns": {
         "far": {
           "1": [
-            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+            {
+              "name": "赤い弾丸",
+              "type": "noah_bullet_008",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 10,
+              "knockback": 20,
+              "spread": 5,
+              "blastRadius": 1.5
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "knockback": 0
+            }
           ],
           "2": [
-            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+            {
+              "name": "赤い弾丸",
+              "type": "noah_bullet_008",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 10,
+              "knockback": 20,
+              "spread": 5,
+              "blastRadius": 1.5
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "knockback": 0
+            }
           ],
           "3": [
-            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+            {
+              "name": "赤い弾丸",
+              "type": "noah_bullet_008",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 10,
+              "knockback": 20,
+              "spread": 5,
+              "blastRadius": 1.5
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "knockback": 0
+            }
           ],
           "4": [
-            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+            {
+              "name": "赤い弾丸",
+              "type": "noah_bullet_008",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 10,
+              "knockback": 20,
+              "spread": 5,
+              "blastRadius": 1.5
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "knockback": 0
+            }
           ],
           "5": [
-            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+            {
+              "name": "赤い弾丸",
+              "type": "noah_bullet_008",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 10,
+              "knockback": 20,
+              "spread": 5,
+              "blastRadius": 1.5
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "knockback": 0
+            }
           ],
           "6": [
-            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+            {
+              "name": "赤い弾丸",
+              "type": "noah_bullet_008",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 10,
+              "knockback": 20,
+              "spread": 5,
+              "blastRadius": 1.5
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "knockback": 0
+            }
           ],
           "7": [
-            { "name": "赤い弾丸", "type": "noah_bullet_008", "power": 50, "reload": 0.5, "count": 1, "speed": 20, "range": 10, "knockback": 20, "spread": 5, "blastRadius": 1.5 },
-            { "name": "リロード", "type": "reload", "power": 0, "reload": 0.5, "count": 1, "speed": 0, "range": 0, "knockback": 0 }
+            {
+              "name": "赤い弾丸",
+              "type": "noah_bullet_008",
+              "power": 50,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 10,
+              "knockback": 20,
+              "spread": 5,
+              "blastRadius": 1.5
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "knockback": 0
+            }
           ]
         },
         "near": {
           "1": [
-            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "パンチorリロード",
+              "type": "punch_008",
+              "power": 60,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "2": [
-            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "パンチorリロード",
+              "type": "punch_008",
+              "power": 60,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "3": [
-            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "パンチorリロード",
+              "type": "punch_008",
+              "power": 60,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "4": [
-            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "パンチorリロード",
+              "type": "punch_008",
+              "power": 60,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "5": [
-            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "パンチorリロード",
+              "type": "punch_008",
+              "power": 60,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "6": [
-            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "パンチorリロード",
+              "type": "punch_008",
+              "power": 60,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
           ],
           "7": [
-            { "name": "パンチorリロード", "type": "punch_008", "power": 60, "reload": 0.4, "count": 1, "speed": 30, "range": 2.0, "stepDist": 1, "knockback": 40, "weaponRange": 1.0, "isPiercing": false }
+            {
+              "name": "パンチorリロード",
+              "type": "punch_008",
+              "power": 60,
+              "reload": 0.4,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1,
+              "isPiercing": false
+            }
+          ]
+        }
+      }
+    },
+    "009": {
+      "name": "リフィエル",
+      "id": "009",
+      "tarot": 5,
+      "tarotName": "教皇",
+      "attribute": "green",
+      "baseHp": 750,
+      "baseSp": 1250,
+      "baseAtk": 100,
+      "weight": 28,
+      "illust": "009001.png",
+      "mini": "009002.png",
+      "weapon": "009003.png",
+      "icon": "009p.jpg",
+      "elementalResist": {
+        "red": {
+          "def": 100,
+          "res": 100
+        },
+        "purple": {
+          "def": 125,
+          "res": 125
+        },
+        "green": {
+          "def": 100,
+          "res": 100
+        },
+        "yellow": {
+          "def": 75,
+          "res": 75
+        },
+        "blue": {
+          "def": 100,
+          "res": 100
+        }
+      },
+      "specialSkill": {
+        "name": "花粉ヒーリング",
+        "description": "10秒に1回、自身の生命力を10+WLV*3回復（HP90%以上時は最少HP味方を回復）。後衛時は最少HP味方を10+WLV*3回復。"
+      },
+      "ultimateSkill": {
+        "name": "大人の覚醒（槍変身モード）",
+        "description": "10+WLV秒間、大人の姿に変身して槍で猛攻撃！近接は槍回し（360°薙ぎ払い）、遠距離は槍投げ（衝撃波吹き飛ばし）。",
+        "spCost": "20+WLV",
+        "cooldown": "60-WLV*2",
+        "duration": "10+WLV"
+      },
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 3,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 3,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 4,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 1,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 2,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 3,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 3,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "花粉煙幕",
+              "type": "pollen_smoke_009",
+              "power": 0,
+              "reload": 0.5,
+              "count": 4,
+              "speed": 20,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 1,
+              "weaponRange": 15,
+              "isPiercing": false,
+              "deviation": 20
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 1.5,
+              "count": 1,
+              "speed": 0,
+              "range": 15,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 15,
+              "isPiercing": false
+            }
+          ]
+        },
+        "ultimate": {
+          "spin": {
+            "1": [
+              {
+                "name": "槍回し",
+                "type": "spear_spin_009",
+                "power": 120,
+                "reload": 0.5,
+                "count": 1,
+                "speed": 28,
+                "range": 6,
+                "stepDist": 3,
+                "knockback": 5,
+                "weaponRange": 3,
+                "isPiercing": true
+              }
+            ],
+            "2": [
+              {
+                "name": "槍回し",
+                "type": "spear_spin_009",
+                "power": 120,
+                "reload": 0.5,
+                "count": 1,
+                "speed": 28,
+                "range": 6,
+                "stepDist": 3,
+                "knockback": 5,
+                "weaponRange": 3,
+                "isPiercing": true
+              }
+            ],
+            "3": [
+              {
+                "name": "槍回し",
+                "type": "spear_spin_009",
+                "power": 120,
+                "reload": 0.5,
+                "count": 2,
+                "speed": 28,
+                "range": 6,
+                "stepDist": 3,
+                "knockback": 5,
+                "weaponRange": 3,
+                "isPiercing": true
+              }
+            ],
+            "4": [
+              {
+                "name": "槍回し",
+                "type": "spear_spin_009",
+                "power": 120,
+                "reload": 0.5,
+                "count": 2,
+                "speed": 28,
+                "range": 6,
+                "stepDist": 3,
+                "knockback": 5,
+                "weaponRange": 3,
+                "isPiercing": true
+              }
+            ],
+            "5": [
+              {
+                "name": "槍回し",
+                "type": "spear_spin_009",
+                "power": 120,
+                "reload": 0.5,
+                "count": 3,
+                "speed": 28,
+                "range": 6,
+                "stepDist": 3,
+                "knockback": 5,
+                "weaponRange": 3,
+                "isPiercing": true
+              }
+            ],
+            "6": [
+              {
+                "name": "槍回し",
+                "type": "spear_spin_009",
+                "power": 120,
+                "reload": 0.5,
+                "count": 3,
+                "speed": 28,
+                "range": 6,
+                "stepDist": 3,
+                "knockback": 5,
+                "weaponRange": 3,
+                "isPiercing": true
+              }
+            ],
+            "7": [
+              {
+                "name": "槍回し",
+                "type": "spear_spin_009",
+                "power": 120,
+                "reload": 0.5,
+                "count": 4,
+                "speed": 28,
+                "range": 6,
+                "stepDist": 3,
+                "knockback": 5,
+                "weaponRange": 3,
+                "isPiercing": true
+              }
+            ]
+          },
+          "throw": {
+            "1": [
+              {
+                "name": "槍投げ",
+                "type": "spear_throw_009",
+                "power": 120,
+                "reload": 0.8,
+                "count": 1,
+                "speed": 28,
+                "range": 18,
+                "stepDist": 0.5,
+                "knockback": 200,
+                "weaponRange": 8,
+                "isPiercing": true
+              }
+            ],
+            "2": [
+              {
+                "name": "槍投げ",
+                "type": "spear_throw_009",
+                "power": 120,
+                "reload": 0.8,
+                "count": 1,
+                "speed": 28,
+                "range": 18,
+                "stepDist": 0.5,
+                "knockback": 200,
+                "weaponRange": 8,
+                "isPiercing": true
+              }
+            ],
+            "3": [
+              {
+                "name": "槍投げ",
+                "type": "spear_throw_009",
+                "power": 120,
+                "reload": 0.8,
+                "count": 1,
+                "speed": 28,
+                "range": 18,
+                "stepDist": 0.5,
+                "knockback": 200,
+                "weaponRange": 8,
+                "isPiercing": true
+              }
+            ],
+            "4": [
+              {
+                "name": "槍投げ",
+                "type": "spear_throw_009",
+                "power": 120,
+                "reload": 0.8,
+                "count": 1,
+                "speed": 28,
+                "range": 18,
+                "stepDist": 0.5,
+                "knockback": 200,
+                "weaponRange": 8,
+                "isPiercing": true
+              }
+            ],
+            "5": [
+              {
+                "name": "槍投げ",
+                "type": "spear_throw_009",
+                "power": 120,
+                "reload": 0.8,
+                "count": 1,
+                "speed": 28,
+                "range": 18,
+                "stepDist": 0.5,
+                "knockback": 200,
+                "weaponRange": 8,
+                "isPiercing": true
+              }
+            ],
+            "6": [
+              {
+                "name": "槍投げ",
+                "type": "spear_throw_009",
+                "power": 120,
+                "reload": 0.8,
+                "count": 1,
+                "speed": 28,
+                "range": 18,
+                "stepDist": 0.5,
+                "knockback": 200,
+                "weaponRange": 8,
+                "isPiercing": true
+              }
+            ],
+            "7": [
+              {
+                "name": "槍投げ",
+                "type": "spear_throw_009",
+                "power": 120,
+                "reload": 0.8,
+                "count": 1,
+                "speed": 28,
+                "range": 18,
+                "stepDist": 0.5,
+                "knockback": 200,
+                "weaponRange": 8,
+                "isPiercing": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    "011": {
+      "name": "白蓮",
+      "baseHp": 750,
+      "baseSp": 1250,
+      "baseAtk": 100,
+      "weight": 41,
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "レーザー",
+              "type": "laser_010",
+              "power": 50,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 45,
+              "range": 19,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 19,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 2,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "レーザー",
+              "type": "laser_010",
+              "power": 30,
+              "reload": 0.1,
+              "count": 2,
+              "speed": 45,
+              "range": 19,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 19,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 2,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "レーザー",
+              "type": "laser_010",
+              "power": 24,
+              "reload": 0.1,
+              "count": 3,
+              "speed": 45,
+              "range": 19,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 19,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 2,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "レーザー",
+              "type": "laser_010",
+              "power": 20,
+              "reload": 0.1,
+              "count": 4,
+              "speed": 45,
+              "range": 19,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 19,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 2,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "レーザー",
+              "type": "laser_010",
+              "power": 18,
+              "reload": 0.1,
+              "count": 5,
+              "speed": 45,
+              "range": 19,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 19,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 2,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "レーザー",
+              "type": "laser_010",
+              "power": 17,
+              "reload": 0.1,
+              "count": 6,
+              "speed": 45,
+              "range": 19,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 19,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 2,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "レーザー",
+              "type": "laser_010",
+              "power": 17,
+              "reload": 0.1,
+              "count": 7,
+              "speed": 45,
+              "range": 19,
+              "stepDist": 0,
+              "knockback": 5,
+              "weaponRange": 19,
+              "isPiercing": true
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 2,
+              "count": 0,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "バリア",
+              "type": "barrier_010",
+              "power": 75,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 15,
+              "range": 6,
+              "stepDist": 0,
+              "knockback": 10,
+              "weaponRange": 6,
+              "isPiercing": true
+            },
+            {
+              "name": "キックリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "2": [
+            {
+              "name": "バリア",
+              "type": "barrier_010",
+              "power": 45,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 15,
+              "range": 6,
+              "stepDist": 0,
+              "knockback": 10,
+              "weaponRange": 6,
+              "isPiercing": true
+            },
+            {
+              "name": "キックリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "3": [
+            {
+              "name": "バリア",
+              "type": "barrier_010",
+              "power": 36,
+              "reload": 0.3,
+              "count": 3,
+              "speed": 15,
+              "range": 6,
+              "stepDist": 0,
+              "knockback": 10,
+              "weaponRange": 6,
+              "isPiercing": true
+            },
+            {
+              "name": "キックリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "4": [
+            {
+              "name": "バリア",
+              "type": "barrier_010",
+              "power": 30,
+              "reload": 0.3,
+              "count": 4,
+              "speed": 15,
+              "range": 6,
+              "stepDist": 0,
+              "knockback": 10,
+              "weaponRange": 6,
+              "isPiercing": true
+            },
+            {
+              "name": "キックリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "5": [
+            {
+              "name": "バリア",
+              "type": "barrier_010",
+              "power": 27,
+              "reload": 0.3,
+              "count": 5,
+              "speed": 15,
+              "range": 6,
+              "stepDist": 0,
+              "knockback": 10,
+              "weaponRange": 6,
+              "isPiercing": true
+            },
+            {
+              "name": "キックリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "6": [
+            {
+              "name": "バリア",
+              "type": "barrier_010",
+              "power": 25,
+              "reload": 0.3,
+              "count": 6,
+              "speed": 15,
+              "range": 6,
+              "stepDist": 0,
+              "knockback": 10,
+              "weaponRange": 6,
+              "isPiercing": true
+            },
+            {
+              "name": "キックリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
+          ],
+          "7": [
+            {
+              "name": "バリア",
+              "type": "barrier_010",
+              "power": 24,
+              "reload": 0.3,
+              "count": 7,
+              "speed": 15,
+              "range": 6,
+              "stepDist": 0,
+              "knockback": 10,
+              "weaponRange": 6,
+              "isPiercing": true
+            },
+            {
+              "name": "キックリロード",
+              "type": "kick",
+              "power": 15,
+              "reload": 1,
+              "count": 1,
+              "speed": 30,
+              "range": 2,
+              "stepDist": 1,
+              "knockback": 40,
+              "weaponRange": 1.5,
+              "isPiercing": false
+            }
           ]
         }
       }

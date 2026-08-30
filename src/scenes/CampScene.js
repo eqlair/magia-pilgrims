@@ -64,11 +64,12 @@ export default class CampScene extends Phaser.Scene {
                 this.showDebugToast(`[DEBUG] 宝石確定ドロップ: ${this.globalState.debugForceGemDrop ? 'ON' : 'OFF'}`);
             });
 
-            // Lキー: ストック経験値 50,000 点付与
+            // Lキー: ストック経験値 50,000 点 ＆ SP 50,000 点付与
             this.input.keyboard.on('keydown-L', () => {
                 const addedExp = this.globalState.addDirectStockExp(50000);
+                this.globalState.stockSp = (this.globalState.stockSp || 0) + 50000;
                 SaveManager.saveGame(this);
-                this.showDebugToast(`[DEBUG] ストック経験値 +${addedExp.toLocaleString()} (現在: ${this.globalState.stockExp.toLocaleString()})`);
+                this.showDebugToast(`[DEBUG] 経験値 +${addedExp.toLocaleString()} / SP +50,000 (SP: ${this.globalState.stockSp.toLocaleString()})`);
                 this.refreshCurrentView();
             });
 

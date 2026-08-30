@@ -89,7 +89,7 @@ export class EventEngine {
             case 'bg':        this._showBg(cmd.key, cmd.darkOverlay, () => this._processNext()); break;
             case 'image':
             case 'illust':    this._showIllust(cmd.key, () => this._processNext());       break;
-            case 'chara':     this._showChara(cmd.key, cmd.pos, () => this._processNext()); break;
+            case 'chara':     this._showChara(cmd.key, cmd.pos, () => this._processNext(), cmd.alpha !== undefined ? cmd.alpha : 1); break;
             case 'text':      this._showText(cmd.name, cmd.body || cmd.text);             break; // タップ待ち
             case 'clearText': this._clearText(() => this._processNext());                 break;
             case 'fadeWhite': this._fadeWhite(cmd.duration || 1000, () => this._processNext()); break;
@@ -356,7 +356,7 @@ export class EventEngine {
     // ─────────────────────────────────────────────────────
     // 立ち絵（高さ=画面3/5, right|left）
     // ─────────────────────────────────────────────────────
-    _showChara(key, pos, cb) {
+    _showChara(key, pos, cb, targetAlpha = 1) {
         const isRight   = pos === 'right';
         const ref       = isRight ? 'charaRight' : 'charaLeft';
         const otherRef  = isRight ? 'charaLeft'  : 'charaRight';
@@ -397,7 +397,7 @@ export class EventEngine {
         }
 
         this.scene.tweens.add({
-            targets: chara, x: destX, alpha: 1, duration: 400, ease: 'Back.easeOut',
+            targets: chara, x: destX, alpha: targetAlpha, duration: 400, ease: 'Back.easeOut',
             onComplete: () => { this[ref] = chara; cb(); }
         });
     }

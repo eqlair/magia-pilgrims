@@ -54,14 +54,16 @@ export class BattleEntity {
                 this.isKickAttacking = false;
             }
         }
-        if (this.isUltimateActive) {
+        // 汎用必殺技タイマー（リフィエル(009)は独自のriphielUltTimerで管理するので除外）
+        if (this.isUltimateActive && this.charId !== '009') {
             if (this.ultimateActiveTimer === undefined) this.ultimateActiveTimer = 5.0;
             this.ultimateActiveTimer -= dt;
             if (this.ultimateActiveTimer <= 0) {
                 this.isUltimateActive = false;
                 this.ultimateActiveTimer = 5.0;
+                this.updateAttackPatterns(); // 攻撃パターンを通常に戻す
             }
-        } else {
+        } else if (!this.isUltimateActive || this.charId !== '009') {
             this.ultimateActiveTimer = 5.0;
         }
 
@@ -152,6 +154,8 @@ export class PlayerCharacter extends BattleEntity {
         this.critRateBonus = (stats && stats.critRateBonus) ? stats.critRateBonus : 0; // クリティカル率ボーナス
         this.critMultBonus = (stats && stats.critMultBonus) ? stats.critMultBonus : 0; // クリティカル倍率ボーナス
         this.elemMods = (stats && stats.elemMods) ? stats.elemMods : { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
+        this.damageResist = (stats && stats.damageResist) ? stats.damageResist : 0;
+        this.spDrainRate = (stats && stats.spDrainRate) ? stats.spDrainRate : 1.0;
         this.level = (stats && stats.level) ? stats.level : 1;
         
         this.weight = this.charDef.weight || 50;
@@ -164,11 +168,12 @@ export class PlayerCharacter extends BattleEntity {
             '005': 'green',
             '007': 'yellow',
             '008': 'red',
-            '010': 'blue'
+            '009': 'green',
+            '010': 'purple',
+            '011': 'blue'
         };
-        this.attribute = charIdToAttr[this.charId] || 'yellow';
+        this.attribute = charIdToAttr[this.charId] || 'purple';
 
-        // レベルと成長の管理
         // レベルと成長の管理
         const charData = globalState.characters[this.charId];
         this.nearLevel = charData ? charData.meleeLevel : 1;
@@ -176,9 +181,9 @@ export class PlayerCharacter extends BattleEntity {
         this.wlv = this.nearLevel + this.farLevel; // 遠近攻撃レベルの合計
         this.gachaTimer = 1.0;
 
-        // 起動射程（キャラクター固有の閾値はとりあえず固定。後でJSON化してもよい）
-        this.nearThreshold = this.charId === '003' ? 5.5 : (this.charId === '005' ? 8.0 : 4.0);
-        this.farThreshold = this.charId === '001' ? 20.0 : (this.charId === '004' ? 18.0 : 16.0);
+        // 起動射程（キャラクター固有の閾値）
+        this.nearThreshold = this.charId === '003' ? 5.5 : (this.charId === '005' || this.charId === '010' ? 8.0 : (this.charId === '009' ? 6.0 : 4.0));
+        this.farThreshold = this.charId === '001' ? 20.0 : (this.charId === '004' || this.charId === '009' || this.charId === '010' ? 18.0 : 16.0);
         if (this.charId === '001') this.nearThreshold = 8.0;
 
         this.updateAttackPatterns();
@@ -251,11 +256,74 @@ export class PlayerCharacter extends BattleEntity {
     }
 
     updateAttackPatterns() {
-        // 現在のレベルのパターンを取得
-        this.patterns = {
-            far: this.charDef.patterns.far[this.farLevel] || this.charDef.patterns.far[1],
-            near: this.charDef.patterns.near[this.nearLevel] || this.charDef.patterns.near[1]
-        };
+        if (this.charId === '009' && this.isUltimateActive) {
+            // 🌸 リフィエル必殺技（大人変身時）: 紅華(003)と同様に槍回し(360°薙ぎ払い) & 槍投げで猛攻撃！
+            const swingCount = Math.min(4, Math.floor(((this.nearLevel || 1) + 1) / 2));
+            this.patterns = {
+                near: [
+                    {
+                        name: "槍回し",
+                        type: "swing_009",
+                        power: 120,
+                        reload: 0.5,
+                        count: swingCount,
+                        speed: 0,
+                        range: 6.0,      // nearThreshold(6m)と揃える → 射程内と判定されて即攻撃
+                        stepDist: 3.0,   // 3m踏み込み（全キャラトップ）
+                        knockback: 15,
+                        weaponRange: 3.5, // アーム1m + 槍先端2.5m ≈ 3.5m以内なら踏み込み不要
+                        isPiercing: true
+                    },
+                    {
+                        name: "リロード",
+                        type: "reload",
+                        power: 0,
+                        reload: 0.5,
+                        count: 1,
+                        speed: 0,
+                        range: 0,
+                        stepDist: 0,
+                        knockback: 0,
+                        weaponRange: 0,
+                        isPiercing: false
+                    }
+                ],
+                far: [
+                    {
+                        name: "槍投げ",
+                        type: "weapon_009",
+                        power: 120,
+                        reload: 0.8,
+                        count: 1,
+                        speed: 28,
+                        range: 18.0,
+                        stepDist: 0.5,
+                        knockback: 200,
+                        weaponRange: 8.0,
+                        isPiercing: true
+                    },
+                    {
+                        name: "リロード",
+                        type: "reload",
+                        power: 0,
+                        reload: 0.6,
+                        count: 1,
+                        speed: 0,
+                        range: 0,
+                        stepDist: 0,
+                        knockback: 0,
+                        weaponRange: 0,
+                        isPiercing: false
+                    }
+                ]
+            };
+        } else {
+            // 現在のレベルのパターンを取得
+            this.patterns = {
+                far: this.charDef.patterns.far[this.farLevel] || this.charDef.patterns.far[1],
+                near: this.charDef.patterns.near[this.nearLevel] || this.charDef.patterns.near[1]
+            };
+        }
     }
 
 
@@ -263,11 +331,12 @@ export class PlayerCharacter extends BattleEntity {
     updateSpecialSkills(dt, players, effects, floatingTexts) {
         if (this.isDead) return;
 
-        // SP定期減少（1秒ごとに1削る、食料がない場合は+1削る）
+        // SP定期減少（1秒ごとに1削る、食料がない場合は+1削る、道場強化で軽減）
         this.spDrainTimer -= dt;
         if (this.spDrainTimer <= 0) {
             this.spDrainTimer += 1.0;
-            const drainAmount = this.isFoodEmpty ? 2 : 1;
+            const baseDrain = this.isFoodEmpty ? 2 : 1;
+            const drainAmount = baseDrain * (this.spDrainRate || 1.0);
             this.sp = Math.max(0, this.sp - drainAmount);
         }
 
@@ -350,13 +419,13 @@ export class PlayerCharacter extends BattleEntity {
                     }
                     floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "HIT RATE UP", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
                 }
-            } else if (this.charId === '002' || this.charId === '005') {
-                // 蒼樹 & 李乃果 (回復)
+            } else if (this.charId === '002' || this.charId === '005' || this.charId === '009') {
+                // 蒼樹 & 李乃果 & リフィエル (回復)
                 let baseHeal, altHeal;
                 if (this.charId === '002') {
                     baseHeal = 10 + (this.wlv * 2);
                     altHeal = 10 + (this.wlv * 2);
-                } else if (this.charId === '005') {
+                } else if (this.charId === '005' || this.charId === '009') {
                     baseHeal = 10 + (this.wlv * 3);
                     altHeal = 10 + (this.wlv * 3);
                 } else {
@@ -446,6 +515,26 @@ export class PlayerCharacter extends BattleEntity {
                 }
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "WEAKEN FIELD!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '010') {
+                // プロセル (特技: 10秒に1回、前衛なら2m前、後衛なら8m前に直径1.5mの氷塊を生成。敵弾を5+WLV発吸収、6秒持続)
+                const spawnZ = this.z + (this.isFront ? 2.0 : 8.0);
+                const iceBlock = new Bullet(this.x, spawnZ, {
+                    owner: 'player',
+                    vx: 0, vz: 0,
+                    damage: 0,
+                    knockback: 10,
+                    size: 1.5, // 直径1.5m
+                    lifeTime: 6.0,
+                    type: 'ice_barrier_010',
+                    erasesEnemyBullets: true,
+                    bulletDurability: 5 + (this.wlv || 0),
+                    isPiercing: true
+                });
+                iceBlock.sourceEntity = this;
+                if (this.engine) {
+                    this.engine.bullets.push(iceBlock);
+                }
+                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "ICE BLOCK!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
+            } else if (this.charId === '011') {
                 // 白蓮 (特技: 8秒に1回、前方に初速15m/sで進みシャボン玉減速で漂う直径1.0mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
                 const specialBullet = new Bullet(this.x, this.z, {
                     owner: 'player',
@@ -455,7 +544,7 @@ export class PlayerCharacter extends BattleEntity {
                     knockback: 40,
                     size: 1.0, // 直径1.0m固定
                     lifeTime: 10.0,
-                    type: 'special_barrier_010',
+                    type: 'special_barrier_011',
                     erasesEnemyBullets: true,
                     bulletDurability: this.wlv
                 });
@@ -485,7 +574,7 @@ export class PlayerCharacter extends BattleEntity {
             }
         }
         
-        const cost = (this.charId === '005' ? 25 + this.wlv : 10 + this.wlv) * spCostMultiplier;
+        const cost = (this.charId === '005' ? 25 + this.wlv : (this.charId === '009' ? 20 + this.wlv : 10 + this.wlv)) * spCostMultiplier;
         
         if (!isLinked) {
             if (this.sp < cost) {
@@ -653,6 +742,32 @@ export class PlayerCharacter extends BattleEntity {
                     effects.push(new EffectEntity(p.x, p.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
                 }
             }
+        } else if (this.charId === '009') {
+            // リフィエル 必殺技: 10 + WLV 秒間大人の姿に変身して槍で猛攻撃！
+            this.isUltimateActive = true;
+            this.riphielUltTimer = 15.0 + this.wlv;
+            this.updateAttackPatterns();
+            this.combatState.phase = 'idle';
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "大人の覚醒！", type: "skill", lifeTime: 1.5, maxLife: 1.5 });
+
+            // ① nrg.png 加算合成バーストフラッシュ（大小の姿を重ねて光らせる）
+            effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_009', radius: 3.0, lifeTime: 0.6 }));
+
+            // ② 直径3m(半径1.5m)の押し返しバレットを生成（槍回しと同じ攻撃力・ノックバック）
+            const blastDmg = 1.2 * this.atk;
+            const blastBullet = new Bullet(this.x, this.z, {
+                owner: 'player',
+                vx: 0, vz: 0,
+                damage: blastDmg,
+                knockback: 15,
+                size: 3.0,
+                hitRange: 1.5,
+                isPiercing: true,
+                type: 'blast_009',
+                lifeTime: 0.4
+            });
+            blastBullet.sourceEntity = this;
+            bullets.push(blastBullet);
         } else if (this.charId === '003') {
             // 紅華: 4m槍投げ（両端を繋げた形）
             const dmg = 2.0 * this.atk * ultimateDamageMultiplier;
@@ -878,6 +993,25 @@ export class PlayerCharacter extends BattleEntity {
             }
             floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "不滅の不死鳥！", type: "skill", lifeTime: 1.2, maxLife: 1.2 });
         } else if (this.charId === '010') {
+            // プロセル 必殺技:
+            // 消費SP: 20 + WLV, CD: 30 - WLV*2
+            // 3 + WLV/3 秒間、本体中心から距離1mのランダム位置から、真上±5度に乱射！
+            // つらら大を0.4秒に1発、つらら小を0.2秒に1発乱射
+            const spCost = Math.floor((20 + this.wlv) * spCostMultiplier);
+            if (this.sp < spCost) return;
+            this.sp -= spCost;
+
+            const cdVal = Math.max(10, 30 - (this.wlv * 2));
+            this.ultimateCooldown = cdVal;
+
+            this.isUltimateActive = true;
+            this.proserUltTimer = 3.0 + (this.wlv / 3.0);
+            this.proserLargeIcicleTimer = 0;
+            this.proserSmallIcicleTimer = 0;
+
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "絶対零度の吹雪！", type: "skill", lifeTime: 1.5, maxLife: 1.5 });
+            effects.push(new EffectEntity(this.x, this.z, { type: 'buff_circle', radius: 2.0, lifeTime: 0.8, customData: { color: 'purple' } }));
+        } else if (this.charId === '011') {
             // 白蓮 必殺技:
             // 消費SP: 10 + WLV, CD: 60 - WLV*2
             // 前方に秒速2mで進む直径1mのバリア弾。攻撃力0, ノックバック40, 敵弾丸を消す。
@@ -894,7 +1028,7 @@ export class PlayerCharacter extends BattleEntity {
             const ultBullet = new Bullet(this.x, this.z, {
                 owner: 'player', isPiercing: true,
                 vx: 0, vz: 6.5, // 初速 6.5m/s
-                damage: 0, knockback: 40, size: 1.0, lifeTime: 30.0, type: 'ultimate_010',
+                damage: 0, knockback: 40, size: 1.0, lifeTime: 30.0, type: 'ultimate_011',
                 erasesEnemyBullets: true
             });
             ultBullet.sourceEntity = this;
@@ -917,12 +1051,12 @@ export class PlayerCharacter extends BattleEntity {
                         this.hasExploded = true;
                         this.size = 8.0; // 直径8.0m (半径4m)
                         this.vz = 1.0;   // 最終速度 1.0m/s でジワジワ前進
-                        this.type = 'ultimate_burst_field_010';
+                        this.type = 'ultimate_burst_field_011';
                         const burstDuration = 5.0 + (self.wlv / 2.0); // 5秒 + (WLV/2)秒 持続
                         this.lifeTime = burstDuration;
 
                         if (self.engine) {
-                            self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_010', radius: 4.0, lifeTime: burstDuration }));
+                            self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_011', radius: 4.0, lifeTime: burstDuration }));
                         }
                     }
                 }
@@ -933,7 +1067,7 @@ export class PlayerCharacter extends BattleEntity {
             } else {
                 bullets.push(ultBullet);
             }
-            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "ULTIMATE!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "浄化の結界！", type: "skill", lifeTime: 1.2, maxLife: 1.2 });
         }
     }
 
@@ -1034,6 +1168,97 @@ export class PlayerCharacter extends BattleEntity {
             } else {
                 this.atkMultiplier = 1.0;
                 this.reloadMultiplier = 1.0;
+            }
+        }
+        
+        // --- リフィエル(009)の必殺技変身タイマー更新 ---
+        if (this.charId === '009' && this.isUltimateActive) {
+            this.riphielUltTimer -= dt;
+            if (this.riphielUltTimer <= 0) {
+                this.isUltimateActive = false;
+                this.riphielUltTimer = 0;
+                this.updateAttackPatterns();
+                this.combatState.phase = 'idle';
+                this.combatState.comboType = null;
+                this.combatState.stepIdx = 0;
+                this.combatState.countIdx = 0;
+                this.combatState.reloadTimer = 0;
+                this.targetOffsetX = 0;
+                this.targetOffsetZ = 0;
+                this.hopBack();
+                // 変身解除後に残っているswing_009弾を全消去（変身後も槍で攻撃し続けるバグ修正）
+                if (this.engine && this.engine.bullets) {
+                    for (const bul of this.engine.bullets) {
+                        if (bul.type === 'swing_009' && bul.sourceEntity === this) {
+                            bul.isDead = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- プロセル(010)の必殺技吹雪乱射更新 ---
+        if (this.charId === '010' && this.isUltimateActive && this.engine && !this.isDead) {
+            this.proserUltTimer -= dt;
+            this.proserLargeIcicleTimer -= dt;
+            this.proserSmallIcicleTimer -= dt;
+
+            // つらら大乱射 (0.4秒に1発)
+            if (this.proserLargeIcicleTimer <= 0) {
+                this.proserLargeIcicleTimer = 0.4;
+                const spawnAngle = Math.random() * Math.PI * 2;
+                const spawnX = this.x + Math.cos(spawnAngle) * 1.0;
+                const spawnZ = this.z + Math.sin(spawnAngle) * 1.0;
+                const shotAngle = (Math.random() - 0.5) * 10 * (Math.PI / 180);
+                const vx = Math.sin(shotAngle) * 30.0;
+                const vz = Math.cos(shotAngle) * 30.0; // 真上(奥)方向
+                const bulletDmg = Math.floor(this.atk * 0.5);
+
+                const b = new Bullet(spawnX, spawnZ, {
+                    owner: 'player',
+                    vx: vx, vz: vz,
+                    damage: bulletDmg,
+                    knockback: 20,
+                    size: 0.6,
+                    type: 'icicle_large_010',
+                    targetDist: 18.0,
+                    lifeTime: 18.0 / 30.0 + 0.2,
+                    isPiercing: true
+                });
+                b.sourceEntity = this;
+                this.engine.bullets.push(b);
+                if (this.triggerAttackShake) this.triggerAttackShake();
+            }
+
+            // つらら小乱射 (0.2秒に1発)
+            if (this.proserSmallIcicleTimer <= 0) {
+                this.proserSmallIcicleTimer = 0.2;
+                const spawnAngle = Math.random() * Math.PI * 2;
+                const spawnX = this.x + Math.cos(spawnAngle) * 1.0;
+                const spawnZ = this.z + Math.sin(spawnAngle) * 1.0;
+                const shotAngle = (Math.random() - 0.5) * 10 * (Math.PI / 180);
+                const vx = Math.sin(shotAngle) * 35.0;
+                const vz = Math.cos(shotAngle) * 35.0; // 真上(奥)方向
+                const bulletDmg = Math.floor(this.atk * 0.1);
+
+                const b = new Bullet(spawnX, spawnZ, {
+                    owner: 'player',
+                    vx: vx, vz: vz,
+                    damage: bulletDmg,
+                    knockback: 5,
+                    size: 0.4,
+                    type: 'icicle_small_010',
+                    targetDist: 8.0,
+                    lifeTime: 8.0 / 35.0 + 0.2,
+                    isPiercing: true
+                });
+                b.sourceEntity = this;
+                this.engine.bullets.push(b);
+            }
+
+            if (this.proserUltTimer <= 0) {
+                this.isUltimateActive = false;
+                this.proserUltTimer = 0;
             }
         }
         

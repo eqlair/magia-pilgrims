@@ -1,0 +1,487 @@
+{
+  "name": "プロセル",
+  "baseHp": 1100,
+  "baseSp": 1100,
+  "baseAtk": 100,
+  "weight": 70,
+  "attribute": "purple",
+  "patterns": {
+    "far": {
+      "1": [
+        {
+          "name": "つらら大",
+          "type": "icicle_large_010",
+          "power": 50,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 30,
+          "range": 18,
+          "stepDist": 0,
+          "knockback": 20,
+          "weaponRange": 18,
+          "isPiercing": true,
+          "deviation": 5,
+          "spawnOffsetDist": 1,
+          "burstField": {
+            "type": "ice_block_010",
+            "radius": 1.5,
+            "duration": 2,
+            "damagePct": 10
+          }
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "2": [
+        {
+          "name": "つらら大",
+          "type": "icicle_large_010",
+          "power": 50,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 30,
+          "range": 18,
+          "stepDist": 0,
+          "knockback": 20,
+          "weaponRange": 18,
+          "isPiercing": true,
+          "deviation": 5,
+          "spawnOffsetDist": 1,
+          "burstField": {
+            "type": "ice_block_010",
+            "radius": 1.5,
+            "duration": 2,
+            "damagePct": 10
+          }
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "3": [
+        {
+          "name": "つらら大",
+          "type": "icicle_large_010",
+          "power": 50,
+          "reload": 0.5,
+          "count": 2,
+          "speed": 30,
+          "range": 18,
+          "stepDist": 0,
+          "knockback": 20,
+          "weaponRange": 18,
+          "isPiercing": true,
+          "deviation": 5,
+          "spawnOffsetDist": 1,
+          "burstField": {
+            "type": "ice_block_010",
+            "radius": 1.5,
+            "duration": 2,
+            "damagePct": 10
+          }
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "4": [
+        {
+          "name": "つらら大",
+          "type": "icicle_large_010",
+          "power": 50,
+          "reload": 0.5,
+          "count": 2,
+          "speed": 30,
+          "range": 18,
+          "stepDist": 0,
+          "knockback": 20,
+          "weaponRange": 18,
+          "isPiercing": true,
+          "deviation": 5,
+          "spawnOffsetDist": 1,
+          "burstField": {
+            "type": "ice_block_010",
+            "radius": 1.5,
+            "duration": 2,
+            "damagePct": 10
+          }
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "5": [
+        {
+          "name": "つらら大",
+          "type": "icicle_large_010",
+          "power": 50,
+          "reload": 0.5,
+          "count": 3,
+          "speed": 30,
+          "range": 18,
+          "stepDist": 0,
+          "knockback": 20,
+          "weaponRange": 18,
+          "isPiercing": true,
+          "deviation": 5,
+          "spawnOffsetDist": 1,
+          "burstField": {
+            "type": "ice_block_010",
+            "radius": 1.5,
+            "duration": 2,
+            "damagePct": 10
+          }
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "6": [
+        {
+          "name": "つらら大",
+          "type": "icicle_large_010",
+          "power": 50,
+          "reload": 0.5,
+          "count": 3,
+          "speed": 30,
+          "range": 18,
+          "stepDist": 0,
+          "knockback": 20,
+          "weaponRange": 18,
+          "isPiercing": true,
+          "deviation": 5,
+          "spawnOffsetDist": 1,
+          "burstField": {
+            "type": "ice_block_010",
+            "radius": 1.5,
+            "duration": 2,
+            "damagePct": 10
+          }
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "7": [
+        {
+          "name": "つらら大",
+          "type": "icicle_large_010",
+          "power": 50,
+          "reload": 0.5,
+          "count": 4,
+          "speed": 30,
+          "range": 18,
+          "stepDist": 0,
+          "knockback": 20,
+          "weaponRange": 18,
+          "isPiercing": true,
+          "deviation": 5,
+          "spawnOffsetDist": 1,
+          "burstField": {
+            "type": "ice_block_010",
+            "radius": 1.5,
+            "duration": 2,
+            "damagePct": 10
+          }
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ]
+    },
+    "near": {
+      "1": [
+        {
+          "name": "つらら小",
+          "type": "icicle_small_010",
+          "power": 10,
+          "reload": 0.2,
+          "count": 4,
+          "speed": 35,
+          "range": 8,
+          "stepDist": 0,
+          "knockback": 5,
+          "weaponRange": 8,
+          "isPiercing": true,
+          "deviation": 0,
+          "spawnOffsetDist": 1
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "2": [
+        {
+          "name": "つらら小",
+          "type": "icicle_small_010",
+          "power": 10,
+          "reload": 0.2,
+          "count": 4,
+          "speed": 35,
+          "range": 8,
+          "stepDist": 0,
+          "knockback": 5,
+          "weaponRange": 8,
+          "isPiercing": true,
+          "deviation": 0,
+          "spawnOffsetDist": 1
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "3": [
+        {
+          "name": "つらら小",
+          "type": "icicle_small_010",
+          "power": 10,
+          "reload": 0.2,
+          "count": 5,
+          "speed": 35,
+          "range": 8,
+          "stepDist": 0,
+          "knockback": 5,
+          "weaponRange": 8,
+          "isPiercing": true,
+          "deviation": 0,
+          "spawnOffsetDist": 1
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "4": [
+        {
+          "name": "つらら小",
+          "type": "icicle_small_010",
+          "power": 10,
+          "reload": 0.2,
+          "count": 5,
+          "speed": 35,
+          "range": 8,
+          "stepDist": 0,
+          "knockback": 5,
+          "weaponRange": 8,
+          "isPiercing": true,
+          "deviation": 0,
+          "spawnOffsetDist": 1
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "5": [
+        {
+          "name": "つらら小",
+          "type": "icicle_small_010",
+          "power": 10,
+          "reload": 0.2,
+          "count": 6,
+          "speed": 35,
+          "range": 8,
+          "stepDist": 0,
+          "knockback": 5,
+          "weaponRange": 8,
+          "isPiercing": true,
+          "deviation": 0,
+          "spawnOffsetDist": 1
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "6": [
+        {
+          "name": "つらら小",
+          "type": "icicle_small_010",
+          "power": 10,
+          "reload": 0.2,
+          "count": 6,
+          "speed": 35,
+          "range": 8,
+          "stepDist": 0,
+          "knockback": 5,
+          "weaponRange": 8,
+          "isPiercing": true,
+          "deviation": 0,
+          "spawnOffsetDist": 1
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ],
+      "7": [
+        {
+          "name": "つらら小",
+          "type": "icicle_small_010",
+          "power": 10,
+          "reload": 0.2,
+          "count": 7,
+          "speed": 35,
+          "range": 8,
+          "stepDist": 0,
+          "knockback": 5,
+          "weaponRange": 8,
+          "isPiercing": true,
+          "deviation": 0,
+          "spawnOffsetDist": 1
+        },
+        {
+          "name": "リロード",
+          "type": "reload",
+          "power": 0,
+          "reload": 0.5,
+          "count": 1,
+          "speed": 0,
+          "range": 0,
+          "stepDist": 0,
+          "knockback": 0,
+          "weaponRange": 0,
+          "isPiercing": false
+        }
+      ]
+    }
+  },
+  "special": {
+    "name": "氷塊生成",
+    "description": "10秒に1回、氷塊(010004.png)を生成。前衛は2m前、後衛は8m前。直径1.5mまで拡大し敵弾を5+WLV吸収または6秒維持",
+    "interval": 10
+  },
+  "ultimate": {
+    "name": "吹雪乱射",
+    "description": "3+WLV/3秒間、本体周辺1mからつらら大(0.4s)とつらら小(0.2s)を真上±5度に乱射。つらら大は着弾で氷塊生成",
+    "spCost": "20+WLV",
+    "cooldown": "30-WLV*2"
+  }
+}
