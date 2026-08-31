@@ -35,6 +35,7 @@ export default class EventScene extends Phaser.Scene {
         this.from1217Event = data.from1217Event || false;
         this.from1221Event = data.from1221Event || false;
         this.from1221WildhuntEvent = data.from1221WildhuntEvent || false;
+        this.fromIkebukuro01Event = data.fromIkebukuro01Event || false;
         this.fromIkebukuro02Event = data.fromIkebukuro02Event || false;
         this.fromRespEvent = data.fromRespEvent || false;
         this.from2R1201Event = data.from2R1201Event || false;
@@ -530,7 +531,7 @@ export default class EventScene extends Phaser.Scene {
                 } else {
                     this.scene.stop();
                     this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial,
+                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.from1221WildhuntEvent && !this.fromIkebukuro01Event && !this.fromIkebukuro02Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial,
                         fromExploration: this.fromExploration,
                         fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
                         isNotification: this.isNotification,
@@ -538,6 +539,9 @@ export default class EventScene extends Phaser.Scene {
                         from1214Event: this.from1214Event,
                         from1217Event: this.from1217Event,
                         from1221Event: this.from1221Event,
+                        from1221WildhuntEvent: this.from1221WildhuntEvent,
+                        fromIkebukuro01Event: this.fromIkebukuro01Event,
+                        fromIkebukuro02Event: this.fromIkebukuro02Event,
                         fromRespEvent: this.fromRespEvent,
                         from2R1201Event: this.from2R1201Event,
                         from2RDevilEvent: this.from2RDevilEvent,

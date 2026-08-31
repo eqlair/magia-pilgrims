@@ -1869,12 +1869,14 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.dojoBtn) this.dojoBtn.setVisible(isVisible && (gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE));
 
         // 通常表示の固定背景の制御 (広域表示時は非表示にしてマップ全体・タワー背景を見せる)
-        if (this.bgCurrent) this.bgCurrent.setVisible(isVisible);
-        if (this.bgNext && !isVisible) this.bgNext.setVisible(false);
         if (!this.isTowerMode) {
+            if (this.bgCurrent) this.bgCurrent.setVisible(isVisible);
+            if (this.bgNext && !isVisible) this.bgNext.setVisible(false);
             if (this.baseBg) this.baseBg.setVisible(isVisible);
             if (this.towerBottomBgContainer) this.towerBottomBgContainer.setVisible(false);
         } else {
+            if (this.bgCurrent) this.bgCurrent.setVisible(false);
+            if (this.bgNext) this.bgNext.setVisible(false);
             if (this.baseBg) this.baseBg.setVisible(false);
             if (this.towerBottomBgContainer) this.towerBottomBgContainer.setVisible(isVisible);
         }
@@ -3152,18 +3154,18 @@ export default class AdventureScene extends Phaser.Scene {
             .setDepth(-200)
             .setOrigin(0.5, 0);
 
-        // 🗼 タワー専用: シームレス縦連結下部背景 (tow4, tow3, tow2, tow1)
-        this.towerBottomBgContainer = this.add.container(width / 2, height / 2)
+        // 🗼 タワー専用: シームレス縦連結背景 (tow4, tow3, tow2, tow1)
+        this.towerBottomBgContainer = this.add.container(width / 2, 0)
             .setScrollFactor(0)
             .setDepth(-200);
 
         // 4枚のスプライトを上(tow4: 60F)から下(tow1: 1F)へ隙間なく連結
-        // tow4: 47F〜60F, tow3: 31F〜46F, tow2: 15F〜30F, tow1: 1F〜14F
+        // tow4: 46F〜60F, tow3: 31F〜45F, tow2: 16F〜30F, tow1: 1F〜15F
         this.towerBottomSegments = [
-            { key: 'bg_tow4', floorRange: '47F-60F' },
-            { key: 'bg_tow3', floorRange: '31F-46F' },
-            { key: 'bg_tow2', floorRange: '15F-30F' },
-            { key: 'bg_tow1', floorRange: '1F-14F' }
+            { key: 'bg_tow4', floorRange: '46F-60F' },
+            { key: 'bg_tow3', floorRange: '31F-45F' },
+            { key: 'bg_tow2', floorRange: '16F-30F' },
+            { key: 'bg_tow1', floorRange: '1F-15F' }
         ];
 
         this.towerBottomSprites = [];
@@ -3173,7 +3175,7 @@ export default class AdventureScene extends Phaser.Scene {
         const imgH = width; // 540px
         this.towerBottomImgH = imgH;
         this.towerBottomTotalH = imgH * 4; // 2160px
-        this.towerBottomViewH = height / 2; // 480px
+        this.towerBottomViewH = height; // 全画面 (960px)
 
         this.towerBottomSegments.forEach((seg, idx) => {
             if (this.textures.exists(seg.key)) {
@@ -3376,10 +3378,10 @@ export default class AdventureScene extends Phaser.Scene {
             this.baseBg.setPosition(width / 2, height / 2);
         }
 
-        // タワー下部シームレス背景コンテナの配置（上端を画面中心に合わせる）
+        // タワーシームレス背景コンテナの配置（全画面配置）
         if (this.isTowerMode && this.towerBottomBgContainer) {
             this.towerBottomBgContainer.setScale(1 / zoom);
-            this.towerBottomBgContainer.setPosition(width / 2, height / 2);
+            this.towerBottomBgContainer.setPosition(width / 2, 0);
         }
 
         // アイドル時間（無操作）のチェック
@@ -3569,6 +3571,7 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     checkScheduledEvents(targetTiming = 'after_time_signal') {
+        if (this.isTowerMode) return false; // タワー内では地上イベントを発動しない
         const gs = GlobalState.getInstance();
         let fired = false;
         gs.addLog(`⏰ [checkScheduledEvents] timing=${targetTiming} (Day:${this.currentDay}, TimeIdx:${this.timePeriodIndex})`);
@@ -3673,6 +3676,9 @@ export default class AdventureScene extends Phaser.Scene {
                             fromIkebukuro02Event: true
                         }
                     });
+                    if (actionType !== 'time_signal') {
+                        this.processEventQueue();
+                    }
                     return true;
                 }
             }
@@ -4101,6 +4107,7 @@ export default class AdventureScene extends Phaser.Scene {
     // チュートリアル進行・イベント制御 & 操作制限
     // ─────────────────────────────────────────────────────
     checkTutorialEvents() {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
         const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
@@ -5232,7 +5239,7 @@ export default class AdventureScene extends Phaser.Scene {
         const f = Math.max(1, Math.min(60, floor));
         const progress = (f - 1) / 59; // 1F: 0.0, 60F: 1.0
         const totalH = this.towerBottomTotalH || (this.scale.width * 4);
-        const viewH = this.towerBottomViewH || (this.scale.height / 2);
+        const viewH = this.towerBottomViewH || this.scale.height;
         const maxScroll = totalH - viewH;
         // 1F (progress=0): 最下部(tow1底)が見える -> scrollY = -maxScroll
         // 60F (progress=1): 最上部(tow4頂)が見える -> scrollY = 0
@@ -5289,10 +5296,10 @@ export default class AdventureScene extends Phaser.Scene {
         const centerX = 2 * this.hexWidth;
 
         this.towerWideSegments = [
-            { key: 'bg_tow4', topRow: -0.5, btmRow: 13.5, floorRange: '47F-60F' },
-            { key: 'bg_tow3', topRow: 13.5, btmRow: 29.5, floorRange: '31F-46F' },
-            { key: 'bg_tow2', topRow: 29.5, btmRow: 45.5, floorRange: '15F-30F' },
-            { key: 'bg_tow1', topRow: 45.5, btmRow: 59.5, floorRange: '1F-14F' }
+            { key: 'bg_tow4', topRow: 0, btmRow: 15, floorRange: '46F-60F' },
+            { key: 'bg_tow3', topRow: 15, btmRow: 30, floorRange: '31F-45F' },
+            { key: 'bg_tow2', topRow: 30, btmRow: 45, floorRange: '16F-30F' },
+            { key: 'bg_tow1', topRow: 45, btmRow: 60, floorRange: '1F-15F' }
         ];
 
         this.towerWideSprites = [];
@@ -5319,17 +5326,17 @@ export default class AdventureScene extends Phaser.Scene {
         if (!this.towerWideSprites || this.towerWideSprites.length === 0) return;
 
         const centerX = 2 * this.hexWidth;
+        const towerWidth = 600; // ヘクス列（幅約520px）の背後に美しく収まる横幅
 
         this.towerWideSprites.forEach(spr => {
             const seg = spr.segData;
             const topY = seg.topRow * this.hexVertSpacing * tiltY;
             const btmY = seg.btmRow * this.hexVertSpacing * tiltY;
             const centerY = (topY + btmY) / 2;
-            const height = btmY - topY;
+            const currentH = btmY - topY;
 
             spr.setPosition(centerX, centerY);
-            spr.setDisplaySize(height, height);
-            spr.scaleY = (height / (spr.height || 160)) * tiltY;
+            spr.setDisplaySize(towerWidth, currentH);
         });
     }
 }
