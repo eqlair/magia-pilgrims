@@ -2992,8 +2992,8 @@ export default class AdventureScene extends Phaser.Scene {
                 // タワー内探索による食料減少 (5〜40)
                 this._drainFoodInTower();
             } else {
-                // ① 食料設定：地名ヘクスは 140、汎用ヘクスは半分（70）
-                const foodAmount = isGeneric ? 70 : 140;
+                // ① 食料設定：地名ヘクスは 140、汎用ヘクスは 100
+                const foodAmount = isGeneric ? 100 : 140;
                 gs.food = foodAmount;
                 this._updateFoodDisplay();
 
