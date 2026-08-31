@@ -3840,7 +3840,7 @@ export default class AdventureScene extends Phaser.Scene {
                 'スカイツリー', '品川', '京橋', '新宿', '東京城', '大手門', '東京',
                 '新大久保', '丸の内', '中野', '桜田筋', '中央筋', '青山筋', '上野',
                 '秋葉原', '水道橋', '池袋', '東京タワー', '舞浜', '山谷', 'リトル沖縄',
-                '葛西臨海公園', 'ティスティニーランド', '神田明神', '路面電車', '平和島',
+                '葛西臨海公園', 'ディスティニーランド', '神田明神', '路面電車', '平和島',
                 'ニュートラム', 'ビッグサイト', 'シルバードーム'
             ];
             const rawName = (currentHex && currentHex.cellData && currentHex.cellData.name) ? currentHex.cellData.name.replace(/\n/g, '').trim() : '';
