@@ -533,6 +533,21 @@ export default class AdventureScene extends Phaser.Scene {
             SaveManager.saveGame(this);
         }
 
+        // ── リスポーン（周回）復帰時の 2R1201 イベント発動 ──
+        if (this._initData.fromRespawn) {
+            const r2EvData = this.cache.json.get('event_2r1201');
+            if (r2EvData) {
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: r2EvData,
+                        returnScene: 'AdventureScene',
+                        from2R1201Event: true
+                    }
+                });
+            }
+        }
+
         // ── チュートリアル・日付イベント（12/22強制作動含む）の発動チェック ──
         if (this._initData.isTutorialStart || (gs.isTutorialMode && !gs.tutorialMorningSeen && this.currentDay === 1 && this.timePeriodIndex === 0)) {
             // チュートリアル戦闘後 ➔ マップ呼び出し ➔ 午前の時報 ➔ 12/1午前チュートリアル会話
@@ -648,11 +663,11 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            // ── タワー内でのリスポーン分岐（紫苑SP1/10以下） ──
-            if (this.isTowerMode && data && data.fromBattle && isSionMentalBreak && !data.fromTowerRespEvent) {
+            // ── タワー内でのリスポーン分岐（全滅または紫苑SP1/10以下） ──
+            if (this.isTowerMode && data && data.fromBattle && (data.isGameOver || isSionMentalBreak) && !data.fromTowerRespEvent) {
                 const towerRespData = this.cache.json.get('event_tow_res');
                 if (towerRespData) {
-                    GlobalState.getInstance().addLog(`💀 [TowerResp] isSionMentalBreak=true -> Launching event_tow_res!`);
+                    GlobalState.getInstance().addLog(`💀 [TowerResp] isGameOver=${data.isGameOver}, isSionMentalBreak=${isSionMentalBreak} -> Launching event_tow_res!`);
                     if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
                     this.scene.pause();
                     this.scene.launch('EventScene', {
@@ -681,8 +696,8 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            // ── 通常全滅からの復帰（紫苑のSPがまだ1/10以上残っている全滅＝撤退と同じく突入前に復旧） ──
-            if (data && data.isGameOver) {
+            // ── 通常全滅からの復帰（地上：紫苑のSPがまだ1/10以上残っている全滅＝撤退と同じく突入前に復旧） ──
+            if (!this.isTowerMode && data && data.isGameOver) {
                 if (this.scene.isActive('EventScene')) {
                     this.scene.stop('EventScene');
                 }
@@ -1134,19 +1149,12 @@ export default class AdventureScene extends Phaser.Scene {
                         this.resetMapForNewLoop();
                         SaveManager.saveGame(this);
 
-                        // 2R1201ev イベントの起動（12/1東京駅開始時の独白・対話イベント）
-                        const r2EvData = this.cache.json.get('event_2r1201');
-                        if (r2EvData) {
-                            this.scene.pause();
-                            this.scene.launch('EventScene', {
-                                events: r2EvData,
-                                returnScene: 'AdventureScene',
-                                from2R1201Event: true
-                            });
-                            return;
-                        }
-
-                        TransitionManager.fadeIn(this);
+                        // 地上マップシーン（12/1東京駅）へクリーンに再起動遷移！
+                        TransitionManager.transitionTo(this, 'AdventureScene', {
+                            isTower: false,
+                            party: ['001'],
+                            fromRespawn: true
+                        });
                         return;
                     } else {
                         // 【いいえ】を選んだ場合: 突入前の状態（HP・SP・アイテム等）に復旧してタワー内に復帰
@@ -1271,9 +1279,10 @@ export default class AdventureScene extends Phaser.Scene {
         this.exploreBtn.on('pointerdown', () => {
             this.exploreBtn.setScale(tansScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
-            if (this.isMovementOnlyTutorial || this.isRestOnlyTutorial) return; // チュートリアル午前・夜は不可！
-            if (this.checkIkebukuro02Event('exploration')) return;
-            if (this.check1221NightForcedBreakthrough()) return;
+            if (!this.isTowerMode) {
+                if (this.checkIkebukuro02Event('exploration')) return;
+                if (this.check1221NightForcedBreakthrough()) return;
+            }
             if (!this.isJumping) this._startExploration();
         });
         this.exploreBtn.on('pointerup', () => this.exploreBtn.setScale(tansScale));
@@ -1288,7 +1297,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.restBtn.setScale(kyuuScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.isMovementOnlyTutorial || this.isExploreOnlyTutorial) return; // チュートリアル午前・午後は不可！
-            if (this.checkIkebukuro02Event('rest')) return;
+            if (!this.isTowerMode && this.checkIkebukuro02Event('rest')) return;
             if (!this.isJumping) {
                 this.inRestMode = true;
                 SaveManager.saveGame(this);
@@ -1926,7 +1935,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     moveToHex(hex, animate = true) {
-        if (animate) {
+        if (animate && !this.isTowerMode) {
             if (this.currentDay >= 22) {
                 this.check1221Event();
                 return;
@@ -3326,6 +3335,7 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     check1221Event() {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         // 12/22以降に生存している場合は未再生時に最優先で即座に強制発火！
         if (this.currentDay >= 22 && !gs.event1221Played) {
@@ -3660,6 +3670,7 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     checkIkebukuro01Event() {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         if (gs.ikebukuro01Played) return false;
 
@@ -3685,6 +3696,7 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     checkIkebukuro02Event(actionType, targetHex = null) {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         if (gs.ikebukuro02Played) return false;
 
@@ -3722,6 +3734,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     check1207Event() {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         gs.addLog(`🔍 [check1207Event] Day=${this.currentDay}, timeIdx=${this.timePeriodIndex}, played=${gs.event1207Played}`);
         // 12月7日の午後(timePeriodIndex === 1)の時報直後またはそれ以降で未再生の場合に発動
@@ -3751,6 +3764,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     check1214Event() {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         const isTargetTime = (this.currentDay === 15 && this.timePeriodIndex === 0) || (this.currentDay > 15);
         gs.addLog(`🔍 [check1214Event] Day=${this.currentDay}, timeIdx=${this.timePeriodIndex}, isTargetTime=${isTargetTime}, played=${gs.event1214Played}`);
@@ -3785,6 +3799,7 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     check1217Event() {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         if (this.currentMonth === 12 && !gs.event1217Played) {
             // 12/17 午後の時報の後（または12/17午後以降で未再生の場合）
@@ -3812,6 +3827,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     check1221NightWildhunt() {
+        if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
         if (this.currentMonth === 12 && this.currentDay === 21 && this.timePeriodIndex === 2 && !gs.event1221WildhuntPlayed) {
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
@@ -3962,6 +3978,7 @@ export default class AdventureScene extends Phaser.Scene {
 
     /** 12/21夜に名前付き土地も含め「探索」や「移動」などの行動を起こした時の強制作動（ワイルドハント発生／突破戦へ） */
     check1221NightForcedBreakthrough() {
+        if (this.isTowerMode) return false;
         if (this.is1221WildhuntPendingBreakthrough) {
             this.is1221WildhuntPendingBreakthrough = false;
             this.start1221Breakthrough();
