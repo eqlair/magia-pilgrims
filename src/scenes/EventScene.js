@@ -275,20 +275,17 @@ export default class EventScene extends Phaser.Scene {
                 // 4枚の画像（tow1〜tow4）を縦に隙間なく連結するコンテナを作成
                 const towerContainer = this.add.container(0, 0).setDepth(100);
 
-                // 画像の幅を画面幅（width）に合わせる (160x160 -> scale = width / 160)
-                const imgScale = width / 160;
-                const sliceHeight = 160 * imgScale;
+                // 画像の実寸は 400x400px → 画面幅に合わせてスケール
+                const IMG_SRC_SIZE = 400;
+                const imgScale = width / IMG_SRC_SIZE;
+                const sliceHeight = IMG_SRC_SIZE * imgScale; // = width px
                 const totalHeight = sliceHeight * 4;
 
-                // 下から順に配置:
-                // tow4 (最上部): Y = sliceHeight * 0.5
-                // tow3: Y = sliceHeight * 1.5
-                // tow2: Y = sliceHeight * 2.5
-                // tow1 (最下部): Y = sliceHeight * 3.5
-                const tow4Key = this.textures.exists('tow4') ? 'tow4' : (this.textures.exists('bg_tow4') ? 'bg_tow4' : 'tow4');
-                const tow3Key = this.textures.exists('tow3') ? 'tow3' : (this.textures.exists('bg_tow3') ? 'bg_tow3' : 'tow3');
-                const tow2Key = this.textures.exists('tow2') ? 'tow2' : (this.textures.exists('bg_tow2') ? 'bg_tow2' : 'tow2');
-                const tow1Key = this.textures.exists('tow1') ? 'tow1' : (this.textures.exists('bg_tow1') ? 'bg_tow1' : 'tow1');
+                // 下から順に配置: tow1(1F-15F)が最下部, tow4(46F-60F)が最上部
+                const tow4Key = this.textures.exists('tow4') ? 'tow4' : 'bg_tow4';
+                const tow3Key = this.textures.exists('tow3') ? 'tow3' : 'bg_tow3';
+                const tow2Key = this.textures.exists('tow2') ? 'tow2' : 'bg_tow2';
+                const tow1Key = this.textures.exists('tow1') ? 'tow1' : 'bg_tow1';
 
                 const tow4 = this.add.image(width / 2, sliceHeight * 0.5, tow4Key)
                     .setScale(imgScale).setOrigin(0.5, 0.5);
@@ -313,25 +310,31 @@ export default class EventScene extends Phaser.Scene {
                     if (cutsceneFinished) return;
                     cutsceneFinished = true;
 
+                    // 暗転して AdventureScene に復帰 (fromIkebukuro02Event で _resumeHandler がタワーへ遷移)
                     this.tweens.add({
                         targets: blackScreen,
                         alpha: 1,
                         duration: 800,
                         onComplete: () => {
-                            // タワー内マップ（AdventureScene / isTower: true）へ移行！
-                            const advScene = this.scene.get('AdventureScene');
-                            let party = ['001'];
-                            if (advScene && advScene.party) party = advScene.party;
-
                             const gs = GlobalState.getInstance();
                             gs.isTowerMode = true;
                             gs.hasEnteredTower = true;
 
-                            this.scene.stop();
-                            TransitionManager.transitionTo(this, 'AdventureScene', {
-                                isTower: true,
-                                party: party
-                            });
+                            // AdventureScene は pause 状態なので resume で復帰させる
+                            // _resumeHandler が fromIkebukuro02Event を検出してタワーへ遷移する
+                            this.scene.stop('EventScene');
+                            const advScene = this.scene.get('AdventureScene');
+                            if (advScene) {
+                                advScene.scene.resume('AdventureScene', {
+                                    fromIkebukuro02Event: true
+                                });
+                            } else {
+                                // フォールバック: AdventureScene が見つからない場合は直接起動
+                                this.scene.start('AdventureScene', {
+                                    isTower: true,
+                                    party: ['001']
+                                });
+                            }
                         }
                     });
                 };
