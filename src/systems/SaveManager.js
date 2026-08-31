@@ -60,6 +60,8 @@ export class SaveManager {
                 event1221WildhuntPlayed: gs.event1221WildhuntPlayed || false,
                 ikebukuro01Played: gs.ikebukuro01Played || false,
                 ikebukuro02Played: gs.ikebukuro02Played || false,
+                dec21MorningTalkSeen: gs.dec21MorningTalkSeen || false,
+                dec21AfternoonTalkSeen: gs.dec21AfternoonTalkSeen || false,
                 isTowerMode: gs.isTowerMode || false,
                 hasEnteredTower: gs.hasEnteredTower || false,
 
@@ -289,6 +291,8 @@ export class SaveManager {
         if (d.event1221WildhuntPlayed !== undefined) gs.event1221WildhuntPlayed = d.event1221WildhuntPlayed;
         if (d.ikebukuro01Played !== undefined) gs.ikebukuro01Played = d.ikebukuro01Played;
         if (d.ikebukuro02Played !== undefined) gs.ikebukuro02Played = d.ikebukuro02Played;
+        if (d.dec21MorningTalkSeen !== undefined) gs.dec21MorningTalkSeen = d.dec21MorningTalkSeen;
+        if (d.dec21AfternoonTalkSeen !== undefined) gs.dec21AfternoonTalkSeen = d.dec21AfternoonTalkSeen;
         if (d.isTowerMode !== undefined) gs.isTowerMode = d.isTowerMode;
         if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
         if (d.seenEventHistory !== undefined) gs.seenEventHistory = d.seenEventHistory || [];

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { EventEngine } from '../systems/EventEngine';
 import { TransitionManager } from '../systems/TransitionManager';
 import { FogEffect } from '../systems/FogEffect';
+import { Dec21Effect } from '../systems/Dec21Effect';
 import { GlobalState } from '../systems/GlobalState';
 import { FONT_MAIN } from '../config/GameFont';
 
@@ -49,6 +50,7 @@ export default class EventScene extends Phaser.Scene {
         this.towerEnemiesList = data.towerEnemiesList || null;
         this.isWitchOnly = data.isWitchOnly || false;
         this.witchPattern = data.witchPattern !== undefined ? data.witchPattern : 1;
+        this.showDec21Effect = data.showDec21Effect || false;
 
         // ── 既読判定・周回スキップ用イベントIDの確定 ──
         this.eventId = data.eventId || null;
@@ -138,10 +140,21 @@ export default class EventScene extends Phaser.Scene {
 
         this.engine.start();
 
+        // 12/21掛け合いイベント等で背景もやもやエフェクトを表示
+        if (this.showDec21Effect) {
+            this.dec21Effect = new Dec21Effect(this, 12);
+        }
+
         // ── 2回目以降（既読イベント）またはデバッグモード時に「⏩ SKIP」ボタンを表示 ──
         const isSeen = this.eventId ? gs.isEventSeen(this.eventId) : false;
         if (isSeen || GlobalState.IS_DEBUG_MODE) {
             this._createSkipButton();
+        }
+    }
+
+    update(time, delta) {
+        if (this.dec21Effect) {
+            this.dec21Effect.update(delta / 1000);
         }
     }
 

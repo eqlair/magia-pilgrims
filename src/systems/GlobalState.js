@@ -81,6 +81,8 @@ export class GlobalState {
         this.event1221Played = false;
         this.ikebukuro01Played = false;
         this.ikebukuro02Played = false;
+        this.dec21MorningTalkSeen = false;
+        this.dec21AfternoonTalkSeen = false;
         this.hasEnteredTower = false; // 塔に突入したことがあるフラグ（ノア・ななよのタロット解放条件）
 
         // 既読イベント履歴（周回しても永久保持されるイベントID一覧）
@@ -1196,6 +1198,8 @@ export class GlobalState {
         this.event1221WildhuntPlayed = false;
         this.ikebukuro01Played = false;
         this.ikebukuro02Played = false;
+        this.dec21MorningTalkSeen = false;
+        this.dec21AfternoonTalkSeen = false;
 
         // タワー編のモードフラグのみ通常マップへ戻す（タワーの踏破・敵レベル・魔女レベル・階段データは永久保持！）
         this.isTowerMode = false;

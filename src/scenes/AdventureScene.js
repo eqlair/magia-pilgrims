@@ -3648,6 +3648,11 @@ export default class AdventureScene extends Phaser.Scene {
                 check: () => this.check1221NightWildhunt()
             },
             {
+                id: 'event_1221_dialogue',
+                timing: 'after_time_signal',
+                check: () => this.check1221DialogueEvent()
+            },
+            {
                 id: 'event_ikebukuro01',
                 timing: 'after_time_signal',
                 check: () => this.checkIkebukuro01Event()
@@ -3860,6 +3865,98 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
         return false;
+    }
+
+    /** 12/21 午前・午後限定: コマンド選択前のパーティ掛け合い対話イベント */
+    check1221DialogueEvent() {
+        if (this.isTowerMode) return false;
+        if (this.currentMonth !== 12 || this.currentDay !== 21) return false;
+        if (this.timePeriodIndex === 2) return false; // ご指示通り「夜」は発生させない（午前・午後のみ）
+
+        const gs = GlobalState.getInstance();
+        const isMorning = (this.timePeriodIndex === 0);
+        const talkSeenKey = isMorning ? 'dec21MorningTalkSeen' : 'dec21AfternoonTalkSeen';
+
+        if (gs[talkSeenKey]) return false;
+        gs[talkSeenKey] = true;
+        SaveManager.saveGame(this);
+
+        // パーティメンバーの取得
+        const party = (this.party && this.party.length > 0) ? this.party : ['001'];
+
+        // 1. 「12月21日主」を話せるキャラをパーティから選出
+        const mainCandidates = [];
+        for (const pid of party) {
+            const normId = gs.normalizeCharId(pid);
+            const talkData = this.cache.json.get(`talk_${normId}`);
+            if (talkData && talkData['12月21日主'] && talkData['12月21日主'].length > 0) {
+                mainCandidates.push({ id: normId, lines: talkData['12月21日主'] });
+            }
+        }
+
+        if (mainCandidates.length === 0) return false;
+
+        const mainSpeaker = mainCandidates[Math.floor(Math.random() * mainCandidates.length)];
+        const mainCharObj = gs.getCharacter(mainSpeaker.id);
+        const mainName = mainCharObj ? mainCharObj.name : '紫苑';
+
+        // 2. 「12月21日反応」を話せる同行メンバーを選出
+        const respCandidates = [];
+        for (const pid of party) {
+            const normId = gs.normalizeCharId(pid);
+            if (normId === mainSpeaker.id) continue;
+            const talkData = this.cache.json.get(`talk_${normId}`);
+            if (talkData && talkData['12月21日反応'] && talkData['12月21日反応'].length > 0) {
+                respCandidates.push({ id: normId, lines: talkData['12月21日反応'] });
+            }
+        }
+
+        let respSpeaker = null;
+        let respName = '';
+        if (respCandidates.length > 0) {
+            respSpeaker = respCandidates[Math.floor(Math.random() * respCandidates.length)];
+            const respCharObj = gs.getCharacter(respSpeaker.id);
+            respName = respCharObj ? respCharObj.name : '';
+        }
+
+        // 3. 現在のヘクス背景画像を取得
+        const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+        const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_map_base';
+
+        // 4. イベントコマンドの構築（背景・立ち絵・もやもやエフェクト付き）
+        const events = [
+            { cmd: 'bg', key: bgKey },
+            { cmd: 'chara', key: `portrait_${mainSpeaker.id}`, pos: 'right' }
+        ];
+
+        // 主のセリフ
+        for (const line of mainSpeaker.lines) {
+            events.push({ cmd: 'text', name: mainName, body: line });
+        }
+
+        // 反応のセリフ（同行者がいる場合）
+        if (respSpeaker && respSpeaker.lines.length > 0) {
+            const leftCharaKey = this.textures.exists(`portrait_${respSpeaker.id}_b`) ? `portrait_${respSpeaker.id}_b` : `portrait_${respSpeaker.id}`;
+            events.push({ cmd: 'chara', key: leftCharaKey, pos: 'left' });
+            for (const line of respSpeaker.lines) {
+                events.push({ cmd: 'text', name: respName, body: line });
+            }
+        }
+
+        events.push({ cmd: 'clearText' });
+        events.push({ cmd: 'end' });
+
+        this.enqueueEvent({
+            type: 'event',
+            data: {
+                events: events,
+                returnScene: 'AdventureScene',
+                showDec21Effect: true
+            }
+        });
+
+        console.log(`[AdventureScene] 12/21 Dialogue triggered: ${mainName} (主) & ${respName || 'なし'} (反応)`);
+        return true;
     }
 
 
