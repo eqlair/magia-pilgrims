@@ -12,6 +12,7 @@ export default class TarotScene extends Phaser.Scene {
     init(data) {
         this.returnScene = data.returnScene || 'AdventureScene';
         this.party = data.party || [];
+        this.bgKey = data.bgKey || 'bg_map_base';
     }
 
     create() {
@@ -401,8 +402,14 @@ export default class TarotScene extends Phaser.Scene {
                 // ★ 悪魔カード（ID: 16）引き時: 2周目以降かつ道場未解放の場合、2RDEVILイベントを発火！
                 const isSecondLoopOrLater = (gs.maxPastExp || 0) > 0 || (gs.devilStockSp || 0) > 0 || GlobalState.IS_DEBUG_MODE;
                 if (drawnCardId === 16 && isSecondLoopOrLater && !gs.isDojoUnlocked) {
-                    const devilEvent = this.cache.json.get('event_2rdevil');
-                    if (devilEvent) {
+                    const devilEventRaw = this.cache.json.get('event_2rdevil');
+                    if (devilEventRaw) {
+                        const devilEvent = JSON.parse(JSON.stringify(devilEventRaw));
+                        if (devilEvent[0] && devilEvent[0].cmd === 'bg') {
+                            devilEvent[0].key = this.bgKey || 'bg_map_base';
+                        } else {
+                            devilEvent.unshift({ cmd: 'bg', key: this.bgKey || 'bg_map_base' });
+                        }
                         this.scene.stop();
                         this.scene.start('EventScene', {
                             returnScene: this.returnScene,

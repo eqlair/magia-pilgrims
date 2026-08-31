@@ -1210,9 +1210,11 @@ export default class AdventureScene extends Phaser.Scene {
 
                 if (this._pendingTarot) {
                     this._pendingTarot = false;
+                    const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+                    const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_map_base';
                     this.enqueueEvent({
                         type: 'tarot',
-                        data: { returnScene: 'AdventureScene', party: this.party }
+                        data: { returnScene: 'AdventureScene', party: this.party, bgKey: bgKey }
                     });
                 }
 
@@ -2555,9 +2557,11 @@ export default class AdventureScene extends Phaser.Scene {
         if (this._pendingTarot) {
             this._pendingTarot = false;
             if (!gs.drawnTarotCards || gs.drawnTarotCards.length < 22) {
+                const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+                const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_map_base';
                 this.enqueueEvent({
                     type: 'tarot',
-                    data: { returnScene: 'AdventureScene', party: this.party }
+                    data: { returnScene: 'AdventureScene', party: this.party, bgKey: bgKey }
                 });
             }
         }
