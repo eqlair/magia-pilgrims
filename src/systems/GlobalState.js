@@ -7,7 +7,7 @@ import { RelicGenerator } from './RelicGenerator.js';
 
 export class GlobalState {
     static instance = null;
-    static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
+    static IS_DEBUG_MODE = true; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
 
     constructor() {
         if (GlobalState.instance) {
