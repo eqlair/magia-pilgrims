@@ -1863,6 +1863,7 @@ export default class AdventureScene extends Phaser.Scene {
 
 
     _setUIVisibilityForWideMap(isVisible) {
+        const gs = GlobalState.getInstance();
         if (this.dateBg) this.dateBg.setVisible(isVisible);
         if (this.dateTimeText) this.dateTimeText.setVisible(isVisible);
 
