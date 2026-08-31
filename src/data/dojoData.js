@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 魔法少女強化プログラム (道場システム) のマスタデータ & ロジック
  */
 export const DOJO_SUBJECTS = {
@@ -10,7 +10,7 @@ export const DOJO_SUBJECTS = {
         subjects: [
             { id: 'A1', name: '基礎強化I', desc: '基礎HP +100', apply: (sb) => { sb.hp = (sb.hp || 0) + 100; } },
             { id: 'A2', name: '基礎強化II', desc: '基礎MP +100', apply: (sb) => { sb.mp = (sb.mp || 0) + 100; } },
-            { id: 'A3', name: '基礎強化III', desc: '戦闘中のSP減少を10%緩和', apply: (sb) => { sb.spDrainRate = (sb.spDrainRate || 1.0) * 0.9; } },
+            { id: 'A3', name: '基礎強化III', desc: '戦闘中のMP減少を10%緩和', apply: (sb) => { sb.spDrainRate = (sb.spDrainRate || 1.0) * 0.9; } },
             { id: 'A4', name: '基礎強化IV', desc: 'HP回復時のMP効率向上 (MP1→HP33)', apply: (sb) => { sb.hpRecoveryRate = (sb.hpRecoveryRate || 30) + 3; } },
             { id: 'A5', name: '基礎強化V', desc: '基礎攻撃力 +10', apply: (sb) => { sb.atk = (sb.atk || 0) + 10; } },
         ]
@@ -35,7 +35,7 @@ export const DOJO_SUBJECTS = {
         maxStage: 5,
         subjects: [
             { id: 'C1', name: '精神洗浄効率強化', desc: 'SP回復効率 +10% (0.1%→0.11%)', apply: (sb) => { sb.spEfficiency = (sb.spEfficiency || 0.001) * 1.1; } },
-            { id: 'C2', name: '呼吸法訓練', desc: '戦闘中のSP減少を10%緩和', apply: (sb) => { sb.spDrainRate = (sb.spDrainRate || 1.0) * 0.9; } },
+            { id: 'C2', name: '呼吸法訓練', desc: '戦闘中のMP減少を10%緩和', apply: (sb) => { sb.spDrainRate = (sb.spDrainRate || 1.0) * 0.9; } },
             { id: 'C3', name: '精神潜在力強化', desc: '基礎MP成長率 +2%', apply: (sb) => { sb.mpGrowth = (sb.mpGrowth || 0) + 0.02; } },
             { id: 'C4', name: '基礎精神力強化', desc: '基礎MP +100', apply: (sb) => { sb.mp = (sb.mp || 0) + 100; } },
             { id: 'C5', name: '基礎CH率強化', desc: '基礎CH率 +3%', apply: (sb) => { sb.critRate = (sb.critRate || 0) + 0.03; } },
