@@ -42,6 +42,7 @@ export default class EventScene extends Phaser.Scene {
         this.from2R1201Event = data.from2R1201Event || false;
         this.from2RDevilEvent = data.from2RDevilEvent || false;
         this.fromTowerRespEvent = data.fromTowerRespEvent || false;
+        this.fromDojoEvent = data.fromDojoEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
         this.isTowerBattle = data.isTowerBattle || false;
@@ -468,6 +469,12 @@ export default class EventScene extends Phaser.Scene {
             onComplete: () => {
                 if (this.fromOpTutorial && this.battleConfig) {
                     TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
+                    return;
+                }
+
+                if (this.fromDojoEvent) {
+                    this.scene.stop();
+                    TransitionManager.transitionTo(this, 'DojoScene');
                     return;
                 }
 

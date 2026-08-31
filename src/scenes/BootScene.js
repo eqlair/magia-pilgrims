@@ -209,6 +209,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('event_resp', 'files/DATA/event_resp.json');
         this.load.json('event_2r1201', 'files/DATA/event_2r1201.json');
         this.load.json('event_2rdevil', 'files/DATA/event_2rdevil.json');
+        this.load.json('event_dojo', 'files/DATA/event_dojo.json');
         this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
         this.load.image('bg_tow_spo01', 'files/event/tou_spo01.jpg');
         this.load.json('event_tow_res', 'files/DATA/event_tow_res.json');
@@ -273,6 +274,8 @@ export default class BootScene extends Phaser.Scene {
         // BGM
         this.load.audio('bgm_tarot', 'files/BGM/006_TAROT.mp3');
         this.load.audio('JOIN_US', 'files/BGM/005_JOIN_US.mp3');
+        this.load.audio('002_menu', 'files/BGM/002_menu.mp3');
+        this.load.audio('bgm_menu', 'files/BGM/002_menu.mp3');
         this.load.audio('bgm_hexen', 'files/BGM/004_hexen.mp3');
         this.load.audio('bgm_toppa', 'files/BGM/toppa.mp3');
         this.load.audio('bgm_wildhunt', 'files/BGM/wildhunt.mp3');

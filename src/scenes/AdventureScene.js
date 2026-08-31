@@ -4919,6 +4919,21 @@ export default class AdventureScene extends Phaser.Scene {
 
         hitArea.on('pointerdown', () => {
             container.setScale(0.92);
+            if (!gs.dojoEventSeen) {
+                gs.dojoEventSeen = true;
+                SaveManager.saveGame(this);
+                const dojoEvData = this.cache.json.get('event_dojo');
+                if (dojoEvData) {
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: dojoEvData,
+                        returnScene: 'AdventureScene',
+                        fromDojoEvent: true,
+                        eventId: 'event_dojo'
+                    });
+                    return;
+                }
+            }
             TransitionManager.transitionTo(this, 'DojoScene');
         });
         hitArea.on('pointerup', () => container.setScale(1.0));

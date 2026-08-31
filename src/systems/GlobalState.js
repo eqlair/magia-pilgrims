@@ -51,6 +51,7 @@ export class GlobalState {
         
         // 道場解放フラグ（シナリオ進行で解放、デバッグ時は常時表示）
         this.isDojoUnlocked = false;
+        this.dojoEventSeen = false;
         
         // インベントリ
         this.inventory = {

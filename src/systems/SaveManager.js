@@ -33,6 +33,7 @@ export class SaveManager {
             const globalData = {
                 isOpCompleted: gs.isOpCompleted !== undefined ? gs.isOpCompleted : true,
                 isDojoUnlocked: gs.isDojoUnlocked || false,
+                dojoEventSeen: gs.dojoEventSeen || false,
                 stockExp: gs.stockExp,
                 stockSp: gs.stockSp,
                 devilStockSp: gs.devilStockSp || 0,
@@ -228,6 +229,7 @@ export class SaveManager {
 
         if (d.isOpCompleted !== undefined) gs.isOpCompleted = d.isOpCompleted;
         if (d.isDojoUnlocked !== undefined) gs.isDojoUnlocked = d.isDojoUnlocked;
+        if (d.dojoEventSeen !== undefined) gs.dojoEventSeen = d.dojoEventSeen;
         if (d.stockExp !== undefined) gs.stockExp = d.stockExp;
         if (d.stockSp !== undefined) gs.stockSp = d.stockSp;
         if (d.devilStockSp !== undefined) gs.devilStockSp = d.devilStockSp;

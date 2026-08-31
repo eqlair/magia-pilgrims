@@ -1,0 +1,17 @@
+﻿[
+  { "cmd": "bgm", "key": "002_menu" },
+  { "cmd": "text", "name": "", "body": "プロセルの残した、道場と書いた札を見つめていると紫苑は突如めまいに襲われ、視界は暗闇に包まれた。" },
+  { "cmd": "bg", "key": "dojo_banner" },
+  { "cmd": "text", "name": "", "body": "眼を開けるとそこは何かの道場のようで、中央に道着を着たプロセルが立っていた。" },
+  { "cmd": "chara", "key": "portrait_010_b", "pos": "left" },
+  { "cmd": "text", "name": "プロセル", "body": "「よく来たな、ここは貴様らを鍛え直すDOJOだ」" },
+  { "cmd": "chara", "key": "portrait_001", "pos": "right" },
+  { "cmd": "text", "name": "紫苑", "body": "「ど、道場…？」" },
+  { "cmd": "text", "name": "プロセル", "body": "「NO！　DOJO！　貴様らはここで心・技・体を鍛え上げ最強の魔法少女となるのだ」" },
+  { "cmd": "text", "name": "紫苑", "body": "「ド、DOJO…？」" },
+  { "cmd": "text", "name": "プロセル", "body": "「All Right！ DOJO！　貴様らが溜め込んだSPをより効率よく使用し、貴様らを作り変え…鍛え上げるのだ」" },
+  { "cmd": "text", "name": "紫苑", "body": "「ちょっと待て作り変えって何だ」" },
+  { "cmd": "text", "name": "プロセル", "body": "「分け身の分け身である余にはそれを説明する分の知識を与えられていない、早く強くなって余の本体を解放してくれ。」" },
+  { "cmd": "clearText" },
+  { "cmd": "end" }
+]
