@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Magia_Pilgrims</title>
+
+    <!-- Noto Serif JP: 400(Regular), 700(Bold) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body, html {
+        width: 100%; height: 100%;
+        background-color: #000;
+        overflow: hidden;
+      }
+
+      /*
+       * ゲーム全体のコンテナ
+       * position: fixed + inset: 0 で全画面に固定し、
+       * flexbox で canvas を縦長画面でも完璧な画面真ん中に配置する。
+       */
+      #game-container {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #000;
+      }
+
+      /* タイトル動画レイヤー（canvas背面） */
+      #title-video {
+        display: none;
+        position: absolute;
+        z-index: 0;
+        object-fit: cover;
+        pointer-events: none;
+      }
+
+      /* Phaser canvas（前面） 
+       * Phaserのインラインmargin指定による上下のズレを防ぐため margin: 0 !important を適用
+       */
+      canvas {
+        position: relative;
+        z-index: 1;
+        display: block;
+        margin: 0 !important;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-DC3JX6ET.js"></script>
+  </head>
+  <body>
+    <div id="game-container">
+      <video id="title-video" muted loop playsinline preload="auto">
+        <source src="./files/OP/OP001.mp4" type="video/mp4">
+      </video>
+    </div>
+  </body>
+</html>
