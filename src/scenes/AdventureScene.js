@@ -36,6 +36,9 @@ export default class AdventureScene extends Phaser.Scene {
         this.isTowerMode = !!gs.isTowerMode;
         if (this.isTowerMode) {
             gs.hasEnteredTower = true;
+            gs.currentMonth = 12;
+            gs.currentDay = 22;
+            gs.timePeriodIndex = 0;
         }
     }
 
@@ -107,7 +110,11 @@ export default class AdventureScene extends Phaser.Scene {
         
         const startDayInput = (this._initData && this._initData.startDay) ? Math.min(20, Math.max(1, parseInt(this._initData.startDay, 10))) : null;
 
-        if (startDayInput !== null) {
+        if (this.isTowerMode) {
+            this.currentMonth = 12;
+            this.currentDay   = 22;
+            this.timePeriodIndex = 0;
+        } else if (startDayInput !== null) {
             this.currentMonth = 12;
             this.currentDay   = startDayInput;
             this.timePeriodIndex = 0;
@@ -499,6 +506,9 @@ export default class AdventureScene extends Phaser.Scene {
             console.log('[AdventureScene] ★ 詰み状態検出: ikebukuro02Played=true だがタワー未突入 → タワーへ強制遷移');
             gs.isTowerMode = true;
             gs.hasEnteredTower = true;
+            gs.currentMonth = 12;
+            gs.currentDay = 22;
+            gs.timePeriodIndex = 0;
             this.isTowerMode = true;
             this.time.delayedCall(300, () => {
                 TransitionManager.transitionTo(this, 'AdventureScene', {
@@ -1013,6 +1023,9 @@ export default class AdventureScene extends Phaser.Scene {
                     const gs = GlobalState.getInstance();
                     gs.isTowerMode = true;
                     gs.hasEnteredTower = true;
+                    gs.currentMonth = 12;
+                    gs.currentDay = 22;
+                    gs.timePeriodIndex = 0;
                     TransitionManager.transitionTo(this, 'AdventureScene', {
                         isTower: true,
                         party: this.party && this.party.length > 0 ? this.party : ['001']
@@ -3255,6 +3268,10 @@ export default class AdventureScene extends Phaser.Scene {
     
     updateNightOverlay() {
         if (this.nightOverlay) {
+            if (this.isTowerMode) {
+                this.nightOverlay.setVisible(false);
+                return;
+            }
             const isDec21 = (this.currentMonth === 12 && this.currentDay === 21);
             this.nightOverlay.setVisible(this.timeOfDay === '夜' || isDec21);
         }
@@ -3409,8 +3426,8 @@ export default class AdventureScene extends Phaser.Scene {
             this.stopTicker();
         }
 
-        // 12月21日の間はずっとBG_06.pngのゆらゆらエフェクト(Dec21Effect)を表示・更新
-        const isDec21 = (this.currentMonth === 12 && this.currentDay === 21);
+        // 12月21日の間はずっとBG_06.pngのゆらゆらエフェクト(Dec21Effect)を表示・更新 (タワー内では無効)
+        const isDec21 = !this.isTowerMode && (this.currentMonth === 12 && this.currentDay === 21);
         if (isDec21) {
             if (!this.dec21Effect) {
                 this.dec21Effect = new Dec21Effect(this, 12);
@@ -4042,6 +4059,13 @@ export default class AdventureScene extends Phaser.Scene {
                     this.cameras.main.centerOn(this.player.x, this.player.y);
                 }
             }
+            this.currentMonth = 12;
+            this.currentDay = 22;
+            this.timePeriodIndex = 0;
+            this.timeOfDay = '午前';
+            gs.currentMonth = 12;
+            gs.currentDay = 22;
+            gs.timePeriodIndex = 0;
             this._updateDateTimeDisplay();
             this.updateVisibility();
             return;
