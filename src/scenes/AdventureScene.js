@@ -493,6 +493,22 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
 
+        // ★ 詰み状態救済: ikebukuro02Played=true かつ isTowerMode=false の場合
+        //   (イベント完了後に何らかの理由でタワー遷移がスキップされた場合の自動修正)
+        if (!isNewGame && !this.isTowerMode && gs.ikebukuro02Played && !gs.hasEnteredTower) {
+            console.log('[AdventureScene] ★ 詰み状態検出: ikebukuro02Played=true だがタワー未突入 → タワーへ強制遷移');
+            gs.isTowerMode = true;
+            gs.hasEnteredTower = true;
+            this.isTowerMode = true;
+            this.time.delayedCall(300, () => {
+                TransitionManager.transitionTo(this, 'AdventureScene', {
+                    isTower: true,
+                    party: this.party && this.party.length > 0 ? this.party : ['001']
+                });
+            });
+            return;
+        }
+
         // タワー広域表示時の背景セットアップ (tow1〜tow4)
         if (this.isTowerMode) {
             this._setupTowerWideBackground();

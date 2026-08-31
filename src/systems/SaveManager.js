@@ -57,6 +57,11 @@ export class SaveManager {
                 event1214Played: gs.event1214Played,
                 event1217Played: gs.event1217Played,
                 event1221Played: gs.event1221Played,
+                event1221WildhuntPlayed: gs.event1221WildhuntPlayed || false,
+                ikebukuro01Played: gs.ikebukuro01Played || false,
+                ikebukuro02Played: gs.ikebukuro02Played || false,
+                isTowerMode: gs.isTowerMode || false,
+                hasEnteredTower: gs.hasEnteredTower || false,
 
                 extraEnemyLevel: gs.extraEnemyLevel,
                 extraWitchLevel: gs.extraWitchLevel,
@@ -281,6 +286,11 @@ export class SaveManager {
         if (d.event1214Played !== undefined) gs.event1214Played = d.event1214Played;
         if (d.event1217Played !== undefined) gs.event1217Played = d.event1217Played;
         if (d.event1221Played !== undefined) gs.event1221Played = d.event1221Played;
+        if (d.event1221WildhuntPlayed !== undefined) gs.event1221WildhuntPlayed = d.event1221WildhuntPlayed;
+        if (d.ikebukuro01Played !== undefined) gs.ikebukuro01Played = d.ikebukuro01Played;
+        if (d.ikebukuro02Played !== undefined) gs.ikebukuro02Played = d.ikebukuro02Played;
+        if (d.isTowerMode !== undefined) gs.isTowerMode = d.isTowerMode;
+        if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
         if (d.seenEventHistory !== undefined) gs.seenEventHistory = d.seenEventHistory || [];
 
         if (d.extraEnemyLevel !== undefined) gs.extraEnemyLevel = d.extraEnemyLevel;
