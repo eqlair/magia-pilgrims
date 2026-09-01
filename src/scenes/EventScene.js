@@ -259,6 +259,15 @@ export default class EventScene extends Phaser.Scene {
             return;
         }
 
+        // タワー内全滅時: ホワイトアウトさせず、直接「はい／いいえ」ダイアログを表示！
+        if (this.fromTowerRespEvent) {
+            if (this.engine) {
+                this.engine.cleanup();
+            }
+            this._showTowerRespDialog();
+            return;
+        }
+
         if (this.engine) {
             this.engine.cleanup();
         }
@@ -506,11 +515,6 @@ export default class EventScene extends Phaser.Scene {
                     return;
                 }
 
-                if (this.fromTowerRespEvent) {
-                    this._showTowerRespDialog();
-                    return;
-                }
-
                 if (this.enemyLevel > 0 || this.isTowerBattle) {
                     console.log('[EventScene] Direct transition to BattleScene (No map resume intermediate)');
                     const partySize = (party && party.length) ? party.length : 1;
@@ -575,7 +579,7 @@ export default class EventScene extends Phaser.Scene {
     /** タワー内全滅時の選択肢ダイアログ */
     _showTowerRespDialog() {
         const { width, height } = this.scale;
-        const container = this.add.container(0, 0).setDepth(6000);
+        const container = this.add.container(0, 0).setDepth(20000);
 
         // 暗転背景
         const mask = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6)
@@ -637,11 +641,30 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _finishTowerResp(choice) {
-        if (this.engine) this.engine.cleanup();
-        this.scene.stop();
-        this.scene.resume(this.returnScene, {
-            fromTowerRespEvent: true,
-            choice: choice
-        });
+        if (choice === 'yes') {
+            const { width, height } = this.scale;
+            const whiteScreen = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
+                .setAlpha(0).setDepth(20001);
+            this.tweens.add({
+                targets: whiteScreen,
+                alpha: 1,
+                duration: 800,
+                onComplete: () => {
+                    if (this.engine) this.engine.cleanup();
+                    this.scene.stop();
+                    this.scene.resume(this.returnScene, {
+                        fromTowerRespEvent: true,
+                        choice: 'yes'
+                    });
+                }
+            });
+        } else {
+            if (this.engine) this.engine.cleanup();
+            this.scene.stop();
+            this.scene.resume(this.returnScene, {
+                fromTowerRespEvent: true,
+                choice: 'no'
+            });
+        }
     }
 }
