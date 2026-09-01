@@ -1,4 +1,4 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
 import { TransitionManager } from '../systems/TransitionManager';
@@ -97,16 +97,28 @@ export default class DojoScene extends Phaser.Scene {
         });
         this.mainContainer.add(backBtn);
 
-        // 所持SP表示
-        const spText = this.add.text(width - 14, headerY, `所持SP: ${Math.floor(gs.stockSp || 0).toLocaleString()}`, {
+        // 所持SP ＆ 周回時喪失SP 表示
+        const spContainer = this.add.container(width - 14, headerY);
+        const spText = this.add.text(0, -10, `所持SP: ${Math.floor(gs.stockSp || 0).toLocaleString()}`, {
             fontFamily: FONT_MAIN,
-            fontSize: '16px',
+            fontSize: '13px',
             color: '#00ffff',
             fontStyle: 'bold',
             backgroundColor: '#00000099',
-            padding: { x: 12, y: 6 }
+            padding: { x: 8, y: 3 }
         }).setOrigin(1, 0.5);
-        this.mainContainer.add(spText);
+
+        const lostSpText = this.add.text(0, 12, `周回時喪失SP: ${Math.floor(gs.devilStockSp || 0).toLocaleString()}`, {
+            fontFamily: FONT_MAIN,
+            fontSize: '13px',
+            color: '#ff99cc',
+            fontStyle: 'bold',
+            backgroundColor: '#00000099',
+            padding: { x: 8, y: 3 }
+        }).setOrigin(1, 0.5);
+
+        spContainer.add([spText, lostSpText]);
+        this.mainContainer.add(spContainer);
 
         // ── 画面の描画（キャラ選択 or 個別訓練メニュー） ──
         if (!this.selectedCharId) {
@@ -341,13 +353,13 @@ export default class DojoScene extends Phaser.Scene {
             this.mainContainer.add([tabBg, tabText, tabSub]);
         });
 
-        // ── 科目一覧パネル（5科目・さらに縦に広げて84px ＆ 文字特大化 ＆ タップで直接訓練） ──
         const selectedDeptDef = DOJO_SUBJECTS[this.selectedDept];
         const selectedDeptState = dojo.subjects[this.selectedDept];
         const isCurrentLocked = (this.selectedDept !== 'A' && !dojo.kisoCompleted);
         const isMaxStage = (this.selectedDept !== 'A' && selectedDeptState.stage > selectedDeptDef.maxStage);
         const isACompleted = (this.selectedDept === 'A' && dojo.kisoCompleted);
-        const canTrain = !isCurrentLocked && !isMaxStage && !isACompleted && (gs.stockSp >= cost);
+        const totalAvailableSp = (gs.stockSp || 0) + (gs.devilStockSp || 0);
+        const canTrain = !isCurrentLocked && !isMaxStage && !isACompleted && (totalAvailableSp >= cost);
 
         const listStartY = gridStartY + (gridH + 6) * 2 + 10;
         const rowH = 84; // さらに縦に広げた高さ (84px)
@@ -418,7 +430,7 @@ export default class DojoScene extends Phaser.Scene {
             btnLabel = '【KISO学科 履修完了】';
         } else if (isMaxStage) {
             btnLabel = '【この学科は免許皆伝まで満了】';
-        } else if (gs.stockSp < cost) {
+        } else if (totalAvailableSp < cost) {
             btnLabel = `SP不足 (必要: ${cost} SP)`;
         }
 
@@ -514,10 +526,19 @@ export default class DojoScene extends Phaser.Scene {
      */
     executeTraining(charData, deptKey, cost) {
         const gs = GlobalState.getInstance();
-        if (gs.stockSp < cost) return;
+        const totalAvailableSp = (gs.stockSp || 0) + (gs.devilStockSp || 0);
+        if (totalAvailableSp < cost) return;
 
-        // SP消費
-        gs.stockSp -= cost;
+        // SP消費: 周回時喪失SP(devilStockSp)から優先消費！
+        let remainingCost = cost;
+        if ((gs.devilStockSp || 0) > 0) {
+            const fromDevil = Math.min(gs.devilStockSp, remainingCost);
+            gs.devilStockSp -= fromDevil;
+            remainingCost -= fromDevil;
+        }
+        if (remainingCost > 0) {
+            gs.stockSp = Math.max(0, (gs.stockSp || 0) - remainingCost);
+        }
 
         // ランダム履修
         const learnedSubject = performDojoTraining(charData, deptKey);
