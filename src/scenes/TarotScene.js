@@ -389,10 +389,10 @@ export default class TarotScene extends Phaser.Scene {
                     }
                 }
 
-                // ② 白蓮(010): 1周目(リスポーン未経験)はタロット遭遇不可。
+                // ② 白蓮(011): 1周目(リスポーン未経験)はタロット遭遇不可。
                 // 秋葉原で探索して出会った後(hasAccompanied)か、1度以上リスポーンした後に解放
-                if (joinCharId === '010') {
-                    const hasMetInAkiba = !!(gs.characters?.['010']?.hasAccompanied);
+                if (joinCharId === '011') {
+                    const hasMetInAkiba = !!(gs.characters?.['011']?.hasAccompanied);
                     const hasRespawned = (gs.maxPastExp || 0) > 0;
                     if (!hasMetInAkiba && !hasRespawned) {
                         isUnlockedForTarot = false;
@@ -445,7 +445,7 @@ export default class TarotScene extends Phaser.Scene {
             4: '004',   // 黄蘭 (女帝)
             5: '008',   // ノア (皇帝)
             9: '003',   // 紅華 (力)
-            10: '010',  // 白蓮 (隠者)
+            10: '011',  // 白蓮 (隠者)
             12: '002',  // 蒼樹 (正義)
             15: '005'   // 李乃果 (節制)
         };

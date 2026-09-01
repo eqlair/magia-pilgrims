@@ -472,12 +472,6 @@ export default class EventScene extends Phaser.Scene {
                     return;
                 }
 
-                if (this.fromDojoEvent) {
-                    this.scene.stop();
-                    TransitionManager.transitionTo(this, 'DojoScene');
-                    return;
-                }
-
                 const advScene = this.scene.get('AdventureScene');
                 let party = ['001'];
                 if (advScene && advScene.party) party = advScene.party;
@@ -568,6 +562,7 @@ export default class EventScene extends Phaser.Scene {
                         fromRespEvent: this.fromRespEvent,
                         from2R1201Event: this.from2R1201Event,
                         from2RDevilEvent: this.from2RDevilEvent,
+                        fromDojoEvent: this.fromDojoEvent,
                         fromTowerRespEvent: this.fromTowerRespEvent,
                         joinCharacterId: this.joinCharacterId 
                     });

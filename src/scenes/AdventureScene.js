@@ -1208,6 +1208,12 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
+                // DOJO 初回チュートリアルイベント完了時 -> 道場画面(DojoScene)へシームレス明転遷移！
+                if (data && data.fromDojoEvent) {
+                    TransitionManager.transitionTo(this, 'DojoScene');
+                    return;
+                }
+
                 if (this._pendingTarot) {
                     this._pendingTarot = false;
                     const currentHex = this.grid[this.playerRow]?.[this.playerCol];
