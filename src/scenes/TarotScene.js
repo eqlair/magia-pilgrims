@@ -296,15 +296,11 @@ export default class TarotScene extends Phaser.Scene {
         const infoBox = this.add.rectangle(this.width / 2, this.height - 180, this.width - 100, 240, 0x000000, 0.7)
             .setAlpha(0);
 
-        const titleText = this.add.text(this.width / 2, this.height - 260, `${cardData.name} 【${positionText}】`, {
+        const titleText = this.add.text(this.width / 2, this.height - 240, `${cardData.name} 【${positionText}】`, {
             fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#ffddaa'
         }).setOrigin(0.5).setAlpha(0);
 
-        const charaText = this.add.text(this.width / 2, this.height - 210, `暗示: ${cardData.character}`, {
-            fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#aaaaaa'
-        }).setOrigin(0.5).setAlpha(0);
-
-        const descText = this.add.text(this.width / 2, this.height - 180, effectText, {
+        const descText = this.add.text(this.width / 2, this.height - 190, effectText, {
             fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#ffffff',
             wordWrap: { width: this.width - 140, useAdvancedWrap: true },
             lineSpacing: 8
@@ -315,7 +311,7 @@ export default class TarotScene extends Phaser.Scene {
         }).setOrigin(1).setAlpha(0);
 
         this.tweens.add({
-            targets: [infoBox, titleText, charaText, descText],
+            targets: [infoBox, titleText, descText],
             alpha: 1,
             duration: 500,
             onComplete: () => {
