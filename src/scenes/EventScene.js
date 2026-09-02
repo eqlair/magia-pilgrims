@@ -69,7 +69,11 @@ export default class EventScene extends Phaser.Scene {
             } else if (this.from1221WildhuntEvent) {
                 this.eventId = 'event_1221_wildhunt';
             } else if (this.fromRespEvent) {
-                this.eventId = 'event_resporn';
+                this.eventId = 'event_resp';
+            } else if (this.from2R1201Event) {
+                this.eventId = 'event_2r1201';
+            } else if (this.from2RDevilEvent) {
+                this.eventId = 'event_2r_devil';
             } else if (this.fromTowerRespEvent) {
                 this.eventId = 'event_tow_res';
             } else if (data.fromIkebukuro01Event) {
@@ -176,6 +180,11 @@ export default class EventScene extends Phaser.Scene {
 
         skipBtn.on('pointerdown', (pointer) => {
             if (pointer && pointer.event) pointer.event.stopPropagation();
+            skipBtn.disableInteractive();
+            skipBtn.setVisible(false);
+            if (this.engine) {
+                this.engine.cleanup();
+            }
             this._skipEvent();
         });
     }
@@ -468,112 +477,119 @@ export default class EventScene extends Phaser.Scene {
 
         const { width, height } = this.scale;
 
-        const whiteScreen = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
-            .setAlpha(0).setDepth(9999).setScrollFactor(0);
-            
-        this.tweens.add({
-            targets: whiteScreen,
-            alpha: 1,
-            duration: 800,
-            onComplete: () => {
-                if (this.fromOpTutorial && this.battleConfig) {
-                    TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
-                    return;
-                }
-
-                const advScene = this.scene.get('AdventureScene');
-                let party = ['001'];
-                if (advScene && advScene.party) party = advScene.party;
-
-                if (this.from1221WildhuntEvent) {
-                    let maxLvl = 5;
-                    if (advScene && advScene.grid && advScene.playerRow !== undefined && advScene.playerCol !== undefined) {
-                        const currentHex = advScene.grid[advScene.playerRow]?.[advScene.playerCol];
-                        maxLvl = currentHex?.cellData?.enemyLevel || 5;
-                    }
-
-                    const config = {
-                        rule: 2, // 突破戦
-                        bgKey: 'road_enkin02',
-                        attribute: 'red',
-                        enemyCount: 200,
-                        breakthroughTarget: 12010,
-                        spawnInterval: 0.5,
-                        enemyLevel: 5,
-                        majoLevel: 0,
-                        isOverlay: false,
-                        returnScene: 'AdventureScene',
-                        party: party,
-                        canRetreat: false,
-                        is1221NightBattle: true
-                    };
-
-                    // BGMを止めずにBattleSceneへ引き継ぐ（keepBgm=true）
-                    if (this.engine) this.engine.cleanup(true);
-                    this.scene.sleep();
-                    this.scene.launch('BattleScene', config);
-                    return;
-                }
-
-                if (this.enemyLevel > 0 || this.isTowerBattle) {
-                    console.log('[EventScene] Direct transition to BattleScene (No map resume intermediate)');
-                    const partySize = (party && party.length) ? party.length : 1;
-                    const baseEnemyTable = { 1: 10, 2: 20, 3: 35, 4: 55, 5: 80 };
-                    const baseCount = baseEnemyTable[partySize] || (80 + (partySize - 5) * 25);
-                    const calcEnemyCount = baseCount + (this.enemyLevel || 1) * 3;
-
-                    const config = {
-                        rule: this.isTowerBattle ? 1 : 0,
-                        attribute: this.enemyAttr || 1,
-                        enemyAttr: this.enemyAttr || 1,
-                        enemyCount: this.isTowerBattle ? 100 : calcEnemyCount,
-                        waveCount: 2,
-                        totalWaves: 2,
-                        enemyLevel: this.enemyLevel || 1,
-                        majoLevel: this.majoLevel || 0,
-                        witchPattern: this.witchPattern || 1,
-                        isWitchOnly: this.isWitchOnly || false,
-                        bgmKey: this.selectedBgmKey,
-                        isOverlay: true,
-                        returnScene: 'AdventureScene',
-                        party: party,
-                        canRetreat: true,
-                        isNightBattle: this.isNightBattle || this.isNightExploration || false,
-                        isTowerBattle: this.isTowerBattle,
-                        towerEnemy1: this.towerEnemy1,
-                        towerEnemy2: this.towerEnemy2,
-                        towerEnemiesList: this.towerEnemiesList
-                    };
-
-                    if (this.engine) this.engine.cleanup();
-                    this.scene.sleep();
-                    this.scene.launch('BattleScene', config);
-                    return;
-                } else {
-                    this.scene.stop();
-                    this.scene.resume(this.returnScene, { 
-                        fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.from1221WildhuntEvent && !this.fromIkebukuro01Event && !this.fromIkebukuro02Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial,
-                        fromExploration: this.fromExploration,
-                        fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
-                        isNotification: this.isNotification,
-                        from1207Event: this.from1207Event,
-                        from1214Event: this.from1214Event,
-                        from1217Event: this.from1217Event,
-                        from1221Event: this.from1221Event,
-                        from1221WildhuntEvent: this.from1221WildhuntEvent,
-                        fromIkebukuro01Event: this.fromIkebukuro01Event,
-                        fromIkebukuro02Event: this.fromIkebukuro02Event,
-                        fromRespEvent: this.fromRespEvent,
-                        from2R1201Event: this.from2R1201Event,
-                        from2RDevilEvent: this.from2RDevilEvent,
-                        fromDojoEvent: this.fromDojoEvent,
-                        fromTowerRespEvent: this.fromTowerRespEvent,
-                        joinCharacterId: this.joinCharacterId 
-                    });
-                }
-
+        const doFinish = () => {
+            if (this.fromOpTutorial && this.battleConfig) {
+                TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
+                return;
             }
-        });
+
+            const advScene = this.scene.get('AdventureScene');
+            let party = ['001'];
+            if (advScene && advScene.party) party = advScene.party;
+
+            if (this.from1221WildhuntEvent) {
+                let maxLvl = 5;
+                if (advScene && advScene.grid && advScene.playerRow !== undefined && advScene.playerCol !== undefined) {
+                    const currentHex = advScene.grid[advScene.playerRow]?.[advScene.playerCol];
+                    maxLvl = currentHex?.cellData?.enemyLevel || 5;
+                }
+
+                const config = {
+                    rule: 2, // 突破戦
+                    bgKey: 'road_enkin02',
+                    attribute: 'red',
+                    enemyCount: 200,
+                    breakthroughTarget: 12010,
+                    spawnInterval: 0.5,
+                    enemyLevel: 5,
+                    majoLevel: 0,
+                    isOverlay: false,
+                    returnScene: 'AdventureScene',
+                    party: party,
+                    canRetreat: false,
+                    is1221NightBattle: true
+                };
+
+                // BGMを止めずにBattleSceneへ引き継ぐ（keepBgm=true）
+                if (this.engine) this.engine.cleanup(true);
+                this.scene.sleep();
+                this.scene.launch('BattleScene', config);
+                return;
+            }
+
+            if (this.enemyLevel > 0 || this.isTowerBattle) {
+                console.log('[EventScene] Direct transition to BattleScene (No map resume intermediate)');
+                const partySize = (party && party.length) ? party.length : 1;
+                const baseEnemyTable = { 1: 10, 2: 20, 3: 35, 4: 55, 5: 80 };
+                const baseCount = baseEnemyTable[partySize] || (80 + (partySize - 5) * 25);
+                const calcEnemyCount = baseCount + (this.enemyLevel || 1) * 3;
+
+                const config = {
+                    rule: this.isTowerBattle ? 1 : 0,
+                    attribute: this.enemyAttr || 1,
+                    enemyAttr: this.enemyAttr || 1,
+                    enemyCount: this.isTowerBattle ? 100 : calcEnemyCount,
+                    waveCount: 2,
+                    totalWaves: 2,
+                    enemyLevel: this.enemyLevel || 1,
+                    majoLevel: this.majoLevel || 0,
+                    witchPattern: this.witchPattern || 1,
+                    isWitchOnly: this.isWitchOnly || false,
+                    bgmKey: this.selectedBgmKey,
+                    isOverlay: true,
+                    returnScene: 'AdventureScene',
+                    party: party,
+                    canRetreat: true,
+                    isNightBattle: this.isNightBattle || this.isNightExploration || false,
+                    isTowerBattle: this.isTowerBattle,
+                    towerEnemy1: this.towerEnemy1,
+                    towerEnemy2: this.towerEnemy2,
+                    towerEnemiesList: this.towerEnemiesList
+                };
+
+                if (this.engine) this.engine.cleanup();
+                this.scene.sleep();
+                this.scene.launch('BattleScene', config);
+                return;
+            } else {
+                this.scene.stop();
+                this.scene.resume(this.returnScene, { 
+                    fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.from1221WildhuntEvent && !this.fromIkebukuro01Event && !this.fromIkebukuro02Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial && !this.fromDojoEvent,
+                    fromExploration: this.fromExploration,
+                    fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
+                    isNotification: this.isNotification,
+                    from1207Event: this.from1207Event,
+                    from1214Event: this.from1214Event,
+                    from1217Event: this.from1217Event,
+                    from1221Event: this.from1221Event,
+                    from1221WildhuntEvent: this.from1221WildhuntEvent,
+                    fromIkebukuro01Event: this.fromIkebukuro01Event,
+                    fromIkebukuro02Event: this.fromIkebukuro02Event,
+                    fromRespEvent: this.fromRespEvent,
+                    from2R1201Event: this.from2R1201Event,
+                    from2RDevilEvent: this.from2RDevilEvent,
+                    fromDojoEvent: this.fromDojoEvent,
+                    fromTowerRespEvent: this.fromTowerRespEvent,
+                    joinCharacterId: this.joinCharacterId 
+                });
+            }
+        };
+
+        if (this._isSkipping) {
+            doFinish();
+        } else {
+            const whiteScreen = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
+                .setAlpha(0).setDepth(9999).setScrollFactor(0);
+                
+            this.tweens.add({
+                targets: whiteScreen,
+                alpha: 1,
+                duration: 800,
+                onComplete: () => {
+                    doFinish();
+                }
+            });
+        }
     }
 
     /** タワー内全滅時の選択肢ダイアログ */

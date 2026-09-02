@@ -54,6 +54,7 @@ export class EventEngine {
         
         // UI
         this.locationLabel = null;
+        this._destroyed = false;
     }
 
     /** イベントを開始する */
@@ -81,6 +82,7 @@ export class EventEngine {
 
     /** インデックスのコマンドを処理 */
     _processNext() {
+        if (this._destroyed) return;
         if (this.index >= this.events.length) { this._finish(); return; }
 
         const cmd = this.events[this.index++];
@@ -486,8 +488,24 @@ export class EventEngine {
 
     /** 全リソースを破棄（シーン終了・明転前に呼ぶ）。keepBgm=trueのとき再生中BGMはそのまま引き継ぐ */
     cleanup(keepBgm = false) {
+        this._destroyed = true;
+        this.index = 999999;
+
+        // 全関連オブジェクトのTweenを停止
+        if (this.scene && this.scene.tweens) {
+            if (this.whiteRect) this.scene.tweens.killTweensOf(this.whiteRect);
+            if (this.illustImage) this.scene.tweens.killTweensOf(this.illustImage);
+            if (this.bgImage) this.scene.tweens.killTweensOf(this.bgImage);
+            if (this.bgOverlay) this.scene.tweens.killTweensOf(this.bgOverlay);
+            if (this.multiplyOverlay) this.scene.tweens.killTweensOf(this.multiplyOverlay);
+            if (this.charaRight) this.scene.tweens.killTweensOf(this.charaRight);
+            if (this.charaLeft) this.scene.tweens.killTweensOf(this.charaLeft);
+            if (this.locationLabel) this.scene.tweens.killTweensOf(this.locationLabel);
+            if (this.tapLabel) this.scene.tweens.killTweensOf(this.tapLabel);
+        }
+
         if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
-        if (this.whiteRect)   { this.scene.tweens.killTweensOf(this.whiteRect); this.whiteRect.destroy(); this.whiteRect = null; }
+        if (this.whiteRect)   { this.whiteRect.destroy(); this.whiteRect = null; }
         if (this.baseBlackRect) { this.baseBlackRect.destroy(); this.baseBlackRect = null; }
         if (this.bgImage)     { this.bgImage.destroy();     this.bgImage     = null; }
         if (this.bgOverlay)   { this.bgOverlay.destroy();   this.bgOverlay   = null; }
@@ -500,7 +518,7 @@ export class EventEngine {
 
         if (this._currentBgm && !keepBgm) {
             try {
-                this.scene.tweens.killTweensOf(this._currentBgm);
+                if (this.scene && this.scene.tweens) this.scene.tweens.killTweensOf(this._currentBgm);
                 if (this._currentBgm.isPlaying) this._currentBgm.stop();
                 this._currentBgm.destroy();
             } catch(e) {}
@@ -509,6 +527,7 @@ export class EventEngine {
     }
 
     _finish() {
+        if (this._destroyed) return;
         if (this.onComplete) this.onComplete();
     }
 }

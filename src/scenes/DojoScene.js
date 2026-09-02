@@ -92,7 +92,9 @@ export default class DojoScene extends Phaser.Scene {
                 this.selectedCharId = null;
                 this.drawScene();
             } else {
-                TransitionManager.transitionTo(this, 'AdventureScene');
+                TransitionManager.transitionTo(this, 'AdventureScene', {
+                    isTower: gs.isTowerMode || false
+                });
             }
         });
         this.mainContainer.add(backBtn);

@@ -169,8 +169,8 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).jpg`);
         }
         
-        // イベント一枚絵 (実在するevp002 ~ 007, 011をロード)
-        const validEvpNums = [2, 3, 4, 5, 6, 7, 11];
+        // イベント一枚絵 (実在するevp002 ~ 008, 011をロード)
+        const validEvpNums = [2, 3, 4, 5, 6, 7, 8, 11];
         for (const i of validEvpNums) {
             const numStr = i.toString().padStart(3, '0');
             this.load.image(`evp${numStr}`, `files/event/evp${numStr}.jpg`);

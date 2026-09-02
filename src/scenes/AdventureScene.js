@@ -36,9 +36,6 @@ export default class AdventureScene extends Phaser.Scene {
         this.isTowerMode = !!gs.isTowerMode;
         if (this.isTowerMode) {
             gs.hasEnteredTower = true;
-            gs.currentMonth = 12;
-            gs.currentDay = 22;
-            gs.timePeriodIndex = 0;
         }
     }
 
@@ -87,6 +84,7 @@ export default class AdventureScene extends Phaser.Scene {
         TransitionManager.fadeIn(this);
         const { width, height } = this.scale;
         const isNewGame = !!(this._initData && this._initData.isNewGame);
+        const isRespawn = !!(this._initData && this._initData.fromRespawn);
         if (isNewGame) {
             SaveManager.clearSaveData();
         }
@@ -214,9 +212,9 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
 
-        // セーブデータが存在しない場合（新規プレイ開始時）のみ魔女21箇所をランダム配置 (タワー時は魔女配置なし)
+        // セーブデータが存在しない場合（新規プレイ開始時）または周回リスタート時(isRespawn)のみ魔女21箇所をランダム配置 (タワー時は魔女配置なし)
         const savedDataForWitch = SaveManager.loadGameData();
-        const hasSavedAdventure = savedDataForWitch && savedDataForWitch.adventureState && savedDataForWitch.adventureState.hexStates;
+        const hasSavedAdventure = !isRespawn && savedDataForWitch && savedDataForWitch.adventureState && savedDataForWitch.adventureState.hexStates;
 
         if (!hasSavedAdventure && !this.isTowerMode) {
             const landHexes = this.hexes.filter(h => h.cellData.enemyLevel > 0);
@@ -466,8 +464,8 @@ export default class AdventureScene extends Phaser.Scene {
         // -- 背景スプライトのセットアップ (ズームの影響なし) --
         this.setupBackground();
 
-        // チュートリアル/新規開始時の東京ヘクス討伐済み処理
-        if (this._initData.isTutorialStart || this._initData.fromTitleNewGame) {
+        // チュートリアル/新規開始/周回リスタート時の東京ヘクス討伐済み処理
+        if (this._initData.isTutorialStart || this._initData.fromTitleNewGame || isRespawn) {
             const tokyoHex = this.grid[6]?.[3];
             if (tokyoHex && tokyoHex.cellData) {
                 tokyoHex.cellData.visited = 1;
@@ -492,8 +490,8 @@ export default class AdventureScene extends Phaser.Scene {
         // -- 画面上部のテロップ (Tips) --
         this.setupTicker();
 
-        // セーブデータが存在し、かつ新規ゲーム起動(isNewGame)でない場合のみマップ状態を復元適用
-        if (!isNewGame) {
+        // セーブデータが存在し、かつ新規ゲーム起動(isNewGame)や周回リスタート(isRespawn)でない場合のみマップ状態を復元適用
+        if (!isNewGame && !isRespawn) {
             const saveData = SaveManager.loadGameData();
             if (saveData && (saveData.adventureState || saveData.towerState)) {
                 this.applySaveData(saveData);
@@ -502,7 +500,7 @@ export default class AdventureScene extends Phaser.Scene {
 
         // ★ 詰み状態救済: ikebukuro02Played=true かつ isTowerMode=false の場合
         //   (イベント完了後に何らかの理由でタワー遷移がスキップされた場合の自動修正)
-        if (!isNewGame && !this.isTowerMode && gs.ikebukuro02Played && !gs.hasEnteredTower) {
+        if (!isNewGame && !isRespawn && !this.isTowerMode && gs.ikebukuro02Played && !gs.hasEnteredTower) {
             console.log('[AdventureScene] ★ 詰み状態検出: ikebukuro02Played=true だがタワー未突入 → タワーへ強制遷移');
             gs.isTowerMode = true;
             gs.hasEnteredTower = true;
@@ -854,6 +852,11 @@ export default class AdventureScene extends Phaser.Scene {
                 if (this.isTowerMode) {
                     const hexKey = `${this.playerCol}_${this.playerRow}`;
                     gs.towerClearedHexes[hexKey] = true;
+                    // 塔での戦闘勝利時、食料を+40（上限140でカット）
+                    if (!data.isRetreated) {
+                        gs.food = Math.min(140, (gs.food || 0) + 40);
+                        this._updateFoodDisplay();
+                    }
                     this._updateDateTimeDisplay();
                     const currentFloor = 59 - this.playerRow;
                     TimeReporter.showFloor(this, currentFloor + 1);
@@ -925,12 +928,42 @@ export default class AdventureScene extends Phaser.Scene {
                         console.log(`[DEBUG TowerEncounter] chosenCharId=${chosenCharId}, storyEventsCount=${storyEvents?.length}`);
                         if (storyEvents && storyEvents.length > 0) {
                             console.log(`[AdventureScene] Tower post-battle encounter triggered: ${chosenCharId}`);
+
+                            // SKIPされた場合も正しく加入処理が走るよう、resumeリスナーを事前登録
+                            let joinDone = false;
+                            const onTowerJoinEnd = (scene, resumeData) => {
+                                if (!resumeData || !resumeData.fromExploration) return;
+                                if (resumeData.joinCharacterId !== chosenCharId) return;
+                                if (joinDone) return;
+                                joinDone = true;
+                                this.events.off('resume', onTowerJoinEnd);
+
+                                const normId = gs.normalizeCharId(chosenCharId);
+                                const currentNorm = (this.party || []).map(id => gs.normalizeCharId(id));
+                                if (!currentNorm.includes(normId) && (this.party || []).length < 5) {
+                                    this.party.push(normId);
+                                }
+                                gs.assignFormationForNewMember(normId);
+                                const joinedChar = gs.getCharacter(normId);
+                                if (joinedChar) {
+                                    const stats = gs.calcStats(normId, this.party);
+                                    if (stats) {
+                                        joinedChar.currentHp = stats.maxHp;
+                                        joinedChar.currentSp = stats.maxSp;
+                                    }
+                                }
+                                SaveManager.saveGame(this);
+                                console.log('[AdventureScene] Tower encounter: joined & saved for:', normId);
+                            };
+                            this.events.on('resume', onTowerJoinEnd);
+
                             this.scene.pause();
                             this.scene.launch('EventScene', {
                                 events: storyEvents,
                                 returnScene: 'AdventureScene',
                                 joinCharacterId: chosenCharId,
-                                fromExploration: true
+                                fromExploration: true,
+                                eventId: `join_${chosenCharId}`
                             });
                             return;
                         }
@@ -1003,12 +1036,16 @@ export default class AdventureScene extends Phaser.Scene {
                 if (data && data.from1207Event) {
                     GlobalState.getInstance().event1207Played = true;
                     SaveManager.saveGame(this);
+                    TransitionManager.fadeIn(this);
+                    return;
                 }
 
                 // 12/17午後イベント視聴完了時 -> 視聴フラグをONに更新
                 if (data && data.from1217Event) {
                     GlobalState.getInstance().event1217Played = true;
                     SaveManager.saveGame(this);
+                    TransitionManager.fadeIn(this);
+                    return;
                 }
 
                 // 12/14就寝前イベント完了時 -> 視聴フラグ確定・日時同期後、15日午前の時報を1回だけ鳴らしてreturn
@@ -1054,11 +1091,14 @@ export default class AdventureScene extends Phaser.Scene {
                     SaveManager.saveGame(this);
                     const respData = this.cache.json.get('event_resp');
                     if (respData) {
-                        this.scene.pause();
-                        this.scene.launch('EventScene', {
-                            events: respData,
-                            returnScene: 'AdventureScene',
-                            fromRespEvent: true
+                        this.time.delayedCall(100, () => {
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: respData,
+                                returnScene: 'AdventureScene',
+                                fromRespEvent: true,
+                                eventId: 'event_resp'
+                            });
                         });
                         return;
                     }
@@ -1093,22 +1133,15 @@ export default class AdventureScene extends Phaser.Scene {
                     gs.inventory.relics.push(urRelic);
                     this.showToast(`✨ 周回報酬: URレリクス『${urRelic.name}』を獲得！`);
 
-                    this.resetMapForNewLoop();
-                    SaveManager.saveGame(this);
+                    SaveManager.clearAdventureState();
+                    SaveManager.saveGame();
 
-                    // 2R1201ev イベントの起動（12/1東京駅開始時の独白・対話イベント）
-                    const r2EvData = this.cache.json.get('event_2r1201');
-                    if (r2EvData) {
-                        this.scene.pause();
-                        this.scene.launch('EventScene', {
-                            events: r2EvData,
-                            returnScene: 'AdventureScene',
-                            from2R1201Event: true
-                        });
-                        return;
-                    }
-
-                    TransitionManager.fadeIn(this);
+                    // 地上マップシーン（12/1東京駅）へクリーンに再起動遷移！
+                    TransitionManager.transitionTo(this, 'AdventureScene', {
+                        isTower: false,
+                        party: ['001'],
+                        fromRespawn: true
+                    });
                     return;
                 }
 
@@ -1146,8 +1179,8 @@ export default class AdventureScene extends Phaser.Scene {
                         gs.inventory.relics.push(urRelic);
                         this.showToast(`✨ 周回報酬: URレリクス『${urRelic.name}』を獲得！`);
 
-                        this.resetMapForNewLoop();
-                        SaveManager.saveGame(this);
+                        SaveManager.clearAdventureState();
+                        SaveManager.saveGame();
 
                         // 地上マップシーン（12/1東京駅）へクリーンに再起動遷移！
                         TransitionManager.transitionTo(this, 'AdventureScene', {
@@ -4123,6 +4156,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (!saveData) return;
         SaveManager.restoreGlobalState(saveData);
         const gs = GlobalState.getInstance();
+        const adv = saveData.adventureState;
 
         if (this.isTowerMode) {
             const tower = saveData.towerState;
@@ -4183,19 +4217,15 @@ export default class AdventureScene extends Phaser.Scene {
                     this.cameras.main.centerOn(this.player.x, this.player.y);
                 }
             }
-            this.currentMonth = 12;
-            this.currentDay = 22;
-            this.timePeriodIndex = 0;
-            this.timeOfDay = '午前';
-            gs.currentMonth = 12;
-            gs.currentDay = 22;
-            gs.timePeriodIndex = 0;
+            if (adv && adv.currentMonth !== undefined) this.currentMonth = adv.currentMonth;
+            if (adv && adv.currentDay !== undefined) this.currentDay = adv.currentDay;
+            if (adv && adv.timeOfDay !== undefined) this.timeOfDay = adv.timeOfDay;
+            if (adv && adv.timePeriodIndex !== undefined) this.timePeriodIndex = adv.timePeriodIndex;
             this._updateDateTimeDisplay();
             this.updateVisibility();
             return;
         }
 
-        const adv = saveData.adventureState;
         if (!adv) return;
 
         if (adv.playerCol !== undefined && adv.playerRow !== undefined) {
@@ -4925,6 +4955,7 @@ export default class AdventureScene extends Phaser.Scene {
 
         hitArea.on('pointerdown', () => {
             container.setScale(0.92);
+            SaveManager.saveGame(this);
             if (!gs.dojoEventSeen) {
                 gs.dojoEventSeen = true;
                 SaveManager.saveGame(this);
