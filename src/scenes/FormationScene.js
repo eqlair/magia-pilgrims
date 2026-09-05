@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { MapProjector } from '../systems/MapProjector';
 import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
+import { RelicGenerator } from '../systems/RelicGenerator';
 
 
 export default class FormationScene extends Phaser.Scene {
@@ -202,6 +203,39 @@ export default class FormationScene extends Phaser.Scene {
         this.input.on('pointerdown', this.onPointerDown, this);
         this.input.on('pointerup', this.onPointerUp, this);
         this.input.on('pointerupoutside', this.onPointerUp, this);
+
+        // デバッグ機能＆ボタン
+        if (GlobalState.IS_DEBUG_MODE) {
+            // キーボード操作
+            this.input.keyboard.on('keydown-J', () => {
+                this.applyAllAttackLevel7();
+            });
+            this.input.keyboard.on('keydown-L', () => {
+                this.applyCheatExpSp();
+            });
+            this.input.keyboard.on('keydown-K', () => {
+                this.applyCheatRelics();
+            });
+
+            // 画面右上チートボタン群（タップ操作用）
+            const btnLv7 = this.add.text(width - 16, 16, '⚔️ 全Lv7 (J)', {
+                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffea00',
+                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
+            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            btnLv7.on('pointerdown', () => this.applyAllAttackLevel7());
+
+            const btnExp = this.add.text(width - 16, 52, '💰 EXP,SP5万点 (L)', {
+                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#66ff88',
+                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
+            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            btnExp.on('pointerdown', () => this.applyCheatExpSp());
+
+            const btnRelics = this.add.text(width - 16, 88, '💎 レリクス･宝石パック (K)', {
+                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#88ddff',
+                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
+            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            btnRelics.on('pointerdown', () => this.applyCheatRelics());
+        }
     }
 
     drawDashedLine(x1, y1, x2, y2, dashLength = 15, gapLength = 15) {
@@ -370,5 +404,74 @@ export default class FormationScene extends Phaser.Scene {
                 }
             }
         }
+    }
+
+    showDebugToast(message) {
+        if (this.debugToast) {
+            this.debugToast.destroy();
+            this.debugToast = null;
+        }
+        const width = this.cameras.main.width;
+        this.debugToast = this.add.text(width / 2, 185, message, {
+            fontFamily: 'sans-serif',
+            fontSize: '16px',
+            fontStyle: 'bold',
+            color: '#ffffaa',
+            backgroundColor: '#000000dd',
+            padding: { x: 12, y: 7 },
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(9999);
+        this.time.delayedCall(2200, () => {
+            if (this.debugToast) {
+                this.debugToast.destroy();
+                this.debugToast = null;
+            }
+        });
+    }
+
+    applyAllAttackLevel7() {
+        if (this.globalState.characters) {
+            for (const cid in this.globalState.characters) {
+                const c = this.globalState.characters[cid];
+                if (c) {
+                    c.meleeLevel = 7;
+                    c.rangedLevel = 7;
+                }
+            }
+        }
+        SaveManager.saveGame();
+        this.showDebugToast('[DEBUG] みんなの攻撃レベルを全部7にしました！(近接7 / 遠隔7)');
+    }
+
+    applyCheatExpSp() {
+        const addedExp = this.globalState.addDirectStockExp(50000);
+        this.globalState.stockSp = (this.globalState.stockSp || 0) + 50000;
+        SaveManager.saveGame();
+        this.showDebugToast(`[DEBUG] 経験値 +${addedExp.toLocaleString()} / SP +50,000 (SP: ${this.globalState.stockSp.toLocaleString()})`);
+    }
+
+    applyCheatRelics() {
+        if (!this.globalState.inventory) {
+            this.globalState.inventory = { relics: [], gems: [] };
+        }
+        if (!this.globalState.inventory.relics) this.globalState.inventory.relics = [];
+        if (!this.globalState.inventory.gems) this.globalState.inventory.gems = [];
+
+        // SSR (Rank 4) × 10
+        for (let i = 0; i < 10; i++) {
+            this.globalState.inventory.relics.push(RelicGenerator.generateRelic(4));
+        }
+        // UR (Rank 5) × 2
+        for (let i = 0; i < 2; i++) {
+            this.globalState.inventory.relics.push(RelicGenerator.generateRelic(5));
+        }
+        // MR (Rank 7) × 1
+        this.globalState.inventory.relics.push(RelicGenerator.generateRelic(7));
+        // 宝石 × 1
+        this.globalState.inventory.gems.push(RelicGenerator.generateGem());
+
+        SaveManager.saveGame();
+        this.showDebugToast('[DEBUG] レリクス(SSR:10, UR:2, MR:1) ＆ 宝石(1) を生成しました！');
     }
 }

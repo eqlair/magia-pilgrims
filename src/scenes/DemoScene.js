@@ -98,6 +98,13 @@ export default class DemoScene extends Phaser.Scene {
                 action: () => {
                     TransitionManager.transitionTo(this, 'MapEventAdjustScene');
                 }
+            },
+            {
+                label: '⑫ 🎬 イベントテスト\n（日付・出会い・各種イベント再生）',
+                color: 0x994422,
+                action: () => {
+                    TransitionManager.transitionTo(this, 'EventTestScene');
+                }
             }
         ];
 

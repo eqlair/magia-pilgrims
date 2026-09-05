@@ -52,6 +52,10 @@ export class GlobalState {
         // 道場解放フラグ（シナリオ進行で解放、デバッグ時は常時表示）
         this.isDojoUnlocked = false;
         this.dojoEventSeen = false;
+
+        // 時空館解放フラグ（道場解放後にシルバードーム到達で解放、デバッグ時は常時表示）
+        this.isJikukanUnlocked = false;
+        this.jikuEventSeen = false;
         
         // インベントリ
         this.inventory = {
@@ -141,8 +145,10 @@ export class GlobalState {
         this.onLogCallback = null;
 
         // ── 🎁 デイリー報酬ルーレットシステム ──
-        this.dailyRewardMonth = '';      // 取得月のキー (YYYY-MM)
         this.dailyRewardCount = 0;       // 今月取得した回数 (0~30)
+
+        // ── 🏛️ 時空館コンテンツ・ステート ──
+        this.jikukanState = null;
         this.lastDailyRewardDate = '';   // 最後に取得した日付 (YYYY-MM-DD)
 
         this.characters = {
@@ -171,6 +177,193 @@ export class GlobalState {
         if (typeof this.onLogCallback === 'function') {
             try { this.onLogCallback(this.debugLogs); } catch(e){}
         }
+    }
+
+    getJikukanState() {
+        if (!this.jikukanState) {
+            this.jikukanState = {
+                sharedLevel: 1,
+                sharedLevelWins: 0,
+                sharedMeleeLevel: 1,
+                sharedRangedLevel: 1,
+                limitedSp: 0,
+                solo: {
+                    waspFloor: 1,
+                    witchFloor: 1,
+                    charId: '001',
+                    lane: 0,
+                    isFront: false
+                },
+                trio: {
+                    waspFloor: 1,
+                    witchFloor: 1,
+                    formation: [
+                        { charId: '003', lane: -1, isFront: true }, // 紅華 (前列)
+                        { charId: '004', lane: 0, isFront: true },  // 黄蘭 (前列)
+                        { charId: '002', lane: 1, isFront: true }   // 蒼樹 (前列)
+                    ]
+                },
+                quintuple: {
+                    waspFloor: 1,
+                    witchFloor: 1,
+                    formation: [
+                        { charId: '001', lane: -2, isFront: false }, // 紫苑 (後列)
+                        { charId: '003', lane: -1, isFront: true },  // 紅華 (前列)
+                        { charId: '004', lane: 0, isFront: true },   // 黄蘭 (前列)
+                        { charId: '002', lane: 1, isFront: true },   // 蒼樹 (前列)
+                        { charId: '005', lane: 2, isFront: false }   // 翠 (後列)
+                    ]
+                }
+            };
+        }
+        if (!this.jikukanState.quintuple) {
+            this.jikukanState.quintuple = {
+                waspFloor: 1,
+                witchFloor: 1,
+                formation: [
+                    { charId: '001', lane: -2, isFront: false },
+                    { charId: '003', lane: -1, isFront: true },
+                    { charId: '004', lane: 0, isFront: true },
+                    { charId: '002', lane: 1, isFront: true },
+                    { charId: '005', lane: 2, isFront: false }
+                ]
+            };
+        }
+        return this.jikukanState;
+    }
+
+    /**
+     * 🏛️ 時空館バトル勝利時の成長・報酬処理 (MAP003.xlsx準拠)
+     */
+    processJikukanVictory(mode = 'solo', type = 'wasp', floor = 1) {
+        const jState = this.getJikukanState();
+        const modeData = mode === 'solo' ? jState.solo : (mode === 'trio' ? jState.trio : jState.quintuple);
+
+        const currentFloor = type === 'wasp' ? (modeData.waspFloor || 1) : (modeData.witchFloor || 1);
+        const isRechallenge = floor < currentFloor;
+
+        // 突破済みフロアへの再挑戦時は、フロア進行・レベルアップ・限定SP・ドロップ付与を行わない
+        if (isRechallenge) {
+            return {
+                floor: floor,
+                isRechallenge: true,
+                sharedLevel: jState.sharedLevel,
+                sharedMeleeLevel: jState.sharedMeleeLevel,
+                sharedRangedLevel: jState.sharedRangedLevel,
+                levelUpSkill: null,
+                earnedSp: 0,
+                limitedSp: jState.limitedSp,
+                drops: []
+            };
+        }
+
+        // 1. 階層進行 (クリア階層 + 1)
+        if (type === 'wasp') {
+            if (modeData.waspFloor <= floor) modeData.waspFloor = floor + 1;
+        } else {
+            if (modeData.witchFloor <= floor) modeData.witchFloor = floor + 1;
+        }
+
+        // 2. 勝利数カウントとレベルアップ判定
+        // 未踏破フロア勝利時にカウント+1。現在の共有Lvと同じ回数勝利するとレベルアップ！
+        const currentSharedLevel = jState.sharedLevel || 1;
+        const requiredWins = currentSharedLevel; // 現在のLvと同じ回数必要
+        jState.sharedLevelWins = (jState.sharedLevelWins || 0) + 1;
+
+        let isLevelUp = false;
+        let levelUpSkill = null;
+
+        if (jState.sharedLevelWins >= requiredWins) {
+            isLevelUp = true;
+            jState.sharedLevelWins = 0;
+            jState.sharedLevel = currentSharedLevel + 1;
+
+            // 3. 近接/遠隔レベルを交互に +1 (それぞれ上限7でストップ)
+            const currentMelee = jState.sharedMeleeLevel || 1;
+            const currentRanged = jState.sharedRangedLevel || 1;
+
+            if (currentMelee < 7 || currentRanged < 7) {
+                let trySkill = (jState.lastLevelUpType === 'melee') ? 'ranged' : 'melee';
+
+                // もし優先する側が既に7に達していたら、もう片方に切り替え
+                if (trySkill === 'ranged' && currentRanged >= 7) {
+                    trySkill = 'melee';
+                } else if (trySkill === 'melee' && currentMelee >= 7) {
+                    trySkill = 'ranged';
+                }
+
+                if (trySkill === 'ranged' && currentRanged < 7) {
+                    jState.sharedRangedLevel = currentRanged + 1;
+                    jState.lastLevelUpType = 'ranged';
+                    levelUpSkill = 'ranged';
+                } else if (trySkill === 'melee' && currentMelee < 7) {
+                    jState.sharedMeleeLevel = currentMelee + 1;
+                    jState.lastLevelUpType = 'melee';
+                    levelUpSkill = 'melee';
+                }
+            }
+        }
+
+        // 4. 限定SP獲得: 1000 + (100 * floor)
+        const earnedSp = 1000 + (100 * floor);
+        jState.limitedSp = (jState.limitedSp || 0) + earnedSp;
+
+        // 5. 倍数フロアボーナス判定 (レリクス & 宝石)
+        const drops = [];
+        if (floor % 100 === 0) drops.push(RelicGenerator.generateRelic(7)); // GR
+        if (floor % 99 === 0) {
+            const gemName = Math.random() < 0.5 ? 'ダイヤモンド' : 'アレキサンドライト';
+            drops.push(RelicGenerator.generateGem(5, gemName));
+        }
+        if (floor % 50 === 0) drops.push(RelicGenerator.generateRelic(6)); // MR
+        if (floor % 32 === 0) {
+            const highGems = ['ルビー', 'サファイア', 'エメラルド', 'オパール'];
+            const g = highGems[Math.floor(Math.random() * highGems.length)];
+            drops.push(RelicGenerator.generateGem(4, g));
+        }
+        if (floor % 20 === 0) drops.push(RelicGenerator.generateRelic(5)); // UR
+        if (floor % 10 === 0) drops.push(RelicGenerator.generateRelic(4)); // SSR
+        if (floor % 8 === 0) {
+            const midGems = ['ブラックオニキス', 'ムーンストーン', 'ファイアークリスタル', 'ターコイズ'];
+            const g = midGems[Math.floor(Math.random() * midGems.length)];
+            drops.push(RelicGenerator.generateGem(3, g));
+        }
+        if (floor % 5 === 0) drops.push(RelicGenerator.generateRelic(3)); // SR
+        if (floor % 2 === 0) {
+            const lowGems = ['ガーネット', 'ラピスラズリ', 'アメジスト'];
+            const g = lowGems[Math.floor(Math.random() * lowGems.length)];
+            drops.push(RelicGenerator.generateGem(2, g));
+        }
+        if (floor % 1 === 0) drops.push(RelicGenerator.generateRelic(2)); // R
+
+        // インベントリにアイテム付与
+        if (!this.inventory) this.inventory = { relics: [], gems: [] };
+        for (const drop of drops) {
+            if (drop) {
+                if (drop.type === 'gem') {
+                    this.inventory.gems.push(drop);
+                } else {
+                    this.inventory.relics.push(drop);
+                }
+            }
+        }
+
+        SaveManager.saveGame();
+
+        return {
+            floor: floor,
+            nextFloor: floor + 1,
+            isLevelUp: isLevelUp,
+            currentWins: jState.sharedLevelWins,
+            requiredWins: requiredWins,
+            sharedLevel: jState.sharedLevel,
+            sharedMeleeLevel: jState.sharedMeleeLevel,
+            sharedRangedLevel: jState.sharedRangedLevel,
+            levelUpSkill: levelUpSkill,
+            earnedSp: earnedSp,
+            limitedSp: jState.limitedSp,
+            drops: drops
+        };
     }
 
     normalizeCharId(id) {
@@ -251,6 +444,8 @@ export class GlobalState {
             baseReload: 100, // ベースリロード速度 (100 = 1.0倍速)
             equipGem: null, // 宝石（1枠）
             equipRelics: [null, null, null, null, null], // レリクス（5枠）
+            jikukanEquipGem: null, // 時空館専用宝石（1枠・デフォルト未装備）
+            jikukanEquipRelics: [null, null, null, null, null], // 時空館専用レリクス（5枠・デフォルト未装備）
             currentHp: baseHp,
             currentSp: baseSp
         };
@@ -274,7 +469,7 @@ export class GlobalState {
         return 125 * Math.pow(2, level - 1);
     }
 
-    calcBaseStats(charId) {
+    calcBaseStats(charId, isJikukan = false) {
         const char = this.characters[charId];
         if (!char) return null;
         
@@ -287,7 +482,8 @@ export class GlobalState {
         const spGrowth = 0.05 + (sb.mpGrowth || 0);
         const atkGrowth = 0.05 + (sb.atkGrowth || 0);
 
-        const levelDiff = Math.max(0, char.level - 1);
+        const rawLevel = isJikukan ? (this.jikukanState?.sharedLevel || 1) : (char.level || 1);
+        const levelDiff = Math.max(0, rawLevel - 1);
 
         return {
             maxHp: Math.floor(baseHp * (1 + levelDiff * hpGrowth)),
@@ -298,11 +494,11 @@ export class GlobalState {
     }
 
     // レベルに応じたステータスの計算（1レベルごとに元の値の5%上昇）
-    calcStats(charId, party = [], isFront = null) {
+    calcStats(charId, party = [], isFront = null, isJikukan = false) {
         const char = this.characters[charId];
         if (!char) return null;
 
-        const baseStats = this.calcBaseStats(charId);
+        const baseStats = this.calcBaseStats(charId, isJikukan);
         let { maxHp, maxSp, atk, reload } = baseStats;
 
         // 親愛度ボーナスの計算
@@ -340,27 +536,30 @@ export class GlobalState {
         let evadeRateMod = 0; // 追加: 回避率補正
         let critRateMod = 0; // 追加: クリティカル率
         let critMultMod = 0; // 追加: クリティカル倍率
-        let meleeLevelBonus = 0; // 追加: 近接攻撃LVボーナス
-        let rangedLevelBonus = 0; // 追加: 遠距離攻撃LVボーナス
+        let meleeLevelBonus = isJikukan ? Math.max(0, (this.jikukanState?.sharedMeleeLevel || 1) - 1) : 0; // 近接攻撃LVボーナス
+        let rangedLevelBonus = isJikukan ? Math.max(0, (this.jikukanState?.sharedRangedLevel || 1) - 1) : 0; // 遠距離攻撃LVボーナス
         let charLevelBonus = 0; // 追加: キャラクター一時レベルボーナス
         let expBonusMod = 0; // 追加: 経験値取得量UPボーナス(%)
         let elemMods = { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
 
         // 装備品からのレベルボーナス(charLevelBonus)を考慮した実効レベルでスロット解禁判定を行う
-        // （宝石や先行スロットの「レベルUP」特性が次スロットを連鎖解禁する）
-        const rawLevel = char.level || 1;
+        // （時空館モードでは全キャラ共有レベルを使用！）
+        const rawLevel = isJikukan ? (this.jikukanState?.sharedLevel || 1) : (char.level || 1);
         let effectiveLevel = rawLevel;
         let validEquips = [];
+
+        const activeEquipGem = isJikukan ? char.jikukanEquipGem : char.equipGem;
+        const activeEquipRelics = isJikukan ? (char.jikukanEquipRelics || [null, null, null, null, null]) : (char.equipRelics || [null, null, null, null, null]);
 
         for (let pass = 0; pass < 5; pass++) {
             let tempLevelBonus = 0;
             const currentValid = [];
 
-            if (char.equipGem) {
-                currentValid.push(char.equipGem);
+            if (activeEquipGem) {
+                currentValid.push(activeEquipGem);
             }
-            if (char.equipRelics && Array.isArray(char.equipRelics)) {
-                char.equipRelics.forEach((relic, slotIdx) => {
+            if (activeEquipRelics && Array.isArray(activeEquipRelics)) {
+                activeEquipRelics.forEach((relic, slotIdx) => {
                     if (!relic) return;
                     const reqLevel = 1 + slotIdx * 4;
                     if (effectiveLevel >= reqLevel) {
@@ -444,7 +643,7 @@ export class GlobalState {
             });
 
             // 2. 宝石(Gem)の固有テキスト効果(gem_effects.json)のパース
-            if (equip.type === 'gem' || char.equipGem === equip) {
+            if (equip.type === 'gem' || activeEquipGem === equip || char.equipGem === equip) {
                 const gemName = equip.name;
                 const gemRank = (equip.rank || 1).toString();
                 if (gemName && gemEffectsJson && gemEffectsJson[gemName]) {
@@ -505,7 +704,7 @@ export class GlobalState {
         const actualIsFront = isFront !== null ? isFront : 
             (this.savedFormation && this.savedFormation[charId] ? this.savedFormation[charId].isFront : false);
 
-        if (this.activeTarots && this.activeTarots.length > 0) {
+        if (!isJikukan && this.activeTarots && this.activeTarots.length > 0) {
             for (const tarot of this.activeTarots) {
                 switch(tarot.id) {
                     case 2:
@@ -601,8 +800,12 @@ export class GlobalState {
         }
 
         // 攻撃レベル上昇回数による基本攻撃力ボーナス
-        const effectiveMeleeLevel = char.meleeLevel + meleeLevelBonus;
-        const effectiveRangedLevel = char.rangedLevel + rangedLevelBonus;
+        const effectiveMeleeLevel = isJikukan 
+            ? (this.jikukanState?.sharedMeleeLevel || 1)
+            : (char.meleeLevel + meleeLevelBonus);
+        const effectiveRangedLevel = isJikukan 
+            ? (this.jikukanState?.sharedRangedLevel || 1)
+            : (char.rangedLevel + rangedLevelBonus);
         const totalAttackLevelUps = (effectiveMeleeLevel - 1) + (effectiveRangedLevel - 1);
         atkMod += totalAttackLevelUps * 0.10;
         const reloadLevelBonus = totalAttackLevelUps * 3;
@@ -625,7 +828,7 @@ export class GlobalState {
         const totalExpBonus = expBonusMod + (this.expMultiplier > 1.0 ? Math.floor((this.expMultiplier - 1.0) * 100) : 0);
 
         const sb = (char.dojo && char.dojo.statsBonus) ? char.dojo.statsBonus : {};
-        const dojoEvadeBonus = (sb.evasion || 0) + ((sb.evasionPerLevel || 0) * char.level);
+        const dojoEvadeBonus = (sb.evasion || 0) + ((sb.evasionPerLevel || 0) * (isJikukan ? rawLevel : char.level));
         const dojoCritRateBonus = (sb.critRate || 0);
         const dojoCritMultBonus = (sb.critDamage || 0);
 
@@ -659,7 +862,7 @@ export class GlobalState {
             rangedLevel: effectiveRangedLevel,
             charLevelBonus,
             expBonus: totalExpBonus,
-            level: char.level + charLevelBonus
+            level: rawLevel + charLevelBonus
         };
     }
 
@@ -667,32 +870,74 @@ export class GlobalState {
      * レベル上昇装備の着脱等によるレベル変動時、必要レベルに満たなくなったスロットのレリクスを自動解除(パージ)する
      * @param {string} charId 
      * @param {Array} party 
+     * @param {boolean} isJikukan
      * @returns {Array} パージされたレリクスの名前一覧
      */
-    validateEquippedRelics(charId, party = null) {
+    validateEquippedRelics(charId, party = null, isJikukan = false) {
         const char = this.characters[charId];
-        if (!char || !char.equipRelics) return [];
+        if (!char) return [];
 
         const p = party || (Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : [charId]);
         const purgedNames = [];
 
-        let changed = true;
-        while (changed) {
-            changed = false;
-            const stats = this.calcStats(charId, p);
-            const effLevel = char.level + (stats.charLevelBonus || 0);
+        if (isJikukan) {
+            if (!char.jikukanEquipRelics) char.jikukanEquipRelics = [null, null, null, null, null];
+            
+            // 1. 地上で喪失・消費されたアイテム（インベントリに実体がないもの）の除去チェック
+            const invRelics = (this.inventory && this.inventory.relics) ? this.inventory.relics : [];
+            const invGems = (this.inventory && this.inventory.gems) ? this.inventory.gems : [];
+
+            if (char.jikukanEquipGem && !invGems.includes(char.jikukanEquipGem)) {
+                purgedNames.push(char.jikukanEquipGem.name || '宝石');
+                char.jikukanEquipGem = null;
+            }
 
             for (let i = 0; i < 5; i++) {
-                const requiredLevel = 1 + i * 4;
-                if (effLevel < requiredLevel && char.equipRelics[i]) {
-                    const relic = char.equipRelics[i];
-                    if (!this.inventory) this.inventory = { relics: [], gems: [] };
-                    if (!this.inventory.relics) this.inventory.relics = [];
-                    this.inventory.relics.push(relic);
-                    char.equipRelics[i] = null;
-                    purgedNames.push(relic.name || 'レリクス');
-                    changed = true;
-                    console.log(`[Relic Purge] Level insufficient (${effLevel} < ${requiredLevel}). Purged ${relic.name} from slot ${i}`);
+                const r = char.jikukanEquipRelics[i];
+                if (r && !invRelics.includes(r)) {
+                    purgedNames.push(r.name || 'レリクス');
+                    char.jikukanEquipRelics[i] = null;
+                }
+            }
+
+            // 2. レベル不足による連鎖パージ
+            let changed = true;
+            while (changed) {
+                changed = false;
+                const stats = this.calcStats(charId, p, null, true);
+                const effLevel = stats ? stats.level : (this.jikukanState?.sharedLevel || 1);
+
+                for (let i = 0; i < 5; i++) {
+                    const requiredLevel = 1 + i * 4;
+                    if (effLevel < requiredLevel && char.jikukanEquipRelics[i]) {
+                        const relic = char.jikukanEquipRelics[i];
+                        char.jikukanEquipRelics[i] = null;
+                        purgedNames.push(relic.name || 'レリクス');
+                        changed = true;
+                        console.log(`[Jikukan Relic Purge] Level insufficient (${effLevel} < ${requiredLevel}). Purged ${relic.name} from slot ${i}`);
+                    }
+                }
+            }
+        } else {
+            if (!char.equipRelics) return [];
+            let changed = true;
+            while (changed) {
+                changed = false;
+                const stats = this.calcStats(charId, p, null, false);
+                const effLevel = stats ? stats.level : (char.level + (stats?.charLevelBonus || 0));
+
+                for (let i = 0; i < 5; i++) {
+                    const requiredLevel = 1 + i * 4;
+                    if (effLevel < requiredLevel && char.equipRelics[i]) {
+                        const relic = char.equipRelics[i];
+                        if (!this.inventory) this.inventory = { relics: [], gems: [] };
+                        if (!this.inventory.relics) this.inventory.relics = [];
+                        this.inventory.relics.push(relic);
+                        char.equipRelics[i] = null;
+                        purgedNames.push(relic.name || 'レリクス');
+                        changed = true;
+                        console.log(`[Relic Purge] Level insufficient (${effLevel} < ${requiredLevel}). Purged ${relic.name} from slot ${i}`);
+                    }
                 }
             }
         }
@@ -701,6 +946,16 @@ export class GlobalState {
             SaveManager.saveGame();
         }
         return purgedNames;
+    }
+
+    /**
+     * 地上での合成・売却・喪失等でインベントリからアイテムが減った際、時空館の装備枠をクリーンアップする
+     */
+    cleanupJikukanEquipsOnInventoryChange() {
+        if (!this.characters) return;
+        for (const cid in this.characters) {
+            this.validateEquippedRelics(cid, null, true);
+        }
     }
 
 

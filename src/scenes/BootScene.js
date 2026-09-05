@@ -14,6 +14,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('daily_roulette', 'files/OP/rour.png');
         this.load.image('dojo_banner', 'files/MAP/dojo.jpg');
         this.load.image('dojo_icon', 'files/MAP/dojo2.jpg');
+        this.load.image('jikukan_icon', 'files/MAP/jiku2.jpg');   // 時空館マップボタン
+        this.load.image('jikukan_banner', 'files/MAP/jiku.jpg');  // 時空館内部バナー
         
         // マップエフェクト
         for (let i = 1; i <= 5; i++) {
@@ -210,6 +212,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('event_2r1201', 'files/DATA/event_2r1201.json');
         this.load.json('event_2rdevil', 'files/DATA/event_2rdevil.json');
         this.load.json('event_dojo', 'files/DATA/event_dojo.json');
+        this.load.json('event_jiku', 'files/DATA/event_jiku.json');
+        this.load.image('jiku_cg', 'files/MAP/jiku-.jpg');
+        this.load.image('bg_img_m(k,11)r.jpg', 'files/MAP/m(k,11)r.jpg');
         this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
         this.load.image('bg_tow_spo01', 'files/event/tou_spo01.jpg');
         this.load.json('event_tow_res', 'files/DATA/event_tow_res.json');

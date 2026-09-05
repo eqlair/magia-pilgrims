@@ -59,9 +59,9 @@ export class RelicGenerator {
         return this.generateGem(targetRank);
     }
 
-    static generateGem(targetRank = null) {
+    static generateGem(targetRank = null, specificName = null) {
         const gemNames = Object.keys(gemEffects);
-        const name = gemNames[Math.floor(Math.random() * gemNames.length)];
+        const name = (specificName && gemEffects[specificName]) ? specificName : gemNames[Math.floor(Math.random() * gemNames.length)];
         const minR = gemEffects[name]?.minRank || 1;
         const rank = targetRank !== null ? Math.max(minR, targetRank) : minR;
         

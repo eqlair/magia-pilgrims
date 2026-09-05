@@ -24,6 +24,18 @@ export const ENEMY_TYPES = [
     { id: 10, name: 'サンドバッグ', spawnCount: 3, hp: 333333, speed: 0, moveDist: 0, moveInterval: 99, atkRange: 0, atkFreq: 99, atkPower: 0, weight: 1000, debuffResist: 100, size: 1.0, textureKey: 'en001', frame: 1 }
 ];
 
+export const JIKUKAN_ENEMIES = [
+    { id: 0, name: 'スウォーム2', hp: 100, speed: 3.0, weight: 5, range: 4, attackInterval: 0.5, power: 1, debuffResist: 0, scale: 0.5, texture: 'en003', frame: 0 },
+    { id: 1, name: 'フライ2', hp: 200, speed: 2.5, weight: 10, range: 6, attackInterval: 0.45, power: 1, debuffResist: 0, scale: 0.75, texture: 'en003', frame: 1 },
+    { id: 2, name: 'スピリット2', hp: 300, speed: 1.6, weight: 45, range: 6, attackInterval: 0.4, power: 1, debuffResist: 50, scale: 1.0, texture: 'en003', frame: 2 },
+    { id: 3, name: 'マノウォー2', hp: 400, speed: 1.0, weight: 15, range: 8, attackInterval: 0.1, power: 1, debuffResist: 50, scale: 1.0, texture: 'en003', frame: 3 },
+    { id: 4, name: 'ゴブリン2', hp: 400, speed: 10.0, weight: 35, range: 4, attackInterval: 0.25, power: 1, debuffResist: 0, scale: 0.5, texture: 'en001', frame: 2 },
+    { id: 5, name: 'コボルド2', hp: 500, speed: 8.0, weight: 55, range: 6, attackInterval: 0.35, power: 1, debuffResist: 50, scale: 0.75, texture: 'en002', frame: 3 },
+    { id: 6, name: 'オーク2', hp: 600, speed: 7.0, weight: 75, range: 8, attackInterval: 0.5, power: 1, debuffResist: 0, scale: 0.75, texture: 'en001', frame: 0 },
+    { id: 7, name: 'オーガ2', hp: 800, speed: 6.0, weight: 110, range: 8, attackInterval: 0.35, power: 1, debuffResist: 50, scale: 1.0, texture: 'en002', frame: 2 },
+    { id: 8, name: 'ゴーレム2', hp: 2000, speed: 2.0, weight: 110, range: 4, attackInterval: 0.6, power: 1, debuffResist: 50, scale: 1.25, texture: 'en002', frame: 1 }
+];
+
 
 
 export class BattleEngine {
@@ -67,8 +79,24 @@ export class BattleEngine {
             this.towerEnemiesList = this.config.towerEnemiesList || [];
         }
 
+        // 🏛️ 時空館戦闘設定
+        this.isJikukan = !!this.config.isJikukan;
+        if (this.isJikukan) {
+            if (this.config.jikukanType === 'wasp') {
+                this.totalWaves = 2;
+                this.jikukanBaseEnemyCount = this.config.enemyCount || 10;
+                this.enemyCountPerWave = this.jikukanBaseEnemyCount; // Wave 1
+            } else {
+                this.totalWaves = 1;
+                this.enemyCountPerWave = this.config.enemyCount || 10;
+            }
+            if (this.config.jikukanFloor) {
+                this.enemyLevel = Math.max(1, this.config.jikukanFloor);
+            }
+        }
+
         this.majoLevel = Math.max(0, this.config.majoLevel !== undefined ? this.config.majoLevel : 0);
-        this.enemyLevel = Math.max(1, (this.config.enemyLevel !== undefined ? this.config.enemyLevel : 1) + (gs.extraEnemyLevel || 0));
+        this.enemyLevel = this.enemyLevel || Math.max(1, (this.config.enemyLevel !== undefined ? this.config.enemyLevel : 1) + (gs.extraEnemyLevel || 0));
 
 
 
@@ -114,10 +142,12 @@ export class BattleEngine {
             }
         }
 
-        // このマップでの最終絶対上限13にクランプ
-        this.enemyLevel = Math.min(13, this.enemyLevel);
-        if (this.majoLevel > 0) {
-            this.majoLevel = Math.min(13, this.majoLevel);
+        if (!this.isJikukan) {
+            // このマップでの最終絶対上限13にクランプ
+            this.enemyLevel = Math.min(13, this.enemyLevel);
+            if (this.majoLevel > 0) {
+                this.majoLevel = Math.min(13, this.majoLevel);
+            }
         }
 
 
@@ -209,7 +239,25 @@ export class BattleEngine {
             
             let lane = laneOffsets[i];
             let isFront = false;
-            if (gs.savedFormation && gs.savedFormation[charId]) {
+            if (this.isJikukan) {
+                const jState = gs.getJikukanState();
+                if (this.config.jikukanMode === 'solo') {
+                    lane = jState.solo.lane !== undefined ? jState.solo.lane : 0;
+                    isFront = !!jState.solo.isFront;
+                } else if (this.config.jikukanMode === 'trio') {
+                    const slot = (jState.trio.formation || []).find(f => f.charId === charId);
+                    if (slot) {
+                        if (slot.lane !== undefined) lane = slot.lane;
+                        isFront = !!slot.isFront;
+                    }
+                } else {
+                    const slot = (jState.quintuple.formation || []).find(f => f.charId === charId);
+                    if (slot) {
+                        if (slot.lane !== undefined) lane = slot.lane;
+                        isFront = !!slot.isFront;
+                    }
+                }
+            } else if (gs.savedFormation && gs.savedFormation[charId]) {
                 if (gs.savedFormation[charId].lane !== undefined) lane = gs.savedFormation[charId].lane;
                 if (gs.savedFormation[charId].isFront !== undefined) isFront = gs.savedFormation[charId].isFront;
             }
@@ -221,7 +269,9 @@ export class BattleEngine {
             }
             
             const isFoodEmpty = (this.config.isFoodEmpty === true);
-            const pc = new PlayerCharacter(lane, isFront ? 3.0 : 1.0, { name: name, lane: lane, isFront: isFront, charId: charId, party: party, isFoodEmpty: isFoodEmpty });
+            const pc = new PlayerCharacter(lane, isFront ? 3.0 : 1.0, { 
+                name: name, lane: lane, isFront: isFront, charId: charId, party: party, isFoodEmpty: isFoodEmpty, isJikukan: this.isJikukan 
+            });
 
             pc.engine = this;
             const charIdToAttr = {
@@ -238,15 +288,15 @@ export class BattleEngine {
             };
             pc.attribute = charIdToAttr[charId] || 'purple';
             
-            // GlobalStateで計算されたHP(レベル・タロット補正込み)を維持するために上書きしない
-            // もしGlobalStateの現在HPシステムを完全に稼働させるなら pc.hp = gs.characters[charId].currentHp とすべき
-            const charState = gs.characters[charId];
-            if (charState && charState.currentHp !== undefined) {
-                pc.hp = charState.currentHp;
-                // maxHpはPlayerCharacter内で設定済み
-            }
-            if (charState && charState.currentSp !== undefined) {
-                pc.sp = charState.currentSp;
+            // 時空館以外ではGlobalStateの現在HP/SPを維持
+            if (!this.isJikukan) {
+                const charState = gs.characters[charId];
+                if (charState && charState.currentHp !== undefined) {
+                    pc.hp = charState.currentHp;
+                }
+                if (charState && charState.currentSp !== undefined) {
+                    pc.sp = charState.currentSp;
+                }
             }
             
             pc.charId = charId; // レンダラー用にIDを保存
@@ -254,8 +304,8 @@ export class BattleEngine {
             this.players.push(pc);
         }
 
-        // --- 戦闘開始時のタロット効果 (No.5, No.6) ---
-        if (gs.activeTarots && gs.activeTarots.length > 0) {
+        // --- 戦闘開始時のタロット効果 (No.5, No.6) （時空館では無効）---
+        if (!this.isJikukan && gs.activeTarots && gs.activeTarots.length > 0) {
             for (const tarot of gs.activeTarots) {
                 if (tarot.id === 5) {
                     if (tarot.isUpright) {
@@ -394,7 +444,28 @@ export class BattleEngine {
 
     spawnEnemyGroup(typeIndex = null, forceDropSpawn = null) {
         let typeDef;
-        if (this.isTowerBattle && this.towerEnemiesList && this.towerEnemiesList.length > 0) {
+        if (this.isJikukan && this.config.jikukanType === 'wasp') {
+            const floor = this.config.jikukanFloor || 1;
+            const chosenId = Math.random() < 0.5 ? (floor % 9) : (floor % 8);
+            const tDef = JIKUKAN_ENEMIES[chosenId] || JIKUKAN_ENEMIES[0];
+            typeDef = {
+                name: tDef.name,
+                hp: tDef.hp,
+                speed: tDef.speed,
+                weight: tDef.weight,
+                atkRange: tDef.range,
+                atkFreq: tDef.attackInterval,
+                atkPower: tDef.power,
+                size: tDef.scale,
+                moveDist: tDef.range,
+                moveInterval: tDef.attackInterval,
+                debuffResist: tDef.debuffResist,
+                textureKey: tDef.texture,
+                frame: tDef.frame,
+                spawnCount: 1,
+                isTowerEnemy: true
+            };
+        } else if (this.isTowerBattle && this.towerEnemiesList && this.towerEnemiesList.length > 0) {
             // タワーの2種類の敵からランダムに選択
             const chosenId = Math.random() < 0.5 ? this.towerEnemy1 : this.towerEnemy2;
             const tDef = this.towerEnemiesList.find(e => e.towerId === chosenId) || this.towerEnemiesList[0];
@@ -615,7 +686,7 @@ export class BattleEngine {
                 levelDmgBonusAmount = (levelDiff * 0.05 * finalDamage);
                 
                 // タロット効果(戦闘時)
-                const activeTarots = gs ? (gs.activeTarots || []) : [];
+                const activeTarots = (gs && !this.isJikukan) ? (gs.activeTarots || []) : [];
                 let isFoolReversedActive = false;
                 let tarotCritRateBonus = 0;
                 let tarotCritMultBonus = 0;
@@ -1024,6 +1095,16 @@ export class BattleEngine {
                     this.waveState = 'playing';
                     this.waveTime = 0; // ウェーブ開始時にタイマーをリセット
                     this.spawnTimer = 1.0; 
+
+                    // 時空館Wasp戦: 2ウェーブ目は敵数を1.2倍
+                    if (this.isJikukan && this.config.jikukanType === 'wasp') {
+                        if (this.currentWave === 2) {
+                            this.enemyCountPerWave = Math.round(this.jikukanBaseEnemyCount * 1.2);
+                        } else {
+                            this.enemyCountPerWave = this.jikukanBaseEnemyCount;
+                        }
+                    }
+
                     this.eventQueue.push(`WAVE ${this.currentWave} START`);
                 } else if (this.majoLevel > 0) {
                     this.waveState = 'boss_presentation';
@@ -1639,18 +1720,19 @@ export class BattleEngine {
                 // 実際の攻撃間隔 = 基本間隔 * (100 / ステータス値) * 各種バフ倍率
                 const baseReload = p.reloadStat || 100;
                 const gs = GlobalState.getInstance();
-                const isMagicianUpright = gs.activeTarots.some(t => t.id === 2 && t.isUpright);
+                const activeTarots = (gs && !this.isJikukan) ? (gs.activeTarots || []) : [];
+                const isMagicianUpright = activeTarots.some(t => t.id === 2 && t.isUpright);
                 const magicianReloadMult = isMagicianUpright ? 0.90 : 1.0;
                 
                 // No.7 戦車 (id: 8)
-                const isChariotUpright = gs.activeTarots.some(t => t.id === 8 && t.isUpright);
-                const isChariotReversed = gs.activeTarots.some(t => t.id === 8 && !t.isUpright);
+                const isChariotUpright = activeTarots.some(t => t.id === 8 && t.isUpright);
+                const isChariotReversed = activeTarots.some(t => t.id === 8 && !t.isUpright);
                 let chariotReloadMult = 1.0;
                 if (isChariotUpright && p.isFront) chariotReloadMult = 0.80; // 前衛20%短縮
                 if (isChariotReversed) chariotReloadMult *= 1.10; // 逆位置10%遅化
 
                 // No.14 節制 (id: 15) 逆位置: リロード20%短縮
-                const isTemperanceReversed = gs.activeTarots.some(t => t.id === 15 && !t.isUpright);
+                const isTemperanceReversed = activeTarots.some(t => t.id === 15 && !t.isUpright);
                 const temperanceReloadMult = isTemperanceReversed ? 0.80 : 1.0;
 
                 cs.reloadTimer = action.reload * (100 / baseReload) * (p.reloadMultiplier || 1.0) * magicianReloadMult * chariotReloadMult * temperanceReloadMult;

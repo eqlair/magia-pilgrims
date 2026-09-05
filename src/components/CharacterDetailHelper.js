@@ -120,8 +120,10 @@ export class CharacterDetailHelper {
             });
         }
 
+        const isJikukan = (parentSceneName === 'JikukanScene');
+
         // レベル低下によるスロット不足のレリクスを事前に自動パージ
-        const purgedRelics = globalState.validateEquippedRelics(charId, party);
+        const purgedRelics = globalState.validateEquippedRelics(charId, party, isJikukan);
         if (purgedRelics.length > 0 && scene.showToast) {
             scene.showToast(`レベル不足のため『${purgedRelics.join(', ')}』が外れました`);
         }
@@ -132,8 +134,8 @@ export class CharacterDetailHelper {
             return;
         }
 
-        const stats = globalState.calcStats(charId, party);
-        const baseStats = globalState.calcBaseStats(charId);
+        const stats = globalState.calcStats(charId, party, null, isJikukan);
+        const baseStats = globalState.calcBaseStats(charId, isJikukan);
         const reqExp = globalState.getRequiredExp(charData.level);
 
         // 戻るボタン (詳細 -> メイン)
@@ -217,52 +219,67 @@ export class CharacterDetailHelper {
 
         pageContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
         
-        const lvlBonus = stats.charLevelBonus || 0;
-        const levelTxt = scene.add.text(rx + 150, ry + 6, `Lv.${charData.level}`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#aaffaa' });
+        const displayLevel = isJikukan ? (stats ? stats.level : (globalState.jikukanState?.sharedLevel || 1)) : charData.level;
+        const lvlBonus = isJikukan ? 0 : (stats.charLevelBonus || 0);
+        const levelTxt = scene.add.text(rx + 150, ry + 6, `Lv.${displayLevel}`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#aaffaa' });
         pageContainer.add(levelTxt);
         if (lvlBonus > 0) {
             const bonusTxt = scene.add.text(levelTxt.x + levelTxt.width + 4, ry + 6, `(+${lvlBonus})`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#ff9900' });
             pageContainer.add(bonusTxt);
         }
+        if (isJikukan) {
+            const jikuTag = scene.add.text(levelTxt.x + levelTxt.width + 8, ry + 8, `[時空館]`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#66ffcc' });
+            pageContainer.add(jikuTag);
+        }
         ry += lineSpacing * 0.8;
 
 
-        // 2行目: 経験値
-        const expBonus = stats.expBonus || 0;
-        const expBonusStr = expBonus > 0 ? ` (+${expBonus}%)` : '';
-        pageContainer.add(scene.add.text(rx, ry, `EXP: ${charData.exp}/${reqExp}${expBonusStr}`, {
-            stroke: '#000000', strokeThickness: 3, fontSize: '18px',
-            color: expBonus > 0 ? '#ff9900' : '#ffffff',
-            padding: { top: 4, bottom: 4 }
-        }));
-        ry += lineSpacing * 0.8;
+        if (!isJikukan) {
+            // 2行目: 経験値
+            const expBonus = stats.expBonus || 0;
+            const expBonusStr = expBonus > 0 ? ` (+${expBonus}%)` : '';
+            pageContainer.add(scene.add.text(rx, ry, `EXP: ${charData.exp}/${reqExp}${expBonusStr}`, {
+                stroke: '#000000', strokeThickness: 3, fontSize: '18px',
+                color: expBonus > 0 ? '#ff9900' : '#ffffff',
+                padding: { top: 4, bottom: 4 }
+            }));
+            ry += lineSpacing * 0.8;
 
-        // 4行目: レベルを上げるボタン
-        const canLevelUp = (charData.exp + globalState.stockExp) >= reqExp;
-        const btnBg = canLevelUp ? '#aa0000' : '#444444';
-        const btnColor = canLevelUp ? '#ffffff' : '#aaaaaa';
-        const levelUpBtn = scene.add.text(rx, ry, 'レベルを上げる', {
-            fontSize: '22px', backgroundColor: btnBg, color: btnColor
-        }).setPadding(10).setInteractive();
-        
-        levelUpBtn.on('pointerdown', () => {
-            if (canLevelUp) {
-                const res = globalState.levelUp(charId, party);
-                if (res && res.success) {
-                    SaveManager.saveGame();
-                    if (res.isBonus && scene.showToast) {
-                        scene.showToast(`Lv.UP！ 友好度ボーナスポイント+1を獲得！`);
-                    } else if (res.targetName && scene.showToast) {
-                        scene.showToast(`Lv.UP！ 『${res.targetName}』への友好度が+1上昇！`);
-                    } else if (scene.showToast) {
-                        scene.showToast(`Lv.UP！ レベルが${globalState.characters[charId].level}になりました`);
+            // 4行目: レベルを上げるボタン
+            const canLevelUp = (charData.exp + globalState.stockExp) >= reqExp;
+            const btnBg = canLevelUp ? '#aa0000' : '#444444';
+            const btnColor = canLevelUp ? '#ffffff' : '#aaaaaa';
+            const levelUpBtn = scene.add.text(rx, ry, 'レベルを上げる', {
+                fontSize: '22px', backgroundColor: btnBg, color: btnColor
+            }).setPadding(10).setInteractive();
+            
+            levelUpBtn.on('pointerdown', () => {
+                if (canLevelUp) {
+                    const res = globalState.levelUp(charId, party);
+                    if (res && res.success) {
+                        SaveManager.saveGame();
+                        if (res.isBonus && scene.showToast) {
+                            scene.showToast(`Lv.UP！ 友好度ボーナスポイント+1を獲得！`);
+                        } else if (res.targetName && scene.showToast) {
+                            scene.showToast(`Lv.UP！ 『${res.targetName}』への友好度が+1上昇！`);
+                        } else if (scene.showToast) {
+                            scene.showToast(`Lv.UP！ レベルが${globalState.characters[charId].level}になりました`);
+                        }
+                        CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
                     }
-                    CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
                 }
-            }
-        });
-        pageContainer.add(levelUpBtn);
-        ry += lineSpacing * 0.9;
+            });
+            pageContainer.add(levelUpBtn);
+            ry += lineSpacing * 0.9;
+        } else {
+            // 時空館仕様：共有レベル適用の表示
+            pageContainer.add(scene.add.text(rx, ry, `全員共通Lvが適用されています`, {
+                stroke: '#000000', strokeThickness: 3, fontSize: '17px',
+                color: '#66ffcc',
+                padding: { top: 4, bottom: 4 }
+            }));
+            ry += lineSpacing * 0.8;
+        }
 
         // 4行目: 親愛度・友好度ボタン
         const affectionValue = stats.affection || 0;
@@ -315,35 +332,39 @@ export class CharacterDetailHelper {
         ry += lineSpacing * 0.7;
         
         const hitBonus = Math.floor((stats.hitRateBonus || 0) * 100);
-        const hitRateStr = `100%`;
-        const hitRateDiffStr = hitBonus !== 0 ? ` (${hitBonus > 0 ? '+' : ''}${hitBonus})` : '';
+        const finalHitVal = 100 + hitBonus;
+        const hitRateStr = `${finalHitVal}%`;
+        const hitRateDiffStr = hitBonus !== 0 ? ` (${hitBonus > 0 ? '+' : ''}${hitBonus}%)` : '';
         pageContainer.add(scene.add.text(rx, ry, `命中率: ${hitRateStr}${hitRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 
         const baseEvadeVal = Math.round((stats.baseEvadeRate !== undefined ? stats.baseEvadeRate : 0.05) * 100);
         const equipEvadeBonus = Math.round((stats.equipEvadeRateBonus || 0) * 100);
-        const evadeRateStr = `${baseEvadeVal}%`;
+        const finalEvadeVal = baseEvadeVal + equipEvadeBonus;
+        const evadeRateStr = `${finalEvadeVal}%`;
         const evadeRateDiffStr = equipEvadeBonus !== 0 ? ` (${equipEvadeBonus > 0 ? '+' : ''}${equipEvadeBonus}%)` : '';
         pageContainer.add(scene.add.text(rx, ry, `回避率: ${evadeRateStr}${evadeRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
         const baseCritVal = Math.round((stats.baseCritRate !== undefined ? stats.baseCritRate : 0.05) * 100);
         const equipCritBonus = Math.round((stats.equipCritRateBonus || 0) * 100);
-        const critRateStr = `${baseCritVal}%`;
+        const finalCritVal = baseCritVal + equipCritBonus;
+        const critRateStr = `${finalCritVal}%`;
         const critRateDiffStr = equipCritBonus !== 0 ? ` (${equipCritBonus > 0 ? '+' : ''}${equipCritBonus}%)` : '';
         pageContainer.add(scene.add.text(rx, ry, `クリティカル率: ${critRateStr}${critRateDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
         
         const baseCritMultVal = Math.round((stats.baseCritMult !== undefined ? stats.baseCritMult : 2.0) * 100);
         const equipCritMultBonus = Math.round((stats.equipCritMultBonus || 0) * 100);
-        const critMultStr = `${baseCritMultVal}%`;
+        const finalCritMultVal = baseCritMultVal + equipCritMultBonus;
+        const critMultStr = `${finalCritMultVal}%`;
         const critMultDiffStr = equipCritMultBonus !== 0 ? ` (${equipCritMultBonus > 0 ? '+' : ''}${equipCritMultBonus}%)` : '';
         pageContainer.add(scene.add.text(rx, ry, `クリティカル倍率: ${critMultStr}${critMultDiffStr}`, { stroke: '#000000', strokeThickness: 3, fontSize: '18px', padding: { top: 4, bottom: 4 } }));
         ry += lineSpacing * 0.7;
 
         // 7行目: 各種ステータス3 (近接 / 遠隔)
-        const baseMelee = charData.meleeLevel || 1;
-        const baseRanged = charData.rangedLevel || 1;
+        const baseMelee = isJikukan ? (globalState.jikukanState?.sharedMeleeLevel || 1) : (charData.meleeLevel || 1);
+        const baseRanged = isJikukan ? (globalState.jikukanState?.sharedRangedLevel || 1) : (charData.rangedLevel || 1);
         const effMelee = stats.meleeLevel || baseMelee;
         const effRanged = stats.rangedLevel || baseRanged;
         const isMeleeBoosted = effMelee > baseMelee;
@@ -373,16 +394,19 @@ export class CharacterDetailHelper {
         pageContainer.add(scene.add.text(rx, ry, '装備中の宝石', { stroke: '#000000', strokeThickness: 3, fontSize: '18px', color: '#aaaaaa' }));
         ry += 25;
 
+        const activeGem = isJikukan ? charData.jikukanEquipGem : charData.equipGem;
+        const activeRelics = isJikukan ? (charData.jikukanEquipRelics || [null, null, null, null, null]) : (charData.equipRelics || [null, null, null, null, null]);
+
         let gemText = '装備なし';
         let gemColor = '#777777';
         let gemBgHeight = 30;
         let gemBgColor = 0x222222;
         let isGemAlert = false;
         
-        if (charData.equipGem) {
-            gemColor = CharacterDetailHelper.getRankColor(charData.equipGem.rank);
-            const rankStr = CharacterDetailHelper.getRankString(charData.equipGem.rank);
-            gemText = `[${rankStr}] ${charData.equipGem.name}`;
+        if (activeGem) {
+            gemColor = CharacterDetailHelper.getRankColor(activeGem.rank);
+            const rankStr = CharacterDetailHelper.getRankString(activeGem.rank);
+            gemText = `[${rankStr}] ${activeGem.name}`;
         } else if (hasAvailableGem) {
             isGemAlert = true;
             gemBgColor = 0x441111;
@@ -419,7 +443,7 @@ export class CharacterDetailHelper {
         for (let i = 0; i < 5; i++) {
             const requiredLevel = 1 + i * 4;
             const isUnlocked = (effLevel >= requiredLevel);
-            const isEquipped = !!(charData.equipRelics && charData.equipRelics[i]);
+            const isEquipped = !!(activeRelics && activeRelics[i]);
 
             let relicBgColor = 0x111111;
             let isRelicAlert = false;
@@ -453,7 +477,7 @@ export class CharacterDetailHelper {
                 const rEmptyText = scene.add.text(relicStartX + 10, ry + 5, relicText, { stroke: '#000000', strokeThickness: 3, fontFamily: FONT_MAIN, fontSize: fontSize.body(width), color: rColor });
                 pageContainer.add(rEmptyText);
             } else if (isEquipped) {
-                const r = charData.equipRelics[i];
+                const r = activeRelics[i];
                 rColor = CharacterDetailHelper.getRankColor(r.rank);
                 
                 const rName = r.name || 'Unknown';
@@ -589,6 +613,7 @@ export class CharacterDetailHelper {
 
         const stats = globalState.calcStats(charId, party);
         const elemMods = stats.elemMods || { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
+        const dojoResist = Math.round((stats.damageResist || 0) * 100); // 道場の全属性抵抗力強化ボーナス(%)
         
         const charElementBase = {
             '001': { strong: 'green', weak: 'red' },
@@ -614,7 +639,7 @@ export class CharacterDetailHelper {
             let base = 100;
             if (rel && rel.strong === targetElem) base = 75;
             if (rel && rel.weak === targetElem) base = 125;
-            const mod = elemMods[targetElem] || 0;
+            const mod = (elemMods[targetElem] || 0) + dojoResist;
             return Math.max(1, base - mod);
         };
 
@@ -627,20 +652,21 @@ export class CharacterDetailHelper {
         dry += 40;
         elements.forEach(e => {
             const defVal = getDef(e.id);
-            const modVal = elemMods[e.id] || 0;
-            // キャラ属性由来の素の数値(75%, 125%)は白文字。装備等(modVal !== 0)の追加補正がある時のみオレンジ色(#ff9900)
+            const modVal = (elemMods[e.id] || 0) + dojoResist;
+            // 装備や道場等(modVal !== 0)の追加補正がある時のみオレンジ色(#ff9900)
             const isDefBoosted = (modVal !== 0);
+            const diffStr = modVal !== 0 ? ` (-${modVal}%)` : '';
 
             // 属性別防御力
             targetContainer.add(scene.add.image(width * 0.15, ry + 12, e.icon).setScale(0.15));
-            targetContainer.add(scene.add.text(width * 0.20, ry, `${e.name}: ${defVal}%`, {
+            targetContainer.add(scene.add.text(width * 0.20, ry, `${e.name}: ${defVal}%${diffStr}`, {
                 stroke: '#000000', strokeThickness: 3, fontSize: '22px',
                 color: isDefBoosted ? '#ff9900' : '#ffffff'
             }));
             
             // 属性別デバフ抵抗力
             targetContainer.add(scene.add.image(width * 0.55, dry + 12, e.icon).setScale(0.15));
-            targetContainer.add(scene.add.text(width * 0.60, dry, `${e.name}: ${defVal}%`, {
+            targetContainer.add(scene.add.text(width * 0.60, dry, `${e.name}: ${defVal}%${diffStr}`, {
                 stroke: '#000000', strokeThickness: 3, fontSize: '22px',
                 color: isDefBoosted ? '#ff9900' : '#ffffff'
             }));

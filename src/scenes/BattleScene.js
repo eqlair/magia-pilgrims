@@ -261,9 +261,6 @@ export default class BattleScene extends Phaser.Scene {
         // 3. 描画レンダラーの初期化
         this.renderer = new BattleRenderer(this, this.engine, this.projector);
 
-        // 背景グリッド描画用のGraphics
-        this.graphics = this.add.graphics();
-        this.graphics.setDepth(-1); // キャラより奥に描画
 
         // スワイプ操作の実装
         this.input.on('pointerdown', this.onPointerDown, this);
@@ -279,7 +276,7 @@ export default class BattleScene extends Phaser.Scene {
         this.isAutoEnabled = (this.globalState.isBattleAutoEnabled !== undefined) ? this.globalState.isBattleAutoEnabled : true;
         this.engine.isBattleAutoEnabled = this.isAutoEnabled;
 
-        const autoBtnContainer = this.add.container(20, 20).setDepth(2000);
+        const autoBtnContainer = this.add.container(20, 48).setDepth(2000);
         const autoBtnBg = this.add.rectangle(0, 0, 80, 36, this.isAutoEnabled ? 0x228844 : 0x333333, 0.85)
             .setOrigin(0, 0)
             .setStrokeStyle(2, this.isAutoEnabled ? 0x88ffaa : 0x666666)
@@ -309,6 +306,33 @@ export default class BattleScene extends Phaser.Scene {
                 try { this.sound.play('se_tap', { volume: 0.4 }); } catch (e) {}
             }
         });
+
+        // ── デバッグ用 敵全滅ボタン（AUTOの下、Yキーと同じ処理） ──
+        if (GlobalState.IS_DEBUG_MODE) {
+            const killAllBtnContainer = this.add.container(20, 92).setDepth(2000);
+            const killAllBtnBg = this.add.rectangle(0, 0, 80, 36, 0x882222, 0.85)
+                .setOrigin(0, 0)
+                .setStrokeStyle(2, 0xff6666)
+                .setInteractive({ useHandCursor: true });
+
+            const killAllBtnText = this.add.text(40, 18, '敵全滅 (Y)', {
+                fontFamily: 'sans-serif',
+                fontSize: '13px',
+                fontStyle: 'bold',
+                color: '#ffffff'
+            }).setOrigin(0.5, 0.5);
+
+            killAllBtnContainer.add([killAllBtnBg, killAllBtnText]);
+
+            killAllBtnBg.on('pointerdown', () => {
+                if (this.engine && this.engine.debugFastForward) {
+                    this.engine.debugFastForward();
+                    if (this.sound && this.sound.play) {
+                        try { this.sound.play('se_tap', { volume: 0.5 }); } catch (e) {}
+                    }
+                }
+            });
+        }
 
         // --- 一時停止・撤退UI ---
         this.pauseBtn = this.add.text(this.scale.width - 20, 20, '⚙️', { fontSize: '32px' })
@@ -403,19 +427,23 @@ export default class BattleScene extends Phaser.Scene {
             });
         }
 
-        // デバッグモード限定：戦闘統計・DPS表示（画面左下）
+        // デバッグモード限定：戦闘統計・DPS＆FPS表示（画面左下）
         if (GlobalState.IS_DEBUG_MODE) {
+            this.fpsHistory = [];
+            this.fpsSampleTimer = 0;
+            this.fpsFrameCount = 0;
+            this.current10sFps = '--';
+
             this.dpsContainer = this.add.container(10, this.scale.height - 12).setDepth(2000);
             
-            // 半透明の背景ボックス（視認性向上）
-            this.dpsBg = this.add.rectangle(0, 0, 360, 48, 0x000000, 0.65)
+            // 半透明の背景ボックス（視認性向上・1行表示用）
+            this.dpsBg = this.add.rectangle(0, 0, 470, 26, 0x000000, 0.65)
                 .setOrigin(0, 1);
             
-            this.dpsText = this.add.text(6, -6, '', {
+            this.dpsText = this.add.text(6, -5, '', {
                 fontFamily: 'sans-serif',
-                fontSize: '11px',
-                color: '#00ffcc',
-                lineSpacing: 3
+                fontSize: '12px',
+                color: '#00ffcc'
             }).setOrigin(0, 1);
             
             this.dpsContainer.add([this.dpsBg, this.dpsText]);
@@ -698,8 +726,24 @@ export default class BattleScene extends Phaser.Scene {
                 console.log('[BattleScene] delayedCall fired, transitioning to ResultScene');
                 if (this.sound) this.sound.stopAll();
                 
-                // 戦闘終了時のHP/SPをGlobalStateに反映
+                // 🏛️ 時空館バトルの勝利処理 (MAP003.xlsx準拠)
+                if (this.battleConfig.isJikukan) {
+                    const globalState = GlobalState.getInstance();
+                    const result = globalState.processJikukanVictory(
+                        this.battleConfig.jikukanMode || 'solo',
+                        this.battleConfig.jikukanType || 'wasp',
+                        this.battleConfig.jikukanFloor || 1
+                    );
+                    TransitionManager.transitionTo(this, 'JikukanScene', {
+                        fromJikukanBattle: true,
+                        mode: this.battleConfig.jikukanMode || 'solo',
+                        tab: this.battleConfig.jikukanType || 'wasp',
+                        victoryResult: result
+                    });
+                    return;
+                }
 
+                // 戦闘終了時のHP/SPをGlobalStateに反映
                 const globalState = GlobalState.getInstance();
                 for (const p of this.engine.players) {
                     const charData = globalState.characters[p.charId];
@@ -740,6 +784,22 @@ export default class BattleScene extends Phaser.Scene {
         // 全滅・撤退時の遷移
         if ((this.engine.waveState === 'gameover' || this.engine.waveState === 'retreated') && !this.isExiting) {
             this.isExiting = true;
+
+            // 🏛️ 時空館バトルの敗北・撤退処理（ペナルティなしで帰還）
+            if (this.battleConfig.isJikukan) {
+                this.time.delayedCall(this.engine.waveState === 'gameover' ? 2500 : 1000, () => {
+                    if (this.sound) this.sound.stopAll();
+                    TransitionManager.transitionTo(this, 'JikukanScene', {
+                        fromJikukanBattle: true,
+                        mode: this.battleConfig.jikukanMode || 'solo',
+                        tab: this.battleConfig.jikukanType || 'wasp',
+                        isDefeated: this.engine.waveState === 'gameover',
+                        isRetreated: this.engine.waveState === 'retreated'
+                    });
+                });
+                return;
+            }
+
             const sionPlayer = this.engine.players.find(p => p.charId === '001');
             const stateObj = { 
                 isGameOver: this.engine.waveState === 'gameover',
@@ -768,10 +828,31 @@ export default class BattleScene extends Phaser.Scene {
 
         // 描画更新
         this.renderer.update();
-        this.drawGrid();
 
-        // デバッグ統計・DPS表示更新（デバッグモード限定）
+        // デバッグ統計・DPS＆FPS表示更新（デバッグモード限定：10s最大値と全体平均のみ、上回ったときおよび1秒ごとの10sFPS更新時に反映）
         if (GlobalState.IS_DEBUG_MODE && this.dpsText && this.engine) {
+            // --- 10秒平均FPSの計測（1秒ごとに更新） ---
+            this.fpsFrameCount = (this.fpsFrameCount || 0) + 1;
+            this.fpsSampleTimer = (this.fpsSampleTimer || 0) + delta;
+            let isFpsUpdated = false;
+
+            if (this.fpsSampleTimer >= 1000) {
+                const seconds = this.fpsSampleTimer / 1000;
+                const instantFps = this.fpsFrameCount / seconds;
+                if (!this.fpsHistory) this.fpsHistory = [];
+                this.fpsHistory.push(instantFps);
+                if (this.fpsHistory.length > 10) {
+                    this.fpsHistory.shift();
+                }
+                const sumFps = this.fpsHistory.reduce((a, b) => a + b, 0);
+                const avgFps = sumFps / this.fpsHistory.length;
+                this.current10sFps = avgFps.toFixed(1);
+
+                this.fpsSampleTimer = 0;
+                this.fpsFrameCount = 0;
+                isFpsUpdated = true;
+            }
+
             const gs = GlobalState.getInstance();
             const now = this.engine.time;
             const history = this.engine.damageHistory;
@@ -789,26 +870,39 @@ export default class BattleScene extends Phaser.Scene {
                 totalLevel += (c && c.level) ? c.level : 1;
             }
 
-            // ② 瞬間DPS（直近1秒）
-            const oneSec = history.filter(h => now - h.time <= 1).reduce((s, h) => s + h.damage, 0);
-
-            // ③ 10秒間平均DPS
+            // ② 10秒間平均DPSの計算と最大値チェック
             const tenSecTotal = history.reduce((s, h) => s + h.damage, 0);
             const elapsed10 = Math.min(now, 10);
             const tenSecDps = elapsed10 > 0 ? (tenSecTotal / elapsed10) : 0;
 
-            // ④ 10秒間平均DPSの最大値
+            let isDpsUpdated = false;
             if (tenSecDps > (this.engine.max10sDps || 0)) {
                 this.engine.max10sDps = tenSecDps;
+                isDpsUpdated = true;
             }
 
-            // ⑤ 戦闘開始からの平均DPS
+            // ③ 戦闘開始からの平均DPS計算と最大値チェック（上回った時のみ更新）
             const totalAvgDps = now > 0 ? (this.engine.totalDamage / now) : 0;
+            if (totalAvgDps > (this.engine.maxTotalAvgDps || 0)) {
+                this.engine.maxTotalAvgDps = totalAvgDps;
+                isDpsUpdated = true;
+            }
 
-            this.dpsText.setText(
-                `合計Lv:${totalLevel}(PT:${party.length}人) | DPS:${Math.floor(oneSec).toLocaleString()}\n` +
-                `10s平均:${Math.floor(tenSecDps).toLocaleString()} (10s最大:${Math.floor(this.engine.max10sDps).toLocaleString()}) | 全体平均:${Math.floor(totalAvgDps).toLocaleString()}`
-            );
+            // 初回表示
+            if (!this.dpsInitialized) {
+                this.dpsInitialized = true;
+                isDpsUpdated = true;
+            }
+
+            // 上回った時、または1秒ごとのFPS更新時にテキスト更新
+            if (isDpsUpdated || isFpsUpdated) {
+                const max10s = Math.floor(this.engine.max10sDps || 0).toLocaleString();
+                const maxTotal = Math.floor(this.engine.maxTotalAvgDps || 0).toLocaleString();
+                const fpsStr = this.current10sFps || '--';
+                this.dpsText.setText(
+                    `合計Lv:${totalLevel}(PT:${party.length}人) | 10s最大:${max10s} | 全体平均:${maxTotal} | FPS:${fpsStr}`
+                );
+            }
         }
 
         } catch (err) {
@@ -819,26 +913,6 @@ export default class BattleScene extends Phaser.Scene {
         }
     }
 
-    drawGrid() {
-        const P = this.projector;
-        this.graphics.clear();
-        this.graphics.lineStyle(1, 0x555555, 0.3); // グリッドは少し薄くする
-
-        for (let z = 0; z <= 18; z += 1) {
-            const p1 = P.project(-5, z);
-            const p2 = P.project(5, z);
-            if (p1.visible && p2.visible) {
-                this.graphics.strokeLineShape(new Phaser.Geom.Line(p1.x, p1.y, p2.x, p2.y));
-            }
-        }
-        for (let x = -5; x <= 5; x += 1) {
-            const p1 = P.project(x, 0);
-            const p2 = P.project(x, 18);
-            if (p2.visible) {
-                this.graphics.strokeLineShape(new Phaser.Geom.Line(p1.x, p1.y, p2.x, p2.y));
-            }
-        }
-    }
 
     initGroundMesh(specifiedKey) {
         if (!this.projector || this.battleConfig.rule !== 2) return;

@@ -141,7 +141,8 @@ export class PlayerCharacter extends BattleEntity {
         // GlobalStateからステータスを取得（ベースATK100、ベースReload100を前提とした値）
         const globalState = GlobalState.getInstance();
         const party = data.party || [this.charId];
-        const stats = globalState ? globalState.calcStats(this.charId, party, this.isFront) : null;
+        const isJikukan = !!data.isJikukan;
+        const stats = globalState ? globalState.calcStats(this.charId, party, this.isFront, isJikukan) : null;
         
         this.hp = (stats && stats.maxHp) ? stats.maxHp : (this.charDef.baseHp || 1000);
         this.maxHp = this.hp;
@@ -155,6 +156,8 @@ export class PlayerCharacter extends BattleEntity {
         this.critMultBonus = (stats && stats.critMultBonus) ? stats.critMultBonus : 0; // クリティカル倍率ボーナス
         this.elemMods = (stats && stats.elemMods) ? stats.elemMods : { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
         this.damageResist = (stats && stats.damageResist) ? stats.damageResist : 0;
+        this.allElemDef = Math.round(this.damageResist * 100); // 道場等の全属性防御力ボーナス(%)
+        this.debuffResist = Math.round(this.damageResist * 100); // 道場等のデバフ耐性ボーナス(%)
         this.spDrainRate = (stats && stats.spDrainRate) ? stats.spDrainRate : 1.0;
         this.level = (stats && stats.level) ? stats.level : 1;
         
@@ -1522,7 +1525,8 @@ export class EnemyCharacter extends BattleEntity {
         // 攻撃関連パラメータ
         this.atkRange = (data.atkRange || 1.0) * (gs.debugEnemyRangeMultiplier || 1.0);
         this.atkFreq = atkFreq;
-        this.atkPower = data.atkPower || 1;
+        // 雑魚敵の攻撃力をレベルと同じにする（サンドバッグ等のatkPower: 0は維持）
+        this.atkPower = (data.atkPower === 0) ? 0 : Math.max(1, this.level);
         this.atkTimer = 0;
 
         // 移動用パラメータ

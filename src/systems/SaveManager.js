@@ -34,6 +34,8 @@ export class SaveManager {
                 isOpCompleted: gs.isOpCompleted !== undefined ? gs.isOpCompleted : true,
                 isDojoUnlocked: gs.isDojoUnlocked || false,
                 dojoEventSeen: gs.dojoEventSeen || false,
+                isJikukanUnlocked: gs.isJikukanUnlocked || false,
+                jikuEventSeen: gs.jikuEventSeen || false,
                 stockExp: gs.stockExp,
                 stockSp: gs.stockSp,
                 devilStockSp: gs.devilStockSp || 0,
@@ -48,6 +50,7 @@ export class SaveManager {
                 dailyRewardMonth: gs.dailyRewardMonth || '',
                 dailyRewardCount: gs.dailyRewardCount || 0,
                 lastDailyRewardDate: gs.lastDailyRewardDate || '',
+                jikukanState: gs.jikukanState ? JSON.parse(JSON.stringify(gs.jikukanState)) : null,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
                 autoLanes: gs.autoLanes ? JSON.parse(JSON.stringify(gs.autoLanes)) : { '-2': false, '-1': false, '0': false, '1': false, '2': false },
                 isBattleAutoEnabled: gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true,
@@ -230,6 +233,8 @@ export class SaveManager {
         if (d.isOpCompleted !== undefined) gs.isOpCompleted = d.isOpCompleted;
         if (d.isDojoUnlocked !== undefined) gs.isDojoUnlocked = d.isDojoUnlocked;
         if (d.dojoEventSeen !== undefined) gs.dojoEventSeen = d.dojoEventSeen;
+        if (d.isJikukanUnlocked !== undefined) gs.isJikukanUnlocked = d.isJikukanUnlocked;
+        if (d.jikuEventSeen !== undefined) gs.jikuEventSeen = d.jikuEventSeen;
         if (d.stockExp !== undefined) gs.stockExp = d.stockExp;
         if (d.stockSp !== undefined) gs.stockSp = d.stockSp;
         if (d.devilStockSp !== undefined) gs.devilStockSp = d.devilStockSp;
@@ -277,7 +282,20 @@ export class SaveManager {
                         const hasMet = c.metCharacters && c.metCharacters.length > 0;
                         c.hasAccompanied = !!(hasFriendship || hasMet || c.isJoined);
                     }
+                    if (!c.jikukanEquipRelics || !Array.isArray(c.jikukanEquipRelics)) {
+                        c.jikukanEquipRelics = [null, null, null, null, null];
+                    }
+                    if (c.jikukanEquipGem === undefined) {
+                        c.jikukanEquipGem = null;
+                    }
                 }
+            }
+            gs.cleanupJikukanEquipsOnInventoryChange();
+        }
+        if (d.jikukanState) {
+            gs.jikukanState = d.jikukanState;
+            if (gs.jikukanState.sharedLevelWins === undefined) {
+                gs.jikukanState.sharedLevelWins = 0;
             }
         }
         if (d.savedFormation) gs.savedFormation = d.savedFormation;

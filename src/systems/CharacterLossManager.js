@@ -106,12 +106,17 @@ export class CharacterLossManager {
                         }
                     }
                 }
-                // 3. EXP返還
+                // 3. 時空館装備の初期化
+                charData.jikukanEquipGem = null;
+                charData.jikukanEquipRelics = [null, null, null, null, null];
+
+                // 4. EXP返還
                 if (charData.exp) {
                     gs.stockExp += charData.exp;
                     charData.exp = 0;
                 }
             }
+            gs.cleanupJikukanEquipsOnInventoryChange();
 
             // 4. パーティ・隊列（同行メンバー）から除外（※キャラデータ・友好度は大切に保持！）
             if (gs.party) {

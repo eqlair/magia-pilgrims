@@ -98,16 +98,6 @@ export default class CampScene extends Phaser.Scene {
                 this.showDebugToast('[DEBUG] レリクス(SSR:10, UR:2, MR:1) ＆ 宝石(1) を生成しました！');
                 this.refreshCurrentView();
             });
-
-            // 画面上部右側にタップ操作可能なチートボタンも設置
-            const cheatLv7Btn = this.add.text(width - 20, 20, '⚔️ 全Lv7 (J)', {
-                fontFamily: 'sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffea00',
-                backgroundColor: '#000000cc', padding: { x: 10, y: 6 }
-            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-            cheatLv7Btn.on('pointerdown', () => {
-                this.applyAllAttackLevel7();
-            });
         }
 
         // メインビュー用コンテナ（キャラ一覧） depth: 10

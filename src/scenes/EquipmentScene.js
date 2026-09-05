@@ -17,6 +17,7 @@ export default class EquipmentScene extends Phaser.Scene {
         this.slotIndex = data.slotIndex !== undefined ? data.slotIndex : 0;
         this.globalState = GlobalState.getInstance();
         this.parentScene = data.parentScene || 'CampScene';
+        this.isJikukan = (this.parentScene === 'JikukanScene');
         this.expandedLayout = false;
     }
 
@@ -112,8 +113,54 @@ export default class EquipmentScene extends Phaser.Scene {
 
     getEquippedItems() {
         const char = this.globalState.characters[this.charId];
+        if (!char) return [];
+        if (this.isJikukan) {
+            if (!char.jikukanEquipRelics) char.jikukanEquipRelics = [null, null, null, null, null];
+            if (this.itemType === 'relic') return char.jikukanEquipRelics;
+            return [char.jikukanEquipGem];
+        }
         if (this.itemType === 'relic') return char.equipRelics;
         return [char.equipGem];
+    }
+
+    /**
+     * 時空館で指定アイテムを装備中のキャラクターとスロット情報を取得
+     */
+    getJikukanEquippedOwner(item) {
+        if (!item || !this.globalState || !this.globalState.characters) return null;
+
+        const chars = this.globalState.characters;
+        for (const cid in chars) {
+            const c = chars[cid];
+            if (!c) continue;
+
+            if (this.itemType === 'relic') {
+                if (Array.isArray(c.jikukanEquipRelics)) {
+                    for (let s = 0; s < c.jikukanEquipRelics.length; s++) {
+                        const eq = c.jikukanEquipRelics[s];
+                        if (eq && (eq === item || (eq.id && item.id && eq.id === item.id))) {
+                            return {
+                                charId: cid,
+                                charName: c.name || cid,
+                                slotIndex: s,
+                                isGem: false
+                            };
+                        }
+                    }
+                }
+            } else if (this.itemType === 'gem') {
+                const gem = c.jikukanEquipGem;
+                if (gem && (gem === item || (gem.id && item.id && gem.id === item.id))) {
+                    return {
+                        charId: cid,
+                        charName: c.name || cid,
+                        slotIndex: 0,
+                        isGem: true
+                    };
+                }
+            }
+        }
+        return null;
     }
 
     formatItemText(item) {
@@ -212,10 +259,34 @@ export default class EquipmentScene extends Phaser.Scene {
             container.add(btnRemove);
             btnY += 38;
         } else if (!isTopSection && !this.enhanceMode) {
-            const btnEquip = this.add.text(btnX, btnY, '装備する', { fontSize: '16px', backgroundColor: '#335533', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-            btnEquip.on('pointerdown', () => { if(!this.enhanceMode) this.equipItem(index); });
-            container.add(btnEquip);
-            btnY += 38;
+            let canEquip = true;
+            let equippedOwner = null;
+            if (this.isJikukan && item) {
+                equippedOwner = this.getJikukanEquippedOwner(item);
+                if (equippedOwner) {
+                    canEquip = false;
+                }
+            }
+
+            if (canEquip) {
+                const btnEquip = this.add.text(btnX, btnY, '装備する', { fontSize: '16px', backgroundColor: '#335533', padding: { x: 10, y: 5 } }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+                btnEquip.on('pointerdown', () => { if(!this.enhanceMode) this.equipItem(index); });
+                container.add(btnEquip);
+                btnY += 38;
+            } else if (equippedOwner) {
+                const isSelf = equippedOwner.charId === this.charId;
+                const ownerLabel = isSelf ? '別枠装備中' : `${equippedOwner.charName}が\n装備中`;
+                const labelTxt = this.add.text(btnX, btnY, ownerLabel, {
+                    fontSize: '12px',
+                    backgroundColor: '#441a1a',
+                    color: '#ff9999',
+                    align: 'center',
+                    fontStyle: 'bold',
+                    padding: { x: 6, y: 4 }
+                }).setOrigin(0.5, 0);
+                container.add(labelTxt);
+                btnY += labelTxt.height + 8;
+            }
         }
 
         if (item.rank < 8 && !this.enhanceMode) {
@@ -514,6 +585,28 @@ export default class EquipmentScene extends Phaser.Scene {
                     itemsContainer.add(lockTxt);
                 }
 
+                // 時空館での装備中バッジ表示
+                if (this.isJikukan) {
+                    const owner = this.getJikukanEquippedOwner(item);
+                    if (owner) {
+                        const isSelfSlot = (owner.charId === this.charId && owner.slotIndex === this.slotIndex);
+                        const badgeColor = isSelfSlot ? '#88bbff' : '#ffaaaa';
+                        const badgeBg = isSelfSlot ? '#112244' : '#441a1a';
+                        const badgeLabel = isSelfSlot ? 'この枠に装備中' : `${owner.charName}が装備中`;
+                        const badgeY = itemY + Math.floor(bgHeight / 2);
+                        const badgeX = item.isLocked ? this.width - 90 : this.width - 70;
+
+                        const badgeTxt = this.add.text(badgeX, badgeY, badgeLabel, {
+                            fontSize: '11px',
+                            color: badgeColor,
+                            backgroundColor: badgeBg,
+                            padding: { x: 5, y: 2 },
+                            fontStyle: 'bold'
+                        }).setOrigin(1, 0.5);
+                        itemsContainer.add(badgeTxt);
+                    }
+                }
+
                 bg.on('pointerdown', (pointer) => {
                     touchStartY = pointer.y;
                     touchStartScrollY = itemsContainer.y;
@@ -615,26 +708,45 @@ export default class EquipmentScene extends Phaser.Scene {
         const items = this.getInventoryItems();
         const item = items[invIndex];
         const char = this.globalState.characters[this.charId];
+        if (!char || !item) return;
         
-        if (this.itemType === 'relic') {
-            // 選択されたスロット（this.slotIndex）に装備する
-            let targetIdx = this.slotIndex;
-            
-            const oldItem = char.equipRelics[targetIdx];
-            char.equipRelics[targetIdx] = item;
-            items.splice(invIndex, 1);
-            if (oldItem) items.push(oldItem);
+        if (this.isJikukan) {
+            const owner = this.getJikukanEquippedOwner(item);
+            if (owner) {
+                if (owner.charId !== this.charId || owner.slotIndex !== this.slotIndex) {
+                    this.showToast(`『${item.name}』は既に${owner.charName}が装備しています！`);
+                    return;
+                }
+            }
+
+            if (!char.jikukanEquipRelics) char.jikukanEquipRelics = [null, null, null, null, null];
+            if (this.itemType === 'relic') {
+                const targetIdx = this.slotIndex;
+                char.jikukanEquipRelics[targetIdx] = item;
+            } else {
+                char.jikukanEquipGem = item;
+            }
         } else {
-            const oldItem = char.equipGem;
-            char.equipGem = item;
-            items.splice(invIndex, 1);
-            if (oldItem) items.push(oldItem);
+            if (this.itemType === 'relic') {
+                // 選択されたスロット（this.slotIndex）に装備する
+                let targetIdx = this.slotIndex;
+                
+                const oldItem = char.equipRelics[targetIdx];
+                char.equipRelics[targetIdx] = item;
+                items.splice(invIndex, 1);
+                if (oldItem) items.push(oldItem);
+            } else {
+                const oldItem = char.equipGem;
+                char.equipGem = item;
+                items.splice(invIndex, 1);
+                if (oldItem) items.push(oldItem);
+            }
         }
         
         SaveManager.saveGame();
         
         // レベル上昇装備の着脱等によるレベル低下時のスロット不足レリクスを自動解除
-        const purged = this.globalState.validateEquippedRelics(this.charId);
+        const purged = this.globalState.validateEquippedRelics(this.charId, null, this.isJikukan);
         if (purged.length > 0) {
             this.showToast(`レベル不足のため『${purged.join(', ')}』が外れました`);
         }
@@ -646,21 +758,31 @@ export default class EquipmentScene extends Phaser.Scene {
     unequipItem(equipIndex) {
         const items = this.getInventoryItems();
         const char = this.globalState.characters[this.charId];
+        if (!char) return;
         
-        if (this.itemType === 'relic') {
-            const oldItem = char.equipRelics[equipIndex];
-            char.equipRelics[equipIndex] = null;
-            if (oldItem) items.push(oldItem);
+        if (this.isJikukan) {
+            if (!char.jikukanEquipRelics) char.jikukanEquipRelics = [null, null, null, null, null];
+            if (this.itemType === 'relic') {
+                char.jikukanEquipRelics[equipIndex] = null;
+            } else {
+                char.jikukanEquipGem = null;
+            }
         } else {
-            const oldItem = char.equipGem;
-            char.equipGem = null;
-            if (oldItem) items.push(oldItem);
+            if (this.itemType === 'relic') {
+                const oldItem = char.equipRelics[equipIndex];
+                char.equipRelics[equipIndex] = null;
+                if (oldItem) items.push(oldItem);
+            } else {
+                const oldItem = char.equipGem;
+                char.equipGem = null;
+                if (oldItem) items.push(oldItem);
+            }
         }
         
         SaveManager.saveGame();
 
         // レベル上昇装備の着脱等によるレベル低下時のスロット不足レリクスを自動解除
-        const purged = this.globalState.validateEquippedRelics(this.charId);
+        const purged = this.globalState.validateEquippedRelics(this.charId, null, this.isJikukan);
         if (purged.length > 0) {
             this.showToast(`レベル不足のため『${purged.join(', ')}』が外れました`);
         }
@@ -738,6 +860,9 @@ export default class EquipmentScene extends Phaser.Scene {
         this.enhanceMaterials = [];
         this.enhanceBaseItem = null;
         this.selectedItem = null; // deselect to refresh
+
+        // 地上で消費された素材を時空館の装備枠からも自動解除＆連鎖解除
+        this.globalState.cleanupJikukanEquipsOnInventoryChange();
         
         // Play success sound if any
         if (this.cache.audio.exists('se_powerup')) {
@@ -828,6 +953,9 @@ export default class EquipmentScene extends Phaser.Scene {
             this.globalState.inventory.gems.push(newGem);
             this.showToast(`『${newGem.name}』の宝石を合成した (-${spCost.toLocaleString()} SP)`);
         }
+
+        // 地上で消費されたアイテムを時空館の装備枠からも自動解除＆連鎖解除
+        this.globalState.cleanupJikukanEquipsOnInventoryChange();
 
         SaveManager.saveGame();
 

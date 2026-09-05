@@ -55,6 +55,16 @@ export class EventEngine {
         // UI
         this.locationLabel = null;
         this._destroyed = false;
+        this.isFastForward = false;
+        this._waitingForTap = false;
+    }
+
+    /** 早送りモードを設定する */
+    setFastForward(enabled = true) {
+        this.isFastForward = enabled;
+        if (enabled && this._waitingForTap) {
+            this._advancePage();
+        }
     }
 
     /** イベントを開始する */
@@ -116,8 +126,13 @@ export class EventEngine {
         }
         // 背景(5000)の上、イベントCG(5005)の下のレイヤー(5001)にホワイトアウト背景を作成
         this.whiteRect = this.scene.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
-            .setAlpha(0)
+            .setAlpha(this.isFastForward ? 1 : 0)
             .setDepth(5001);
+
+        if (this.isFastForward) {
+            if (cb) cb();
+            return;
+        }
 
         this.scene.tweens.add({
             targets: this.whiteRect,
@@ -135,6 +150,20 @@ export class EventEngine {
 
     /** BGMをクロスフェードで切り替え（即座に次へ進む・ノンブロッキング） */
     _changeBgm(key, cb) {
+        if (this.isFastForward) {
+            if (this._currentBgm) {
+                try { this._currentBgm.stop(); this._currentBgm.destroy(); } catch(e){}
+                this._currentBgm = null;
+            }
+            if (this.scene.cache.audio.exists(key)) {
+                const bgm = this.scene.sound.add(key, { loop: true, volume: 0.75 });
+                bgm.play();
+                this._currentBgm = bgm;
+            }
+            if (cb) cb();
+            return;
+        }
+
         // EventEngine管理外のBGM（bgm_hexenなど）も含めて全て止める
         if (this.scene.sound && this.scene.sound.sounds) {
             this.scene.sound.sounds.forEach(s => {
@@ -190,6 +219,11 @@ export class EventEngine {
             const old = this._currentBgm;
             this._currentBgm = null;
             try { this.scene.tweens.killTweensOf(old); } catch(e){}
+            if (this.isFastForward) {
+                try { old.stop(); old.destroy(); } catch(e){}
+                if (cb) cb();
+                return;
+            }
             this.scene.tweens.add({
                 targets: old, volume: 0, duration: 600,
                 onUpdate: (t, target) => { if (!target || !target.manager) { try { t.stop(); } catch(e){} } },
@@ -203,6 +237,7 @@ export class EventEngine {
 
     /** SEを再生（ノンブロッキング） */
     _playSe(key) {
+        if (this.isFastForward) return; // 早送り中はSEを鳴らさない
         if (this.scene.cache.audio.exists(key)) {
             this.scene.sound.play(key);
         } else {
@@ -235,13 +270,15 @@ export class EventEngine {
             stroke: '#000000',
             strokeThickness: 6,
             fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(this.DEPTH + 5).setAlpha(0);
+        }).setOrigin(0.5).setDepth(this.DEPTH + 5).setAlpha(this.isFastForward ? 1 : 0);
 
-        this.scene.tweens.add({
-            targets: this.locationLabel,
-            alpha: 1,
-            duration: 1000
-        });
+        if (!this.isFastForward) {
+            this.scene.tweens.add({
+                targets: this.locationLabel,
+                alpha: 1,
+                duration: 1000
+            });
+        }
     }
 
     // ─────────────────────────────────────────────────────
@@ -262,6 +299,9 @@ export class EventEngine {
         const gs = GlobalState.getInstance();
         if (gs && gs.currentMonth === 12 && gs.currentDay === 21) {
             overlayAlpha = Math.max(overlayAlpha, 0.7);
+        } else if (gs && !gs.isTowerMode && gs.timePeriodIndex === 2) {
+            // 通常マップの夜はマップ画面(AdventureScene)やキャンプ画面(CampScene)と同じ暗いフィルター(0.6)を対話背景に適用
+            overlayAlpha = Math.max(overlayAlpha, 0.6);
         }
 
         const screenH = Math.max(this.H, this.scene.scale ? this.scene.scale.height : 0);
@@ -309,6 +349,21 @@ export class EventEngine {
             this.bgOverlay = null;
         }
 
+        if (this.isFastForward) {
+            if (this.bgImage) this.bgImage.destroy();
+            newBg.setAlpha(1);
+            this.bgImage = newBg;
+
+            if (overlayAlpha > 0) {
+                this.bgOverlay = this.scene.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x000000)
+                    .setDepth(this.DEPTH + 1)
+                    .setAlpha(overlayAlpha);
+            }
+
+            if (callback) callback();
+            return;
+        }
+
         this.scene.tweens.add({
             targets: newBg, alpha: 1, duration: 500,
             onComplete: () => {
@@ -331,6 +386,12 @@ export class EventEngine {
     // ─────────────────────────────────────────────────────
     _showIllust(key, cb) {
         if (this.illustImage) {
+            if (this.isFastForward) {
+                this.illustImage.destroy();
+                this.illustImage = null;
+                this._doShowIllust(key, cb);
+                return;
+            }
             this.scene.tweens.add({
                 targets: this.illustImage, alpha: 0, duration: 300,
                 onComplete: () => { this.illustImage.destroy(); this.illustImage = null; this._doShowIllust(key, cb); }
@@ -345,9 +406,15 @@ export class EventEngine {
         const img = this.scene.add.image(this.W / 2, this.H / 2, key)
             .setOrigin(0.5, 1)
             .setDepth(this.DEPTH + 1)
-            .setAlpha(0);
+            .setAlpha(this.isFastForward ? 1 : 0);
         img.y = this.H / 2;
         img.setScale(this.W / img.width);
+
+        if (this.isFastForward) {
+            this.illustImage = img;
+            if (cb) cb();
+            return;
+        }
 
         this.scene.tweens.add({
             targets: img, alpha: 1, duration: 500,
@@ -391,11 +458,23 @@ export class EventEngine {
                 .setDepth(this.DEPTH + 2.5) // キャラ(DEPTH+2)の上、メッセージ枠(DEPTH+3)の下
                 .setBlendMode(Phaser.BlendModes.MULTIPLY)
                 .setAlpha(0);
-            this.scene.tweens.add({
-                targets: this.multiplyOverlay,
-                alpha: 1,
-                duration: 400
-            });
+            if (this.isFastForward) {
+                this.multiplyOverlay.setAlpha(1);
+            } else {
+                this.scene.tweens.add({
+                    targets: this.multiplyOverlay,
+                    alpha: 1,
+                    duration: 400
+                });
+            }
+        }
+
+        if (this.isFastForward) {
+            chara.setPosition(destX, this.H / 2);
+            chara.setAlpha(targetAlpha);
+            this[ref] = chara;
+            if (cb) cb();
+            return;
         }
 
         this.scene.tweens.add({
@@ -449,13 +528,26 @@ export class EventEngine {
     }
 
     _showPage() {
+        if (this._destroyed) return;
         const page   = this._textPages[this._pageIndex];
-        const isLast = this._pageIndex >= this._textPages.length - 1;
 
         // 手動の文字数制限を外し、PhaserのwordWrapに任せる
         this.textLabel.setText(page);
         this.tapLabel.setAlpha(1);
         if (this.tapTween) this.tapTween.restart();
+
+        this._waitingForTap = true;
+
+        if (this.isFastForward) {
+            if (this.scene && this.scene.time) {
+                this.scene.time.delayedCall(20, () => {
+                    this._advancePage();
+                });
+            } else {
+                this._advancePage();
+            }
+            return;
+        }
 
         // タップ受付ブロッカー
         if (this._tapBlocker) this._tapBlocker.destroy();
@@ -464,19 +556,29 @@ export class EventEngine {
 
         this._tapBlocker.on('pointerdown', () => {
             if (this._inputCooldown) return;
-            if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
-            if (isLast) {
-                this._processNext();
-            } else {
-                this._pageIndex++;
-                this.textLabel.setText('');
-                this._showPage();
-            }
+            this._advancePage();
         });
+    }
 
+    _advancePage() {
+        if (!this._waitingForTap || this._destroyed) return;
+        this._waitingForTap = false;
+        if (this._tapBlocker) {
+            this._tapBlocker.destroy();
+            this._tapBlocker = null;
+        }
+        const isLast = this._pageIndex >= this._textPages.length - 1;
+        if (isLast) {
+            this._processNext();
+        } else {
+            this._pageIndex++;
+            this.textLabel.setText('');
+            this._showPage();
+        }
     }
 
     _clearText(cb) {
+        this._waitingForTap = false;
         if (this._tapBlocker) { this._tapBlocker.destroy(); this._tapBlocker = null; }
         if (this.tapTween)  { this.tapTween.stop(); this.tapTween = null; }
         if (this.textBox)   { this.textBox.destroy();   this.textBox   = null; }
@@ -489,6 +591,8 @@ export class EventEngine {
     /** 全リソースを破棄（シーン終了・明転前に呼ぶ）。keepBgm=trueのとき再生中BGMはそのまま引き継ぐ */
     cleanup(keepBgm = false) {
         this._destroyed = true;
+        this.isFastForward = false;
+        this._waitingForTap = false;
         this.index = 999999;
 
         // 全関連オブジェクトのTweenを停止

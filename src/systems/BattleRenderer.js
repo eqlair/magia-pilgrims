@@ -1427,12 +1427,15 @@ export class BattleRenderer {
                 originX: 0.5,
                 originY: 0.5
             }).setDepth(9999).setScale(0.48);
+            this._lastBattleInfoStr = null; // 前回の表示文字列キャッシュ
         }
-
 
         // 突破モード(rule === 2)の場合は突破HUDがあるため非表示
         if (this.scene.battleConfig && this.scene.battleConfig.rule === 2) {
-            this.battleInfoText.setText('');
+            if (this._lastBattleInfoStr !== '') {
+                this.battleInfoText.setText('');
+                this._lastBattleInfoStr = '';
+            }
             return;
         }
 
@@ -1448,22 +1451,24 @@ export class BattleRenderer {
         const sec = (timeSec % 60).toString().padStart(2, '0');
         
         // ボス演出中やクリア後、あるいはボス戦中は Enemy/Wave を非表示にする
+        let nextStr;
         if (this.engine.waveState === 'boss_presentation') {
-            this.battleInfoText.setText('');
+            nextStr = '';
         } else if (this.engine.waveState === 'boss') {
             const boss = this.engine.enemies.find(e => e.isBoss);
-            if (boss) {
-                this.battleInfoText.setText(`WITCH HP ${Math.ceil(boss.hp)} / ${boss.maxHp}`);
-            } else {
-                this.battleInfoText.setText('');
-            }
+            nextStr = boss ? `WITCH HP ${Math.ceil(boss.hp)} / ${boss.maxHp}` : '';
         } else if (this.engine.waveState === 'cleared') {
-            this.battleInfoText.setText('');
+            nextStr = '';
         } else if (currentWave > totalWaves) {
-            // ウェーブをすべてクリアした後は非表示にする
-            this.battleInfoText.setText('');
+            nextStr = '';
         } else {
-            this.battleInfoText.setText(`ENEMY ${enemiesRemaining}/${totalEnemies}  WAVE ${currentWave}/${totalWaves}  TIME ${min}:${sec}`);
+            nextStr = `ENEMY ${enemiesRemaining}/${totalEnemies}  WAVE ${currentWave}/${totalWaves}  TIME ${min}:${sec}`;
+        }
+
+        // 前回と内容が変化した時だけ setText() を呼ぶ（SpriteText の毎フレーム再生成を防止）
+        if (nextStr !== this._lastBattleInfoStr) {
+            this.battleInfoText.setText(nextStr);
+            this._lastBattleInfoStr = nextStr;
         }
     }
 

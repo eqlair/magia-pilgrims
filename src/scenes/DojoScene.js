@@ -29,7 +29,8 @@ export default class DojoScene extends Phaser.Scene {
     create() {
         TransitionManager.fadeIn(this);
         const { width, height } = this.scale;
-        const gs = GlobalState.getInstance();
+        this.gs = GlobalState.getInstance();
+        const gs = this.gs;
 
         // 1. 全面暗色背景
         this.add.rectangle(0, 0, width, height, 0x121016).setOrigin(0, 0);
@@ -76,7 +77,9 @@ export default class DojoScene extends Phaser.Scene {
         this.mainContainer.add(shadow);
 
         // ── ヘッダーバー（所持SP ＆ 戻るボタン） ──
-        const headerY = 24;
+        const jState = gs.getJikukanState ? gs.getJikukanState() : gs.jikukanState;
+        const limitedSp = (jState && jState.limitedSp) ? jState.limitedSp : 0;
+        const headerY = 28;
 
         // 戻るボタン
         const backBtn = this.add.text(14, headerY, '◀ 戻る', {
@@ -99,27 +102,61 @@ export default class DojoScene extends Phaser.Scene {
         });
         this.mainContainer.add(backBtn);
 
-        // 所持SP ＆ 周回時喪失SP 表示
+        // 🏛️ 時空館直接移動ボタン（jiku2.jpg: 時空館解放時のみ厳格に表示）
+        if (gs.isJikukanUnlocked) {
+            const btnX = 108;
+            const btnY = 6;
+            const btnImg = this.add.image(btnX, btnY, 'jikukan_icon').setOrigin(0, 0);
+            const targetW = 84;
+            const scale = targetW / btnImg.width;
+            btnImg.setScale(scale);
+            btnImg.setInteractive({ useHandCursor: true });
+
+            const strokeRect = this.add.rectangle(btnX, btnY, btnImg.displayWidth, btnImg.displayHeight)
+                .setOrigin(0, 0)
+                .setStrokeStyle(1.5, 0x445588);
+
+            btnImg.on('pointerdown', () => {
+                btnImg.setAlpha(0.7);
+                SaveManager.saveGame(this);
+                TransitionManager.transitionTo(this, 'JikukanScene');
+            });
+            btnImg.on('pointerup', () => btnImg.setAlpha(1.0));
+            btnImg.on('pointerout', () => btnImg.setAlpha(1.0));
+
+            this.mainContainer.add([btnImg, strokeRect]);
+        }
+
+        // 所持SP ＆ 周回時喪失SP ＆ 限定SP 表示
         const spContainer = this.add.container(width - 14, headerY);
-        const spText = this.add.text(0, -10, `所持SP: ${Math.floor(gs.stockSp || 0).toLocaleString()}`, {
+        const spText = this.add.text(0, -20, `所持SP: ${Math.floor(gs.stockSp || 0).toLocaleString()}`, {
             fontFamily: FONT_MAIN,
-            fontSize: '13px',
+            fontSize: '12px',
             color: '#00ffff',
             fontStyle: 'bold',
             backgroundColor: '#00000099',
-            padding: { x: 8, y: 3 }
+            padding: { x: 8, y: 2 }
         }).setOrigin(1, 0.5);
 
-        const lostSpText = this.add.text(0, 12, `周回時喪失SP: ${Math.floor(gs.devilStockSp || 0).toLocaleString()}`, {
+        const lostSpText = this.add.text(0, 0, `周回喪失SP: ${Math.floor(gs.devilStockSp || 0).toLocaleString()}`, {
             fontFamily: FONT_MAIN,
-            fontSize: '13px',
+            fontSize: '12px',
             color: '#ff99cc',
             fontStyle: 'bold',
             backgroundColor: '#00000099',
-            padding: { x: 8, y: 3 }
+            padding: { x: 8, y: 2 }
         }).setOrigin(1, 0.5);
 
-        spContainer.add([spText, lostSpText]);
+        const limitedSpText = this.add.text(0, 20, `限定SP: ${Math.floor(limitedSp).toLocaleString()}`, {
+            fontFamily: FONT_MAIN,
+            fontSize: '12px',
+            color: '#ffea44',
+            fontStyle: 'bold',
+            backgroundColor: '#00000099',
+            padding: { x: 8, y: 2 }
+        }).setOrigin(1, 0.5);
+
+        spContainer.add([spText, lostSpText, limitedSpText]);
         this.mainContainer.add(spContainer);
 
         // ── 画面の描画（キャラ選択 or 個別訓練メニュー） ──
@@ -360,7 +397,9 @@ export default class DojoScene extends Phaser.Scene {
         const isCurrentLocked = (this.selectedDept !== 'A' && !dojo.kisoCompleted);
         const isMaxStage = (this.selectedDept !== 'A' && selectedDeptState.stage > selectedDeptDef.maxStage);
         const isACompleted = (this.selectedDept === 'A' && dojo.kisoCompleted);
-        const totalAvailableSp = (gs.stockSp || 0) + (gs.devilStockSp || 0);
+        const jState = gs.getJikukanState ? gs.getJikukanState() : gs.jikukanState;
+        const limitedSp = (jState && jState.limitedSp) ? jState.limitedSp : 0;
+        const totalAvailableSp = (gs.stockSp || 0) + (gs.devilStockSp || 0) + limitedSp;
         const canTrain = !isCurrentLocked && !isMaxStage && !isACompleted && (totalAvailableSp >= cost);
 
         const listStartY = gridStartY + (gridH + 6) * 2 + 10;
@@ -528,15 +567,22 @@ export default class DojoScene extends Phaser.Scene {
      */
     executeTraining(charData, deptKey, cost) {
         const gs = GlobalState.getInstance();
-        const totalAvailableSp = (gs.stockSp || 0) + (gs.devilStockSp || 0);
+        const jState = gs.getJikukanState ? gs.getJikukanState() : gs.jikukanState;
+        const limitedSp = (jState && jState.limitedSp) ? jState.limitedSp : 0;
+        const totalAvailableSp = (gs.stockSp || 0) + (gs.devilStockSp || 0) + limitedSp;
         if (totalAvailableSp < cost) return;
 
-        // SP消費: 周回時喪失SP(devilStockSp)から優先消費！
+        // SP消費: 周回時喪失SP(devilStockSp) ➔ 時空館限定SP(limitedSp) ➔ 通常所持SP(stockSp) の順で優先消費！
         let remainingCost = cost;
         if ((gs.devilStockSp || 0) > 0) {
             const fromDevil = Math.min(gs.devilStockSp, remainingCost);
             gs.devilStockSp -= fromDevil;
             remainingCost -= fromDevil;
+        }
+        if (remainingCost > 0 && jState && (jState.limitedSp || 0) > 0) {
+            const fromLimited = Math.min(jState.limitedSp, remainingCost);
+            jState.limitedSp -= fromLimited;
+            remainingCost -= fromLimited;
         }
         if (remainingCost > 0) {
             gs.stockSp = Math.max(0, (gs.stockSp || 0) - remainingCost);

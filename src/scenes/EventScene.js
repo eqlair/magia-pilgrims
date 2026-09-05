@@ -43,6 +43,7 @@ export default class EventScene extends Phaser.Scene {
         this.from2RDevilEvent = data.from2RDevilEvent || false;
         this.fromTowerRespEvent = data.fromTowerRespEvent || false;
         this.fromDojoEvent = data.fromDojoEvent || false;
+        this.fromJikuEvent = data.fromJikuEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
         this.isTowerBattle = data.isTowerBattle || false;
@@ -52,6 +53,7 @@ export default class EventScene extends Phaser.Scene {
         this.isWitchOnly = data.isWitchOnly || false;
         this.witchPattern = data.witchPattern !== undefined ? data.witchPattern : 1;
         this.showDec21Effect = data.showDec21Effect || false;
+        this._isSkipping = false;
 
         // ── 既読判定・周回スキップ用イベントIDの確定 ──
         this.eventId = data.eventId || null;
@@ -82,6 +84,8 @@ export default class EventScene extends Phaser.Scene {
                 this.eventId = 'event_ikebukuro02';
             } else if (this.fromOpTutorial) {
                 this.eventId = 'event_op_tutorial';
+            } else if (this.fromJikuEvent) {
+                this.eventId = 'event_jiku';
             }
         }
 
@@ -181,10 +185,7 @@ export default class EventScene extends Phaser.Scene {
         skipBtn.on('pointerdown', (pointer) => {
             if (pointer && pointer.event) pointer.event.stopPropagation();
             skipBtn.disableInteractive();
-            skipBtn.setVisible(false);
-            if (this.engine) {
-                this.engine.cleanup();
-            }
+            skipBtn.setText('⏩ FAST FORWARD...');
             this._skipEvent();
         });
     }
@@ -192,12 +193,13 @@ export default class EventScene extends Phaser.Scene {
     _skipEvent() {
         if (this._isSkipping) return;
         this._isSkipping = true;
-        console.log(`[EventScene] ⏩ Event skipped: ${this.eventId}`);
+        console.log(`[EventScene] ⏩ Fast forwarding event: ${this.eventId}`);
 
         if (this.engine) {
-            this.engine.cleanup();
+            this.engine.setFastForward(true);
+        } else {
+            this._onEventComplete();
         }
-        this._onEventComplete();
     }
 
     _playBattleBgm(cb) {
@@ -478,6 +480,12 @@ export default class EventScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         const doFinish = () => {
+            if (this.returnScene === 'EventTestScene') {
+                this.scene.stop();
+                this.scene.resume('EventTestScene');
+                return;
+            }
+
             if (this.fromOpTutorial && this.battleConfig) {
                 TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
                 return;
@@ -512,6 +520,10 @@ export default class EventScene extends Phaser.Scene {
 
                 // BGMを止めずにBattleSceneへ引き継ぐ（keepBgm=true）
                 if (this.engine) this.engine.cleanup(true);
+                if (this.returnScene) {
+                    const retScene = this.scene.get(this.returnScene);
+                    if (retScene && retScene.hideMapVisuals) retScene.hideMapVisuals();
+                }
                 this.scene.sleep();
                 this.scene.launch('BattleScene', config);
                 return;
@@ -541,6 +553,7 @@ export default class EventScene extends Phaser.Scene {
                     party: party,
                     canRetreat: true,
                     isNightBattle: this.isNightBattle || this.isNightExploration || false,
+                    isNightExploration: this.isNightExploration || false,
                     isTowerBattle: this.isTowerBattle,
                     towerEnemy1: this.towerEnemy1,
                     towerEnemy2: this.towerEnemy2,
@@ -548,13 +561,17 @@ export default class EventScene extends Phaser.Scene {
                 };
 
                 if (this.engine) this.engine.cleanup();
+                if (this.returnScene) {
+                    const retScene = this.scene.get(this.returnScene);
+                    if (retScene && retScene.hideMapVisuals) retScene.hideMapVisuals();
+                }
                 this.scene.sleep();
                 this.scene.launch('BattleScene', config);
                 return;
             } else {
                 this.scene.stop();
                 this.scene.resume(this.returnScene, { 
-                    fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.from1221WildhuntEvent && !this.fromIkebukuro01Event && !this.fromIkebukuro02Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial && !this.fromDojoEvent,
+                    fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.from1221WildhuntEvent && !this.fromIkebukuro01Event && !this.fromIkebukuro02Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial && !this.fromDojoEvent && !this.fromJikuEvent,
                     fromExploration: this.fromExploration,
                     fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
                     isNotification: this.isNotification,
@@ -569,7 +586,9 @@ export default class EventScene extends Phaser.Scene {
                     from2R1201Event: this.from2R1201Event,
                     from2RDevilEvent: this.from2RDevilEvent,
                     fromDojoEvent: this.fromDojoEvent,
+                    fromJikuEvent: this.fromJikuEvent,
                     fromTowerRespEvent: this.fromTowerRespEvent,
+                    fromTarot: this.fromTarot,
                     joinCharacterId: this.joinCharacterId 
                 });
             }

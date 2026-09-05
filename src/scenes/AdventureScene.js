@@ -602,6 +602,11 @@ export default class AdventureScene extends Phaser.Scene {
             this.isHappyJumping = false;
             this._updateFoodDisplay(); // タロット等で変更されたSP・食料表示をリアルタイム更新
 
+            // マップ画面への復帰時のみマップビジュアル(描画・カメラ)を再表示！（直後に戦闘開始または突破戦直行の場合は非表示のまま）
+            if (!data || (!data.startBattle && !data.from1221WildhuntEvent)) {
+                this.showMapVisuals();
+            }
+
             // EventSceneがsleep状態で残っていたら確実に止める（BattleScene経由復帰時の残骸クリーンアップ）
             if (this.scene.isSleeping('EventScene')) {
                 this.scene.stop('EventScene');
@@ -731,31 +736,10 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
             // 夜探索からの勝利復帰
-        if (data && data.isNightExploration && data.fromBattle) {
-            const gs = GlobalState.getInstance();
-            gs.food = 140; // 食料回復
-            this._updateFoodDisplay();
-            
-            // レリクス・宝石ドロップ生成
-            const drops = RelicGenerator.generateBattleDrops();
-            if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
-            drops.forEach(drop => {
-                if (drop.type === 'gem') gs.inventory.gems.push(drop);
-                else gs.inventory.relics.push(drop);
-            });
-            
-            this.scene.pause();
-            this.scene.launch('EventScene', {
-                events: [
-                    { cmd: 'bg', key: 'ev_expr' },
-                    { cmd: 'text', name: '', body: '夜の危険な探索を乗り越え、\n充分な量の食料を手に入れた！' }
-                ],
-                returnScene: 'AdventureScene',
-                fromNightExploration: true,  // 夜探索専用フラグ（fromExplorationとは別管理）
-                explorationDrops: drops
-            });
-            return;
-        }
+            if (data && data.isNightExploration && data.fromBattle) {
+                this._finishExploration();
+                return;
+            }
 
         if (gs.currentMonth !== undefined && gs.currentDay !== undefined) {
             this.currentMonth = gs.currentMonth;
@@ -772,9 +756,6 @@ export default class AdventureScene extends Phaser.Scene {
             this.start1221Breakthrough();
             return;
         }
-
-        // マップ画面への復帰時のみマップビジュアル(描画・カメラ)を再表示！
-        this.showMapVisuals();
 
             // タロット復帰時：塔の正位置などで仲間が離脱した場合にマップパーティを最新同期
             if (data && data.fromTarot) {
@@ -957,6 +938,7 @@ export default class AdventureScene extends Phaser.Scene {
                             };
                             this.events.on('resume', onTowerJoinEnd);
 
+                            this.hideMapVisuals();
                             this.scene.pause();
                             this.scene.launch('EventScene', {
                                 events: storyEvents,
@@ -1011,6 +993,7 @@ export default class AdventureScene extends Phaser.Scene {
                 };
 
 
+                this.hideMapVisuals();
                 this.scene.pause();
                 this.scene.launch('BattleScene', config);
             } else {
@@ -1244,6 +1227,19 @@ export default class AdventureScene extends Phaser.Scene {
                 // DOJO 初回チュートリアルイベント完了時 -> 道場画面(DojoScene)へシームレス明転遷移！
                 if (data && data.fromDojoEvent) {
                     TransitionManager.transitionTo(this, 'DojoScene');
+                    return;
+                }
+
+                // JIKU 初回イベント完了時 -> 時空館画面(JikukanScene)へ突入！
+                if (data && data.fromJikuEvent) {
+                    const gs = GlobalState.getInstance();
+                    gs.isJikukanUnlocked = true;
+                    gs.jikuEventSeen = true;
+                    if (this.jikukanBtn && this.jikukanBtn.updateStatus) {
+                        this.jikukanBtn.updateStatus();
+                    }
+                    SaveManager.saveGame(this);
+                    TransitionManager.transitionTo(this, 'JikukanScene');
                     return;
                 }
 
@@ -1500,10 +1496,14 @@ export default class AdventureScene extends Phaser.Scene {
         // ── 🥋 UI: 道場ボタン（デイリーの下、シナリオ解放またはデバッグ時に表示） ──
         this.dojoBtn = this._createDojoButton(20, 105);
 
+        // ── 🏛️ UI: 時空館ボタン（道場の下、デバッグ時は常時表示） ──
+        this.jikukanBtn = this._createJikukanButton(20, 145);
+
         this.uiContainer.add([
             wideBtn,
             this.dailyRewardBtn,
             this.dojoBtn,
+            this.jikukanBtn,
             this.dateBg,
             this.dateTimeText,
             this.exploreBtn,
@@ -1603,11 +1603,12 @@ export default class AdventureScene extends Phaser.Scene {
                 this.uiContainer.add([this.floorJumpBtn]);
             }
 
-            // 対人戦（PvP魔法少女）テストボタン（画面左側）
-            this.pvpTestBtn = this.add.text(20, 145, '⚔️ 対人戦テスト', {
+            // 対人戦（PvP魔法少女）テストボタン（画面右側・タワーテストの下）
+            const pvpBtnY = this.isTowerMode ? 280 : 235;
+            this.pvpTestBtn = this.add.text(width - 20, pvpBtnY, '⚔️ 対人戦テスト', {
                 fontFamily: 'sans-serif', fontSize: '15px', color: '#ff8888', fontStyle: 'bold',
                 backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(0, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.pvpTestBtn.on('pointerdown', () => {
                 this._showPvpTestModal();
@@ -1947,6 +1948,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.pvpTestBtn) this.pvpTestBtn.setVisible(isVisible);
         if (this.dailyRewardBtn) this.dailyRewardBtn.setVisible(isVisible);
         if (this.dojoBtn) this.dojoBtn.setVisible(isVisible && (gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE));
+        if (this.jikukanBtn) this.jikukanBtn.setVisible(isVisible && (gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE));
 
         // 通常表示の固定背景の制御 (広域表示時は非表示にしてマップ全体・タワー背景を見せる)
         if (!this.isTowerMode) {
@@ -2048,6 +2050,12 @@ export default class AdventureScene extends Phaser.Scene {
                     if (this.isTowerMode) {
                         const newFloor = 59 - hex.row + 1;
                         this._updateTowerBottomBgScroll(newFloor, true);
+                    }
+
+                    // 道場解放後のシルバードーム到達時：時空館解放イベント
+                    if (this.checkJikuEvent(hex)) {
+                        this.isJumping = false;
+                        return;
                     }
                     
                     if (isUnexplored && animate) {
@@ -2981,238 +2989,238 @@ export default class AdventureScene extends Phaser.Scene {
             }
             this._isExploring = false;
 
-            const gs = GlobalState.getInstance();
-            const currentHex = this.grid[this.playerRow]?.[this.playerCol];
-            const hexName = currentHex && currentHex.cellData ? currentHex.cellData.name : '';
-            const locInfo = LOCATION_INFO_DATA[hexName];
-            const isGeneric = !locInfo;
+            this._finishExploration();
+        });
+    }
 
-            let drops = [];
-            let towerStairsMsg = null;
+    // 探索完了時の成果処理（日中の通常探索および夜の強敵撃破後の両方から呼ばれる）
+    _finishExploration() {
+        const gs = GlobalState.getInstance();
+        const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+        const hexName = currentHex && currentHex.cellData ? currentHex.cellData.name : '';
+        const locInfo = LOCATION_INFO_DATA[hexName];
+        const isGeneric = !locInfo;
 
-            if (this.isTowerMode) {
-                // タワー探索コスト: パーティ全員 HP-5, SP-5 (HPは最低1で保護)
-                for (const pId of this.party) {
-                    const ch = gs.characters[pId];
-                    if (ch) {
-                        ch.currentHp = Math.max(1, (ch.currentHp || ch.baseHp) - 5);
-                        ch.currentSp = Math.max(0, (ch.currentSp || ch.baseSp) - 5);
+        let drops = [];
+        let towerStairsMsg = null;
+
+        if (this.isTowerMode) {
+            // タワー探索コスト: パーティ全員 HP-5, SP-5 (HPは最低1で保護)
+            for (const pId of this.party) {
+                const ch = gs.characters[pId];
+                if (ch) {
+                    ch.currentHp = Math.max(1, (ch.currentHp || ch.baseHp) - 5);
+                    ch.currentSp = Math.max(0, (ch.currentSp || ch.baseSp) - 5);
+                }
+            }
+
+            // 100面ダイスでレリクス1個確定
+            // 1: 宝石, 2〜3: SR(Rank3), 4〜10: R(Rank2), 11〜100: N(Rank1)
+            const d100 = Math.floor(Math.random() * 100) + 1;
+            let singleDrop = null;
+            if (d100 === 1) {
+                singleDrop = RelicGenerator.generateRandomGem();
+            } else if (d100 <= 3) {
+                singleDrop = RelicGenerator.generateRelic(3);
+            } else if (d100 <= 10) {
+                singleDrop = RelicGenerator.generateRelic(2);
+            } else {
+                singleDrop = RelicGenerator.generateRelic(1);
+            }
+            if (singleDrop) drops.push(singleDrop);
+
+            // 階段発見判定 (1/10 -> 1/9 -> ... -> 1/1 で確定発見)
+            const currentFloor = 59 - this.playerRow;
+            if (!gs.towerSearchCount) gs.towerSearchCount = {};
+            const searchCount = gs.towerSearchCount[currentFloor] || 0;
+            const denominator = Math.max(1, 10 - searchCount);
+            const stairsProb = 1.0 / denominator;
+
+            gs.towerSearchCount[currentFloor] = searchCount + 1;
+
+            if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
+                gs.towerStairsFound[currentFloor] = true;
+                gs.food = Math.min(140, gs.food + 140);
+                this._updateFoodDisplay();
+                towerStairsMsg = '上の階への階段を発見した！（食料 +140）';
+                this._updateTowerGuideDisplay();
+            }
+
+            // タワー内探索による食料減少 (5〜40)
+            this._drainFoodInTower();
+        } else {
+            // ① 食料設定：地名ヘクスは 140、汎用ヘクスは 100
+            const foodAmount = isGeneric ? 100 : 140;
+            gs.food = foodAmount;
+            this._updateFoodDisplay();
+
+            // ② レリクス・宝石ドロップ：汎用ヘクスはレア出現率半分
+            drops = RelicGenerator.generateExplorationDrops(isGeneric);
+        }
+
+        if (!gs.inventory) {
+            gs.inventory = { relics: [], gems: [] };
+        }
+        drops.forEach(drop => {
+            if (drop.type === 'gem') gs.inventory.gems.push(drop);
+            else gs.inventory.relics.push(drop);
+        });
+
+        if (towerStairsMsg) {
+            this.time.delayedCall(500, () => this.showToast(`✨ ${towerStairsMsg}`));
+        }
+
+        // ③ 仲間遭遇判定 (1/5 = 20%) & 情報テキスト判定 (1/2 = 50%)
+        let triggeredJoinCharId = null;
+        let infoText = null;
+
+        if (locInfo) {
+            // まだ未遭遇の特定仲間がいる場合、パーティ人数に応じた確率で遭遇
+            // 1人: 100%, 2人: 1/2(50%), 3人: 1/3(33.3%), 4人: 1/4(25%), 5人以上: 0%(発生しない)
+            const targetCharId = locInfo.charId ? gs.normalizeCharId(locInfo.charId) : null;
+            const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+            if (targetCharId && !currentNormParty.includes(targetCharId)) {
+                const partySize = this.party ? this.party.length : 1;
+                if (partySize < 5) {
+                    const encounterChance = 1.0 / partySize;
+                    if (Math.random() < encounterChance) {
+                        triggeredJoinCharId = targetCharId;
+                        // 加入処理はストーリーイベント完了後(onJoinStoryEnd)に行う
+                        console.log('[AdventureScene] Encounter triggered for:', triggeredJoinCharId);
                     }
                 }
-
-                // 100面ダイスでレリクス1個確定
-                // 1: 宝石, 2〜3: SR(Rank3), 4〜10: R(Rank2), 11〜100: N(Rank1)
-                const d100 = Math.floor(Math.random() * 100) + 1;
-                let singleDrop = null;
-                if (d100 === 1) {
-                    singleDrop = RelicGenerator.generateRandomGem();
-                } else if (d100 <= 3) {
-                    singleDrop = RelicGenerator.generateRelic(3);
-                } else if (d100 <= 10) {
-                    singleDrop = RelicGenerator.generateRelic(2);
-                } else {
-                    singleDrop = RelicGenerator.generateRelic(1);
-                }
-                if (singleDrop) drops.push(singleDrop);
-
-                // 階段発見判定 (1/10 -> 1/9 -> ... -> 1/1 で確定発見)
-                const currentFloor = 59 - this.playerRow;
-                if (!gs.towerSearchCount) gs.towerSearchCount = {};
-                const searchCount = gs.towerSearchCount[currentFloor] || 0;
-                const denominator = Math.max(1, 10 - searchCount);
-                const stairsProb = 1.0 / denominator;
-
-                gs.towerSearchCount[currentFloor] = searchCount + 1;
-
-                if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
-                    gs.towerStairsFound[currentFloor] = true;
-                    gs.food = Math.min(140, gs.food + 140);
-                    this._updateFoodDisplay();
-                    towerStairsMsg = '上の階への階段を発見した！（食料 +140）';
-                    this._updateTowerGuideDisplay();
-                }
-
-                // タワー内探索による食料減少 (5〜40)
-                this._drainFoodInTower();
-            } else {
-                // ① 食料設定：地名ヘクスは 140、汎用ヘクスは 100
-                const foodAmount = isGeneric ? 100 : 140;
-                gs.food = foodAmount;
-                this._updateFoodDisplay();
-
-                // ② レリクス・宝石ドロップ：汎用ヘクスはレア出現率半分
-                drops = RelicGenerator.generateExplorationDrops(isGeneric);
             }
 
-            if (!gs.inventory) {
-                gs.inventory = { relics: [], gems: [] };
+            // 1/2 (50%) の確率で断片的な情報テキストを拾う
+            if (locInfo.text && Math.random() < 0.50) {
+                infoText = locInfo.text;
             }
-            drops.forEach(drop => {
-                if (drop.type === 'gem') gs.inventory.gems.push(drop);
-                else gs.inventory.relics.push(drop);
+        }
+
+        // ── 【入れ子構造シーケンスチェーンの構築】 ──
+        // ステップ順序:
+        // ① 探索結果表示 (食料入手 & 探索メモ)
+        // ② レリクス／宝箱ドロップ獲得表示
+        // ③ 特定仲間出会いストーリーイベント (遭遇時)
+        // ④ 正式仲間加入 (パーティ追加・全回復・隊列登録・即時保存)
+        // ⑤ 時間経過 & アドベンチャー復帰
+
+        const steps = [];
+
+        // ── ステップ①: 探索結果ダイアログ (食料・探索メモ) + そのままレリクス一覧表示 ──
+        steps.push((onNextStep) => {
+            const exprBgKey = this.isTowerMode ? 'ev_exprX' : 'ev_expr';
+            const exprEvents = [
+                { cmd: 'bg', key: exprBgKey }
+            ];
+            const resultFoodText = this.isTowerMode
+                ? '探索を行ったが、食料は見つからなかった。'
+                : (isGeneric ? '探索を行い、一定量の食料を手に入れた。' : '探索を行い、充分な量の食料を手に入れた。');
+            exprEvents.push({ cmd: 'text', name: '', body: resultFoodText });
+            if (infoText) {
+                exprEvents.push({ cmd: 'text', name: '探索メモ', body: infoText });
+            }
+
+            let stepDone = false;
+            const onEventEnd = (scene, data) => {
+                if (data && data.fromExploration) {
+                    if (stepDone) return;
+                    stepDone = true;
+                    this.events.off('resume', onEventEnd);
+                    onNextStep();
+                }
+            };
+            this.events.on('resume', onEventEnd);
+
+            this.scene.pause();
+            this.scene.launch('EventScene', {
+                events: exprEvents,
+                returnScene: 'AdventureScene',
+                fromExploration: true,
+                // ドロップがある場合は食料テキスト表示後、そのまま同シーン内でレリクス一覧を表示する
+                explorationDrops: (drops && drops.length > 0) ? drops : null
             });
+        });
 
-            if (towerStairsMsg) {
-                this.time.delayedCall(500, () => this.showToast(`✨ ${towerStairsMsg}`));
-            }
+        // ── ステップ③: 特定仲間の出会いストーリーイベント (全キャラ共通) ──
+        if (triggeredJoinCharId) {
+            steps.push((onNextStep) => {
+                const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
+                const joinEventsJson = this.cache.json.get('join_events');
+                let storyEvents = [];
 
-            // ③ 仲間遭遇判定 (1/5 = 20%) & 情報テキスト判定 (1/2 = 50%)
-            let triggeredJoinCharId = null;
-            let infoText = null;
+                if (joinEventsJson) {
+                    storyEvents = joinEventsJson[normJoinId] || joinEventsJson[parseInt(normJoinId, 10)] || [];
+                }
 
-            if (locInfo) {
-                // まだ未遭遇の特定仲間がいる場合、パーティ人数に応じた確率で遭遇
-                // 1人: 100%, 2人: 1/2(50%), 3人: 1/3(33.3%), 4人: 1/4(25%), 5人以上: 0%(発生しない)
-                const targetCharId = locInfo.charId ? gs.normalizeCharId(locInfo.charId) : null;
-                const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
-                if (targetCharId && !currentNormParty.includes(targetCharId)) {
-                    const partySize = this.party ? this.party.length : 1;
-                    if (partySize < 5) {
-                        const encounterChance = 1.0 / partySize;
-                        if (Math.random() < encounterChance) {
-                            triggeredJoinCharId = targetCharId;
-                            // 加入処理はストーリーイベント完了後(onJoinStoryEnd)に行う
-                            console.log('[AdventureScene] Encounter triggered for:', triggeredJoinCharId);
+                if (!storyEvents || storyEvents.length === 0) {
+                    const charName = gs.getCharacter(normJoinId)?.name || '新しい仲間';
+                    storyEvents = [
+                        { cmd: 'bg', key: 'ev_expr' },
+                        { cmd: 'text', name: '遭遇', body: `${hexName}にて${charName}と出会った！` }
+                    ];
+                }
+
+                // ストーリーイベントが終了した時点で正式加入・全回復・隊列登録・即時保存を実行し、そのままスムーズに次ステップへ
+                // joinDoneフラグで誤爆（二重発火）を防ぐ
+                let joinDone = false;
+                const onJoinStoryEnd = (scene, data) => {
+                    // fromExploration フラグがついた resume のみ受け付ける（誤爆防止）
+                    if (!data || !data.fromExploration) return;
+                    if (joinDone) return;
+                    joinDone = true;
+                    this.events.off('resume', onJoinStoryEnd);
+
+                    // 正式加入・全回復・隊列設定・即時保存
+                    const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
+                    if (!currentNormParty.includes(normJoinId) && (this.party || []).length < 5) {
+                        this.party.push(normJoinId);
+                    }
+                    gs.assignFormationForNewMember(normJoinId);
+                    const joinedChar = gs.getCharacter(normJoinId);
+                    if (joinedChar) {
+                        const stats = gs.calcStats(normJoinId, this.party);
+                        if (stats) {
+                            joinedChar.currentHp = stats.maxHp;
+                            joinedChar.currentSp = stats.maxSp;
                         }
                     }
-                }
+                    SaveManager.saveGame(this);
+                    console.log('[AdventureScene] Story completed -> Joined party & saved for:', normJoinId);
 
-
-
-
-                // 1/2 (50%) の確率で断片的な情報テキストを拾う
-                if (locInfo.text && Math.random() < 0.50) {
-                    infoText = locInfo.text;
-                }
-            }
-
-            // ── 【入れ子構造シーケンスチェーンの構築】 ──
-            // ステップ順序:
-            // ① 探索結果表示 (食料入手 & 探索メモ)
-            // ② レリクス／宝箱ドロップ獲得表示
-            // ③ 特定仲間出会いストーリーイベント (遭遇時)
-            // ④ 正式仲間加入 (パーティ追加・全回復・隊列登録・即時保存)
-            // ⑤ 時間経過 & アドベンチャー復帰
-
-            const steps = [];
-
-            // ── ステップ①: 探索結果ダイアログ (食料・探索メモ) + そのままレリクス一覧表示 ──
-            steps.push((onNextStep) => {
-                const exprBgKey = this.isTowerMode ? 'ev_exprX' : 'ev_expr';
-                const exprEvents = [
-                    { cmd: 'bg', key: exprBgKey }
-                ];
-                const resultFoodText = this.isTowerMode
-                    ? '探索を行ったが、食料は見つからなかった。'
-                    : (isGeneric ? '探索を行い、一定量の食料を手に入れた。' : '探索を行い、充分な量の食料を手に入れた。');
-                exprEvents.push({ cmd: 'text', name: '', body: resultFoodText });
-                if (infoText) {
-                    exprEvents.push({ cmd: 'text', name: '探索メモ', body: infoText });
-                }
-
-                let stepDone = false;
-                const onEventEnd = (scene, data) => {
-                    if (data && data.fromExploration) {
-                        if (stepDone) return;
-                        stepDone = true;
-                        this.events.off('resume', onEventEnd);
-                        onNextStep();
-                    }
+                    // スムーズに次ステップへ移行
+                    onNextStep();
                 };
-                this.events.on('resume', onEventEnd);
+
+                this.events.on('resume', onJoinStoryEnd);
 
                 this.scene.pause();
                 this.scene.launch('EventScene', {
-                    events: exprEvents,
+                    events: storyEvents,
                     returnScene: 'AdventureScene',
                     fromExploration: true,
-                    // ドロップがある場合は食料テキスト表示後、そのまま同シーン内でレリクス一覧を表示する
-                    explorationDrops: (drops && drops.length > 0) ? drops : null
+                    joinCharacterId: normJoinId,
+                    eventId: `join_${normJoinId}`
                 });
             });
+        }
 
-            // ── ステップ③: 特定仲間の出会いストーリーイベント (全キャラ共通) ──
-            if (triggeredJoinCharId) {
-                steps.push((onNextStep) => {
-                    const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
-                    const joinEventsJson = this.cache.json.get('join_events');
-                    let storyEvents = [];
-
-                    if (joinEventsJson) {
-                        storyEvents = joinEventsJson[normJoinId] || joinEventsJson[parseInt(normJoinId, 10)] || [];
-                    }
-
-                    if (!storyEvents || storyEvents.length === 0) {
-                        const charName = gs.getCharacter(normJoinId)?.name || '新しい仲間';
-                        storyEvents = [
-                            { cmd: 'bg', key: 'ev_expr' },
-                            { cmd: 'text', name: '遭遇', body: `${hexName}にて${charName}と出会った！` }
-                        ];
-                    }
-
-                    // ストーリーイベントが終了した時点で正式加入・全回復・隊列登録・即時保存を実行し、そのままスムーズに次ステップへ
-                    // joinDoneフラグで誤爆（二重発火）を防ぐ
-                    let joinDone = false;
-                    const onJoinStoryEnd = (scene, data) => {
-                        // fromExploration フラグがついた resume のみ受け付ける（誤爆防止）
-                        if (!data || !data.fromExploration) return;
-                        if (joinDone) return;
-                        joinDone = true;
-                        this.events.off('resume', onJoinStoryEnd);
-
-                        // 正式加入・全回復・隊列設定・即時保存
-                        const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
-                        if (!currentNormParty.includes(normJoinId) && (this.party || []).length < 5) {
-                            this.party.push(normJoinId);
-                        }
-                        gs.assignFormationForNewMember(normJoinId);
-                        const joinedChar = gs.getCharacter(normJoinId);
-                        if (joinedChar) {
-                            const stats = gs.calcStats(normJoinId, this.party);
-                            if (stats) {
-                                joinedChar.currentHp = stats.maxHp;
-                                joinedChar.currentSp = stats.maxSp;
-                            }
-                        }
-                        SaveManager.saveGame(this);
-                        console.log('[AdventureScene] Story completed -> Joined party & saved for:', normJoinId);
-
-                        // スムーズに次ステップへ移行
-                        onNextStep();
-                    };
-
-
-                    this.events.on('resume', onJoinStoryEnd);
-
-                    this.scene.pause();
-                    this.scene.launch('EventScene', {
-                        events: storyEvents,
-                        returnScene: 'AdventureScene',
-                        fromExploration: true,
-                        joinCharacterId: normJoinId,
-                        eventId: `join_${normJoinId}`
-                    });
-                });
+        // ── シーケンスチェインの実行関数 ──
+        const runSequence = () => {
+            if (steps.length === 0) {
+                // 全ステップ完了！ ここで初めて時間を進める
+                this._advanceTimeAfterExploration();
+                return;
             }
+            const nextStep = steps.shift();
+            // 10msの微小ディレイを挟んで、前ステップのresumeイベント伝播との同期干渉を完全に防ぐ
+            this.time.delayedCall(10, () => {
+                nextStep(runSequence);
+            });
+        };
 
-
-            // ── シーケンスチェインの実行関数 ──
-            const runSequence = () => {
-                if (steps.length === 0) {
-                    // 全ステップ完了！ ここで初めて時間を進める
-                    this._advanceTimeAfterExploration();
-                    return;
-                }
-                const nextStep = steps.shift();
-                // 10msの微小ディレイを挟んで、前ステップのresumeイベント伝播との同期干渉を完全に防ぐ
-                this.time.delayedCall(10, () => {
-                    nextStep(runSequence);
-                });
-            };
-
-            // シーケンス開始！
-            runSequence();
-        });
+        // シーケンス開始！
+        runSequence();
     }
 
     // 探索シーケンスが全ステップ完了した後に呼ばれる時間進行処理
@@ -3608,10 +3616,12 @@ export default class AdventureScene extends Phaser.Scene {
     hideMapVisuals() {
         if (this.cameras && this.cameras.main) this.cameras.main.setVisible(false);
         if (this.uiCamera) this.uiCamera.setVisible(false);
+        if (this.scene) this.scene.setVisible(false);
     }
 
     /** マップ画面の描画（カメラ・背景・ヘクス・UI）を再表示する */
     showMapVisuals() {
+        if (this.scene) this.scene.setVisible(true);
         if (this.cameras && this.cameras.main) this.cameras.main.setVisible(true);
         if (this.uiCamera) this.uiCamera.setVisible(true);
     }
@@ -3704,6 +3714,11 @@ export default class AdventureScene extends Phaser.Scene {
                 id: 'event_1222_witch',
                 timing: 'after_time_signal',
                 check: () => this.check1221Event()
+            },
+            {
+                id: 'event_jiku',
+                timing: 'after_time_signal',
+                check: () => this.checkJikuEvent()
             }
         ];
 
@@ -3715,6 +3730,35 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
         return fired;
+    }
+
+    /** 道場解放後にシルバードーム(k,11)到達で時空館解放イベント発生 */
+    checkJikuEvent(hex = null) {
+        if (this.isTowerMode) return false;
+        const gs = GlobalState.getInstance();
+        if (!gs.isDojoUnlocked || gs.jikuEventSeen) return false;
+
+        const targetHex = hex || this.grid[this.playerRow]?.[this.playerCol];
+        const rawName = (targetHex && targetHex.cellData && targetHex.cellData.name) ? targetHex.cellData.name.replace(/\n/g, '').trim() : '';
+        const isSilverDome = (rawName === 'シルバードーム') || (targetHex && targetHex.col === 10 && targetHex.row === 10);
+
+        if (isSilverDome) {
+            gs.jikuEventSeen = true;
+            gs.isJikukanUnlocked = true;
+            SaveManager.saveGame(this);
+            const evData = this.cache.json.get('event_jiku');
+            if (evData) {
+                this.scene.pause();
+                this.scene.launch('EventScene', {
+                    events: evData,
+                    returnScene: 'AdventureScene',
+                    fromJikuEvent: true,
+                    eventId: 'event_jiku'
+                });
+                return true;
+            }
+        }
+        return false;
     }
 
     checkIkebukuro01Event() {
@@ -4980,6 +5024,46 @@ export default class AdventureScene extends Phaser.Scene {
 
         container.updateStatus = () => {
             const visible = gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE;
+            container.setVisible(visible);
+        };
+
+        return container;
+    }
+
+    /**
+     * 🏛️ 時空館ボタン（jiku2.jpg）の生成
+     */
+    _createJikukanButton(x, y) {
+        const gs = GlobalState.getInstance();
+        const isVisible = gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE;
+
+        const container = this.add.container(x, y);
+        container.setVisible(isVisible);
+
+        const btnImg = this.add.image(0, 0, 'jikukan_icon').setOrigin(0, 0);
+        // 道場と同じ幅84pxにリサイズ
+        const targetW = 84;
+        const scale = targetW / btnImg.width;
+        btnImg.setScale(scale);
+
+        // タップ領域と枠線
+        const hitArea = this.add.rectangle(0, 0, btnImg.displayWidth, btnImg.displayHeight, 0x000000, 0)
+            .setOrigin(0, 0)
+            .setStrokeStyle(1.5, 0x445588)
+            .setInteractive({ useHandCursor: true });
+
+        hitArea.on('pointerdown', () => {
+            container.setScale(0.92);
+            SaveManager.saveGame(this);
+            TransitionManager.transitionTo(this, 'JikukanScene');
+        });
+        hitArea.on('pointerup', () => container.setScale(1.0));
+        hitArea.on('pointerout', () => container.setScale(1.0));
+
+        container.add([btnImg, hitArea]);
+
+        container.updateStatus = () => {
+            const visible = gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE;
             container.setVisible(visible);
         };
 
