@@ -3035,14 +3035,26 @@ export default class AdventureScene extends Phaser.Scene {
             }
             if (singleDrop) drops.push(singleDrop);
 
-            // 階段発見判定 (1/10 -> 1/9 -> ... -> 1/1 で確定発見)
+            // 階段発見判定 (1/5から開始。同フロアの部屋攻略数または探索ごとに母数が減る)
             const currentFloor = 59 - this.playerRow;
             if (!gs.towerSearchCount) gs.towerSearchCount = {};
             const searchCount = gs.towerSearchCount[currentFloor] || 0;
-            const denominator = Math.max(1, 10 - searchCount);
+
+            // 同フロアで攻略（敵撃破）した部屋数
+            let clearedCount = 0;
+            if (gs.towerClearedHexes) {
+                const rowSuffix = `_${this.playerRow}`;
+                clearedCount = Object.keys(gs.towerClearedHexes).filter(k => k.endsWith(rowSuffix)).length;
+            }
+
+            // 攻略部屋数 + 探索回数に応じて母数が減少 (5 -> 4 -> 3 -> 2 -> 1)
+            const progress = searchCount + clearedCount;
+            const denominator = Math.max(1, 5 - progress);
             const stairsProb = 1.0 / denominator;
 
             gs.towerSearchCount[currentFloor] = searchCount + 1;
+
+            console.log(`[TowerStairs] Floor ${currentFloor + 1}: progress=${progress} (cleared=${clearedCount}, searched=${searchCount}) -> denominator=${denominator}, prob=${(stairsProb * 100).toFixed(1)}%`);
 
             if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
                 gs.towerStairsFound[currentFloor] = true;
