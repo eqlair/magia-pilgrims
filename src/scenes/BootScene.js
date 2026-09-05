@@ -229,6 +229,7 @@ export default class BootScene extends Phaser.Scene {
         // タワー編アセット
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
+        this.load.json('hint_53f', 'files/DATA/53Fhint.json');
         this.load.image('bg_tower01', 'files/MAP/tower01.jpg');
         this.load.image('bg_tow1', 'files/MAP/tow1.jpg');
         this.load.image('bg_tow2', 'files/MAP/tow2.jpg');

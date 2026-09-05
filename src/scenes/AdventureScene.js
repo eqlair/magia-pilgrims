@@ -21,6 +21,28 @@ import { PvpEnemyGenerator } from '../systems/PvpEnemyGenerator';
 
 
 
+const TOWER_COLOR_CORRECT = {
+    53: '赤', // 54F (Row 6)
+    54: '紫', // 55F (Row 5)
+    55: '緑', // 56F (Row 4)
+    56: '黄', // 57F (Row 3)
+    57: '青'  // 58F (Row 2)
+};
+
+const TOWER_HINT_CHAR_MAP = {
+    '001': ['紫苑'],
+    '002': ['蒼樹'],
+    '003': ['紅華', '紅葉'],
+    '004': ['黄蘭'],
+    '005': ['李乃果', '梨乃香'],
+    '006': ['さくら', 'さくら(表)'],
+    '007': ['ななよ'],
+    '008': ['ノア'],
+    '009': ['リフィエル'],
+    '010': ['プロセル'],
+    '011': ['白蓮']
+};
+
 export default class AdventureScene extends Phaser.Scene {
     constructor() {
         super('AdventureScene');
@@ -2010,6 +2032,28 @@ export default class AdventureScene extends Phaser.Scene {
         }
         this._updateDateTimeDisplay();
 
+        if (this.isTowerMode) {
+            const floor = 59 - hex.row; // 0: 1F 〜 59: 60F
+            if (floor <= 52) {
+                // 53F以下（黒の部屋など）に到達または戻った場合はリセット
+                gs.towerColorStepCount = 0;
+                gs.towerColorFailed = false;
+            } else if (floor >= 53 && floor <= 57) {
+                // 54F〜58F（色試練フロア）
+                const correctColor = TOWER_COLOR_CORRECT[floor];
+                if (['赤', '紫', '緑', '黄', '青'].includes(hex.cellData?.name)) {
+                    gs.towerColorStepCount = (gs.towerColorStepCount || 0) + 1;
+                    if (hex.cellData.name !== correctColor) {
+                        gs.towerColorFailed = true;
+                    }
+                } else {
+                    // 5色以外の部屋ならリセット
+                    gs.towerColorStepCount = 0;
+                    gs.towerColorFailed = false;
+                }
+            }
+        }
+
         this.resetIdleTimer();
 
         // 向きの変更 (0:正面/下, 1:左向き, 2:右向き, 3:背中/上)
@@ -2055,6 +2099,13 @@ export default class AdventureScene extends Phaser.Scene {
                     // 道場解放後のシルバードーム到達時：時空館解放イベント
                     if (this.checkJikuEvent(hex)) {
                         this.isJumping = false;
+                        return;
+                    }
+
+                    // タワー54F〜58Fは戦闘・探索なしで即座に移動完了
+                    if (this.isTowerMode && (59 - hex.row >= 53 && 59 - hex.row <= 57)) {
+                        this.isJumping = false;
+                        SaveManager.saveGame(this);
                         return;
                     }
                     
@@ -2125,36 +2176,42 @@ export default class AdventureScene extends Phaser.Scene {
         }
         events.push({ cmd: 'location', name: displayName });
 
-        // 3. 1人目登場 & トーク
-        const char1 = this.party[Math.floor(Math.random() * this.party.length)];
-        events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
-        
-        // トーク内容の取得（地名固有セリフ ➔ 汎用0~25/x1~x7セリフ）
-        const talkData1 = this.cache.json.get(`talk_${char1}`);
-        let locationText = '……。';
-        if (talkData1) {
-            // "現在の地名"のセリフを探す
-            const lines = talkData1[hex.cellData?.name] || talkData1[displayName];
-            if (lines && lines.length > 0) {
-                locationText = lines[Math.floor(Math.random() * lines.length)];
-            } else {
-                // 汎用セリフ ("0"~"25" または "x1"~"x7") からランダム選択
-                const randomKeys = Object.keys(talkData1).filter(k => /^[0-9]+$/.test(k) || k.startsWith('x'));
-                if (randomKeys.length > 0) {
-                    const rk = randomKeys[Math.floor(Math.random() * randomKeys.length)];
-                    const rlines = talkData1[rk];
-                    if (rlines && rlines.length > 0) {
-                        locationText = rlines[Math.floor(Math.random() * rlines.length)];
+        // 3. トーク（53F専用掛け合い または 通常風景掛け合い）
+        const currentFloor = 59 - hex.row;
+        if (this.isTowerMode && currentFloor === 52) {
+            // 53F専用掛け合い（①ヒント発見、2人以上なら②推理(とんちんかん)）
+            this._build53FHintEvents(events);
+        } else {
+            const char1 = this.party[Math.floor(Math.random() * this.party.length)];
+            events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
+            
+            // トーク内容の取得（地名固有セリフ ➔ 汎用0~25/x1~x7セリフ）
+            const talkData1 = this.cache.json.get(`talk_${char1}`);
+            let locationText = '……。';
+            if (talkData1) {
+                // "現在の地名"のセリフを探す
+                const lines = talkData1[hex.cellData?.name] || talkData1[displayName];
+                if (lines && lines.length > 0) {
+                    locationText = lines[Math.floor(Math.random() * lines.length)];
+                } else {
+                    // 汎用セリフ ("0"~"25" または "x1"~"x7") からランダム選択
+                    const randomKeys = Object.keys(talkData1).filter(k => /^[0-9]+$/.test(k) || k.startsWith('x'));
+                    if (randomKeys.length > 0) {
+                        const rk = randomKeys[Math.floor(Math.random() * randomKeys.length)];
+                        const rlines = talkData1[rk];
+                        if (rlines && rlines.length > 0) {
+                            locationText = rlines[Math.floor(Math.random() * rlines.length)];
+                        }
                     }
                 }
             }
-        }
 
-        
-        // トーク名（データから取得して表示用の名前に整形する）
-        const charData = GlobalState.getInstance().characters[char1];
-        let char1Name = charData ? charData.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ';
-        events.push({ cmd: 'text', name: char1Name, body: locationText });
+            
+            // トーク名（データから取得して表示用の名前に整形する）
+            const charData = GlobalState.getInstance().characters[char1];
+            let char1Name = charData ? charData.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ';
+            events.push({ cmd: 'text', name: char1Name, body: locationText });
+        }
 
         // 4. 敵がいる場合
         if (hex.cellData.enemyLevel > 0) {
@@ -2290,10 +2347,23 @@ export default class AdventureScene extends Phaser.Scene {
 
             // 上の階へ進む場合（targetFloor > currentFloor）
             if (targetFloor > currentFloor) {
-                const stairsFound = !!gs.towerStairsFound[currentFloor];
-                if (!stairsFound && !isCleared) {
-                    this.showToast('上の階への階段が見つかっていない…（探索で探そう）');
-                    return;
+                // 58F (currentFloor === 57) から 59F 白 (targetFloor === 58) への扉判定
+                if (currentFloor === 57 && targetFloor === 58) {
+                    const isSuccess = !gs.towerColorFailed && gs.towerColorStepCount === 5;
+                    if (!isSuccess) {
+                        this._triggerTowerDoorFailedEvent();
+                        return;
+                    }
+                }
+
+                // 53F〜58F（0-indexed: 52〜57）は階段探索不要で上の階へ移動可能
+                const isColorTrialFloor = (currentFloor >= 52 && currentFloor <= 57);
+                if (!isColorTrialFloor) {
+                    const stairsFound = !!gs.towerStairsFound[currentFloor];
+                    if (!stairsFound && !isCleared) {
+                        this.showToast('上の階への階段が見つかっていない…（探索で探そう）');
+                        return;
+                    }
                 }
             }
         }
@@ -5653,6 +5723,110 @@ export default class AdventureScene extends Phaser.Scene {
 
             spr.setPosition(centerX, centerY);
             spr.setDisplaySize(currentW, currentH);
+        });
+    }
+
+    /**
+     * 53F（起点）専用の掛け合いイベントを構築
+     * @param {Array} events 
+     */
+    _build53FHintEvents(events) {
+        const hintData = this.cache.json.get('hint_53f');
+        const char1 = this.party[0] || '001';
+        const names1 = TOWER_HINT_CHAR_MAP[char1] || ['紫苑'];
+        const row1 = (hintData && Array.isArray(hintData))
+            ? (hintData.find(r => names1.includes(r['キャラクター'])) || hintData[0])
+            : null;
+
+        const char1Name = row1 ? row1['キャラクター'] : (GlobalState.getInstance().characters[char1]?.name || '紫苑');
+        const text1 = row1 ? row1['①ヒント発見'] : '……『イロ イッカイヅツ』……何かの、ヒントかな';
+
+        // 1人目登場（右からスッと登場）
+        events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
+        events.push({ cmd: 'text', name: char1Name, body: text1 });
+
+        // 2人以上なら2人目登場（左から登場してボケ推理）
+        if (this.party.length >= 2) {
+            const char2 = this.party[1];
+            const names2 = TOWER_HINT_CHAR_MAP[char2] || [];
+            const row2 = (hintData && Array.isArray(hintData))
+                ? (hintData.find(r => names2.includes(r['キャラクター'])) || hintData[1] || hintData[0])
+                : null;
+
+            const char2Name = row2 ? row2['キャラクター'] : (GlobalState.getInstance().characters[char2]?.name || 'キャラ');
+            const text2 = row2 ? row2['②推理(とんちんかん)'] : '色一回ずつ……あ、これ絶対、何かのお菓子の話だ！';
+
+            events.push({ cmd: 'clearText' });
+            events.push({ cmd: 'chara', key: `portrait_${char2}_b`, pos: 'left' });
+            events.push({ cmd: 'text', name: char2Name, body: text2 });
+        }
+    }
+
+    /**
+     * 58Fで白い扉が開かない時のイベントを発火
+     */
+    _triggerTowerDoorFailedEvent() {
+        const hintData = this.cache.json.get('hint_53f');
+        const charId = this.party[0] || '001';
+        const names = TOWER_HINT_CHAR_MAP[charId] || ['紫苑'];
+        const row = (hintData && Array.isArray(hintData))
+            ? (hintData.find(r => names.includes(r['キャラクター'])) || hintData[0])
+            : null;
+
+        const charName = row ? row['キャラクター'] : (GlobalState.getInstance().characters[charId]?.name || 'キャラ');
+        const failLine = row ? row['③扉が開かない時'] : '……開かない。……どうして……？';
+
+        const events = [];
+        const bgKey = 'tower_bg_青';
+        events.push({ cmd: 'bg', key: bgKey });
+        events.push({ cmd: 'location', name: '扉の前' });
+        events.push({ cmd: 'chara', key: `portrait_${charId}`, pos: 'right' });
+        events.push({ cmd: 'text', name: charName, body: failLine });
+        events.push({ cmd: 'end' });
+
+        const onDoorFailResume = () => {
+            this.events.off('resume', onDoorFailResume);
+            this._handleTowerDoorDropTo53F();
+        };
+        this.events.on('resume', onDoorFailResume);
+
+        this.scene.pause();
+        this.scene.launch('EventScene', {
+            events: events,
+            returnScene: 'AdventureScene'
+        });
+    }
+
+    /**
+     * 扉が開かなかった時の暗転＆53F落下演出
+     */
+    _handleTowerDoorDropTo53F() {
+        this.cameras.main.fadeOut(500, 0, 0, 0);
+        this.time.delayedCall(500, () => {
+            // 暗転中にメッセージを表示
+            this.showToast('突然めまいがしたと思ったら\n見覚えのある場所にいた');
+
+            // 53階の同じX座標の部屋に移動 (53F = row: 7)
+            const targetRow = 7;
+            const targetCol = this.playerCol;
+            const targetHex = (this.grid[targetRow] && this.grid[targetRow][targetCol] && this.grid[targetRow][targetCol].cellData.exists)
+                ? this.grid[targetRow][targetCol]
+                : (this.grid[targetRow][2] || this.grid[targetRow][1]);
+
+            if (targetHex) {
+                this.moveToHex(targetHex, false);
+            }
+
+            // 歩数と失敗フラグをリセット
+            const gs = GlobalState.getInstance();
+            gs.towerColorStepCount = 0;
+            gs.towerColorFailed = false;
+
+            this.time.delayedCall(1500, () => {
+                this.cameras.main.fadeIn(500, 0, 0, 0);
+                this.isJumping = false;
+                SaveManager.saveGame(this);
+            });
         });
     }
 }
