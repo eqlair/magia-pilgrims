@@ -136,9 +136,12 @@ export class BattleEngine {
                 this.totalWaves = 3;
             }
 
-            // 魔女出現時もレベルが同様に高レベルキャラクターの+5
+            // 魔女出現時は元のレベルの+5（元のレベル設定がない場合は最高レベルキャラ+5）
             if (this.majoLevel > 0) {
-                this.majoLevel = maxCharLevel + 5;
+                const baseMajoLevel = (this.config.majoLevel !== undefined && this.config.majoLevel > 0)
+                    ? this.config.majoLevel
+                    : maxCharLevel;
+                this.majoLevel = baseMajoLevel + 5;
             }
         }
 
@@ -643,7 +646,7 @@ export class BattleEngine {
 
         const boss = new BossCharacter(x, z, bossData);
         if (this.isNightBattle) {
-            boss.maxHp *= 2.0;
+            boss.maxHp = Math.round(boss.maxHp * 1.5);
             boss.hp = boss.maxHp;
         }
         this.enemies.push(boss);
