@@ -25,15 +25,15 @@ export const ENEMY_TYPES = [
 ];
 
 export const JIKUKAN_ENEMIES = [
-    { id: 0, name: 'スウォーム2', hp: 100, speed: 3.0, weight: 5, range: 4, attackInterval: 0.5, power: 1, debuffResist: 0, scale: 0.5, texture: 'en003', frame: 0 },
-    { id: 1, name: 'フライ2', hp: 200, speed: 2.5, weight: 10, range: 6, attackInterval: 0.45, power: 1, debuffResist: 0, scale: 0.75, texture: 'en003', frame: 1 },
-    { id: 2, name: 'スピリット2', hp: 300, speed: 1.6, weight: 45, range: 6, attackInterval: 0.4, power: 1, debuffResist: 50, scale: 1.0, texture: 'en003', frame: 2 },
-    { id: 3, name: 'マノウォー2', hp: 400, speed: 1.0, weight: 15, range: 8, attackInterval: 0.1, power: 1, debuffResist: 50, scale: 1.0, texture: 'en003', frame: 3 },
-    { id: 4, name: 'ゴブリン2', hp: 400, speed: 10.0, weight: 35, range: 4, attackInterval: 0.25, power: 1, debuffResist: 0, scale: 0.5, texture: 'en001', frame: 2 },
-    { id: 5, name: 'コボルド2', hp: 500, speed: 8.0, weight: 55, range: 6, attackInterval: 0.35, power: 1, debuffResist: 50, scale: 0.75, texture: 'en002', frame: 3 },
-    { id: 6, name: 'オーク2', hp: 600, speed: 7.0, weight: 75, range: 8, attackInterval: 0.5, power: 1, debuffResist: 0, scale: 0.75, texture: 'en001', frame: 0 },
-    { id: 7, name: 'オーガ2', hp: 800, speed: 6.0, weight: 110, range: 8, attackInterval: 0.35, power: 1, debuffResist: 50, scale: 1.0, texture: 'en002', frame: 2 },
-    { id: 8, name: 'ゴーレム2', hp: 2000, speed: 2.0, weight: 110, range: 4, attackInterval: 0.6, power: 1, debuffResist: 50, scale: 1.25, texture: 'en002', frame: 1 }
+    { id: 0, towerId: 0, globalId: 10, name: 'スウォーム2', enemyNum: 9, hp: 100, speed: 3.0, moveDist: 6.0, moveInterval: 0.5, range: 4, attackInterval: 0.5, power: 1, atk: 1, weight: 5, debuffResist: 0, scale: 0.5, size: 0.5, texture: 'en003', frame: 0 },
+    { id: 1, towerId: 1, globalId: 11, name: 'フライ2', enemyNum: 4, hp: 200, speed: 2.5, moveDist: 4.5, moveInterval: 0.45, range: 6, attackInterval: 0.5, power: 1, atk: 1, weight: 10, debuffResist: 0, scale: 0.75, size: 0.75, texture: 'en003', frame: 1 },
+    { id: 2, towerId: 2, globalId: 12, name: 'スピリット2', enemyNum: 8, hp: 300, speed: 1.6, moveDist: 6.0, moveInterval: 0.4, range: 6, attackInterval: 0.5, power: 1, atk: 1, weight: 45, debuffResist: 50, scale: 1.0, size: 1.0, texture: 'en003', frame: 2 },
+    { id: 3, towerId: 3, globalId: 13, name: 'マノウォー2', enemyNum: 3, hp: 400, speed: 1.0, moveDist: 0.5, moveInterval: 0.1, range: 8, attackInterval: 0.1, power: 1, atk: 1, weight: 15, debuffResist: 50, scale: 1.0, size: 1.0, texture: 'en003', frame: 3 },
+    { id: 4, towerId: 4, globalId: 14, name: 'ゴブリン2', enemyNum: 8, hp: 400, speed: 10.0, moveDist: 0.8, moveInterval: 0.25, range: 4, attackInterval: 0.25, power: 1, atk: 1, weight: 35, debuffResist: 0, scale: 0.5, size: 0.5, texture: 'en001', frame: 2 },
+    { id: 5, towerId: 5, globalId: 15, name: 'コボルド2', enemyNum: 6, hp: 500, speed: 8.0, moveDist: 1.0, moveInterval: 0.35, range: 6, attackInterval: 0.35, power: 1, atk: 1, weight: 55, debuffResist: 50, scale: 0.75, size: 0.75, texture: 'en002', frame: 3 },
+    { id: 6, towerId: 6, globalId: 16, name: 'オーク2', enemyNum: 6, hp: 600, speed: 7.0, moveDist: 0.9, moveInterval: 0.5, range: 8, attackInterval: 0.5, power: 1, atk: 1, weight: 75, debuffResist: 0, scale: 0.75, size: 0.75, texture: 'en001', frame: 0 },
+    { id: 7, towerId: 7, globalId: 17, name: 'オーガ2', enemyNum: 3, hp: 800, speed: 6.0, moveDist: 1.25, moveInterval: 0.35, range: 8, attackInterval: 0.35, power: 1, atk: 1, weight: 110, debuffResist: 50, scale: 1.0, size: 1.0, texture: 'en002', frame: 2 },
+    { id: 8, towerId: 8, globalId: 18, name: 'ゴーレム2', enemyNum: 1, hp: 2000, speed: 2.0, moveDist: 3.6, moveInterval: 0.6, range: 4, attackInterval: 0.6, power: 1, atk: 1, weight: 110, debuffResist: 50, scale: 1.25, size: 1.25, texture: 'en002', frame: 1 }
 ];
 
 
@@ -145,13 +145,6 @@ export class BattleEngine {
             }
         }
 
-        if (!this.isJikukan) {
-            // このマップでの最終絶対上限13にクランプ
-            this.enemyLevel = Math.min(13, this.enemyLevel);
-            if (this.majoLevel > 0) {
-                this.majoLevel = Math.min(13, this.majoLevel);
-            }
-        }
 
 
         this.earnedExp = 0;
@@ -484,6 +477,29 @@ export class BattleEngine {
                 moveDist: tDef.moveDist,
                 moveInterval: tDef.moveInterval,
                 debuffResist: tDef.debuffResist,
+                textureKey: tDef.texture || 'en003',
+                frame: tDef.frame !== undefined ? tDef.frame : 0,
+                spawnCount: tDef.enemyNum || 1,
+                isTowerEnemy: true
+            };
+        } else if (this.enemyLevel >= 14) {
+            // LV14以上: 塔や時空館の敵データ（スウォーム2〜ゴーレム2）を使って生成
+            const chosenIdx = (typeIndex !== null && typeIndex >= 0 && typeIndex < JIKUKAN_ENEMIES.length)
+                ? typeIndex
+                : Math.floor(Math.random() * JIKUKAN_ENEMIES.length);
+            const tDef = JIKUKAN_ENEMIES[chosenIdx] || JIKUKAN_ENEMIES[0];
+            typeDef = {
+                name: tDef.name,
+                hp: tDef.hp,
+                speed: tDef.speed,
+                weight: tDef.weight,
+                atkRange: tDef.range,
+                atkFreq: tDef.attackInterval,
+                atkPower: tDef.atk || tDef.power || 1,
+                size: tDef.size || tDef.scale || 1.0,
+                moveDist: tDef.moveDist || tDef.range || 2.0,
+                moveInterval: tDef.moveInterval || tDef.attackInterval || 1.0,
+                debuffResist: tDef.debuffResist || 0,
                 textureKey: tDef.texture || 'en003',
                 frame: tDef.frame !== undefined ? tDef.frame : 0,
                 spawnCount: tDef.enemyNum || 1,

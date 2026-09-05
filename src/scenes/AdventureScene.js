@@ -865,11 +865,11 @@ export default class AdventureScene extends Phaser.Scene {
                         }
                         if (targetHexes.length > 0) {
                             const picked = targetHexes[Math.floor(Math.random() * targetHexes.length)];
-                            picked.cellData.enemyLevel = Math.min(13, picked.cellData.enemyLevel + 1);
+                            picked.cellData.enemyLevel = Math.min(50, picked.cellData.enemyLevel + 1);
                         }
                     }
 
-                    // ② 魔女を倒すとマップ上のどこかの魔女のレベルが1上がる（上限13）
+                    // ② 魔女を倒すとマップ上のどこかの魔女のレベルが1上がる（上限50）
                     if (oldWitchLevel > 0) {
                         const witchHexes = [];
                         for (let r = 0; r < this.grid.length; r++) {
@@ -882,7 +882,7 @@ export default class AdventureScene extends Phaser.Scene {
                         }
                         if (witchHexes.length > 0) {
                             const pickedWitch = witchHexes[Math.floor(Math.random() * witchHexes.length)];
-                            pickedWitch.cellData.witchLevel = Math.min(13, pickedWitch.cellData.witchLevel + 1);
+                            pickedWitch.cellData.witchLevel = Math.min(50, pickedWitch.cellData.witchLevel + 1);
                         }
                     }
 
@@ -980,8 +980,8 @@ export default class AdventureScene extends Phaser.Scene {
                     attribute: attrStr,
                     enemyCount: this.globalEnemyCount,
                     waveCount: Math.ceil(this.globalWaveCount),
-                    enemyLevel: Math.min(13, data.enemyLevel || 1),
-                    majoLevel: Math.min(13, data.majoLevel || 0),
+                    enemyLevel: data.enemyLevel || 1,
+                    majoLevel: data.majoLevel || 0,
 
                     bgmKey: data.selectedBgmKey || null,
 
@@ -2579,14 +2579,14 @@ export default class AdventureScene extends Phaser.Scene {
             const distantWitches = distantHexes.filter(h => (h.cellData.witchLevel || 0) > 0);
             if (distantWitches.length > 0) {
                 const targetDistant = distantWitches[Math.floor(Math.random() * distantWitches.length)];
-                targetDistant.cellData.witchLevel = Math.min(13, (targetDistant.cellData.witchLevel || 0) + 1);
+                targetDistant.cellData.witchLevel = Math.min(50, (targetDistant.cellData.witchLevel || 0) + 1);
                 console.log(`[DailyHexShift] ⚡ 世界の流動: 遠くの魔女が強化！ [col:${targetDistant.col}, row:${targetDistant.row}] 魔女Lv -> ${targetDistant.cellData.witchLevel}`);
             }
         } else if (downgradedType === 'enemy') {
             const distantEnemies = distantHexes.filter(h => (h.cellData.enemyLevel || 0) > 0 && (h.cellData.witchLevel || 0) === 0);
             if (distantEnemies.length > 0) {
                 const targetDistant = distantEnemies[Math.floor(Math.random() * distantEnemies.length)];
-                targetDistant.cellData.enemyLevel = Math.min(13, (targetDistant.cellData.enemyLevel || 0) + 1);
+                targetDistant.cellData.enemyLevel = Math.min(50, (targetDistant.cellData.enemyLevel || 0) + 1);
                 console.log(`[DailyHexShift] ⚡ 世界の流動: 遠くの敵が強化！ [col:${targetDistant.col}, row:${targetDistant.row}] 敵Lv -> ${targetDistant.cellData.enemyLevel}`);
             }
         }
