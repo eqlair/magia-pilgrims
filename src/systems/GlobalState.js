@@ -1202,7 +1202,7 @@ export class GlobalState {
         return null;
     }
 
-    // 所持SPの加算 (上限9999。あふれた分は加入メンバー全員に均等割り振られ、満タンなら破棄)
+    // 所持SPの加算 (上限9999。あふれた分は悪魔のSP箱に全額回収)
     addStockSp(amount) {
         if (!amount || amount <= 0) return;
         const maxStock = 9999;
@@ -1214,26 +1214,9 @@ export class GlobalState {
             this.stockSp = maxStock;
             const overflow = totalSp - maxStock;
 
-            // 加入済みキャラクター全員に均等分配
-            if (this.characters && overflow > 0) {
-                const joinedChars = Object.keys(this.characters)
-                    .filter(id => this.characters[id] && this.characters[id].isJoined)
-                    .map(id => ({ id, data: this.characters[id], stats: this.calcStats(id) }));
-
-                if (joinedChars.length > 0) {
-                    const share = Math.floor(overflow / joinedChars.length);
-                    const remainder = overflow % joinedChars.length;
-
-                    for (let i = 0; i < joinedChars.length; i++) {
-                        const { data, stats } = joinedChars[i];
-                        const addAmount = share + (i < remainder ? 1 : 0);
-                        const maxSp = stats ? stats.maxSp : (data.baseSp || 500);
-                        const current = data.currentSp !== undefined ? data.currentSp : maxSp;
-                        data.currentSp = Math.min(maxSp, current + addAmount);
-                    }
-                    console.log(`[GlobalState] Stock SP reached 9999 cap! Distributed ${overflow} overflow SP to ${joinedChars.length} party members.`);
-                }
-            }
+            // 超えた分は悪魔のSP箱(devilStockSp)に全額回収
+            this.devilStockSp = (this.devilStockSp || 0) + overflow;
+            console.log(`[GlobalState] Stock SP reached 9999 cap! Collected ${overflow} overflow SP into Devil's Box (Total: ${this.devilStockSp}).`);
         }
     }
 

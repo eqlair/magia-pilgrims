@@ -2753,8 +2753,14 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
 
-        // SPの上限制限(最大9999)
-        gs.stockSp = Math.min(9999, Math.max(0, gs.stockSp || 0));
+        // SPの上限制限(最大9999。超えた分は悪魔の箱へ回収)
+        if ((gs.stockSp || 0) > 9999) {
+            const overflow = gs.stockSp - 9999;
+            gs.devilStockSp = (gs.devilStockSp || 0) + overflow;
+            gs.stockSp = 9999;
+        } else {
+            gs.stockSp = Math.max(0, gs.stockSp || 0);
+        }
         if (this.spText) {
             const currentSp = Math.floor(gs.stockSp);
             this.spText.setText(`${currentSp}`);
