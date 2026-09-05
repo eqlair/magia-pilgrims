@@ -5639,7 +5639,6 @@ export default class AdventureScene extends Phaser.Scene {
         if (!this.towerWideSprites || this.towerWideSprites.length === 0) return;
 
         const centerX = 2 * this.hexWidth;
-        const towerWidth = 600; // ヘクス列（幅約520px）の背後に美しく収まる横幅
 
         this.towerWideSprites.forEach(spr => {
             const seg = spr.segData;
@@ -5648,8 +5647,12 @@ export default class AdventureScene extends Phaser.Scene {
             const centerY = (topY + btmY) / 2;
             const currentH = btmY - topY;
 
+            // 元画像の縦横比に合わせて横幅を縦の高さに合わせる
+            const imgAspect = (spr.width && spr.height) ? (spr.width / spr.height) : 1.0;
+            const currentW = currentH * imgAspect;
+
             spr.setPosition(centerX, centerY);
-            spr.setDisplaySize(towerWidth, currentH);
+            spr.setDisplaySize(currentW, currentH);
         });
     }
 }
