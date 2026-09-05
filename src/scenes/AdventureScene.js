@@ -1226,7 +1226,7 @@ export default class AdventureScene extends Phaser.Scene {
 
                 // DOJO 初回チュートリアルイベント完了時 -> 道場画面(DojoScene)へシームレス明転遷移！
                 if (data && data.fromDojoEvent) {
-                    TransitionManager.transitionTo(this, 'DojoScene');
+                    TransitionManager.transitionTo(this, 'DojoScene', { isTower: this.isTowerMode });
                     return;
                 }
 
@@ -1239,7 +1239,7 @@ export default class AdventureScene extends Phaser.Scene {
                         this.jikukanBtn.updateStatus();
                     }
                     SaveManager.saveGame(this);
-                    TransitionManager.transitionTo(this, 'JikukanScene');
+                    TransitionManager.transitionTo(this, 'JikukanScene', { isTower: this.isTowerMode });
                     return;
                 }
 
@@ -5033,7 +5033,7 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
             }
-            TransitionManager.transitionTo(this, 'DojoScene');
+            TransitionManager.transitionTo(this, 'DojoScene', { isTower: this.isTowerMode });
         });
         hitArea.on('pointerup', () => container.setScale(1.0));
         hitArea.on('pointerout', () => container.setScale(1.0));
@@ -5073,7 +5073,7 @@ export default class AdventureScene extends Phaser.Scene {
         hitArea.on('pointerdown', () => {
             container.setScale(0.92);
             SaveManager.saveGame(this);
-            TransitionManager.transitionTo(this, 'JikukanScene');
+            TransitionManager.transitionTo(this, 'JikukanScene', { isTower: this.isTowerMode });
         });
         hitArea.on('pointerup', () => container.setScale(1.0));
         hitArea.on('pointerout', () => container.setScale(1.0));

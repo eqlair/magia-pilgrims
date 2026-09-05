@@ -104,7 +104,11 @@ export class SaveManager {
             let adventureData = existing ? existing.adventureState : null;
             let towerData = existing ? existing.towerState : null;
 
-            if (adventureScene) {
+            // 引数が AdventureScene （マップ画面）の場合のみマップ・タワーデータを更新。
+            // 道場や時空館など他画面からのセーブ時は既存のマップデータを安全にそのまま保持する！
+            const isAdvScene = adventureScene && (adventureScene.scene?.key === 'AdventureScene' || (adventureScene.hexes && adventureScene.hexes.length > 0));
+
+            if (isAdvScene) {
                 const hexStates = [];
                 if (adventureScene.hexes) {
                     for (const h of adventureScene.hexes) {

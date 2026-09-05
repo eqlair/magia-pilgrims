@@ -47,6 +47,11 @@ export default class JikukanScene extends Phaser.Scene {
         if (data && data.mode) this.currentMode = data.mode;
         if (data && data.tab) this.currentTab = data.tab;
         this.battleResultData = data || null;
+        const gs = GlobalState.getInstance();
+        this.isTower = (data && data.isTower !== undefined) ? !!data.isTower : !!gs.isTowerMode;
+        if (this.isTower) {
+            gs.isTowerMode = true;
+        }
     }
 
     create() {
@@ -133,6 +138,7 @@ export default class JikukanScene extends Phaser.Scene {
                 waveCount: 2,
                 spawnInterval: 0.8,
                 isJikukan: true,
+                isTower: this.isTower,
                 jikukanMode: this.currentMode,
                 jikukanType: 'wasp',
                 jikukanFloor: floor,
@@ -152,6 +158,7 @@ export default class JikukanScene extends Phaser.Scene {
                 majoLevel: majoLevel,
                 witchPattern: patternIdx,
                 isJikukan: true,
+                isTower: this.isTower,
                 jikukanMode: this.currentMode,
                 jikukanType: 'witch',
                 jikukanFloor: floor,
@@ -210,7 +217,7 @@ export default class JikukanScene extends Phaser.Scene {
         backBtn.on('pointerdown', () => {
             if (this.bgm) this.bgm.stop();
             TransitionManager.transitionTo(this, 'AdventureScene', {
-                isTower: gs.isTowerMode || false
+                isTower: this.isTower
             });
         });
         this.mainContainer.add(backBtn);
@@ -233,7 +240,9 @@ export default class JikukanScene extends Phaser.Scene {
                 btnImg.setAlpha(0.7);
                 if (this.bgm) this.bgm.stop();
                 SaveManager.saveGame(this);
-                TransitionManager.transitionTo(this, 'DojoScene');
+                TransitionManager.transitionTo(this, 'DojoScene', {
+                    isTower: this.isTower
+                });
             });
             btnImg.on('pointerup', () => btnImg.setAlpha(1.0));
             btnImg.on('pointerout', () => btnImg.setAlpha(1.0));

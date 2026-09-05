@@ -24,6 +24,11 @@ export default class DojoScene extends Phaser.Scene {
     init(data) {
         this.selectedCharId = (data && data.charId) ? data.charId : null;
         this.selectedDept = 'A';
+        const gs = GlobalState.getInstance();
+        this.isTower = (data && data.isTower !== undefined) ? !!data.isTower : !!gs.isTowerMode;
+        if (this.isTower) {
+            gs.isTowerMode = true;
+        }
     }
 
     create() {
@@ -96,7 +101,7 @@ export default class DojoScene extends Phaser.Scene {
                 this.drawScene();
             } else {
                 TransitionManager.transitionTo(this, 'AdventureScene', {
-                    isTower: gs.isTowerMode || false
+                    isTower: this.isTower
                 });
             }
         });
@@ -119,7 +124,9 @@ export default class DojoScene extends Phaser.Scene {
             btnImg.on('pointerdown', () => {
                 btnImg.setAlpha(0.7);
                 SaveManager.saveGame(this);
-                TransitionManager.transitionTo(this, 'JikukanScene');
+                TransitionManager.transitionTo(this, 'JikukanScene', {
+                    isTower: this.isTower
+                });
             });
             btnImg.on('pointerup', () => btnImg.setAlpha(1.0));
             btnImg.on('pointerout', () => btnImg.setAlpha(1.0));
