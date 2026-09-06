@@ -1123,6 +1123,8 @@ export class PlayerCharacter extends BattleEntity {
             // 最もHP（耐久力）の高い敵の方向へ速度ベクトルを設定
             ultBullet.aimAtToughestEnemy = function() {
                 this.hitEnemyIds.clear();
+                this.hitCount = 0; // 突進一閃ごとに貫通減衰カウントをリセット（一閃ごとの貫通減衰）
+                if (this.hitTimes) this.hitTimes.clear(); // 次の文字の一閃として新たにヒット判定を可能にする
                 const opponentList = self.isEnemy ? (self.engine ? self.engine.players : players) : (self.engine ? (self.engine.isPvpBattle ? self.engine.pvpEnemies : self.engine.enemies) : enemies);
                 const aliveEnemies = (opponentList || []).filter(e => !e.isDead && e.hp > 0);
                 if (aliveEnemies.length > 0) {
