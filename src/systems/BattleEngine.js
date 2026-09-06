@@ -1743,9 +1743,15 @@ export class BattleEngine {
                             });
 
                             if (isSankoshoFar) {
-                                b.targetX = target ? target.x : (p.x + dirX * 15.0);
-                                b.targetZ = target ? target.z : (p.z + dirZ * 15.0);
+                                const maxRange = action.range !== undefined ? action.range : 15.0;
+                                b.targetX = p.x + dirX * maxRange;
+                                b.targetZ = p.z + dirZ * maxRange;
                                 b.curveDir = p.sankoshoFarCurveDir || 1;
+                                b.maxRange = maxRange;
+                            }
+                            if (isSankoshoCircle) {
+                                b.dirX = dirX;
+                                b.dirZ = dirZ;
                             }
 
                             b.sourceEntity = p;
@@ -2558,6 +2564,14 @@ export class BattleEngine {
                             if (ep.triggerAttackShake) ep.triggerAttackShake();
                         } else {
                             // 遠距離弾丸（小銃弾丸、手りゅう弾、ショットガン、剣投げ等）
+                            const isSankoshoFar = (action.type === 'sankosho_007');
+                            const isSankoshoCircle = (action.type === 'sankosho_circle_007');
+                            const isSankosho = isSankoshoFar || isSankoshoCircle;
+
+                            if (isSankoshoFar) {
+                                ep.sankoshoFarCurveDir = (ep.sankoshoFarCurveDir === 1 ? -1 : 1);
+                            }
+
                             const speed = action.speed || 20;
                             const spread = action.spread !== undefined ? action.spread : (action.spreadAngle || 0);
                             const sc = action.shotCount !== undefined ? action.shotCount : (action.subCount || 1);
@@ -2588,20 +2602,32 @@ export class BattleEngine {
                                 }
 
                                 const b = new Bullet(spawnX, spawnZ, {
-                                    vx:         vxDir * speed,
-                                    vz:         vzDir * speed,
+                                    vx:         isSankosho ? 0 : vxDir * speed,
+                                    vz:         isSankosho ? 0 : vzDir * speed,
                                     damage:     damage,
                                     knockback:  action.knockback || 0,
                                     owner:      'enemy',
                                     size:       action.size || (action.type === 'grenade' ? 0.8 : 0.6),
-                                    isPiercing: action.isPiercing || false,
+                                    isPiercing: isSankosho ? true : (action.isPiercing || false),
                                     type:       action.type,
                                     textureKey: action.type,
-                                    targetDist: action.range !== undefined ? action.range : 20.0,
-                                    lifeTime:   action.speed ? (action.range / action.speed) * 2 + 1 : 5,
+                                    targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
+                                    lifeTime:   isSankosho ? 4.0 : (action.speed ? (action.range / action.speed) * 2 + 1 : 5),
                                     stunDuration: (ep.charId === '004' ? 1.0 : (action.stunDuration || 0)),
                                     stunChance: 1.0
                                 });
+
+                                if (isSankoshoFar) {
+                                    const maxRange = action.range !== undefined ? action.range : 15.0;
+                                    b.targetX = ep.x + dirX * maxRange;
+                                    b.targetZ = ep.z + dirZ * maxRange;
+                                    b.curveDir = ep.sankoshoFarCurveDir || 1;
+                                    b.maxRange = maxRange;
+                                }
+                                if (isSankoshoCircle) {
+                                    b.dirX = dirX;
+                                    b.dirZ = dirZ;
+                                }
 
                                 b.sourceEntity = ep;
                                 this.bullets.push(b);
@@ -2712,20 +2738,35 @@ export class BattleEngine {
                 }
             }
 
-            // ななよ(007)の遠距離三鈷杵投げ (sankosho_007): ななよと目標の中心を芯とし、最短直径1.5mの美しい楕円軌道ブーメラン
+            // ななよ(007)の遠距離三鈷杵投げ (sankosho_007): 狙った敵の方向へ最大射程まで突き抜けて奥の敵も巻き込み、最短直径1.5mの美しい楕円軌道を描いて戻る
             if (b.type === 'sankosho_007' && b.sourceEntity) {
                 const owner = b.sourceEntity;
                 if (b.ellipseProgress === undefined) {
                     b.ellipseProgress = 0;
-                    b.destX = b.targetX !== undefined ? b.targetX : owner.x;
-                    b.destZ = b.targetZ !== undefined ? b.targetZ : (owner.z + 15.0);
-                    
-                    // 距離の長半径 a (最低3m、最大15m)
-                    const totalDist = Math.max(6.0, Math.min(16.0, Math.hypot(b.destX - owner.x, b.destZ - owner.z)));
-                    b.semiMajor = totalDist / 2; // 長半径 a
+                    const isEnemy = owner.owner === 'enemy';
+                    const fallbackDirZ = isEnemy ? -1.0 : 1.0;
+                    const maxRange = b.maxRange || 15.0;
+
+                    let dx = (b.targetX !== undefined ? b.targetX : owner.x) - owner.x;
+                    let dz = (b.targetZ !== undefined ? b.targetZ : (owner.z + fallbackDirZ * maxRange)) - owner.z;
+                    let dist = Math.hypot(dx, dz);
+                    if (dist < 0.001) {
+                        dx = 0;
+                        dz = fallbackDirZ;
+                        dist = 1.0;
+                    }
+                    const ux = dx / dist;
+                    const uz = dz / dist;
+
+                    // 射程限界地点まで真っ直ぐ突き抜ける
+                    b.destX = owner.x + ux * maxRange;
+                    b.destZ = owner.z + uz * maxRange;
+
+                    // 距離の長半径 a (射程限界の半分)
+                    b.semiMajor = maxRange / 2; // 長半径 a
                     b.semiMinor = 0.75;          // 短半径 b = 0.75m (最短直径 1.5m)
-                    
-                    // 飛行所要時間: 速度32m/sで長円周長を一周 (約0.6〜0.9秒)
+
+                    // 飛行所要時間: 速度32m/sで長円周長を一周
                     const perimeter = Math.PI * (3 * (b.semiMajor + b.semiMinor) - Math.sqrt((3 * b.semiMajor + b.semiMinor) * (b.semiMajor + 3 * b.semiMinor)));
                     b.flightDuration = Math.max(0.55, perimeter / 32.0);
                     b.spinAngle = 0;
@@ -2771,7 +2812,7 @@ export class BattleEngine {
                 }
             }
 
-            // ななよ(007)の近距離三鈷杵ブーメラン (sankosho_circle_007): 手元から360度回転してななよのところまで戻る
+            // ななよ(007)の近距離三鈷杵ブーメラン (sankosho_circle_007): 敵の方向へ向かって手元から360度回転してななよのところまで戻る
             if (b.type === 'sankosho_circle_007' && b.sourceEntity) {
                 const owner = b.sourceEntity;
                 if (b.circleProgress === undefined) {
@@ -2783,6 +2824,18 @@ export class BattleEngine {
                     b.targetDist = 9999;
                     b.lifeTime = 2.0;
                     b.spinAngle = 0;
+
+                    // 方向単位ベクトルの初期化（ターゲット敵への方角）
+                    let uX = b.dirX;
+                    let uZ = b.dirZ;
+                    if (uX === undefined || uZ === undefined || (uX === 0 && uZ === 0)) {
+                        const isEnemy = owner.owner === 'enemy';
+                        uX = 0;
+                        uZ = isEnemy ? -1.0 : 1.0;
+                    }
+                    const len = Math.hypot(uX, uZ) || 1.0;
+                    b.dirX = uX / len;
+                    b.dirZ = uZ / len;
                 }
                 b.circleProgress += (dt / 0.55); // 0.55秒かけて綺麗に360度一周！
                 b.spinAngle = (b.spinAngle || 0) + (Math.PI * 8 * dt); // 三鈷杵自体も高速スピン
@@ -2793,11 +2846,23 @@ export class BattleEngine {
                     b.x = owner.x;
                     b.z = owner.z;
                 } else {
-                    const theta = -Math.PI / 2 + (b.circleProgress * Math.PI * 2);
-                    const centerX = owner.x;
-                    const centerZ = owner.z + b.orbitRadius;
-                    b.x = centerX + Math.cos(theta) * b.orbitRadius;
-                    b.z = centerZ + Math.sin(theta) * b.orbitRadius;
+                    // 進行方向単位ベクトル u と直交ベクトル v
+                    const ux = b.dirX;
+                    const uz = b.dirZ;
+                    const vx = -uz;
+                    const vz = ux;
+
+                    // 中心点: ななよの手元から敵方角へ orbitRadius 進んだ位置
+                    const centerX = owner.x + (ux * b.orbitRadius);
+                    const centerZ = owner.z + (uz * b.orbitRadius);
+
+                    // 角度 phi: 0 (手元) -> pi/2 (右) -> pi (前方最遠点) -> 3pi/2 (左) -> 2pi (手元)
+                    const phi = b.circleProgress * Math.PI * 2;
+                    const cosP = Math.cos(phi);
+                    const sinP = Math.sin(phi);
+
+                    b.x = centerX - (ux * b.orbitRadius * cosP) + (vx * b.orbitRadius * sinP);
+                    b.z = centerZ - (uz * b.orbitRadius * cosP) + (vz * b.orbitRadius * sinP);
                 }
             }
 
