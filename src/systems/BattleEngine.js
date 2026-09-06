@@ -2306,302 +2306,300 @@ export class BattleEngine {
             this.pvpAi.update(dt);
         }
 
-        // ── PvP敵魔法少女たちの行動更新 ──
+        // ── PvP敵魔法少女たちの行動更新（コンボステートマシン駆動） ──
         if (this.isPvpBattle && this.pvpEnemies) {
             for (const ep of this.pvpEnemies) {
                 if (ep.isDead) continue;
                 ep.update(dt);
 
-                if (ep.attackAnimTimer > 0) {
-                    ep.attackAnimTimer -= dt;
-                    if (ep.attackAnimTimer <= 0) {
-                        ep.targetOffsetX = 0;
-                        ep.targetOffsetZ = 0;
-                    }
-                }
                 if (ep.kickTimer > 0) {
                     ep.kickTimer -= dt;
                     if (ep.kickTimer <= 0) {
                         ep.isKickAttacking = false;
-                        ep.targetOffsetX = 0;
-                        ep.targetOffsetZ = 0;
                     }
                 }
 
-                // レーン移動＆前後列移動のスムーズなステップ移動（プレイヤー側と同じく秒速数mで滑らかに移動）
-                const targetX = ep.lane * 1.8;
-                const targetZ = ep.targetZ !== undefined ? ep.targetZ : (ep.isFront ? 9.0 : 14.0);
-
-                if (ep.baseX === undefined) ep.baseX = targetX;
-                if (ep.baseZ === undefined) ep.baseZ = targetZ;
-
-                ep.baseX += (targetX - ep.baseX) * 8.0 * dt;
-                ep.baseZ += (targetZ - ep.baseZ) * 6.0 * dt;
-
-                // ノックバックオフセットの復帰処理（スワイプ移動と同等の秒速8mで素早く復帰）
-                const returnSpeed = 8.0;
-                const kbDist = Math.sqrt((ep.knockbackOffsetX || 0) ** 2 + (ep.knockbackOffsetZ || 0) ** 2);
-                if (kbDist > 0.001) {
-                    const moveDist = returnSpeed * dt;
-                    if (kbDist <= moveDist) {
-                        ep.knockbackOffsetX = 0;
-                        ep.knockbackOffsetZ = 0;
-                    } else {
-                        ep.knockbackOffsetX -= (ep.knockbackOffsetX / kbDist) * moveDist;
-                        ep.knockbackOffsetZ -= (ep.knockbackOffsetZ / kbDist) * moveDist;
-                    }
-                }
-
-                // 最終座標の合成（ベース座標 ＋ 踏み込みオフセット ＋ ノックバックオフセット）
-                ep.x = ep.baseX + (ep.animOffsetX || 0) + (ep.knockbackOffsetX || 0);
-                ep.z = ep.baseZ + (ep.animOffsetZ || 0) + (ep.knockbackOffsetZ || 0);
-
-                if (ep.hp <= 0) {
-                    ep.isDead = true;
+                // 行動不能判定（HP0 または SP0）
+                if (ep.hp <= 0 || ep.sp <= 0) {
+                    ep.combatState.phase = 'idle';
+                    ep.combatState.cancelled = false;
+                    ep.isDead = (ep.hp <= 0);
                     continue;
                 }
 
-                // 生存しているターゲット選定（正面レーン優先、HP>0, SP>0, !isDead）
+                // 必殺技発動中はステートマシンをスキップ（リフィエル大人変身時除く）
+                if (ep.isUltimateActive && ep.charId !== '009') continue;
+
+                // ターゲット選定（生存中のプレイヤーキャラクター）
                 let target = null;
                 let minDist = 9999;
+                let minDistCenter = 9999;
                 for (const p of this.players) {
                     if (p.isDead || p.hp <= 0 || p.sp <= 0) continue;
                     const dx = p.x - ep.x;
                     const dz = p.z - ep.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    if (dist < minDist) {
-                        minDist = dist;
+                    const distCenter = Math.sqrt(dx * dx + dz * dz);
+                    const surfaceDist = Math.max(0, distCenter - ((p.size || 1.0) / 2));
+                    if (surfaceDist < minDist) {
+                        minDist = surfaceDist;
+                        minDistCenter = distCenter;
                         target = p;
                     }
                 }
+                ep.targetEnemy = target;
 
-                if (!target) continue; // 生存プレイヤーがいなければ攻撃しない
+                const cs = ep.combatState;
 
-                // ── 敵紫苑(001)の進行中コンボ（バースト連射＆手りゅう弾）の更新 ──
-                if (ep.charId === '001' && ep.sionCombo && ep.sionCombo.phase !== 'idle') {
-                    ep.sionCombo.timer -= dt;
-                    if (ep.sionCombo.timer <= 0) {
-                        if (ep.sionCombo.phase === 'bursting') {
-                            // 弾丸発射！（プレイヤー紫苑と同じtype: 'bullet', size: 0.5, speed: 40）
-                            const dx = target.x - ep.x;
-                            const dz = target.z - ep.z;
-                            const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
-                            const speed = 40.0;
-                            const bDmg = Math.max(1, Math.floor(ep.atk * 0.15));
-
-                            const bullet = new Bullet(ep.x, ep.z - 0.5, {
-                                vx: (dx / dist) * speed,
-                                vz: (dz / dist) * speed,
-                                damage: bDmg,
-                                knockback: 5,
-                                owner: 'enemy',
-                                size: 0.5,
-                                type: 'bullet',
-                                textureKey: 'bullet',
-                                targetDist: 20.0,
-                                lifeTime: 2.0
-                            });
-                            bullet.sourceEntity = ep;
-                            this.bullets.push(bullet);
-                            if (ep.triggerAttackShake) ep.triggerAttackShake();
-
-                            ep.sionCombo.bulletCount++;
-                            if (ep.sionCombo.bulletCount < ep.sionCombo.maxBullets) {
-                                ep.sionCombo.timer = ep.sionCombo.bulletInterval;
+                // ── RELOADING: リロードタイマーを消化 ──
+                if (cs.phase === 'reloading') {
+                    cs.reloadTimer -= dt;
+                    if (cs.reloadTimer <= 0) {
+                        if (cs.cancelled) {
+                            cs.comboType = null;
+                            cs.stepIdx   = 0;
+                            cs.countIdx  = 0;
+                            cs.cancelled = false;
+                            cs.phase     = 'deciding';
+                        } else {
+                            const action = ep.patterns[cs.comboType][cs.stepIdx];
+                            cs.countIdx++;
+                            if (cs.countIdx >= action.count) {
+                                cs.countIdx = 0;
+                                cs.stepIdx++;
+                                if (cs.stepIdx >= ep.patterns[cs.comboType].length) {
+                                    cs.stepIdx   = 0;
+                                    cs.comboType = null;
+                                    cs.phase     = 'deciding';
+                                    ep.hopBack();
+                                } else {
+                                    cs.phase = 'acting';
+                                }
                             } else {
-                                // バースト連射完了 → 次は手りゅう弾投擲へ！
-                                ep.sionCombo.phase = 'grenade_wait';
-                                ep.sionCombo.timer = 0.35;
+                                cs.phase = 'acting';
                             }
-                        } else if (ep.sionCombo.phase === 'grenade_wait') {
-                            // 手りゅう弾投擲！（プレイヤー紫苑と同じtype: 'grenade', size: 0.8, speed: 20）
-                            const dx = target.x - ep.x;
-                            const dz = target.z - ep.z;
-                            const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
-                            const speed = 20.0;
-                            const gDmg = Math.max(1, Math.floor(ep.atk * 0.50));
-
-                            const grenade = new Bullet(ep.x, ep.z - 0.5, {
-                                vx: (dx / dist) * speed,
-                                vz: (dz / dist) * speed,
-                                damage: gDmg,
-                                knockback: 150,
-                                owner: 'enemy',
-                                size: 0.8,
-                                type: 'grenade',
-                                textureKey: 'grenade',
-                                targetDist: dist,
-                                lifeTime: (dist / speed) * 1.5 + 0.5
-                            });
-                            grenade.sourceEntity = ep;
-                            this.bullets.push(grenade);
-                            if (ep.triggerAttackShake) ep.triggerAttackShake();
-
-                            // コンボ全完了 → クールダウン設定
-                            ep.sionCombo.phase = 'idle';
-                            const baseInterval = Math.max(0.6, 1.4 - (ep.farLevel || 1) * 0.08);
-                            ep.atkCooldown = baseInterval + Math.random() * 0.3;
                         }
                     }
-                    continue; // コンボ進行中は新規攻撃判定をスキップ
+                    continue;
                 }
 
-                // 攻撃タイマー
-                if (!ep.atkCooldown) {
-                    const baseInterval = Math.max(0.45, 1.1 - (ep.nearLevel || 1) * 0.07);
-                    ep.atkCooldown = baseInterval + Math.random() * 0.3;
-                }
-                ep.atkCooldown -= dt;
-
-                if (ep.atkCooldown <= 0) {
-                    // 近接・遠隔攻撃レベルに応じた攻撃間隔（高Lvほど手数が多くなる）
-                    const effectiveLevel = ep.isFront ? (ep.nearLevel || 1) : (ep.farLevel || 1);
-                    const baseInterval = Math.max(0.45, 1.1 - effectiveLevel * 0.07);
-                    ep.atkCooldown = baseInterval + Math.random() * 0.25;
-
-                    const dx = target.x - ep.x;
-                    const dz = target.z - ep.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
-                    const dirX = dx / dist;
-                    const dirZ = dz / dist;
-
-                    // キャラクター別の近接有効射程（紫苑のキックは2.2m、剣・大剣等は3.2m）
-                    const meleeRangeMap = {
-                        '001': 2.2, // キック
-                        '002': 3.2, // 剣
-                        '003': 3.5, // 大剣
-                        '004': 3.2, // リボン
-                        '005': 2.5, // 拳
-                        '007': 4.5, // 三鈷杵ブーメラン
-                        '008': 2.0, // パンチ
-                        '010': 3.0  // バリア
-                    };
-                    const maxMeleeDist = meleeRangeMap[ep.charId] || 3.0;
-
-                    // 近接射程判定: 敵前衛かつ、ターゲットとの絶対距離(X,Z)が近接有効射程以内の場合のみ
-                    const isMeleeRange = (ep.isFront && dist <= maxMeleeDist);
-
-                    if (isMeleeRange) {
-                        // ── 前衛・近接攻撃（ターゲットに向かって踏み込み！） ──
-                        const stepDist = 0.85; // 0.85m手前の相手に向かって突進踏み込み！
-                        ep.targetOffsetX = dirX * stepDist;
-                        ep.targetOffsetZ = dirZ * stepDist;
-
-                        if (ep.charId === '001') {
-                            // ★ 紫苑: キック格闘（キックモーション＋高速突進判定）
-                            ep.isKickAttacking = true;
-                            ep.kickTimer = 0.30;
-                            if (ep.triggerAttackShake) ep.triggerAttackShake();
-
-                            const kickDmg = Math.floor(ep.atk * 1.0);
-                            const kickBullet = new Bullet(ep.x, ep.z - 0.5, {
-                                vx: dirX * 20.0,
-                                vz: dirZ * 20.0, // ターゲットの方向へ正確に蹴り込む
-                                damage: kickDmg,
-                                knockback: 100,
-                                owner: 'enemy',
-                                size: 1.5,
-                                type: 'kick',
-                                textureKey: null,
-                                targetDist: 2.5,
-                                isPiercing: true
-                            });
-                            kickBullet.sourceEntity = ep;
-                            this.bullets.push(kickBullet);
-                        } else {
-                            // 蒼樹(002), 紅華(003), 黄蘭(004), 李乃果(005), ななよ(007), ノア(008), 白蓮(010)
-                            if (ep.triggerAttackShake) ep.triggerAttackShake();
-                            
-                            // スイング持続時間（蒼樹は0.18sの鋭い高速一閃！）
-                            const swingDurationMap = {
-                                '002': 0.18,
-                                '003': 0.50,
-                                '004': 0.20,
-                                '005': 0.20,
-                                '007': 0.40,
-                                '008': 0.20,
-                                '010': 0.25
-                            };
-                            const swingDuration = swingDurationMap[ep.charId] || 0.20;
-                            ep.attackAnimTimer = swingDuration + 0.15; // 攻撃モーション維持時間
-
-                            const swingMap = {
-                                '002': { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.1, size: 3.0, hitRange: 3.5 },
-                                '003': { type: 'swing_003', textureKey: 'weapon_003', dmg: 1.0, size: 3.0, hitRange: 4.0 },
-                                '004': { type: 'swing_004', textureKey: 'weapon_004_ribbon', dmg: 0.9, size: 3.0, hitRange: 3.5 },
-                                '005': { type: 'swing_005', textureKey: 'weapon_005', dmg: 1.0, size: 2.0, hitRange: 2.5 },
-                                '007': { type: 'sankosho_circle_007', textureKey: 'weapon_007', dmg: 0.9, size: 3.0, hitRange: 4.5 },
-                                '008': { type: 'punch_008', textureKey: null, dmg: 0.6, size: 2.0, hitRange: 2.0 },
-                                '010': { type: 'barrier_010', textureKey: 'weapon_010b', dmg: 0.8, size: 2.5, hitRange: 3.0 }
-                            };
-                            const info = swingMap[ep.charId] || { type: 'swing_002', textureKey: 'weapon_002', dmg: 1.0, size: 3.0, hitRange: 3.5 };
-                            const swingDmg = Math.floor(ep.atk * info.dmg);
-
-                            const swing = new Bullet(ep.x, ep.z, {
-                                vx: 0,
-                                vz: 0,
-                                damage: swingDmg,
-                                knockback: 80,
-                                owner: 'enemy',
-                                size: info.size,
-                                hitRange: info.hitRange,
-                                type: info.type,
-                                textureKey: info.textureKey,
-                                lifeTime: swingDuration,
-                                isPiercing: true
-                            });
-
-                            swing.sourceEntity = ep;
-                            swing.maxLife = swingDuration;
-                            swing.baseAngle = Math.atan2(dz, dx); // 手前方向への角度
-                            swing.swingDir = Math.random() < 0.5 ? 1 : -1;
-
-                            this.bullets.push(swing);
-                        }
+                // ── IDLE / DECIDING: コンボ種別を決定 ──
+                if (cs.phase === 'idle' || cs.phase === 'deciding') {
+                    if (!target) {
+                        if (cs.phase !== 'idle') ep.hopBack();
+                        cs.phase = 'idle';
+                    } else if (minDist <= ep.nearThreshold) {
+                        cs.comboType = 'near'; cs.stepIdx = 0; cs.countIdx = 0; cs.phase = 'acting';
+                    } else if (minDist <= ep.farThreshold) {
+                        cs.comboType = 'far';  cs.stepIdx = 0; cs.countIdx = 0; cs.phase = 'acting';
                     } else {
-                        // ── 後衛・遠隔攻撃 ──
-                        if (ep.charId === '001') {
-                            // ★ 敵紫苑(001): 遠隔Lv連動のバースト射撃コンボ開始！
-                            ep.sionCombo = {
-                                phase: 'bursting',
-                                bulletCount: 0,
-                                maxBullets: Math.min(6, 2 + (ep.farLevel || 1)), // Lv1:3発, Lv2:4発, Lv3:5発, Lv4:6発
-                                bulletInterval: Math.max(0.16, 0.32 - (ep.farLevel || 1) * 0.04), // 高Lvほど高速連射
-                                timer: 0 // 即時1発目を発射
-                            };
-                            ep.atkCooldown = 999; // コンボ完了まで待機
-                        } else {
-                            if (ep.triggerAttackShake) ep.triggerAttackShake();
-                            const bulletTypeMap = {
-                                '002': 'weapon_002',
-                                '003': 'weapon_003',
-                                '004': 'weapon_004_ribbon',
-                                '005': 'weapon_005',
-                                '007': 'sankosho_007',
-                                '008': 'weapon_008_bullet',
-                                '010': 'laser_010'
-                            };
-                            const bType = bulletTypeMap[ep.charId] || 'bullet';
-                            const bulletDmg = Math.floor(ep.atk * 0.6);
+                        cs.phase = 'idle';
+                    }
+                    continue;
+                }
 
-                            const dx = target.x - ep.x;
-                            const dz = target.z - ep.z; // マイナス方向（手前）
-                            const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
-                            const speed = 25.0;
+                // ── ACTING: 現在のステップを実行 ──
+                if (cs.phase === 'acting') {
+                    const action = ep.patterns[cs.comboType][cs.stepIdx];
+                    if (!action) {
+                        cs.phase = 'deciding';
+                        continue;
+                    }
 
-                            const bullet = new Bullet(ep.x, ep.z - 0.5, {
-                                vx: (dx / dist) * speed,
-                                vz: (dz / dist) * speed,
-                                damage: bulletDmg,
-                                knockback: 30,
-                                owner: 'enemy',
-                                size: 0.5,
-                                type: bType,
-                                textureKey: bType,
-                                targetDist: 20.0
-                            });
-                            this.bullets.push(bullet);
+                    // キックアクションの判定（紫苑等の格闘）
+                    const isKick = action.type === 'kick';
+                    if (isKick) {
+                        const kickRange = action.range !== undefined ? action.range : 2.0;
+                        let kickTarget = null;
+                        let minKickDist = 999;
+                        for (const p of this.players) {
+                            if (!p.isDead && p.hp > 0 && p.sp > 0) {
+                                const edx = p.x - ep.x;
+                                const edz = p.z - ep.z;
+                                const edist = Math.sqrt(edx * edx + edz * edz);
+                                const surfDist = edist - ((p.size || 1.0) / 2);
+                                if (surfDist <= kickRange && surfDist < minKickDist) {
+                                    minKickDist = surfDist;
+                                    kickTarget = p;
+                                }
+                            }
                         }
+
+                        if (!kickTarget) {
+                            ep.isKickAttacking = false;
+                            ep.kickTimer = 0;
+                            cs.cancelled = false;
+                            cs.reloadTimer = (action.reload || 0.5) * (ep.reloadMultiplier || 1.0);
+                            cs.phase = 'reloading';
+                            continue;
+                        }
+
+                        ep.isKickAttacking = true;
+                        ep.kickTimer = 0.35;
+                        const dx = kickTarget.x - ep.x;
+                        const dz = kickTarget.z - ep.z;
+                        const dist = Math.sqrt(dx * dx + dz * dz) || 1.0;
+                        const dirX = dx / dist;
+                        const dirZ = dz / dist;
+                        const stepDist = 0.75;
+                        ep.targetOffsetX = (ep.targetOffsetX || 0) + dirX * stepDist;
+                        ep.targetOffsetZ = (ep.targetOffsetZ || 0) + dirZ * stepDist;
+                        ep.kickAngle = Math.atan2(dz, dx) * 180 / Math.PI;
+
+                        const damage = (ep.atk * (action.power || 0)) / 100;
+                        const knockbackVal = ep.charId === '001' ? 100 : (ep.charId === '005' ? 80 : (action.knockback || 50));
+                        const speed = 30.0;
+                        const b = new Bullet(ep.x, ep.z, {
+                            vx: dirX * speed,
+                            vz: dirZ * speed,
+                            damage: damage,
+                            knockback: knockbackVal,
+                            owner: 'enemy',
+                            size: 1.5,
+                            isPiercing: true,
+                            type: 'kick_bullet',
+                            targetDist: 1.5,
+                            lifeTime: 1.5 / speed,
+                            erasesEnemyBullets: false,
+                            isFollowOwner: false,
+                            ownerEntity: ep
+                        });
+                        b.sourceEntity = ep;
+                        this.bullets.push(b);
+                        if (ep.triggerAttackShake) ep.triggerAttackShake();
+
+                        cs.cancelled = false;
+                        cs.reloadTimer = (action.reload || 0.5) * (ep.reloadMultiplier || 1.0);
+                        cs.phase = 'reloading';
+                        continue;
+                    }
+
+                    // 射程内か確認
+                    const inRange = target && !target.isDead && minDist <= action.range;
+
+                    if (inRange && action.type !== 'reload') {
+                        const dx   = target.x - ep.x;
+                        const dz   = target.z - ep.z;
+                        const dist = minDistCenter || 1.0;
+                        const dirX = dx / dist;
+                        const dirZ = dz / dist;
+                        const damage = (ep.atk * (action.power || 0)) / 100;
+
+                        if (cs.comboType === 'near') {
+                            let stepDist = action.stepDist !== undefined ? action.stepDist : 1.0;
+                            const wRange = action.weaponRange !== undefined ? action.weaponRange : action.range;
+                            if (minDist <= wRange) {
+                                stepDist = 0;
+                            }
+
+                            const epWeight = ep.weight || 50;
+                            const availableDist = minDist - ((ep.size || 1.0) / 2);
+                            if (availableDist < stepDist) {
+                                target.applyKnockback(dirX * epWeight, dirZ * epWeight);
+                                if (target.weight > epWeight) {
+                                    stepDist = Math.max(0, availableDist);
+                                }
+                            }
+                            ep.targetOffsetX += dirX * stepDist;
+                            ep.targetOffsetZ += dirZ * stepDist;
+                        }
+
+                        const isSwing = action.speed === 0;
+                        if (isSwing) {
+                            let swingDuration = (action.swingDur || 0.25) / 1.5;
+                            if (ep.charId === '003' || ep.charId === '009') {
+                                swingDuration = 0.5;
+                            }
+
+                            const b = new Bullet(ep.x, ep.z, {
+                                vx: 0, vz: 0,
+                                damage:     damage,
+                                knockback:  action.knockback || 0,
+                                owner:      'enemy',
+                                size:       action.size || 3.0,
+                                hitRange:   action.weaponRange !== undefined ? action.weaponRange : action.range,
+                                isPiercing: action.isPiercing !== false,
+                                type:       `swing_${ep.charId}`,
+                                textureKey: `weapon_${ep.charId}`,
+                                lifeTime:   swingDuration,
+                                stunDuration: (ep.charId === '004' ? 1.0 : (action.stunDuration || 0)),
+                                stunChance: 1.0
+                            });
+
+                            b.sourceEntity = ep;
+                            b.maxLife      = swingDuration;
+                            b.baseAngle    = Math.atan2(dz, dx);
+                            b.swingDir     = Math.random() < 0.5 ? 1 : -1;
+                            this.bullets.push(b);
+                            if (ep.triggerAttackShake) ep.triggerAttackShake();
+                        } else {
+                            // 遠距離弾丸（小銃弾丸、手りゅう弾、剣投げ等）
+                            const speed = action.speed || 20;
+                            const spread = action.spreadAngle || 0;
+                            const sc = action.subCount || 1;
+                            const totalAngle = spread * (sc - 1);
+
+                            for (let s = 0; s < sc; s++) {
+                                let angleOffset = 0;
+                                if (sc > 1) {
+                                    angleOffset = -totalAngle / 2 + (totalAngle / (sc - 1)) * s;
+                                } else {
+                                    angleOffset = (Math.random() - 0.5) * spread * 2;
+                                }
+                                if (action.deviation) {
+                                    angleOffset += (Math.random() - 0.5) * 2 * action.deviation;
+                                }
+                                const rad  = angleOffset * (Math.PI / 180);
+                                const cosR = Math.cos(rad);
+                                const sinR = Math.sin(rad);
+                                const vxDir = dirX * cosR - dirZ * sinR;
+                                const vzDir = dirX * sinR + dirZ * cosR;
+
+                                let spawnX = ep.x;
+                                let spawnZ = ep.z;
+                                if (action.spawnOffsetDist) {
+                                    const offsetAngle = Math.random() * Math.PI * 2;
+                                    spawnX += Math.cos(offsetAngle) * action.spawnOffsetDist;
+                                    spawnZ += Math.sin(offsetAngle) * action.spawnOffsetDist;
+                                }
+
+                                const b = new Bullet(spawnX, spawnZ, {
+                                    vx:         vxDir * speed,
+                                    vz:         vzDir * speed,
+                                    damage:     damage,
+                                    knockback:  action.knockback || 0,
+                                    owner:      'enemy',
+                                    size:       action.size || (action.type === 'grenade' ? 0.8 : 0.6),
+                                    isPiercing: action.isPiercing || false,
+                                    type:       action.type,
+                                    textureKey: action.type,
+                                    targetDist: action.range !== undefined ? action.range : 20.0,
+                                    lifeTime:   action.speed ? (action.range / action.speed) * 2 + 1 : 5,
+                                    stunDuration: (ep.charId === '004' ? 1.0 : (action.stunDuration || 0)),
+                                    stunChance: 1.0
+                                });
+
+                                b.sourceEntity = ep;
+                                this.bullets.push(b);
+                                if (ep.triggerAttackShake) ep.triggerAttackShake();
+                            }
+                        }
+                        cs.cancelled = false;
+                    } else {
+                        cs.cancelled = true;
+                    }
+
+                    const baseReload = ep.reloadStat || 100;
+                    cs.reloadTimer = (action.reload || 0.5) * (100 / baseReload) * (ep.reloadMultiplier || 1.0);
+                    if (cs.comboType === 'near') {
+                        if (ep.charId === '003') {
+                            cs.reloadTimer = Math.max(0.5, cs.reloadTimer);
+                        } else {
+                            cs.reloadTimer /= 1.5;
+                        }
+                    }
+                    cs.phase = 'reloading';
+                    if (cs.cancelled) {
+                        ep.hopBack();
                     }
                 }
             }

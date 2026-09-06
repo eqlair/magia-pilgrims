@@ -42,8 +42,8 @@ export class PvpEnemyGenerator {
             const maxHp = Math.floor((charDef.baseHp || 1000) * (1 + levelBonus));
             const maxSp = Math.floor((charDef.baseSp || 500) * (1 + levelBonus));
             const atk = 100 + level * 50;
-            const meleeLevel = Math.ceil(level / 2) + 1;
-            const rangedLevel = Math.ceil(level / 2) + 1;
+            const meleeLevel = Math.max(1, Math.min(7, Math.floor(level / 2)));
+            const rangedLevel = Math.max(1, Math.min(7, Math.floor(level / 2)));
 
             let isFront = this.DEFAULT_FRONT_ROLES[charId] !== undefined ? this.DEFAULT_FRONT_ROLES[charId] : (i % 2 === 0);
             if (presetId === 6) {

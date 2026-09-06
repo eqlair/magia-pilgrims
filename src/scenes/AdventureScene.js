@@ -4824,7 +4824,7 @@ export default class AdventureScene extends Phaser.Scene {
 
         // 状態変数
         let selectedPresetId = 1;
-        let selectedLevel = 1;
+        let selectedLevel = 10;
 
         // 編成選択タイトル
         const presetHeader = this.add.text(width / 2 - modalW / 2 + 30, height / 2 - modalH / 2 + 65, '【敵編成パターン】', {

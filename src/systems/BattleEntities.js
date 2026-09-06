@@ -1097,8 +1097,11 @@ export class PlayerCharacter extends BattleEntity {
         }
 
         // ベース位置の更新
-        const targetX = (typeof this.lane === 'number' ? this.lane : 0) * 2.0;
-        const targetZ = typeof this.targetZ === 'number' ? this.targetZ : (this.isFront ? 6.0 : 1.0);
+        const laneSpacing = this.isEnemy ? 1.8 : 2.0;
+        const defaultFrontZ = this.isEnemy ? 9.0 : 6.0;
+        const defaultRearZ = this.isEnemy ? 14.0 : 1.0;
+        const targetX = (typeof this.lane === 'number' ? this.lane : 0) * laneSpacing;
+        const targetZ = typeof this.targetZ === 'number' ? this.targetZ : (this.isFront ? defaultFrontZ : defaultRearZ);
 
         if (this.baseX === undefined || isNaN(this.baseX)) {
             this.baseX = targetX;
@@ -1852,8 +1855,8 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.maxSp = data.maxSp || 500;
         this.sp = this.maxSp;
         this.atk = data.atk || (100 + this.level * 50);
-        this.nearLevel = data.meleeLevel || (Math.ceil(this.level / 2) + 1);
-        this.farLevel = data.rangedLevel || (Math.ceil(this.level / 2) + 1);
+        this.nearLevel = data.meleeLevel || Math.max(1, Math.min(7, Math.floor(this.level / 2)));
+        this.farLevel = data.rangedLevel || Math.max(1, Math.min(7, Math.floor(this.level / 2)));
         this.wlv = this.nearLevel + this.farLevel;
         this.weight = data.weight || 50;
 
