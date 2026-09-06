@@ -510,9 +510,73 @@ export class PlayerCharacter extends BattleEntity {
                         }
                     }
                 }
-            } else if (this.charId === '002' || this.charId === '009') {
-                // 蒼樹 & リフィエル (回復)
-                let baseHeal = (this.charId === '002') ? 10 + (this.wlv * 2) : 10 + (this.wlv * 3);
+            } else if (this.charId === '002') {
+                // 蒼樹 (特技: 10秒に1回、単体回復)
+                // 前列配置時: 自身HP < 90%なら自身、90%以上なら自身を含めもっとも生命力の少ないメンバー
+                // 後衛配置時: 自身
+                // 回復量: 蒼樹の生命力の (WL/3 + 6)%
+                // 消費精神力: 最大精神力の 0.4%
+                let healAmount = this.maxHp * ((this.wlv / 3.0 + 6.0) / 100.0);
+                let spCost = this.maxSp * 0.004;
+
+                const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
+                if (isPvp) {
+                    const gs = GlobalState.getInstance();
+                    const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
+                    healAmount *= (1.0 / denom);
+                    spCost *= (1.0 / denom);
+                }
+
+                let target = null;
+                if (this.isFront) {
+                    if (this.hp / this.maxHp < 0.90) {
+                        target = this;
+                    } else {
+                        target = lowestHpPlayer;
+                    }
+                } else {
+                    target = this;
+                }
+
+                // 全員HPMAX（対象がHP満タン）の時はスキップ
+                if (target && target.hp < target.maxHp) {
+                    if (this.sp >= spCost) {
+                        this.sp = Math.max(0, this.sp - spCost);
+                        target.hp = Math.min(target.maxHp, target.hp + healAmount);
+                        const displayAmount = healAmount <= 1.0 ? healAmount.toFixed(2) : Math.ceil(healAmount);
+                        floatingTexts.push({
+                            id: Math.random(),
+                            x: target.x,
+                            yOffset: 0,
+                            z: target.z,
+                            amount: displayAmount,
+                            type: "heal",
+                            lifeTime: 1.0,
+                            maxLife: 1.0
+                        });
+                        effects.push(new EffectEntity(target.x, target.z, {
+                            type: 'buff_circle',
+                            radius: 1.5,
+                            lifeTime: 0.5,
+                            customData: { color: 'green' }
+                        }));
+                    } else {
+                        // MP不足
+                        floatingTexts.push({
+                            id: Math.random(),
+                            x: this.x,
+                            yOffset: 0,
+                            z: this.z,
+                            amount: "NO MP",
+                            type: "miss",
+                            lifeTime: 1.0,
+                            maxLife: 1.0
+                        });
+                    }
+                }
+            } else if (this.charId === '009') {
+                // リフィエル (回復: 従来仕様を維持)
+                let baseHeal = 10 + (this.wlv * 3);
                 let altHeal = baseHeal;
 
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
