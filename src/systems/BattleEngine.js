@@ -1735,6 +1735,7 @@ export class BattleEngine {
                                 owner:      'player',
                                 size:       action.size || 0.6,
                                 isPiercing: isSankosho ? true : (action.isPiercing || false),
+                                erasesEnemyBullets: action.erasesEnemyBullets || false,
                                 type:       action.type,
                                 targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
                                 lifeTime:   isSankosho ? 4.0 : (action.speed ? (action.range / action.speed) * 2 + 1 : 5),
@@ -2609,6 +2610,7 @@ export class BattleEngine {
                                     owner:      'enemy',
                                     size:       action.size || (action.type === 'grenade' ? 0.8 : 0.6),
                                     isPiercing: isSankosho ? true : (action.isPiercing || false),
+                                    erasesEnemyBullets: action.erasesEnemyBullets || false,
                                     type:       action.type,
                                     textureKey: action.type,
                                     targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
@@ -2719,23 +2721,16 @@ export class BattleEngine {
             if (b.isDead) continue;
             b.update(dt);
 
-            // 白蓮(010)のバリア弾 (近接 barrier_010 / 8秒パッシブ special_barrier_010): 
-            // ① 0.1秒ごとに速度が半減するシャボン玉のような減速（初速15m/s -> 約2.16mで滑らかに停止して漂う）
-            if (b.type === 'barrier_010' || b.type === 'special_barrier_010') {
-                const decayRate = Math.pow(0.5, dt / 0.1);
-                b.vx *= decayRate;
-                b.vz *= decayRate;
-
-                // 近接バリア(barrier_010)のみ、0.5秒間で直径0.5mから2.5mへ滑らかに拡大！(特技バリアは直径1.0m固定)
-                if (b.type === 'barrier_010') {
-                    if (b.expandTimer === undefined) {
-                        b.expandTimer = 0;
-                        b.size = 0.5; // 発射時は直径0.5m
-                    }
-                    b.expandTimer += dt;
-                    const expandProgress = Math.min(1.0, b.expandTimer / 0.5); // 0.5秒
-                    b.size = 0.5 + (2.0 * expandProgress); // 直径0.5m -> 2.5mへ拡大！
+            // 白蓮(011)のバリア弾 (近接 barrier_011 / 特技 special_barrier_011): 
+            if (b.type === 'barrier_011' || b.type === 'barrier_010') {
+                // 近接バリア(barrier_011): 0.5秒間で直径0.5mから2.0mへ滑らかに拡大しながら前進！
+                if (b.expandTimer === undefined) {
+                    b.expandTimer = 0;
+                    b.size = 0.5; // 発射時は直径0.5m
                 }
+                b.expandTimer += dt;
+                const expandProgress = Math.min(1.0, b.expandTimer / 0.5); // 0.5秒
+                b.size = 0.5 + (1.5 * expandProgress); // 直径0.5m -> 2.0mへ拡大！
             }
 
             // ななよ(007)の遠距離三鈷杵投げ (sankosho_007): 狙った敵の方向へ最大射程まで突き抜けて奥の敵も巻き込み、最短直径1.5mの美しい楕円軌道を描いて戻る
@@ -2946,22 +2941,23 @@ export class BattleEngine {
                 }
             }
 
-            // 白蓮(010)の必殺技持続爆発フィールド (ultimate_burst_field_010): 範囲内の敵全員に毎秒(攻撃力の10%+WLV%)の継続ダメージ
-            if (b.type === 'ultimate_burst_field_010' && b.sourceEntity) {
+            // 白蓮(011)の必殺技持続爆発フィールド (ultimate_burst_field_011): 範囲内の敵全員に毎秒(攻撃力の10%+WLV%)の継続ダメージ
+            if ((b.type === 'ultimate_burst_field_011' || b.type === 'ultimate_burst_field_010') && b.sourceEntity) {
                 const owner = b.sourceEntity;
                 b.damageTimer = (b.damageTimer || 0) + dt;
                 if (b.damageTimer >= 0.2) { // 0.2秒ごとに判定（毎秒 攻撃力の10%+WLV% ダメージ）
                     b.damageTimer -= 0.2;
-                    const dpsPct = 0.10 + (owner.wlv * 0.01);
+                    const dpsPct = 0.10 + ((owner.wlv || 1) * 0.01);
                     const tickDmg = Math.max(1, Math.floor(((owner.atk || 100) * dpsPct) * 0.2));
                     
-                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
-                    for (const t of targets) {
+                    const enemyList = this.isPvpBattle ? (b.owner === 'player' ? this.pvpEnemies : this.players) : (b.owner === 'player' ? this.enemies : this.players);
+                    for (const t of enemyList) {
+                        if (t.isDead || t.isDying) continue;
                         const dx = t.x - b.x;
                         const dz = t.z - b.z;
                         if (dx * dx + dz * dz <= 16.0) { // 半径4m (直径8m)
                             this.applyDamage(owner, t, tickDmg, 'normal', Math.sqrt(dx * dx + dz * dz), b.x, b.z);
-                            t.applyKnockback((10 * dx) / (Math.sqrt(dx * dx + dz * dz) || 1), (10 * dz) / (Math.sqrt(dx * dx + dz * dz) || 1));
+                            t.applyKnockback((10 * dx) / (Math.hypot(dx, dz) || 1), (10 * dz) / (Math.hypot(dx, dz) || 1));
                         }
                     }
                 }
@@ -3089,6 +3085,15 @@ export class BattleEngine {
                         if (edistSq <= eradius * eradius) {
                             eb.isDead = true; // 相手の弾を打ち消し消滅！
                             this.effects.push(new EffectEntity(eb.x, eb.z, { type: 'spark', radius: 0.5, lifeTime: 0.2 }));
+
+                            // 特技バリア(special_barrier_011)はWLV個分の敵弾消去で消滅！
+                            if (b.bulletDurability !== undefined) {
+                                b.bulletDurability--;
+                                if (b.bulletDurability <= 0) {
+                                    b.isDead = true;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -3286,8 +3291,12 @@ export class BattleEngine {
                         const dist = Math.sqrt(distSq);
                         const isHit = this.applyDamage(b.sourceEntity, t, finalDmg, type, b.distanceTraveled, b.x, b.z);
                         if (isHit) {
-                            // 🛡️ 白蓮のバリア弾(barrier_010): 敵に当たって威力が1未満になったら消滅！
-                            if (b.type === 'barrier_010' && finalDmg < 1.0) {
+                            // 🛡️ 白蓮のバリア弾(barrier_011 / barrier_010): 敵に当たって威力が1未満になったら消滅！
+                            if ((b.type === 'barrier_011' || b.type === 'barrier_010') && finalDmg < 1.0) {
+                                b.isDead = true;
+                            }
+                            // 🛡️ 白蓮の特技バリア(special_barrier_011): 敵に接触したら消滅！
+                            if (b.type === 'special_barrier_011' || b.type === 'special_barrier_010') {
                                 b.isDead = true;
                             }
                             if (b.stunDuration > 0 && Math.random() < b.stunChance) {

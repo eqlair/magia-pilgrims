@@ -185,13 +185,13 @@ export class PlayerCharacter extends BattleEntity {
         this.gachaTimer = 1.0;
 
         // 起動射程（キャラクター固有の閾値）
-        this.nearThreshold = this.charId === '003' ? 5.5 : (this.charId === '005' || this.charId === '010' ? 8.0 : (this.charId === '009' ? 6.0 : 4.0));
-        this.farThreshold = this.charId === '001' ? 20.0 : (this.charId === '004' || this.charId === '009' || this.charId === '010' ? 18.0 : 16.0);
+        this.nearThreshold = this.charId === '003' ? 5.5 : (this.charId === '005' || this.charId === '010' ? 8.0 : (this.charId === '009' || this.charId === '011' ? 6.0 : 4.0));
+        this.farThreshold = this.charId === '001' ? 20.0 : (this.charId === '004' || this.charId === '009' || this.charId === '010' || this.charId === '011' ? 19.0 : 16.0);
         if (this.charId === '001') this.nearThreshold = 8.0;
 
         this.updateAttackPatterns();
         // --- 特技（オートスキル）用のプロパティ ---
-        this.specialInterval = (this.charId === '005' || this.charId === '009') ? 5.0 : (this.charId === '003' ? 12.0 : 10.0);
+        this.specialInterval = (this.charId === '005' || this.charId === '009') ? 5.0 : (this.charId === '011' ? 8.0 : (this.charId === '003' ? 12.0 : 10.0));
         this.specialTimer = this.specialInterval; // 開幕はリロードタイムからスタート
         this.reloadMultiplier = 1.0;
         this.hitRateBonus = 0;
@@ -399,6 +399,7 @@ export class PlayerCharacter extends BattleEntity {
         // --- 定期発動特技 ---
         let specialInterval = 10.0;
         if (this.charId === '005' || this.charId === '009') specialInterval = 5.0; // 李乃果・リフィエルは5秒に1回！
+        else if (this.charId === '011') specialInterval = 8.0; // 白蓮: 8秒に1回！
         else if (this.charId === '003' || this.charId === '007') specialInterval = 12.0;
         else if (this.charId === '008') specialInterval = 15.0;
 
@@ -738,24 +739,25 @@ export class PlayerCharacter extends BattleEntity {
                 }
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "ICE BLOCK!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '011') {
-                // 白蓮 (特技: 8秒に1回、前方に初速15m/sで進みシャボン玉減速で漂う直径1.0mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
-                const specialBullet = new Bullet(this.x, this.z, {
+                // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径1mの防御バリア。攻撃力0, ノックバック40, WLV個の敵弾を消すか敵接触で消滅)
+                const durability = Math.max(1, this.wlv || 1);
+                const specialBullet = new Bullet(this.x, this.z + (this.isEnemy ? -0.8 : 0.8), {
                     owner: this.owner || 'player',
                     vx: 0,
-                    vz: this.isEnemy ? -15.0 : 15.0,
+                    vz: this.isEnemy ? -0.5 : 0.5,
                     damage: 0,
                     knockback: 40,
                     size: 1.0, // 直径1.0m固定
-                    lifeTime: 10.0,
+                    lifeTime: 16.0,
                     type: 'special_barrier_011',
                     erasesEnemyBullets: true,
-                    bulletDurability: this.wlv
+                    bulletDurability: durability
                 });
                 specialBullet.sourceEntity = this;
                 if (this.engine) {
                     this.engine.bullets.push(specialBullet);
                 }
-                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "BARRIER BULLET", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
+                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "防御バリア！", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             }
 
 
@@ -1255,10 +1257,11 @@ export class PlayerCharacter extends BattleEntity {
             floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "絶対零度の吹雪！", type: "skill", lifeTime: 1.5, maxLife: 1.5 });
             effects.push(new EffectEntity(this.x, this.z, { type: 'buff_circle', radius: 2.0, lifeTime: 0.8, customData: { color: 'purple' } }));
         } else if (this.charId === '011') {
-            // 白蓮 必殺技:
+            // 白蓮 必殺技 (浄化の結界):
             // 消費SP: 10 + WLV, CD: 60 - WLV*2
             // 前方に秒速2mで進む直径1mのバリア弾。攻撃力0, ノックバック40, 敵弾丸を消す。
-            // 15m進むと直径8mに拡大して破裂し、範囲内に基本攻撃力の (100 + 10 * WLV)% のダメージ！
+            // 8m進むと直径8mに拡大して破裂し、範囲内に基本攻撃力の (100 + 10 * WLV)% のダメージ！
+            // その爆発は 5秒+(WLV/2)秒 持続し、毎秒 (10% + WLV%) の継続ダメージを与え、敵弾を完全吸収しながら秒速1.0mで前進。
             if (!isLinked) {
                 const spCost = Math.floor((10 + this.wlv) * spCostMultiplier);
                 if (this.sp < spCost) return false;
@@ -1267,13 +1270,17 @@ export class PlayerCharacter extends BattleEntity {
                 const cdVal = Math.max(10, 60 - (this.wlv * 2));
                 this.ultimateCooldown = cdVal;
             }
-            
-            // 白蓮 (必殺技: 初速6.5m/sから0.1秒ごと6%減速で3秒かけて8m前進し、8m到達で突然直径8mの特大バリアに大爆発拡大！
-            // 5秒+(WLV/2)秒持続し、範囲内の敵に毎秒(攻撃力の10%+WLV%)の継続ダメージを与え、敵弾を完全吸収しながら秒速1.0mでジワジワ前進)
+
             const ultBullet = new Bullet(this.x, this.z, {
-                owner: this.owner || 'player', isPiercing: true,
-                vx: 0, vz: this.isEnemy ? -6.5 : 6.5,
-                damage: 0, knockback: 40, size: 1.0, lifeTime: 30.0, type: 'ultimate_011',
+                owner: this.owner || 'player',
+                isPiercing: true,
+                vx: 0,
+                vz: this.isEnemy ? -2.0 : 2.0,
+                damage: 0,
+                knockback: 40,
+                size: 1.0,
+                lifeTime: 30.0,
+                type: 'ultimate_011',
                 erasesEnemyBullets: true
             });
             ultBullet.sourceEntity = this;
@@ -1287,20 +1294,32 @@ export class PlayerCharacter extends BattleEntity {
 
                 if (!this.hasExploded) {
                     this.travelDist += Math.abs(this.vz) * dt;
-                    // 0.1秒ごとに約6%減速 (3.0秒で約8m到達し、最終速度は秒速1.0m)
-                    const decay = Math.pow(0.94, dt / 0.1);
-                    this.vz *= decay;
 
                     if (this.travelDist >= 8.0) {
-                        // 8m到達！突然直径8mの超巨大バリアへ大爆発拡大！
+                        // 8m到達！突然直径8mの超巨大結界へ大爆発破裂！
                         this.hasExploded = true;
                         this.size = 8.0; // 直径8.0m (半径4m)
-                        this.vz = self.isEnemy ? -1.0 : 1.0;   // 最終速度 1.0m/s でジワジワ前進
+                        this.vx = 0;
+                        this.vz = self.isEnemy ? -1.0 : 1.0; // 破裂後は秒速1.0mで前進
                         this.type = 'ultimate_burst_field_011';
                         const burstDuration = 5.0 + (self.wlv / 2.0); // 5秒 + (WLV/2)秒 持続
                         this.lifeTime = burstDuration;
 
+                        // 破裂時の即座ダメージ: 基本攻撃力の (100 + 10 * WLV)%
+                        const burstDamagePct = 1.0 + (self.wlv * 0.10);
+                        const burstDmg = Math.max(1, Math.floor((self.atk || 100) * burstDamagePct * ultimateDamageMultiplier));
+
                         if (self.engine) {
+                            const enemyList = self.engine.isPvpBattle ? (self.isEnemy ? self.engine.players : self.engine.pvpEnemies) : (self.isEnemy ? self.engine.players : self.engine.enemies);
+                            for (const target of enemyList) {
+                                if (target.isDead || target.isDying) continue;
+                                const tdx = target.x - this.x;
+                                const tdz = target.z - this.z;
+                                if (tdx * tdx + tdz * tdz <= 16.0) { // 半径4m
+                                    self.engine.applyDamage(self, target, burstDmg, 'critical', Math.sqrt(tdx * tdx + tdz * tdz), this.x, this.z);
+                                    target.applyKnockback((50 * tdx) / (Math.hypot(tdx, tdz) || 1), (50 * tdz) / (Math.hypot(tdx, tdz) || 1));
+                                }
+                            }
                             self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_011', radius: 4.0, lifeTime: burstDuration }));
                         }
                     }

@@ -135,7 +135,7 @@ export class BattleRenderer {
 
             if (textureKey) {
                 this._updateSprite(b, textureKey);
-                if (b.type === 'special_barrier_011' || b.type === 'ultimate_011' || b.type === 'special_barrier_010' || b.type === 'ultimate_010' || (b.type && b.type.includes('barrier') && !b.type.includes('ice'))) {
+                if (b.type === 'special_barrier_011' || b.type === 'ultimate_011' || b.type === 'ultimate_burst_field_011' || b.type === 'special_barrier_010' || b.type === 'ultimate_010' || (b.type && b.type.includes('barrier') && !b.type.includes('ice'))) {
                     const sprite = this.spriteMap.get(b);
                     if (sprite) {
                         sprite.setTint(0x00ffff);
@@ -495,7 +495,7 @@ export class BattleRenderer {
                 }
                 sprite.setTint(tintColor);
                 sprite.setBlendMode(Phaser.BlendModes.ADD); // 💥 敵の放つ弾丸：加算合成（重なるほど明るく白熱発光！）
-            } else if (textureKey === 'weapon_010' || textureKey === 'weapon_010b' || textureKey === 'nrg' || (entity.type && (entity.type.includes('barrier') || entity.type.includes('010')))) {
+            } else if (textureKey === 'weapon_010' || textureKey === 'weapon_010b' || textureKey === 'weapon_011' || textureKey === 'weapon_011b' || textureKey === 'nrg' || (entity.type && (entity.type.includes('barrier') || entity.type.includes('010') || entity.type.includes('011')))) {
                 // 🛡️ 白蓮のバリア弾各種・レーザー
                 sprite.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で鮮やかに発光！
             } else {
@@ -527,7 +527,7 @@ export class BattleRenderer {
                 }
             }
 
-            if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey.startsWith('weapon_')) {
+            if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_')) {
                 // entity.size (m) に対応するスケールを計算
                 // baseWidthピクセルの画像が、ワールド上でentity.size(m)の幅になるようにする
                 const baseWidth = sprite.width || 100; 
@@ -571,7 +571,7 @@ export class BattleRenderer {
                     sprite.setScale(scaleX, scaleY);
                     const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                     sprite.setAngle(angle);
-                } else if (textureKey === 'weapon_010') {
+                } else if (textureKey === 'weapon_010' || textureKey === 'weapon_011') {
                     // 白蓮のレーザー弾: 青白いレーザービームを加算合成で発光 (長さ2m, 幅等倍比率1.0)
                     const baseHeight = sprite.height || 360;
                     const baseWidth = sprite.width || 180;
@@ -585,8 +585,8 @@ export class BattleRenderer {
                     sprite.setBlendMode(Phaser.BlendModes.ADD);
                     sprite.setDepth(1000 - p.depth + 40);
                     sprite.setAlpha(1.0);
-                } else if (textureKey === 'weapon_010b' || textureKey === 'nrg') {
-                    // 白蓮のバリア弾各種 (barrier_010, special_barrier_010, ultimate_010): 直径サイズに合わせて加算合成で美しく回転発光
+                } else if (textureKey === 'weapon_010b' || textureKey === 'weapon_011b' || textureKey === 'nrg') {
+                    // 白蓮のバリア弾各種 (barrier_011, special_barrier_011, ultimate_011, ultimate_burst_field_011): 直径サイズに合わせて加算合成で美しく回転発光
                     const baseSize = sprite.width || 200;
                     const visualSize = entity.size || 2.5;
                     const targetScale = p.scale * (visualSize / baseSize);
