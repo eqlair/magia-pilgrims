@@ -935,11 +935,15 @@ export class BattleEngine {
         }
 
         if (finalDamage > 0) {
-            finalDamage = Math.max(1, Math.round(finalDamage));
+            if (!this.isPvpBattle) {
+                finalDamage = Math.max(1, Math.round(finalDamage));
+            } else {
+                finalDamage = Math.max(0.01, finalDamage);
+            }
             defender.hp -= finalDamage;
 
             // チュートリアル戦闘時: 紫苑(プレイヤー)のHPは1/8以下にならない保護
-            if (this.config.isTutorial && defender.owner === 'player') {
+            if (this.config && this.config.isTutorial && defender.owner === 'player') {
                 const minHp = Math.max(1, Math.floor(defender.maxHp / 8));
                 if (defender.hp < minHp) {
                     defender.hp = minHp;
@@ -980,13 +984,14 @@ export class BattleEngine {
                 defender.sp = Math.max(0, defender.sp - spDrainPerHit);
             }
 
+            const displayAmount = finalDamage <= 1.0 ? finalDamage.toFixed(2) : Math.ceil(finalDamage);
             
             this.floatingTexts.push({
                 id: ++this.floatingTextIdCounter,
                 x: defender.x,
                 yOffset: 0, 
                 z: defender.z,
-                amount: Math.ceil(finalDamage),
+                amount: displayAmount,
                 type: damageType,
                 lifeTime: 1.0,
                 maxLife: 1.0

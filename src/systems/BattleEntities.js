@@ -344,7 +344,12 @@ export class PlayerCharacter extends BattleEntity {
             if (this.spDrainTimer <= 0) {
                 this.spDrainTimer += 1.0;
                 const baseDrain = this.isFoodEmpty ? 2 : 1;
-                const drainAmount = baseDrain * (this.spDrainRate || 1.0);
+                let drainAmount = baseDrain * (this.spDrainRate || 1.0);
+                if (this.engine && this.engine.isPvpBattle) {
+                    const gs = GlobalState.getInstance();
+                    const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
+                    drainAmount *= (1.0 / denom);
+                }
                 this.sp = Math.max(0, this.sp - drainAmount);
             }
         }
@@ -430,8 +435,21 @@ export class PlayerCharacter extends BattleEntity {
                     floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "HIT RATE UP", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
                 }
             } else if (this.charId === '005') {
-                // 李乃果: 5秒に1回、2人回復 200+WLV*20、回復させた人数*10 精神力消費
-                const healAmount = 200 + (this.wlv * 20);
+                // 李乃果: 5秒に1回、2人回復
+                // 回復量: 李乃果の生命力の (WLV / 2 + 10)%
+                // 消費精神力: 回復させた人数 * 0.3% (最大SPの0.3%)
+                let healAmount = this.maxHp * ((this.wlv / 2.0 + 10.0) / 100.0);
+                let spCostPerPerson = this.maxSp * 0.003;
+
+                // PvP対戦時は回復量および消費精神力もPvPスケールで圧縮
+                const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
+                if (isPvp) {
+                    const gs = GlobalState.getInstance();
+                    const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
+                    healAmount *= (1.0 / denom);
+                    spCostPerPerson *= (1.0 / denom);
+                }
+
                 const alive = players.filter(p => !p.isDead);
 
                 let candidates = [];
@@ -456,15 +474,16 @@ export class PlayerCharacter extends BattleEntity {
 
                 if (targets.length > 0) {
                     for (const target of targets) {
-                        if (this.sp >= 10) {
-                            this.sp -= 10;
+                        if (this.sp >= spCostPerPerson) {
+                            this.sp = Math.max(0, this.sp - spCostPerPerson);
                             target.hp = Math.min(target.maxHp, target.hp + healAmount);
+                            const displayAmount = healAmount <= 1.0 ? healAmount.toFixed(2) : Math.ceil(healAmount);
                             floatingTexts.push({
                                 id: Math.random(),
                                 x: target.x,
                                 yOffset: 0,
                                 z: target.z,
-                                amount: Math.ceil(healAmount),
+                                amount: displayAmount,
                                 type: "heal",
                                 lifeTime: 1.2,
                                 maxLife: 1.2
@@ -495,21 +514,32 @@ export class PlayerCharacter extends BattleEntity {
                 // 蒼樹 & リフィエル (回復)
                 let baseHeal = (this.charId === '002') ? 10 + (this.wlv * 2) : 10 + (this.wlv * 3);
                 let altHeal = baseHeal;
+
+                const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
+                if (isPvp) {
+                    const gs = GlobalState.getInstance();
+                    const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
+                    baseHeal *= (1.0 / denom);
+                    altHeal *= (1.0 / denom);
+                }
                 
                 if (this.isFront) {
                     if (this.hp / this.maxHp >= 0.9 && lowestHpPlayer) {
                         lowestHpPlayer.hp = Math.min(lowestHpPlayer.maxHp, lowestHpPlayer.hp + altHeal);
-                        floatingTexts.push({ id: Math.random(), x: lowestHpPlayer.x, yOffset: 0, z: lowestHpPlayer.z, amount: Math.ceil(altHeal), type: "heal", lifeTime: 1.0, maxLife: 1.0 });
+                        const displayAmount = altHeal <= 1.0 ? altHeal.toFixed(2) : Math.ceil(altHeal);
+                        floatingTexts.push({ id: Math.random(), x: lowestHpPlayer.x, yOffset: 0, z: lowestHpPlayer.z, amount: displayAmount, type: "heal", lifeTime: 1.0, maxLife: 1.0 });
                         effects.push(new EffectEntity(lowestHpPlayer.x, lowestHpPlayer.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
                     } else {
                         this.hp = Math.min(this.maxHp, this.hp + baseHeal);
-                        floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: Math.ceil(baseHeal), type: "heal", lifeTime: 1.0, maxLife: 1.0 });
+                        const displayAmount = baseHeal <= 1.0 ? baseHeal.toFixed(2) : Math.ceil(baseHeal);
+                        floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: displayAmount, type: "heal", lifeTime: 1.0, maxLife: 1.0 });
                         effects.push(new EffectEntity(this.x, this.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
                     }
                 } else {
                     if (lowestHpPlayer) {
                         lowestHpPlayer.hp = Math.min(lowestHpPlayer.maxHp, lowestHpPlayer.hp + baseHeal);
-                        floatingTexts.push({ id: Math.random(), x: lowestHpPlayer.x, yOffset: 0, z: lowestHpPlayer.z, amount: Math.ceil(baseHeal), type: "heal", lifeTime: 1.0, maxLife: 1.0 });
+                        const displayAmount = baseHeal <= 1.0 ? baseHeal.toFixed(2) : Math.ceil(baseHeal);
+                        floatingTexts.push({ id: Math.random(), x: lowestHpPlayer.x, yOffset: 0, z: lowestHpPlayer.z, amount: displayAmount, type: "heal", lifeTime: 1.0, maxLife: 1.0 });
                         effects.push(new EffectEntity(lowestHpPlayer.x, lowestHpPlayer.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
                     }
                 }
@@ -638,7 +668,23 @@ export class PlayerCharacter extends BattleEntity {
             }
         }
         
-        const cost = (this.charId === '005' ? 70 + this.wlv : (this.charId === '009' ? 20 + this.wlv : 10 + this.wlv)) * spCostMultiplier;
+        let rawCost;
+        if (this.charId === '005') {
+            rawCost = this.maxSp * 0.10;
+        } else if (this.charId === '009') {
+            rawCost = 20 + this.wlv;
+        } else {
+            rawCost = 10 + this.wlv;
+        }
+        
+        let cost = rawCost * spCostMultiplier;
+
+        // PvP対戦時は消費SPもPvPスケールで圧縮
+        const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
+        if (isPvp) {
+            const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
+            cost *= (1.0 / denom);
+        }
         
         if (isLinked && this.charId === '005') {
             const totalHp = players.reduce((sum, a) => sum + Math.max(0, a.hp), 0);
@@ -806,14 +852,22 @@ export class PlayerCharacter extends BattleEntity {
                 }});
             }
         } else if (this.charId === '005') {
-            // 李乃果: 全体回復 (2100 + (WLV * 20)) をメンバーの数で割った分回復
-            const healTotal = (2100 + (this.wlv * 20)) * ultimateDamageMultiplier;
+            // 李乃果: 全体回復 李乃果の生命力の (WLV * 2 + 150)% をメンバーの数で割った分回復
+            let healTotal = this.maxHp * ((this.wlv * 2.0 + 150.0) / 100.0) * ultimateDamageMultiplier;
+            const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
+            if (isPvp) {
+                const gs = GlobalState.getInstance();
+                const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
+                healTotal *= (1.0 / denom);
+            }
+
             const alivePlayers = players.filter(p => !p.isDead);
             if (alivePlayers.length > 0) {
                 const healAmount = healTotal / alivePlayers.length;
                 for (const p of alivePlayers) {
                     p.hp = Math.min(p.maxHp, p.hp + healAmount);
-                    floatingTexts.push({ id: Math.random(), x: p.x, yOffset: 0, z: p.z, amount: Math.ceil(healAmount), type: "heal", lifeTime: 1.5, maxLife: 1.5 });
+                    const displayAmount = healAmount <= 1.0 ? healAmount.toFixed(2) : Math.ceil(healAmount);
+                    floatingTexts.push({ id: Math.random(), x: p.x, yOffset: 0, z: p.z, amount: displayAmount, type: "heal", lifeTime: 1.5, maxLife: 1.5 });
                     effects.push(new EffectEntity(p.x, p.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.6, customData: { color: 'green' } }));
                 }
             }
