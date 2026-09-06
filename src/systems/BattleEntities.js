@@ -191,8 +191,9 @@ export class PlayerCharacter extends BattleEntity {
 
         this.updateAttackPatterns();
         // --- 特技（オートスキル）用のプロパティ ---
-        this.specialInterval = (this.charId === '005' || this.charId === '009') ? 5.0 : (this.charId === '011' ? 8.0 : (this.charId === '003' ? 12.0 : 10.0));
+        this.specialInterval = (this.charId === '005' || this.charId === '009' || this.charId === '011') ? 5.0 : (this.charId === '003' ? 12.0 : 10.0);
         this.specialTimer = this.specialInterval; // 開幕はリロードタイムからスタート
+        this.byakurenSpecialTimer2 = 0;
         this.reloadMultiplier = 1.0;
         this.hitRateBonus = 0;
         this.barrierHp = 0;
@@ -396,10 +397,18 @@ export class PlayerCharacter extends BattleEntity {
         }
 
 
+        // --- 白蓮(011)の特技2射目ディレイ処理 (0.3秒後) ---
+        if (this.charId === '011' && this.byakurenSpecialTimer2 > 0) {
+            this.byakurenSpecialTimer2 -= dt;
+            if (this.byakurenSpecialTimer2 <= 0) {
+                this.byakurenSpecialTimer2 = 0;
+                this._fireByakurenSpecialBarrier(false);
+            }
+        }
+
         // --- 定期発動特技 ---
         let specialInterval = 10.0;
-        if (this.charId === '005' || this.charId === '009') specialInterval = 5.0; // 李乃果・リフィエルは5秒に1回！
-        else if (this.charId === '011') specialInterval = 8.0; // 白蓮: 8秒に1回！
+        if (this.charId === '005' || this.charId === '009' || this.charId === '011') specialInterval = 5.0; // 李乃果・リフィエル・白蓮は5秒に1回！
         else if (this.charId === '003' || this.charId === '007') specialInterval = 12.0;
         else if (this.charId === '008') specialInterval = 15.0;
 
@@ -739,28 +748,65 @@ export class PlayerCharacter extends BattleEntity {
                 }
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "ICE BLOCK!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '011') {
-                // 白蓮 (特技: 8秒に1回、前方に秒速0.5mで進む直径1mの防御バリア。攻撃力0, ノックバック40, WLV個の敵弾を消すか敵接触で消滅)
-                const durability = Math.max(1, this.wlv || 1);
-                const specialBullet = new Bullet(this.x, this.z + (this.isEnemy ? -0.8 : 0.8), {
-                    owner: this.owner || 'player',
-                    vx: 0,
-                    vz: this.isEnemy ? -0.5 : 0.5,
-                    damage: 0,
-                    knockback: 40,
-                    size: 1.0, // 直径1.0m固定
-                    lifeTime: 16.0,
-                    type: 'special_barrier_011',
-                    erasesEnemyBullets: true,
-                    bulletDurability: durability
-                });
-                specialBullet.sourceEntity = this;
-                if (this.engine) {
-                    this.engine.bullets.push(specialBullet);
-                }
+                // 白蓮 (特技: 5秒に1回、正面と狙っている敵の方向に0.3秒間隔で近接シャボン玉バリアを2連射)
+                this._fireByakurenSpecialBarrier(true);
+                this.byakurenSpecialTimer2 = 0.3;
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "防御バリア！", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             }
 
 
+        }
+    }
+
+    _fireByakurenSpecialBarrier(isFirstShot = true) {
+        // 近接レベルに応じたアクション定義を取得
+        const nearPattern = (this.patterns && this.patterns.near) ? this.patterns.near : null;
+        let power = 50;
+        if (nearPattern && Array.isArray(nearPattern)) {
+            const nearAction = nearPattern.find(a => a.type === 'barrier_011' || a.type === 'barrier_010');
+            if (nearAction && nearAction.power) power = nearAction.power;
+        }
+        const damage = (this.atk * power) / 100;
+        const durability = Math.max(1, this.wlv || 1);
+        const speed = 15.0; // 初速15m/sでシャボン玉減速
+
+        let dirX = 0;
+        let dirZ = this.isEnemy ? -1.0 : 1.0;
+
+        if (!isFirstShot) {
+            // 2射目: 現在狙っている敵の方向
+            const target = this.targetEnemy;
+            if (target && !target.isDead && !target.isDying && target.hp > 0) {
+                const dx = target.x - this.x;
+                const dz = target.z - this.z;
+                const dist = Math.hypot(dx, dz) || 1.0;
+                dirX = dx / dist;
+                dirZ = dz / dist;
+            }
+        }
+
+        const spawnOffset = 0.8;
+        const spawnX = this.x + dirX * spawnOffset;
+        const spawnZ = this.z + dirZ * spawnOffset;
+
+        const bullet = new Bullet(spawnX, spawnZ, {
+            owner: this.owner || 'player',
+            vx: dirX * speed,
+            vz: dirZ * speed,
+            damage: damage,
+            baseDamage: damage,
+            knockback: 10,
+            size: 0.5,
+            isPiercing: true,
+            erasesEnemyBullets: true,
+            bulletDurability: durability,
+            maxDurability: durability,
+            type: 'barrier_011',
+            lifeTime: 4.0
+        });
+        bullet.sourceEntity = this;
+        if (this.engine) {
+            this.engine.bullets.push(bullet);
         }
     }
 
