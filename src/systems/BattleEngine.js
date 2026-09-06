@@ -2880,7 +2880,10 @@ export class BattleEngine {
 
             // ノア(008)の特技デバフフィールド (special_field_008): 触れた敵の属性防御力を50上げる(弱体化、敵のデバフ抵抗力で増減) - 直径3m
             if (b.type === 'special_field_008') {
-                const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                const targetPool = b.owner === 'enemy'
+                    ? (this.players || [])
+                    : (this.isPvpBattle ? (this.pvpEnemies || []) : (this.enemies || []));
+                const targets = targetPool.filter(e => !e.isDead && !e.isDying);
                 const baseVal = b.baseDebuff || 50;
                 for (const t of targets) {
                     const dx = t.x - b.x;

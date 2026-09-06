@@ -98,6 +98,11 @@ export class BattleRenderer {
                 const charTex = `battle_${ep.charId}`;
                 this._updateSprite(ep, charTex);
                 this._updateUI(ep);
+
+                // ノア(008)の自律浮遊エネルギー球体の描画 (敵側)
+                if (ep.charId === '008') {
+                    this._updateNoahOrbs(ep);
+                }
             }
         }
 
@@ -1491,26 +1496,26 @@ export class BattleRenderer {
 
     // ノア(008)のエネルギー球体描画更新
     _updateNoahOrbs(p) {
-        if (!this.noahOrbSpriteMap) this.noahOrbSpriteMap = new Map();
+        if (!p._noahOrbSpriteMap) p._noahOrbSpriteMap = new Map();
 
         const activeOrbs = (!p.isDead && p.noahOrbs) ? p.noahOrbs : [];
 
         // 不要になったスプライトの削除
-        for (const [orb, sprite] of this.noahOrbSpriteMap.entries()) {
+        for (const [orb, sprite] of p._noahOrbSpriteMap.entries()) {
             if (!activeOrbs.includes(orb) || orb.isDead) {
                 sprite.destroy();
-                this.noahOrbSpriteMap.delete(orb);
+                p._noahOrbSpriteMap.delete(orb);
             }
         }
 
         // アクティブな球体の描画
         for (const orb of activeOrbs) {
             if (orb.isDead) continue;
-            let sprite = this.noahOrbSpriteMap.get(orb);
+            let sprite = p._noahOrbSpriteMap.get(orb);
             if (!sprite) {
                 sprite = this.scene.add.sprite(0, 0, 'weapon_008_orb', 0).setOrigin(0.5, 0.5);
                 sprite.setBlendMode(Phaser.BlendModes.ADD);
-                this.noahOrbSpriteMap.set(orb, sprite);
+                p._noahOrbSpriteMap.set(orb, sprite);
             }
 
             const proj = this.projector.project(orb.x, orb.z);
@@ -1614,11 +1619,14 @@ export class BattleRenderer {
         }
         this.spriteMap.clear();
 
-        if (this.noahOrbSpriteMap) {
-            for (const sprite of this.noahOrbSpriteMap.values()) {
-                sprite.destroy();
+        const allChars = [...(this.engine.players || []), ...(this.engine.pvpEnemies || [])];
+        for (const ch of allChars) {
+            if (ch._noahOrbSpriteMap) {
+                for (const sprite of ch._noahOrbSpriteMap.values()) {
+                    sprite.destroy();
+                }
+                ch._noahOrbSpriteMap.clear();
             }
-            this.noahOrbSpriteMap.clear();
         }
 
         if (this.noahUltTrailMap) {

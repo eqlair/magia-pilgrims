@@ -258,7 +258,7 @@ export class PlayerCharacter extends BattleEntity {
         // ノア(008)のお供のエネルギー球体
         if (this.charId === '008') {
             this.noahOrbs = [];
-            this.maxNoahOrbs = Math.min(5, Math.floor(this.wlv / 4) + 1);
+            this.maxNoahOrbs = Math.min(5, Math.floor((this.wlv || 0) / 3) + 2);
             this.noahOrbSpawnTimer = 0.2; // 開始0.2秒後に1個目、以降1秒ごとに生成
         }
     }
@@ -708,7 +708,7 @@ export class PlayerCharacter extends BattleEntity {
 
                 for (const pt of spawnPoints) {
                     const specialField = new Bullet(pt.x, pt.z, {
-                        owner: this.owner || 'player',
+                        owner: this.owner || (this.isEnemy ? 'enemy' : 'player'),
                         vx: 0,
                         vz: 0, // その場に固定で5秒間維持
                         damage: 0,
@@ -1631,7 +1631,9 @@ export class PlayerCharacter extends BattleEntity {
                 }
             }
 
-            const enemyList = this.engine.isPvpBattle ? this.engine.pvpEnemies : this.engine.enemies;
+            const enemyList = this.isEnemy 
+                ? this.engine.players 
+                : (this.engine.isPvpBattle ? this.engine.pvpEnemies : this.engine.enemies);
             const aliveEnemies = (enemyList || []).filter(e => !e.isDead && !e.isDying && e.hp > 0 && typeof e.x === 'number');
 
             // ノア本体に最も近い敵（ノアへの直接の脅威）を検索
@@ -1751,7 +1753,7 @@ export class PlayerCharacter extends BattleEntity {
                         const targetDist = Math.hypot(targetDx, targetDz);
                         
                         // ゼロ距離(重なっている時)でも前方へ確実に発射
-                        let baseAngle = Math.PI / 2; // デフォルト真上(Z正方向)
+                        let baseAngle = this.isEnemy ? -Math.PI / 2 : Math.PI / 2; // デフォルト敵なら手前、味方なら奥
                         if (targetDist > 0.01) {
                             baseAngle = Math.atan2(targetDz, targetDx);
                         }
@@ -1762,7 +1764,7 @@ export class PlayerCharacter extends BattleEntity {
                         const bulletDmg = Math.max(1, Math.floor(this.atk * 0.50)); // 威力: 攻撃力の50%
 
                         const bullet = new Bullet(orb.x, orb.z, {
-                            owner: this.owner || 'player',
+                            owner: this.owner || (this.isEnemy ? 'enemy' : 'player'),
                             vx: Math.cos(shootAngle) * bulletSpeed,
                             vz: Math.sin(shootAngle) * bulletSpeed,
                             damage: bulletDmg,
