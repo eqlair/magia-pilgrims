@@ -956,9 +956,9 @@ export class BattleEngine {
                 this.damageHistory.push({ time: this.time, damage: finalDamage });
             }
             
-            // プレイヤーがダメージを受けた時：
-            if (defender.owner === 'player') {
-                // 敵の攻撃を受けるとダメージ量に関わらず1発につき1秒、必殺技リロード時間を短縮（1秒に1回制限）
+            // 被弾による必殺技リロード短縮（プレイヤー・敵共通: 1発につき1秒、1秒に1回制限）
+            if (defender.ultimateCooldown !== undefined) {
+                if (defender.hitUltBoostCooldown === undefined) defender.hitUltBoostCooldown = 0;
                 if (defender.hitUltBoostCooldown <= 0) {
                     defender.hitUltBoostCooldown = 1.0; // 1秒間インターバル設定
                     if (defender.ultimateCooldown > 0) {
@@ -970,7 +970,10 @@ export class BattleEngine {
                         });
                     }
                 }
+            }
 
+            // プレイヤーがダメージを受けた時（精神力SP減少）
+            if (defender.owner === 'player') {
                 // ダメージの1/5が精神力から引かれる（小数点切り上げずそのまま減少、道場強化で軽減）
                 const spDamage = (finalDamage / 5) * (defender.spDrainRate || 1.0);
                 const spDrainPerHit = defender.isFoodEmpty ? spDamage * 2 : spDamage;
@@ -2802,12 +2805,13 @@ export class BattleEngine {
                 if (b.expandTimer === undefined) b.expandTimer = 0;
                 b.expandTimer += dt;
 
+                const dirSign = b.owner === 'enemy' ? -1 : 1;
                 if (b.expandTimer < 1.0) {
                     const progress = Math.min(1.0, b.expandTimer / 1.0);
                     b.visualWidth = 0.5 + (6.0 - 0.5) * progress;
                     b.visualHeight = 1.0 + (4.0 - 1.0) * progress;
                     b.size = b.visualHeight;
-                    b.vz = 0.5;
+                    b.vz = 0.5 * dirSign;
                     b.textureKey = 'weapon_008_ult_a';
                 } else {
                     b.textureKey = 'weapon_008_ult_b';
@@ -2816,7 +2820,7 @@ export class BattleEngine {
                     b.size = 4.0;
                     // 加速モード: 0.1秒ごとに2m/s加速 = 毎秒20m/s^2
                     b.currentVz = (b.currentVz || 0.5) + (20.0 * dt);
-                    b.vz = b.currentVz;
+                    b.vz = b.currentVz * dirSign;
                 }
 
                 // 残像記録 (直近0.3秒間の軌跡)
@@ -2986,16 +2990,17 @@ export class BattleEngine {
             }
 
 
-            // 敵弾消去属性の処理（キック弾など）
-            if (b.erasesEnemyBullets && b.owner === 'player') {
+            // 敵弾消去属性の処理（キック弾・白蓮バリア・ノア不死鳥など）
+            if (b.erasesEnemyBullets) {
+                const targetBulletOwner = b.owner === 'player' ? 'enemy' : 'player';
                 for (const eb of this.bullets) {
-                    if (!eb.isDead && eb.owner === 'enemy') {
+                    if (!eb.isDead && eb.owner === targetBulletOwner) {
                         const edx = b.x - eb.x;
                         const edz = b.z - eb.z;
                         const edistSq = edx * edx + edz * edz;
                         const eradius = (b.size / 2) + (eb.size / 2);
                         if (edistSq <= eradius * eradius) {
-                            eb.isDead = true; // 敵弾を打ち消し消滅！
+                            eb.isDead = true; // 相手の弾を打ち消し消滅！
                             this.effects.push(new EffectEntity(eb.x, eb.z, { type: 'spark', radius: 0.5, lifeTime: 0.2 }));
                         }
                     }
@@ -3112,7 +3117,7 @@ export class BattleEngine {
                         if (b.baseAngle !== undefined && b.baseAngle !== null) {
                             baseAngle = b.baseAngle;
                         } else if (b.type === 'swing_ultimate_004') {
-                            baseAngle = Math.PI / 2; // 奥（前衛から敵側）へ向かう角度
+                            baseAngle = b.owner === 'enemy' ? -Math.PI / 2 : Math.PI / 2; // 敵なら手前、プレイヤーなら奥へ向かう角度
                         } else if (b.sourceEntity && b.sourceEntity.targetEnemy) {
                             const tx = b.sourceEntity.targetEnemy.x - b.sourceEntity.x;
                             const tz = b.sourceEntity.targetEnemy.z - b.sourceEntity.z;

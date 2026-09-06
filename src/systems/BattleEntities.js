@@ -498,7 +498,7 @@ export class PlayerCharacter extends BattleEntity {
 
                 for (const pt of spawnPoints) {
                     const specialField = new Bullet(pt.x, pt.z, {
-                        owner: 'player',
+                        owner: this.owner || 'player',
                         vx: 0,
                         vz: 0, // その場に固定で5秒間維持
                         damage: 0,
@@ -519,9 +519,9 @@ export class PlayerCharacter extends BattleEntity {
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "WEAKEN FIELD!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '010') {
                 // プロセル (特技: 10秒に1回、前衛なら2m前、後衛なら8m前に直径1.5mの氷塊を生成。敵弾を5+WLV発吸収、6秒持続)
-                const spawnZ = this.z + (this.isFront ? 2.0 : 8.0);
+                const spawnZ = this.z + (this.isEnemy ? (this.isFront ? -2.0 : -8.0) : (this.isFront ? 2.0 : 8.0));
                 const iceBlock = new Bullet(this.x, spawnZ, {
-                    owner: 'player',
+                    owner: this.owner || 'player',
                     vx: 0, vz: 0,
                     damage: 0,
                     knockback: 10,
@@ -540,9 +540,9 @@ export class PlayerCharacter extends BattleEntity {
             } else if (this.charId === '011') {
                 // 白蓮 (特技: 8秒に1回、前方に初速15m/sで進みシャボン玉減速で漂う直径1.0mのバリア弾。攻撃力0, ノックバック40, WLV個の敵弾消し)
                 const specialBullet = new Bullet(this.x, this.z, {
-                    owner: 'player',
+                    owner: this.owner || 'player',
                     vx: 0,
-                    vz: 15.0,
+                    vz: this.isEnemy ? -15.0 : 15.0,
                     damage: 0,
                     knockback: 40,
                     size: 1.0, // 直径1.0m固定
@@ -633,7 +633,7 @@ export class PlayerCharacter extends BattleEntity {
                     // 1. 360度薙ぎ払い用のスイング弾丸を生成 (2.0秒)
                     // 1. 360度薙ぎ払い用のスイング弾丸を生成 (回転速度2倍: 1.0秒, サイズは元の0.5)
                     const swingBullet = new Bullet(this.x, this.z, {
-                        owner: 'player', isPiercing: true,
+                        owner: this.owner || 'player', isPiercing: true,
                         vx: 0, vz: 0,
                         damage: bulletDmg, knockback: 5, size: 0.5, hitRange: 3.5 * (2/3), lifeTime: 1.0, type: 'swing_ultimate_002'
                     });
@@ -653,7 +653,7 @@ export class PlayerCharacter extends BattleEntity {
                         const speed = 30.0;
                         // 飛んでいく剣の大きさを今の2倍(size: 1.0)に拡大
                         const flyBullet = new Bullet(this.x, this.z, {
-                            owner: 'player', isPiercing: true,
+                            owner: this.owner || 'player', isPiercing: true,
                             vx: (dx/len)*speed, vz: (dz/len)*speed,
                             damage: bulletDmg, knockback: 0, size: 1.0, targetDist: 10.0, lifeTime: 2.0, type: 'weapon_002'
                         });
@@ -678,7 +678,7 @@ export class PlayerCharacter extends BattleEntity {
             // 攻撃判定用の不可視の薙ぎ払い(swing)弾丸を生成
             // V字(±10度)をカバーするように、前方±15度の範囲に扇状の判定を一瞬だけ発生
             const ribbonHit = new Bullet(this.x, this.z, {
-                owner: 'player', isPiercing: true,
+                owner: this.owner || 'player', isPiercing: true,
                 vx: 0, vz: 0, // 動かない
                 damage: ribbonDmg, knockback: 5, size: 40.0, hitRange: 20.0, lifeTime: 0.1, type: 'swing_ultimate_004', ownerEntity: this,
                 stunDuration: 1.0, stunChance: 1.0
@@ -712,7 +712,7 @@ export class PlayerCharacter extends BattleEntity {
                     const spd = 1.0 + Math.random() * 1.5; // ゆっくり進む
                     
                     const bObj = new Bullet(spawnX, spawnZ, {
-                        owner: 'player', isPiercing: true,
+                        owner: this.owner || 'player', isPiercing: true,
                         vx: Math.cos(randomAngle)*spd, vz: Math.sin(randomAngle)*spd,
                         damage: bulletDmg, knockback: 1, size: 0.8, lifeTime: 4.0, type: 'weapon_004_ribbon',
                         swayPhase: 0,
@@ -759,7 +759,7 @@ export class PlayerCharacter extends BattleEntity {
             // ② 直径3m(半径1.5m)の押し返しバレットを生成（槍回しと同じ攻撃力・ノックバック）
             const blastDmg = 1.2 * this.atk;
             const blastBullet = new Bullet(this.x, this.z, {
-                owner: 'player',
+                owner: this.owner || 'player',
                 vx: 0, vz: 0,
                 damage: blastDmg,
                 knockback: 15,
@@ -776,10 +776,10 @@ export class PlayerCharacter extends BattleEntity {
             const dmg = 2.0 * this.atk * ultimateDamageMultiplier;
             const spawnX = this.x;
             const spawnZ = this.z;
-            let dirX = 0; let dirZ = 1;
+            let dirX = 0; let dirZ = this.isEnemy ? -1 : 1;
             
             const bObj = new Bullet(spawnX, spawnZ, {
-                owner: 'player', isPiercing: true,
+                owner: this.owner || 'player', isPiercing: true,
                 vx: dirX * 5.0, vz: dirZ * 5.0, // 初速5.0m/s
                 damage: dmg, knockback: 200, size: 30.0, hitRange: 3.0, lifeTime: 10.0, type: 'ultimate_003'
             });
@@ -838,8 +838,8 @@ export class PlayerCharacter extends BattleEntity {
             // 必殺技発動中: 印を結んでいるため通常攻撃・格闘攻撃は一切行えない
             this.isUltimateActive = true;
 
-            const ultBullet = new Bullet(this.x, this.z + 1.0, {
-                owner: 'player',
+            const ultBullet = new Bullet(this.x, this.z + (this.isEnemy ? -1.0 : 1.0), {
+                owner: this.owner || 'player',
                 isPiercing: true,
                 vx: 0,
                 vz: 35.0,
@@ -888,7 +888,8 @@ export class PlayerCharacter extends BattleEntity {
             // 最もHP（耐久力）の高い敵の方向へ速度ベクトルを設定
             ultBullet.aimAtToughestEnemy = function() {
                 this.hitEnemyIds.clear();
-                const aliveEnemies = (self.engine ? self.engine.enemies : enemies).filter(e => !e.isDead);
+                const opponentList = self.isEnemy ? (self.engine ? self.engine.players : players) : (self.engine ? (self.engine.isPvpBattle ? self.engine.pvpEnemies : self.engine.enemies) : enemies);
+                const aliveEnemies = (opponentList || []).filter(e => !e.isDead && e.hp > 0);
                 if (aliveEnemies.length > 0) {
                     aliveEnemies.sort((a, b) => b.hp - a.hp);
                     const target = aliveEnemies[0];
@@ -971,11 +972,11 @@ export class PlayerCharacter extends BattleEntity {
             this.ultimateCooldown = cdVal;
 
             const ultDmg = Math.max(1, Math.floor((this.atk * ((60 + 5 * this.wlv) / 100)) * ultimateDamageMultiplier));
-            const ultBullet = new Bullet(this.x, this.z + 1.0, {
-                owner: 'player',
+            const ultBullet = new Bullet(this.x, this.z + (this.isEnemy ? -1.0 : 1.0), {
+                owner: this.owner || 'player',
                 isPiercing: true,
                 vx: 0,
-                vz: 0.5,
+                vz: this.isEnemy ? -0.5 : 0.5,
                 damage: ultDmg,
                 knockback: 100,
                 size: 1.0,
@@ -986,7 +987,7 @@ export class PlayerCharacter extends BattleEntity {
             });
             ultBullet.sourceEntity = this;
             ultBullet.expandTimer = 0;
-            ultBullet.currentVz = 0.5;
+            ultBullet.currentVz = this.isEnemy ? -0.5 : 0.5;
             ultBullet.isWingExpanded = false;
 
             if (this.engine) {
@@ -1029,8 +1030,8 @@ export class PlayerCharacter extends BattleEntity {
             // 白蓮 (必殺技: 初速6.5m/sから0.1秒ごと6%減速で3秒かけて8m前進し、8m到達で突然直径8mの特大バリアに大爆発拡大！
             // 5秒+(WLV/2)秒持続し、範囲内の敵に毎秒(攻撃力の10%+WLV%)の継続ダメージを与え、敵弾を完全吸収しながら秒速1.0mでジワジワ前進)
             const ultBullet = new Bullet(this.x, this.z, {
-                owner: 'player', isPiercing: true,
-                vx: 0, vz: 6.5, // 初速 6.5m/s
+                owner: this.owner || 'player', isPiercing: true,
+                vx: 0, vz: this.isEnemy ? -6.5 : 6.5,
                 damage: 0, knockback: 40, size: 1.0, lifeTime: 30.0, type: 'ultimate_011',
                 erasesEnemyBullets: true
             });
@@ -1053,7 +1054,7 @@ export class PlayerCharacter extends BattleEntity {
                         // 8m到達！突然直径8mの超巨大バリアへ大爆発拡大！
                         this.hasExploded = true;
                         this.size = 8.0; // 直径8.0m (半径4m)
-                        this.vz = 1.0;   // 最終速度 1.0m/s でジワジワ前進
+                        this.vz = self.isEnemy ? -1.0 : 1.0;   // 最終速度 1.0m/s でジワジワ前進
                         this.type = 'ultimate_burst_field_011';
                         const burstDuration = 5.0 + (self.wlv / 2.0); // 5秒 + (WLV/2)秒 持続
                         this.lifeTime = burstDuration;
@@ -1217,11 +1218,11 @@ export class PlayerCharacter extends BattleEntity {
                 const spawnZ = this.z + Math.sin(spawnAngle) * 1.0;
                 const shotAngle = (Math.random() - 0.5) * 10 * (Math.PI / 180);
                 const vx = Math.sin(shotAngle) * 30.0;
-                const vz = Math.cos(shotAngle) * 30.0; // 真上(奥)方向
+                const vz = Math.cos(shotAngle) * 30.0 * (this.isEnemy ? -1 : 1);
                 const bulletDmg = Math.floor(this.atk * 0.5);
 
                 const b = new Bullet(spawnX, spawnZ, {
-                    owner: 'player',
+                    owner: this.owner || 'player',
                     vx: vx, vz: vz,
                     damage: bulletDmg,
                     knockback: 20,
@@ -1244,11 +1245,11 @@ export class PlayerCharacter extends BattleEntity {
                 const spawnZ = this.z + Math.sin(spawnAngle) * 1.0;
                 const shotAngle = (Math.random() - 0.5) * 10 * (Math.PI / 180);
                 const vx = Math.sin(shotAngle) * 35.0;
-                const vz = Math.cos(shotAngle) * 35.0; // 真上(奥)方向
+                const vz = Math.cos(shotAngle) * 35.0 * (this.isEnemy ? -1 : 1);
                 const bulletDmg = Math.floor(this.atk * 0.1);
 
                 const b = new Bullet(spawnX, spawnZ, {
-                    owner: 'player',
+                    owner: this.owner || 'player',
                     vx: vx, vz: vz,
                     damage: bulletDmg,
                     knockback: 5,
@@ -1454,7 +1455,7 @@ export class PlayerCharacter extends BattleEntity {
                         const bulletDmg = Math.max(1, Math.floor(this.atk * 0.50)); // 威力: 攻撃力の50%
 
                         const bullet = new Bullet(orb.x, orb.z, {
-                            owner: 'player',
+                            owner: this.owner || 'player',
                             vx: Math.cos(shootAngle) * bulletSpeed,
                             vz: Math.sin(shootAngle) * bulletSpeed,
                             damage: bulletDmg,
