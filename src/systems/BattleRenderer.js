@@ -841,17 +841,12 @@ export class BattleRenderer {
                     // リロード中（0% -> 100%へ伸びる）
                     ultRatio = 1.0 - (entity.ultimateCooldown / entity.maxUltimateCooldown);
                 } else {
-                    if (isPvpEnemy) {
+                    const cost = entity.charId === '005' ? 70 + entity.wlv : (entity.charId === '009' ? 20 + entity.wlv : 10 + entity.wlv);
+                    if (entity.sp >= cost) {
                         ultRatio = 1.0;
                         ultColor = 0xff0000; // 赤（発動可能）
                     } else {
-                        const cost = entity.charId === '005' ? 25 + entity.wlv : 10 + entity.wlv;
-                        if (entity.sp >= cost) {
-                            ultRatio = 1.0;
-                            ultColor = 0xff0000; // 赤（発動可能）
-                        } else {
-                            ultRatio = 0.0;
-                        }
+                        ultRatio = 0.0;
                     }
                 }
             }

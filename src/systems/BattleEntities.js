@@ -191,8 +191,8 @@ export class PlayerCharacter extends BattleEntity {
 
         this.updateAttackPatterns();
         // --- 特技（オートスキル）用のプロパティ ---
-        const initSpecialInterval = this.charId === '003' ? 12.0 : 10.0;
-        this.specialTimer = initSpecialInterval; // 開幕はリロードタイム(10s/12s)からスタート
+        this.specialInterval = this.charId === '005' ? 5.0 : (this.charId === '003' ? 12.0 : 10.0);
+        this.specialTimer = this.specialInterval; // 開幕はリロードタイムからスタート
         this.reloadMultiplier = 1.0;
         this.hitRateBonus = 0;
         this.barrierHp = 0;
@@ -201,7 +201,11 @@ export class PlayerCharacter extends BattleEntity {
 
 
         // 必殺技のクールダウン設定
-        this.maxUltimateCooldown = Math.max(0, 60.0 - (this.wlv * 2.0));
+        if (this.charId === '005') {
+            this.maxUltimateCooldown = Math.max(10, 25.0 - this.wlv);
+        } else {
+            this.maxUltimateCooldown = Math.max(0, 60.0 - (this.wlv * 2.0));
+        }
         // 食料がない場合、必殺技リロードは0でスタート
         this.isFoodEmpty = data.isFoodEmpty || false;
         this.ultimateCooldown = this.isFoodEmpty ? 0 : 0;
@@ -389,8 +393,9 @@ export class PlayerCharacter extends BattleEntity {
 
         // --- 定期発動特技 ---
         let specialInterval = 10.0;
-        if (this.charId === '003' || this.charId === '007') specialInterval = 12.0;
-        if (this.charId === '008') specialInterval = 15.0;
+        if (this.charId === '005') specialInterval = 5.0; // 李乃果は5秒に1回！
+        else if (this.charId === '003' || this.charId === '007') specialInterval = 12.0;
+        else if (this.charId === '008') specialInterval = 15.0;
 
         this.specialTimer -= dt;
         if (this.specialTimer <= 0) {
@@ -424,19 +429,72 @@ export class PlayerCharacter extends BattleEntity {
                     }
                     floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "HIT RATE UP", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
                 }
-            } else if (this.charId === '002' || this.charId === '005' || this.charId === '009') {
-                // 蒼樹 & 李乃果 & リフィエル (回復)
-                let baseHeal, altHeal;
-                if (this.charId === '002') {
-                    baseHeal = 10 + (this.wlv * 2);
-                    altHeal = 10 + (this.wlv * 2);
-                } else if (this.charId === '005' || this.charId === '009') {
-                    baseHeal = 10 + (this.wlv * 3);
-                    altHeal = 10 + (this.wlv * 3);
+            } else if (this.charId === '005') {
+                // 李乃果: 5秒に1回、2人回復 200+WLV*20、回復させた人数*10 精神力消費
+                const healAmount = 200 + (this.wlv * 20);
+                const alive = players.filter(p => !p.isDead);
+
+                let candidates = [];
+                if (this.isFront) {
+                    if (this.hp < this.maxHp * 0.90) {
+                        // 自身が90%未満: 自身＋最もHPが少ない仲間1人
+                        candidates.push(this);
+                        const others = alive.filter(p => p !== this)
+                            .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+                        if (others.length > 0) candidates.push(others[0]);
+                    } else {
+                        // 自身が90%以上: 全員の中でHP割合が低い順に2人
+                        candidates = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp)).slice(0, 2);
+                    }
                 } else {
-                    baseHeal = 0;
-                    altHeal = 0;
+                    // 後衛: 全員の中でHP割合が低い順に2人
+                    candidates = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp)).slice(0, 2);
                 }
+
+                // 実際にHPが減っているメンバーのみを対象とする（満タン時はSPを無駄消費しない）
+                const targets = candidates.filter(p => p.hp < p.maxHp);
+
+                if (targets.length > 0) {
+                    for (const target of targets) {
+                        if (this.sp >= 10) {
+                            this.sp -= 10;
+                            target.hp = Math.min(target.maxHp, target.hp + healAmount);
+                            floatingTexts.push({
+                                id: Math.random(),
+                                x: target.x,
+                                yOffset: 0,
+                                z: target.z,
+                                amount: Math.ceil(healAmount),
+                                type: "heal",
+                                lifeTime: 1.2,
+                                maxLife: 1.2
+                            });
+                            effects.push(new EffectEntity(target.x, target.z, {
+                                type: 'buff_circle',
+                                radius: 1.5,
+                                lifeTime: 0.5,
+                                customData: { color: 'green' }
+                            }));
+                        } else {
+                            // SP不足
+                            floatingTexts.push({
+                                id: Math.random(),
+                                x: this.x,
+                                yOffset: 0,
+                                z: this.z,
+                                amount: "NO SP",
+                                type: "miss",
+                                lifeTime: 1.0,
+                                maxLife: 1.0
+                            });
+                            break;
+                        }
+                    }
+                }
+            } else if (this.charId === '002' || this.charId === '009') {
+                // 蒼樹 & リフィエル (回復)
+                let baseHeal = (this.charId === '002') ? 10 + (this.wlv * 2) : 10 + (this.wlv * 3);
+                let altHeal = baseHeal;
                 
                 if (this.isFront) {
                     if (this.hp / this.maxHp >= 0.9 && lowestHpPlayer) {
@@ -580,8 +638,16 @@ export class PlayerCharacter extends BattleEntity {
             }
         }
         
-        const cost = (this.charId === '005' ? 25 + this.wlv : (this.charId === '009' ? 20 + this.wlv : 10 + this.wlv)) * spCostMultiplier;
+        const cost = (this.charId === '005' ? 70 + this.wlv : (this.charId === '009' ? 20 + this.wlv : 10 + this.wlv)) * spCostMultiplier;
         
+        if (isLinked && this.charId === '005') {
+            const totalHp = players.reduce((sum, a) => sum + Math.max(0, a.hp), 0);
+            const totalMaxHp = players.reduce((sum, a) => sum + Math.max(1, a.maxHp), 0);
+            if (totalHp > totalMaxHp * 0.90) {
+                return false;
+            }
+        }
+
         if (!isLinked) {
             if (this.sp < cost) {
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "NO SP", type: "miss", lifeTime: 1.0, maxLife: 1.0 });
@@ -740,15 +806,15 @@ export class PlayerCharacter extends BattleEntity {
                 }});
             }
         } else if (this.charId === '005') {
-            // 李乃果: 全体回復 300+(WLV)*30 をメンバーの数で割った分回復
-            const healTotal = 300 + (this.wlv * 30);
+            // 李乃果: 全体回復 (2100 + (WLV * 20)) をメンバーの数で割った分回復
+            const healTotal = (2100 + (this.wlv * 20)) * ultimateDamageMultiplier;
             const alivePlayers = players.filter(p => !p.isDead);
             if (alivePlayers.length > 0) {
                 const healAmount = healTotal / alivePlayers.length;
                 for (const p of alivePlayers) {
                     p.hp = Math.min(p.maxHp, p.hp + healAmount);
-                    floatingTexts.push({ id: Math.random(), x: p.x, yOffset: 0, z: p.z, amount: Math.ceil(healAmount), type: "heal", lifeTime: 1.0, maxLife: 1.0 });
-                    effects.push(new EffectEntity(p.x, p.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
+                    floatingTexts.push({ id: Math.random(), x: p.x, yOffset: 0, z: p.z, amount: Math.ceil(healAmount), type: "heal", lifeTime: 1.5, maxLife: 1.5 });
+                    effects.push(new EffectEntity(p.x, p.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.6, customData: { color: 'green' } }));
                 }
             }
         } else if (this.charId === '009') {
@@ -1876,8 +1942,14 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.weight = data.weight || 50;
 
         // 必殺技ゲージ: 開幕は0%（最大クールダウン値）からスタート
-        this.maxUltimateCooldown = Math.max(0, 60.0 - (this.wlv * 2.0));
+        this.maxUltimateCooldown = this.charId === '005'
+            ? Math.max(10, 25.0 - this.wlv)
+            : Math.max(0, 60.0 - (this.wlv * 2.0));
         this.ultimateCooldown = this.maxUltimateCooldown;
+        if (this.charId === '005') {
+            this.specialInterval = 5.0;
+            this.specialTimer = 5.0;
+        }
 
         // 座標: 前衛なら Z=9.0、後衛なら Z=14.0
         this.baseX = this.lane * 1.8;

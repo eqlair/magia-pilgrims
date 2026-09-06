@@ -1092,6 +1092,16 @@ export class BattleEngine {
                     if (this.linkedUltimateTimer[teamKey] <= 0) {
                         const nextMember = queue.shift();
                         if (nextMember && !nextMember.isDead && !nextMember.isUltimateActive) {
+                            if (nextMember.charId === '005') {
+                                const allies = teamKey === 'enemy' ? (this.pvpEnemies || this.enemies) : this.players;
+                                const totalHp = allies.reduce((sum, a) => sum + Math.max(0, a.hp), 0);
+                                const totalMaxHp = allies.reduce((sum, a) => sum + Math.max(1, a.maxHp), 0);
+                                if (totalHp > totalMaxHp * 0.90) {
+                                    // 味方全体の損傷が10%未満なら温存してスキップ
+                                    this.linkedUltimateTimer[teamKey] = 0.1;
+                                    continue;
+                                }
+                            }
                             this.triggerUltimate(nextMember, true);
                             this.linkedUltimateTimer[teamKey] = 4.0; // 4秒ごとに発動
                         } else if (nextMember) {
@@ -3470,6 +3480,13 @@ export class BattleEngine {
             // 既に必殺技発動中、または既にキューにいる場合は除外
             if (other.isUltimateActive) continue;
             if (queue.includes(other)) continue;
+
+            // 李乃果（005）は味方のHPが全体合計の10%以上減っていないなら温存
+            if (other.charId === '005') {
+                const totalHp = allies.reduce((sum, a) => sum + Math.max(0, a.hp), 0);
+                const totalMaxHp = allies.reduce((sum, a) => sum + Math.max(1, a.maxHp), 0);
+                if (totalHp > totalMaxHp * 0.90) continue;
+            }
 
             // other から character への友好度
             let friendship = 0;
