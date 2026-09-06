@@ -75,8 +75,8 @@ export default class BootScene extends Phaser.Scene {
         // 戦闘用ミニキャラ・モーション・武器の事前ロード（初回バトル突入時の通信遅延を防止）
         const battleCharIds = ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'];
         for (const cid of battleCharIds) {
-            this.load.spritesheet(`battle_${cid}`, `files/CHR/${cid === '009' ? '009002' : `${cid}002`}.png`, { frameWidth: 150, frameHeight: 150 });
-            this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid === '009' ? '009002a' : `${cid}002b`}.png`, { frameWidth: 150, frameHeight: 150 });
+            this.load.spritesheet(`battle_${cid}`, `files/CHR/${cid}002.png`, { frameWidth: 150, frameHeight: 150 });
+            this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid}002b.png`, { frameWidth: 150, frameHeight: 150 });
         }
         this.load.spritesheet('battle_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('battle_009_adult_b', 'files/CHR/009002d.png', { frameWidth: 150, frameHeight: 150 });
