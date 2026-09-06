@@ -164,12 +164,10 @@ export class PvpAiController {
             this._swapLane(member, 0, myTeam, now, teamKey);
             if (role === 'melee') {
                 // 前衛中央へ
-                member.isFront = true;
-                member.targetZ = isPlayerTeam ? 6.0 : 9.0;
+                this._swapFrontBack(member, true, myTeam, isPlayerTeam, now);
             } else {
                 // 後衛中央へ
-                member.isFront = false;
-                member.targetZ = isPlayerTeam ? 1.0 : 14.0;
+                this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
             }
         }
 
@@ -182,6 +180,44 @@ export class PvpAiController {
                 x: member.x, yOffset: 0.5, z: member.z,
                 amount: "ULTIMATE!", type: "skill", lifeTime: 1.5, maxLife: 1.5
             });
+        }
+    }
+
+    /** 前後列の移動およびスワップ（入れ替え）処理 - 敵限定で同レーンにいるキャラと重ならず入れ替わる */
+    _swapFrontBack(member, targetIsFront, myTeam, isPlayerTeam, now = 0) {
+        if (!member || member.isFront === targetIsFront) return;
+
+        const memberTimer = this.charTimers.get(member);
+        // クールダウン判定（直近2.0秒以内に入れ替えまたは前後移動したキャラは連続移動しない）
+        if (memberTimer && memberTimer.lastFrontBackTime && (now - memberTimer.lastFrontBackTime < 2.0)) {
+            return;
+        }
+
+        const frontZ = isPlayerTeam ? 6.0 : 9.0;
+        const rearZ = isPlayerTeam ? 1.0 : 14.0;
+        const targetZ = targetIsFront ? frontZ : rearZ;
+        const currentZ = member.isFront ? frontZ : rearZ;
+
+        // 敵チーム限定: 同じレーンで移動先の列にすでにいる味方がいる場合、前後を入れ替える
+        if (!isPlayerTeam) {
+            const currentLane = member.lane !== undefined ? member.lane : 0;
+            const occupant = myTeam.find(m => m !== member && !m.isDead && m.lane === currentLane && m.isFront === targetIsFront);
+            if (occupant) {
+                occupant.isFront = member.isFront;
+                occupant.targetZ = currentZ;
+
+                const occupantTimer = this.charTimers.get(occupant);
+                if (occupantTimer) {
+                    occupantTimer.lastFrontBackTime = now;
+                }
+            }
+        }
+
+        member.isFront = targetIsFront;
+        member.targetZ = targetZ;
+
+        if (memberTimer) {
+            memberTimer.lastFrontBackTime = now;
         }
     }
 
@@ -234,10 +270,9 @@ export class PvpAiController {
         // 共通ルール: 誰も前衛にいないと前衛に出る
         const hasAnyFrontAlly = myTeam.some(m => m !== member && m.isFront);
 
-        if (!hasAnyFrontAlly) {
-            // 誰も前衛にいない -> 前衛に出る
-            member.isFront = true;
-            member.targetZ = frontZ;
+        if (!member.isFront && !hasAnyFrontAlly) {
+            // 自分が後衛で、前衛に誰もいない -> 前衛に出る
+            this._swapFrontBack(member, true, myTeam, isPlayerTeam, now);
         } else if (role === 'melee') {
             // 【近接攻撃型】 全メンバーの中で最もHPが低くなると後列に下がる。それ以外の場合前衛に出る
             let lowestHp = Infinity;
@@ -251,21 +286,17 @@ export class PvpAiController {
 
             if (lowestMember === member && myTeam.length > 1) {
                 // 最もHPが低い -> 後列に下がる
-                member.isFront = false;
-                member.targetZ = rearZ;
+                this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
             } else {
                 // それ以外 -> 前衛に出る
-                member.isFront = true;
-                member.targetZ = frontZ;
+                this._swapFrontBack(member, true, myTeam, isPlayerTeam, now);
             }
         } else if (role === 'ranged') {
             // 【後衛型】 後列から動かない
-            member.isFront = false;
-            member.targetZ = rearZ;
+            this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
         } else if (role === 'support') {
             // 【支援型】 前衛に誰かがいれば後列から動かない。前衛がいなくなると前に出ようとする。
-            member.isFront = false;
-            member.targetZ = rearZ;
+            this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
         }
 
         // ── B. レーン移動の判定 ──
