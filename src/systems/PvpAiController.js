@@ -114,35 +114,36 @@ export class PvpAiController {
             // ※魔女戦 / PvP戦: ゲージがたまれば撃つ
             battleConditionMet = true;
         } else {
-            // ※雑魚戦: 雑魚敵が画面に20匹以上、敵の残り数がまだ半分より多ければ必殺技を撃つ
+            // ※雑魚戦: 雑魚敵が画面に8匹以上、敵の残り数がまだ半分より多ければ必殺技を撃つ
             const aliveEnemies = this.engine.enemies ? this.engine.enemies.filter(e => !e.isDead && !e.isDying && e.hp > 0).length : 0;
             const totalEnemies = this.engine.enemyCountPerWave || 0;
             const remainingEnemies = aliveEnemies + Math.max(0, (this.engine.enemyCountPerWave || 0) - (this.engine.spawnedInWave || 0));
 
-            if (aliveEnemies >= 20 && (totalEnemies === 0 || remainingEnemies > (totalEnemies / 2))) {
+            if (aliveEnemies >= 8 && (totalEnemies === 0 || remainingEnemies > (totalEnemies / 2))) {
                 battleConditionMet = true;
             }
         }
 
         if (!battleConditionMet) return false;
 
-        // 2. ロール別の条件
-        if (role === 'melee') {
-            // 6秒以内に他のメンバーが必殺技を撃っていたら撃たない
-            if (now - this.teamLastUltTime[teamKey] < 6.0) {
-                return false;
+        // チーム内連射制限: 2.5秒以内に他のメンバーが必殺技を撃っていたら少し待つ
+        if (now - this.teamLastUltTime[teamKey] < 2.5) {
+            return false;
+        }
+
+        // 2. ロール・キャラクター別の条件
+        if (member.charId === '005') {
+            // 李乃果 (全体回復):
+            const aliveAllies = myTeam.filter(m => !m.isDead && m.hp > 0);
+            if (aliveAllies.length <= 1) {
+                // 自陣が1人きりの場合: 自身が少しでも被弾(HP95%以下)していればあがいて回復！
+                if (member.hp > member.maxHp * 0.95) return false;
+            } else {
+                // 2人以上の場合: 誰か1人でもHP80%以下、または2人以上がHP95%以下なら撃つ
+                const heavyDamaged = aliveAllies.some(m => m.hp <= m.maxHp * 0.80);
+                const lightDamagedCount = aliveAllies.filter(m => m.hp <= m.maxHp * 0.95).length;
+                if (!heavyDamaged && lightDamagedCount < 2) return false;
             }
-        } else if (role === 'ranged') {
-            // 味方の2人以上がHPの5%以上を失っていれば撃つ
-            const damagedCount = myTeam.filter(m => {
-                if (m.maxHp <= 0) return false;
-                return (m.maxHp - m.hp) >= (m.maxHp * 0.05);
-            }).length;
-            if (damagedCount < 2) {
-                return false;
-            }
-        } else if (role === 'support') {
-            // 支援型: 基本条件を満たしていれば撃つ
         }
 
         return true;

@@ -2314,6 +2314,8 @@ export class BattleEngine {
             for (const ep of this.pvpEnemies) {
                 if (ep.isDead) continue;
                 ep.update(dt);
+                // 特技・パッシブスキルの更新（敵陣営の仲間同士で回復・バリア・バフを付与）
+                ep.updateSpecialSkills(dt, this.pvpEnemies, this.effects, this.floatingTexts);
 
                 if (ep.kickTimer > 0) {
                     ep.kickTimer -= dt;

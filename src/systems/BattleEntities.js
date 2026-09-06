@@ -334,13 +334,15 @@ export class PlayerCharacter extends BattleEntity {
     updateSpecialSkills(dt, players, effects, floatingTexts) {
         if (this.isDead) return;
 
-        // SP定期減少（1秒ごとに1削る、食料がない場合は+1削る、道場強化で軽減）
-        this.spDrainTimer -= dt;
-        if (this.spDrainTimer <= 0) {
-            this.spDrainTimer += 1.0;
-            const baseDrain = this.isFoodEmpty ? 2 : 1;
-            const drainAmount = baseDrain * (this.spDrainRate || 1.0);
-            this.sp = Math.max(0, this.sp - drainAmount);
+        // SP定期減少（1秒ごとに1削る、食料がない場合は+1削る、道場強化で軽減）※敵魔法少女は除外
+        if (!this.isEnemy) {
+            this.spDrainTimer -= dt;
+            if (this.spDrainTimer <= 0) {
+                this.spDrainTimer += 1.0;
+                const baseDrain = this.isFoodEmpty ? 2 : 1;
+                const drainAmount = baseDrain * (this.spDrainRate || 1.0);
+                this.sp = Math.max(0, this.sp - drainAmount);
+            }
         }
 
         // 一時バフの減衰
@@ -492,9 +494,10 @@ export class PlayerCharacter extends BattleEntity {
                 const activeOrbs = (this.noahOrbs || []).filter(o => !o.isDead);
                 
                 // 生きているエネルギー球体の位置、なければノアの前方にフィールドを形成
+                const forwardZ = this.isEnemy ? -1.5 : 1.5;
                 const spawnPoints = activeOrbs.length > 0 
                     ? activeOrbs.map(o => ({ x: o.x, z: o.z }))
-                    : [{ x: this.x, z: this.z + 1.5 }];
+                    : [{ x: this.x, z: this.z + forwardZ }];
 
                 for (const pt of spawnPoints) {
                     const specialField = new Bullet(pt.x, pt.z, {
