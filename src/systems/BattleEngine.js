@@ -2535,15 +2535,15 @@ export class BattleEngine {
                             this.bullets.push(b);
                             if (ep.triggerAttackShake) ep.triggerAttackShake();
                         } else {
-                            // 遠距離弾丸（小銃弾丸、手りゅう弾、剣投げ等）
+                            // 遠距離弾丸（小銃弾丸、手りゅう弾、ショットガン、剣投げ等）
                             const speed = action.speed || 20;
-                            const spread = action.spreadAngle || 0;
-                            const sc = action.subCount || 1;
-                            const totalAngle = spread * (sc - 1);
+                            const spread = action.spread !== undefined ? action.spread : (action.spreadAngle || 0);
+                            const sc = action.shotCount !== undefined ? action.shotCount : (action.subCount || 1);
 
                             for (let s = 0; s < sc; s++) {
                                 let angleOffset = 0;
                                 if (sc > 1) {
+                                    const totalAngle = spread;
                                     angleOffset = -totalAngle / 2 + (totalAngle / (sc - 1)) * s;
                                 } else {
                                     angleOffset = (Math.random() - 0.5) * spread * 2;

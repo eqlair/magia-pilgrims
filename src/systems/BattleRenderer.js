@@ -1303,10 +1303,14 @@ export class BattleRenderer {
                 // キャラクターの中心（足元から0.5m上）を起点にする
                 const centerY = p.y - p.scale * 0.5;
                 
+                // 敵の場合は画面手前（画面下 +Y）、味方の場合は画面奥（画面上 -Y）へ伸ばす
+                const isEnemy = eff.isEnemy || (eff.ownerEntity && eff.ownerEntity.owner === 'enemy');
+                const yDir = isEnemy ? 1 : -1;
+
                 const startX = p.x + Math.sin(angleRad) * startLength;
-                const startY = centerY - Math.cos(angleRad) * startLength;
+                const startY = centerY + Math.cos(angleRad) * startLength * yDir;
                 const endX = p.x + Math.sin(angleRad) * endLength;
-                const endY = centerY - Math.cos(angleRad) * endLength;
+                const endY = centerY + Math.cos(angleRad) * endLength * yDir;
 
                 graphics.lineStyle(0.3 * p.scale, 0xffff00, 1.0); // 太さ30cm
                 graphics.beginPath();

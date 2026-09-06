@@ -671,9 +671,12 @@ export class PlayerCharacter extends BattleEntity {
             const bulletDmg = ribbonDmg * 0.2;
             const speed = 50; // ショットガン速度
             
+            const isEnemy = (this.owner === 'enemy' || this.isEnemy);
+            const zDir = isEnemy ? -1 : 1;
+
             const ribbonLife = 1.0;
-            effects.push(new EffectEntity(this.x, this.z, { type: 'weapon_004_ribbon', radius: 1.0, lifeTime: ribbonLife, angle: -10, ownerEntity: this }));
-            effects.push(new EffectEntity(this.x, this.z, { type: 'weapon_004_ribbon', radius: 1.0, lifeTime: ribbonLife, angle: 10, ownerEntity: this }));
+            effects.push(new EffectEntity(this.x, this.z, { type: 'weapon_004_ribbon', radius: 1.0, lifeTime: ribbonLife, angle: -10, ownerEntity: this, isEnemy: isEnemy }));
+            effects.push(new EffectEntity(this.x, this.z, { type: 'weapon_004_ribbon', radius: 1.0, lifeTime: ribbonLife, angle: 10, ownerEntity: this, isEnemy: isEnemy }));
             
             // 攻撃判定用の不可視の薙ぎ払い(swing)弾丸を生成
             // V字(±10度)をカバーするように、前方±15度の範囲に扇状の判定を一瞬だけ発生
@@ -705,7 +708,7 @@ export class PlayerCharacter extends BattleEntity {
                     const distance = Math.floor(i / 2) * 1.0; 
                     const angleRad = ribbonAngle * Math.PI / 180;
                     const spawnX = this.x + Math.sin(angleRad) * distance;
-                    const spawnZ = this.z + Math.cos(angleRad) * distance;
+                    const spawnZ = this.z + Math.cos(angleRad) * distance * zDir;
                     
                     // 方向は360度完全ランダム
                     const randomAngle = Math.random() * Math.PI * 2;
@@ -1822,6 +1825,7 @@ export class EffectEntity extends BattleEntity {
         this.isDead = false;
         this.angle = data.angle || 0; // 追加：エフェクトの描画角度
         this.ownerEntity = data.ownerEntity || null; // 追従対象
+        this.isEnemy = data.isEnemy !== undefined ? data.isEnemy : (this.ownerEntity && this.ownerEntity.owner === 'enemy');
         this.customData = data.customData || {}; // 追加：専用のカスタムデータ用
     }
 
