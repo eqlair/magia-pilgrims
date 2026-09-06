@@ -2025,6 +2025,9 @@ export class Bullet extends BattleEntity {
         this.swayAmp = data.swayAmp || 0;
         this.baseVx = this.vx;
         this.stunDuration = data.stunDuration || 0; // 行動不能効果
+        this.bulletDurability = data.bulletDurability;
+        this.maxDurability = data.maxDurability;
+        this.baseDamage = data.baseDamage !== undefined ? data.baseDamage : this.damage;
     }
 
     update(dt) {

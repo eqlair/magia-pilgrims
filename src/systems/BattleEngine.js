@@ -1727,15 +1727,21 @@ export class BattleEngine {
                                 spawnZ += Math.sin(offsetAngle) * action.spawnOffsetDist;
                             }
 
+                            const isBarrier = (action.type === 'barrier_011' || action.type === 'barrier_010');
+                            const barrierDurability = isBarrier ? Math.max(1, p.wlv || 1) : undefined;
+
                             const b = new Bullet(spawnX, spawnZ, {
                                 vx:         isSankosho ? 0 : vxDir * speed,
                                 vz:         isSankosho ? 0 : vzDir * speed,
                                 damage:     damage,
+                                baseDamage: damage,
                                 knockback:  action.knockback || 0,
                                 owner:      'player',
                                 size:       action.size || 0.6,
                                 isPiercing: isSankosho ? true : (action.isPiercing || false),
                                 erasesEnemyBullets: action.erasesEnemyBullets || false,
+                                bulletDurability: barrierDurability,
+                                maxDurability: barrierDurability,
                                 type:       action.type,
                                 targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
                                 lifeTime:   isSankosho ? 4.0 : (action.speed ? (action.range / action.speed) * 2 + 1 : 5),
@@ -2602,15 +2608,21 @@ export class BattleEngine {
                                     spawnZ += Math.sin(offsetAngle) * action.spawnOffsetDist;
                                 }
 
+                                const isBarrier = (action.type === 'barrier_011' || action.type === 'barrier_010');
+                                const barrierDurability = isBarrier ? Math.max(1, ep.wlv || 1) : undefined;
+
                                 const b = new Bullet(spawnX, spawnZ, {
                                     vx:         isSankosho ? 0 : vxDir * speed,
                                     vz:         isSankosho ? 0 : vzDir * speed,
                                     damage:     damage,
+                                    baseDamage: damage,
                                     knockback:  action.knockback || 0,
                                     owner:      'enemy',
                                     size:       action.size || (action.type === 'grenade' ? 0.8 : 0.6),
                                     isPiercing: isSankosho ? true : (action.isPiercing || false),
                                     erasesEnemyBullets: action.erasesEnemyBullets || false,
+                                    bulletDurability: barrierDurability,
+                                    maxDurability: barrierDurability,
                                     type:       action.type,
                                     textureKey: action.type,
                                     targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
@@ -3083,6 +3095,9 @@ export class BattleEngine {
                 const targetBulletOwner = b.owner === 'player' ? 'enemy' : 'player';
                 for (const eb of this.bullets) {
                     if (!eb.isDead && eb.owner === targetBulletOwner) {
+                        // ⚔️ スイング攻撃(swing_XXX)は武器を直接振る近接攻撃なのでバリア等で消去されない！
+                        if (eb.type && eb.type.startsWith('swing_')) continue;
+
                         const edx = b.x - eb.x;
                         const edz = b.z - eb.z;
                         const edistSq = edx * edx + edz * edz;
@@ -3091,10 +3106,15 @@ export class BattleEngine {
                             eb.isDead = true; // 相手の弾を打ち消し消滅！
                             this.effects.push(new EffectEntity(eb.x, eb.z, { type: 'spark', radius: 0.5, lifeTime: 0.2 }));
 
-                            // 特技バリア(special_barrier_011)はWLV個分の敵弾消去で消滅！
+                            // 耐久力消費（特技バリア・近接バリア）
                             if (b.bulletDurability !== undefined) {
                                 b.bulletDurability--;
-                                if (b.bulletDurability <= 0) {
+                                // 近接バリア(barrier_011): 敵弾を吸うごとに威力も減衰！(WL個吸うと威力がゼロになり消滅)
+                                if (b.type === 'barrier_011' || b.type === 'barrier_010') {
+                                    const ratio = Math.max(0, b.bulletDurability / (b.maxDurability || 1));
+                                    b.damage = (b.baseDamage || b.damage) * ratio;
+                                }
+                                if (b.bulletDurability <= 0 || (b.damage !== undefined && b.damage < 1.0)) {
                                     b.isDead = true;
                                     break;
                                 }
@@ -3296,9 +3316,16 @@ export class BattleEngine {
                         const dist = Math.sqrt(distSq);
                         const isHit = this.applyDamage(b.sourceEntity, t, finalDmg, type, b.distanceTraveled, b.x, b.z);
                         if (isHit) {
-                            // 🛡️ 白蓮のバリア弾(barrier_011 / barrier_010): 敵に当たって威力が1未満になったら消滅！
-                            if ((b.type === 'barrier_011' || b.type === 'barrier_010') && finalDmg < 1.0) {
-                                b.isDead = true;
+                            // 🛡️ 白蓮のバリア弾(barrier_011 / barrier_010): 敵に当たって威力減衰＆耐久消費、1未満または耐久0で消滅！
+                            if (b.type === 'barrier_011' || b.type === 'barrier_010') {
+                                b.hitCount = (b.hitCount || 0) + 1;
+                                b.damage = (b.baseDamage || b.damage) * Math.pow(2/3, b.hitCount);
+                                if (b.bulletDurability !== undefined) {
+                                    b.bulletDurability--;
+                                }
+                                if (b.damage < 1.0 || (b.bulletDurability !== undefined && b.bulletDurability <= 0)) {
+                                    b.isDead = true;
+                                }
                             }
                             // 🛡️ 白蓮の特技バリア(special_barrier_011): 敵に接触したら消滅！
                             if (b.type === 'special_barrier_011' || b.type === 'special_barrier_010') {
