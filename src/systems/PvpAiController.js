@@ -69,6 +69,10 @@ export class PvpAiController {
                 continue; // 隊列設定でAUTOがOFFだったキャラはずっと手動操作のまま
             }
 
+            if (member.stunTimer > 0) {
+                continue;
+            }
+
             if (!this.charTimers.has(member)) {
                 this.charTimers.set(member, {
                     ultCheckTimer: 1.0 + Math.random() * 2.0,

@@ -74,6 +74,29 @@ export class BattleEntity {
         }
 
 
+        // 属性デバフ / バフのタイマー管理
+        if (this.elementalDefDebuffTimer > 0) {
+            this.elementalDefDebuffTimer -= dt;
+            if (this.elementalDefDebuffTimer <= 0) {
+                this.elementalDefDebuffTimer = 0;
+                this.elementalDefDebuff = 0;
+                this.debuffColor = null;
+            }
+        }
+        if (this.elementalDefBuffTimer > 0) {
+            this.elementalDefBuffTimer -= dt;
+            if (this.elementalDefBuffTimer <= 0) {
+                this.elementalDefBuffTimer = 0;
+                this.elementalDefBuff = 0;
+            }
+        }
+        if (this.smokeDebuffTimer > 0) {
+            this.smokeDebuffTimer -= dt;
+            if (this.smokeDebuffTimer <= 0) {
+                this.smokeDebuffTimer = 0;
+            }
+        }
+
         if (this.stunTimer > 0) {
             this.stunTimer -= dt;
             if (this.stunTimer <= 0) {

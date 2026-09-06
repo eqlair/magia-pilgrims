@@ -919,6 +919,14 @@ export class BattleEngine {
                 if (defender.allElemDef) {
                     defBase = Math.max(1, defBase - defender.allElemDef);
                 }
+                // ななよ等の属性防御バフ（被ダメージ軽減）
+                if (defender.elementalDefBuff && (defender.elementalDefBuffTimer === undefined || defender.elementalDefBuffTimer > 0)) {
+                    defBase = Math.max(1, defBase - defender.elementalDefBuff);
+                }
+                // ノア・リフィエル等の属性防御デバフ（弱体化、被ダメージ増加）
+                if (defender.elementalDefDebuff && (defender.elementalDefDebuffTimer === undefined || defender.elementalDefDebuffTimer > 0)) {
+                    defBase += defender.elementalDefDebuff;
+                }
                 const multiplier = defBase / 100.0;
                 finalDamage *= multiplier;
                 
@@ -1421,8 +1429,8 @@ export class BattleEngine {
                 }
             }
             
-            // 行動不能判定（HP0 または SP0）
-            if (p.hp <= 0 || p.sp <= 0) {
+            // 行動不能判定（HP0 または SP0、またはスタン中）
+            if (p.hp <= 0 || p.sp <= 0 || p.stunTimer > 0) {
                 p.combatState.phase = 'idle';
                 p.combatState.cancelled = false;
                 continue;
@@ -2357,8 +2365,8 @@ export class BattleEngine {
                     }
                 }
 
-                // 行動不能判定（HP0 または SP0）
-                if (ep.hp <= 0 || ep.sp <= 0) {
+                // 行動不能判定（HP0 または SP0、またはスタン中）
+                if (ep.hp <= 0 || ep.sp <= 0 || ep.stunTimer > 0) {
                     ep.combatState.phase = 'idle';
                     ep.combatState.cancelled = false;
                     ep.isDead = (ep.hp <= 0);
@@ -3040,14 +3048,20 @@ export class BattleEngine {
 
                 const hitRadius = b.size / 2;
                 const hitRadiusSq = hitRadius * hitRadius;
-                const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                const targetPool = b.owner === 'enemy'
+                    ? (this.players || [])
+                    : (this.isPvpBattle ? (this.pvpEnemies || []) : (this.enemies || []));
+                const targets = targetPool.filter(e => !e.isDead && !e.isDying);
                 for (const t of targets) {
                     const dx = t.x - b.x;
                     const dz = t.z - b.z;
                     if (dx * dx + dz * dz <= hitRadiusSq) {
-                        t.smokeDebuffTimer = 5.0; // 5秒間全属性被ダメ50%UP
-                        t.elementalDefDebuff = 50;
-                        t.elementalDefDebuffTimer = 5.0;
+                        const resist = t.debuffResist !== undefined ? t.debuffResist : 0;
+                        const resistMult = Math.max(0, 1.0 - (resist / 100));
+                        const finalDebuff = Math.max(1, Math.round(50 * resistMult));
+                        t.smokeDebuffTimer = 5.0 * resistMult; // 5秒間全属性被ダメ50%UP
+                        t.elementalDefDebuff = finalDebuff;
+                        t.elementalDefDebuffTimer = 5.0 * resistMult;
                         t.debuffColor = 0x88ff88;
                     }
                 }
