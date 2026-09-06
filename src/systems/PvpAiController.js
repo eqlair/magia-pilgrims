@@ -173,25 +173,9 @@ export class PvpAiController {
             }
         }
 
-        // 必殺技の実行
+        // 必殺技の実行（BattleEngine の共通処理を通して友好度連携判定を行う）
         if (typeof member.triggerUltimate === 'function') {
-            if (isPlayerTeam) {
-                member.triggerUltimate(
-                    this.engine.players,
-                    opponents,
-                    this.engine.bullets,
-                    this.engine.effects,
-                    this.engine.floatingTexts
-                );
-            } else {
-                member.triggerUltimate(
-                    this.engine.pvpEnemies,
-                    this.engine.players,
-                    this.engine.bullets,
-                    this.engine.effects,
-                    this.engine.floatingTexts
-                );
-            }
+            this.engine.triggerUltimate(member, false);
         } else {
             this.engine.floatingTexts.push({
                 id: Math.random(),

@@ -585,11 +585,11 @@ export class PlayerCharacter extends BattleEntity {
         if (!isLinked) {
             if (this.sp < cost) {
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "NO SP", type: "miss", lifeTime: 1.0, maxLife: 1.0 });
-                return;
+                return false;
             }
             if (this.ultimateCooldown > 0) {
                 floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "RELOADING", type: "miss", lifeTime: 1.0, maxLife: 1.0 });
-                return;
+                return false;
             }
             this.sp -= cost;
             if (this.sp <= 0) {
@@ -1007,12 +1007,14 @@ export class PlayerCharacter extends BattleEntity {
             // 消費SP: 20 + WLV, CD: 30 - WLV*2
             // 3 + WLV/3 秒間、本体中心から距離1mのランダム位置から、真上±5度に乱射！
             // つらら大を0.4秒に1発、つらら小を0.2秒に1発乱射
-            const spCost = Math.floor((20 + this.wlv) * spCostMultiplier);
-            if (this.sp < spCost) return;
-            this.sp -= spCost;
+            if (!isLinked) {
+                const spCost = Math.floor((20 + this.wlv) * spCostMultiplier);
+                if (this.sp < spCost) return false;
+                this.sp -= spCost;
 
-            const cdVal = Math.max(10, 30 - (this.wlv * 2));
-            this.ultimateCooldown = cdVal;
+                const cdVal = Math.max(10, 30 - (this.wlv * 2));
+                this.ultimateCooldown = cdVal;
+            }
 
             this.isUltimateActive = true;
             this.proserUltTimer = 3.0 + (this.wlv / 3.0);
@@ -1026,12 +1028,14 @@ export class PlayerCharacter extends BattleEntity {
             // 消費SP: 10 + WLV, CD: 60 - WLV*2
             // 前方に秒速2mで進む直径1mのバリア弾。攻撃力0, ノックバック40, 敵弾丸を消す。
             // 15m進むと直径8mに拡大して破裂し、範囲内に基本攻撃力の (100 + 10 * WLV)% のダメージ！
-            const spCost = Math.floor((10 + this.wlv) * spCostMultiplier);
-            if (this.sp < spCost) return;
-            this.sp -= spCost;
+            if (!isLinked) {
+                const spCost = Math.floor((10 + this.wlv) * spCostMultiplier);
+                if (this.sp < spCost) return false;
+                this.sp -= spCost;
 
-            const cdVal = Math.max(10, 60 - (this.wlv * 2));
-            this.ultimateCooldown = cdVal;
+                const cdVal = Math.max(10, 60 - (this.wlv * 2));
+                this.ultimateCooldown = cdVal;
+            }
             
             // 白蓮 (必殺技: 初速6.5m/sから0.1秒ごと6%減速で3秒かけて8m前進し、8m到達で突然直径8mの特大バリアに大爆発拡大！
             // 5秒+(WLV/2)秒持続し、範囲内の敵に毎秒(攻撃力の10%+WLV%)の継続ダメージを与え、敵弾を完全吸収しながら秒速1.0mでジワジワ前進)
@@ -1079,6 +1083,7 @@ export class PlayerCharacter extends BattleEntity {
             }
             floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "浄化の結界！", type: "skill", lifeTime: 1.2, maxLife: 1.2 });
         }
+        return true;
     }
 
 
@@ -1855,6 +1860,7 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.charId = data.charId || '001';
         this.lane = data.lane !== undefined ? data.lane : 0;
         this.isFront = data.isFront !== undefined ? data.isFront : true;
+        this.friendships = data.friendships || {}; // 仲間への友好度マップ（指定なければ空＝友好度0）
 
         // 指定された完成ステータスを直接適用
         this.level = data.level || 1;

@@ -10,10 +10,17 @@ export class GlobalState {
     static IS_DEBUG_MODE = true; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
 
     constructor() {
+        if (typeof window !== 'undefined' && window.__MAGIA_GLOBAL_STATE_INSTANCE__) {
+            GlobalState.instance = window.__MAGIA_GLOBAL_STATE_INSTANCE__;
+            return window.__MAGIA_GLOBAL_STATE_INSTANCE__;
+        }
         if (GlobalState.instance) {
             return GlobalState.instance;
         }
         GlobalState.instance = this;
+        if (typeof window !== 'undefined') {
+            window.__MAGIA_GLOBAL_STATE_INSTANCE__ = this;
+        }
         
         // グローバルなストック経験値（共有）
         this.stockExp = 0;
@@ -413,6 +420,10 @@ export class GlobalState {
 
 
     static getInstance() {
+        if (typeof window !== 'undefined' && window.__MAGIA_GLOBAL_STATE_INSTANCE__) {
+            GlobalState.instance = window.__MAGIA_GLOBAL_STATE_INSTANCE__;
+            return window.__MAGIA_GLOBAL_STATE_INSTANCE__;
+        }
         if (!GlobalState.instance) {
             new GlobalState();
         }

@@ -51,8 +51,8 @@ export class BattleEngine {
         this.earnedExp = 0;
         this.earnedSp = 0;
         this.eventQueue = []; // 'warning' などのイベント通知用
-        this.linkedUltimateQueue = [];
-        this.linkedUltimateTimer = 0;
+        this.linkedUltimateQueue = { player: [], enemy: [] };
+        this.linkedUltimateTimer = { player: 0, enemy: 0 };
         this.totalDamage = 0;       // DPS計算用：累計ダメージ
         this.damageHistory = [];    // DPS計算用：[{time, damage}] の履歴
         this.maxDps = 0;            // 瞬間DPS最大値
@@ -1083,17 +1083,22 @@ export class BattleEngine {
             this.waveTime += dt;
         }
 
-        // 連携必殺技の処理
-        if (this.linkedUltimateQueue && this.linkedUltimateQueue.length > 0) {
-            this.linkedUltimateTimer -= dt;
-            if (this.linkedUltimateTimer <= 0) {
-                const nextPlayer = this.linkedUltimateQueue.shift();
-                if (nextPlayer && !nextPlayer.isDead && !nextPlayer.isUltimateActive) {
-                    this.triggerUltimate(nextPlayer, true);
-                    this.linkedUltimateTimer = 4.0; // 4秒ごとに発動
-                } else if (nextPlayer) {
-                    // スキップされた場合はすぐ次へ
-                    this.linkedUltimateTimer = 0.1;
+        // 連携必殺技の処理 (player / enemy 両陣営)
+        if (this.linkedUltimateQueue) {
+            for (const teamKey of ['player', 'enemy']) {
+                const queue = this.linkedUltimateQueue[teamKey];
+                if (queue && queue.length > 0) {
+                    this.linkedUltimateTimer[teamKey] -= dt;
+                    if (this.linkedUltimateTimer[teamKey] <= 0) {
+                        const nextMember = queue.shift();
+                        if (nextMember && !nextMember.isDead && !nextMember.isUltimateActive) {
+                            this.triggerUltimate(nextMember, true);
+                            this.linkedUltimateTimer[teamKey] = 4.0; // 4秒ごとに発動
+                        } else if (nextMember) {
+                            // スキップされた場合はすぐ次へ
+                            this.linkedUltimateTimer[teamKey] = 0.1;
+                        }
+                    }
                 }
             }
         }
@@ -3429,61 +3434,81 @@ export class BattleEngine {
         }
     }
 
-    triggerUltimate(player, isLinked = false) {
-        if (!player || player.isDead) return;
-        
+    triggerUltimate(character, isLinked = false) {
+        if (!character || character.isDead) return;
+
+        const isEnemy = !!(character.isEnemy || character.owner === 'enemy' || (this.pvpEnemies && this.pvpEnemies.includes(character)));
+        const teamKey = isEnemy ? 'enemy' : 'player';
+
+        const allies = isEnemy
+            ? (this.pvpEnemies || []).filter(e => !e.isDead)
+            : this.players.filter(p => !p.isDead);
+
+        const opponents = isEnemy
+            ? this.players.filter(p => !p.isDead)
+            : (this.isPvpBattle ? (this.pvpEnemies || []).filter(e => !e.isDead) : this.enemies.filter(e => !e.isDead));
+
         // 必殺技発動
-        player.triggerUltimate(this.players, this.enemies, this.bullets, this.effects, this.floatingTexts, isLinked);
-        
-        // 自分が必殺技を出した直後だったり、SP不足で発動しなかった場合は isUltimateActive になる
-        if (!player.isUltimateActive) return;
+        const success = character.triggerUltimate(allies, opponents, this.bullets, this.effects, this.floatingTexts, isLinked);
+
+        // SP不足やリロード中で発動しなかった場合は連携しない
+        if (success === false) return;
 
         // 自分が発動した必殺技に連携したBさんの必殺技によって他のキャラクターがさらに連携することはない
         if (isLinked) return;
 
         // 連携判定
-        const gs = GlobalState.getInstance();
-        let standbyPlayers = [];
+        const queue = this.linkedUltimateQueue ? this.linkedUltimateQueue[teamKey] : null;
+        if (!queue) return;
 
-        for (const other of this.players) {
-            if (other === player || other.isDead) continue;
-            
+        const gs = GlobalState.getInstance();
+        let standbyMembers = [];
+
+        for (const other of allies) {
+            if (other === character || other.isDead) continue;
+
             // 既に必殺技発動中、または既にキューにいる場合は除外
             if (other.isUltimateActive) continue;
-            if (this.linkedUltimateQueue.includes(other)) continue;
+            if (queue.includes(other)) continue;
 
-            // other から player への友好度
-            const otherChar = gs.characters[other.charId];
+            // other から character への友好度
             let friendship = 0;
-            if (otherChar && otherChar.friendships && otherChar.friendships[player.charId]) {
-                friendship = otherChar.friendships[player.charId];
+            if (isEnemy) {
+                if (other.friendships && other.friendships[character.charId] !== undefined) {
+                    friendship = other.friendships[character.charId];
+                }
+            } else {
+                const otherChar = gs.characters[other.charId];
+                if (otherChar && otherChar.friendships && otherChar.friendships[character.charId] !== undefined) {
+                    friendship = otherChar.friendships[character.charId];
+                }
             }
 
-            // 判定：友好度 + 10 %
-            const prob = (friendship + 10) / 100.0;
-            if (Math.random() < prob) {
-                standbyPlayers.push({ player: other, friendship: friendship });
-                
+            // 判定：友好度0のときは完全0%、1以上なら (友好度 + 10)%
+            const prob = (friendship > 0) ? ((friendship + 10) / 100.0) : 0;
+            if (prob > 0 && Math.random() < prob) {
+                standbyMembers.push({ member: other, friendship: friendship });
+
                 // スタンバイ表示
-                this.floatingTexts.push({ 
-                    id: Math.random(), 
-                    x: other.x, 
-                    yOffset: -1.0, 
-                    z: other.z, 
-                    amount: 'STANDBY', 
+                this.floatingTexts.push({
+                    id: Math.random(),
+                    x: other.x,
+                    yOffset: -1.0,
+                    z: other.z,
+                    amount: 'STANDBY',
                     type: 'heal',
-                    lifeTime: 2.0, 
-                    maxLife: 2.0 
+                    lifeTime: 2.0,
+                    maxLife: 2.0
                 });
             }
         }
 
         // 友好度が高い順にソート
-        standbyPlayers.sort((a, b) => b.friendship - a.friendship);
-        
+        standbyMembers.sort((a, b) => b.friendship - a.friendship);
+
         // キューに追加
-        for (const p of standbyPlayers) {
-            this.linkedUltimateQueue.push(p.player);
+        for (const item of standbyMembers) {
+            queue.push(item.member);
         }
     }
 }

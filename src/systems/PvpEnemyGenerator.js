@@ -31,8 +31,8 @@ export class PvpEnemyGenerator {
         5: [-2, -1, 0, 1, 2]
     };
 
-    /** 指定されたキャラクターIDリストから敵パーティを生成（最大10人対応） */
-    static generateEnemyPartyFromIds(partyIds = ['001'], level = 10) {
+    /** 指定されたキャラクターIDリストから敵パーティを生成（最大10人対応、友好度対応） */
+    static generateEnemyPartyFromIds(partyIds = ['001'], level = 10, friendshipsMap = {}) {
         if (!partyIds || partyIds.length === 0) partyIds = ['001'];
 
         // 1. 各キャラのデフォルト前衛/後衛判定
@@ -73,21 +73,46 @@ export class PvpEnemyGenerator {
         for (let i = 0; i < frontCandidates.length; i++) {
             const charId = frontCandidates[i];
             const lane = frontLanes[i] !== undefined ? frontLanes[i] : 0;
-            enemies.push(this._createEnemyData(charId, level, lane, true));
+            const charFriendships = friendshipsMap[charId] || {};
+            enemies.push(this._createEnemyData(charId, level, lane, true, charFriendships));
         }
 
         // 後衛の生成
         for (let i = 0; i < rearCandidates.length; i++) {
             const charId = rearCandidates[i];
             const lane = rearLanes[i] !== undefined ? rearLanes[i] : 0;
-            enemies.push(this._createEnemyData(charId, level, lane, false));
+            const charFriendships = friendshipsMap[charId] || {};
+            enemies.push(this._createEnemyData(charId, level, lane, false, charFriendships));
+        }
+
+        // 4. 友好度による能力強化ボーナス（HP/SP/ATK最大+50%）の適用
+        for (const ep of enemies) {
+            let affectionTotal = 0;
+            for (const other of enemies) {
+                if (other === ep || other.charId === ep.charId) continue;
+                if (other.friendships && other.friendships[ep.charId]) {
+                    affectionTotal += other.friendships[ep.charId];
+                }
+            }
+            ep.affectionTotal = affectionTotal;
+            if (affectionTotal > 0) {
+                const affectionBonus = Math.min(0.50, affectionTotal / 100.0);
+                ep.affectionBonus = affectionBonus;
+                ep.maxHp = Math.floor(ep.maxHp * (1 + affectionBonus));
+                ep.hp = ep.maxHp;
+                ep.maxSp = Math.floor(ep.maxSp * (1 + affectionBonus));
+                ep.sp = ep.maxSp;
+                ep.atk = Math.floor(ep.atk * (1 + affectionBonus));
+            } else {
+                ep.affectionBonus = 0;
+            }
         }
 
         return enemies;
     }
 
     /** キャラクター1人分のステータスデータを構築 */
-    static _createEnemyData(charId, level, lane, isFront) {
+    static _createEnemyData(charId, level, lane, isFront, friendships = {}) {
         const charDef = charDataJson.characters[charId] || charDataJson.characters['001'];
         const charMeta = this.CHAR_LIST.find(c => c.id === charId);
         const displayName = charMeta ? charMeta.name : (charDef.name || '魔法少女');
@@ -105,6 +130,7 @@ export class PvpEnemyGenerator {
             level: level,
             lane: lane,
             isFront: isFront,
+            friendships: friendships,
             maxHp: maxHp,
             hp: maxHp,
             maxSp: maxSp,
