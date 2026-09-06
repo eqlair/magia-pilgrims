@@ -4823,52 +4823,100 @@ export default class AdventureScene extends Phaser.Scene {
         container.add(titleText);
 
         // 状態変数
-        let selectedPresetId = 1;
+        let selectedCharIds = ['001', '002', '003', '004', '005']; // 初期は基本5人
         let selectedLevel = 10;
 
+        const startY = height / 2 - modalH / 2;
+
         // 編成選択タイトル
-        const presetHeader = this.add.text(width / 2 - modalW / 2 + 30, height / 2 - modalH / 2 + 65, '【敵編成パターン】', {
-            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffcc', fontStyle: 'bold'
+        const charHeader = this.add.text(width / 2 - modalW / 2 + 30, startY + 58, '【敵メンバー選択（複数・最大10人）】', {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
         });
-        container.add(presetHeader);
+        container.add(charHeader);
 
-        const presetButtons = [];
-        const presets = PvpEnemyGenerator.PRESETS;
+        // クイック一括選択ボタン群
+        const quickRowY = startY + 85;
+        const quickActions = [
+            { label: '全員(10人)', ids: ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'] },
+            { label: '初期5人', ids: ['001', '002', '003', '004', '005'] },
+            { label: '前衛のみ', ids: ['001', '002', '003', '009'] },
+            { label: '後衛のみ', ids: ['004', '005', '007', '008', '010', '011'] },
+            { label: '全解除', ids: [] }
+        ];
 
-        presets.forEach((p, idx) => {
-            const btnY = height / 2 - modalH / 2 + 98 + idx * 43;
-            const btn = this.add.text(width / 2, btnY, p.name, {
-                fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
-                backgroundColor: '#2a2a3a', padding: { x: 18, y: 7 }
+        const quickStartX = width / 2 - 210;
+        const quickSpacing = 105;
+        quickActions.forEach((qa, idx) => {
+            const qBtn = this.add.text(quickStartX + idx * quickSpacing, quickRowY, qa.label, {
+                fontFamily: 'sans-serif', fontSize: '12px', color: '#ddeeff',
+                backgroundColor: '#33334d', padding: { x: 8, y: 4 }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+            qBtn.on('pointerdown', () => {
+                selectedCharIds = [...qa.ids];
+                updateView();
+            });
+            container.add(qBtn);
+        });
+
+        // キャラクターチェックボックスリスト（左右2列、各5行）
+        const charList = PvpEnemyGenerator.CHAR_LIST;
+        const charButtons = [];
+        const leftColX = width / 2 - 140;
+        const rightColX = width / 2 + 140;
+        const charListStartY = startY + 118;
+        const charRowHeight = 36;
+
+        charList.forEach((charDef, idx) => {
+            const col = idx < 5 ? 0 : 1;
+            const row = idx % 5;
+            const btnX = col === 0 ? leftColX : rightColX;
+            const btnY = charListStartY + row * charRowHeight;
+
+            const btn = this.add.text(btnX, btnY, '', {
+                fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff',
+                backgroundColor: '#252535', padding: { x: 10, y: 5 }, fixedWidth: 265, align: 'left'
             }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
             btn.on('pointerdown', () => {
-                selectedPresetId = p.id;
+                const foundIdx = selectedCharIds.indexOf(charDef.id);
+                if (foundIdx >= 0) {
+                    selectedCharIds.splice(foundIdx, 1);
+                } else {
+                    selectedCharIds.push(charDef.id);
+                }
                 updateView();
             });
+
             container.add(btn);
-            presetButtons.push({ id: p.id, btn: btn });
+            charButtons.push({ def: charDef, btn: btn });
         });
 
+        // 選択人数のリアルタイムサマリ
+        const statusSummaryText = this.add.text(width / 2, startY + 312, '', {
+            fontFamily: 'sans-serif', fontSize: '14px', color: '#aaffcc', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(statusSummaryText);
+
         // レベル選択エリア
-        const levelY = height / 2 - modalH / 2 + 375;
+        const levelY = startY + 348;
         const levelHeader = this.add.text(width / 2 - modalW / 2 + 30, levelY, '【敵レベル選択】', {
-            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffcc', fontStyle: 'bold'
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
         });
         container.add(levelHeader);
 
-        const levelMinusBtn = this.add.text(width / 2 - 120, levelY + 38, '◀ Lv -1', {
-            fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 14, y: 7 }
+        const levelMinusBtn = this.add.text(width / 2 - 120, levelY + 34, '◀ Lv -1', {
+            fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 14, y: 6 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        const levelPlusBtn = this.add.text(width / 2 + 120, levelY + 38, 'Lv +1 ▶', {
-            fontFamily: 'sans-serif', fontSize: '19px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 14, y: 7 }
+        const levelPlusBtn = this.add.text(width / 2 + 120, levelY + 34, 'Lv +1 ▶', {
+            fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 14, y: 6 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        const levelText = this.add.text(width / 2, levelY + 38, `Lv ${selectedLevel}`, {
-            fontFamily: 'sans-serif', fontSize: '24px', color: '#ffea77', fontStyle: 'bold'
+        const levelText = this.add.text(width / 2, levelY + 34, `Lv ${selectedLevel}`, {
+            fontFamily: 'sans-serif', fontSize: '23px', color: '#ffea77', fontStyle: 'bold'
         }).setOrigin(0.5);
 
         levelMinusBtn.on('pointerdown', () => {
@@ -4885,24 +4933,24 @@ export default class AdventureScene extends Phaser.Scene {
 
         // ── PvPダメージ倍率調整エリア ──
         let pvpDenom = GlobalState.getInstance().pvpDamageDenominator || 30;
-        const denomY = levelY + 68;
+        const denomY = levelY + 66;
         const denomHeader = this.add.text(width / 2 - modalW / 2 + 30, denomY, '【PvPダメージ倍率】', {
             fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
         });
         container.add(denomHeader);
 
         const denomMinusBtn = this.add.text(width / 2 - 120, denomY + 32, '◀ -5 (強)', {
-            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 12, y: 6 }
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 12, y: 5 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         const denomPlusBtn = this.add.text(width / 2 + 120, denomY + 32, '+5 (弱) ▶', {
-            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 12, y: 6 }
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 12, y: 5 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         const denomText = this.add.text(width / 2, denomY + 32, `1 / ${pvpDenom}`, {
-            fontFamily: 'sans-serif', fontSize: '22px', color: '#ff99aa', fontStyle: 'bold'
+            fontFamily: 'sans-serif', fontSize: '21px', color: '#ff99aa', fontStyle: 'bold'
         }).setOrigin(0.5);
 
         denomMinusBtn.on('pointerdown', () => {
@@ -4920,22 +4968,25 @@ export default class AdventureScene extends Phaser.Scene {
         container.add([denomMinusBtn, denomPlusBtn, denomText]);
 
         // ステータスプレビューエリア
-        const previewY = denomY + 65;
-        const previewBox = this.add.rectangle(width / 2, previewY + 38, modalW - 60, 75, 0x11111a, 0.8)
+        const previewY = denomY + 62;
+        const previewBox = this.add.rectangle(width / 2, previewY + 36, modalW - 60, 68, 0x11111a, 0.8)
             .setStrokeStyle(1, 0x444466);
-        const previewText = this.add.text(width / 2, previewY + 38, '', {
+        const previewText = this.add.text(width / 2, previewY + 36, '', {
             fontFamily: 'monospace', fontSize: '13px', color: '#aaffaa', align: 'center', lineSpacing: 3
         }).setOrigin(0.5);
         container.add([previewBox, previewText]);
 
         // 戦闘開始ボタン
-        const startBtn = this.add.text(width / 2, height / 2 + modalH / 2 - 45, '⚔️ 戦闘開始！', {
+        const startBtn = this.add.text(width / 2, height / 2 + modalH / 2 - 42, '⚔️ 戦闘開始！', {
             fontFamily: 'sans-serif', fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
             backgroundColor: '#aa2244', padding: { x: 35, y: 10 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         startBtn.on('pointerdown', () => {
-            const enemyParty = PvpEnemyGenerator.generateEnemyParty(selectedPresetId, selectedLevel);
+            if (selectedCharIds.length === 0) {
+                return;
+            }
+            const enemyParty = PvpEnemyGenerator.generateEnemyPartyFromIds(selectedCharIds, selectedLevel);
             console.log('[PvP Test] Starting battle with enemies:', enemyParty);
             if (this._pvpModalContainer) {
                 this._pvpModalContainer.destroy();
@@ -4969,26 +5020,46 @@ export default class AdventureScene extends Phaser.Scene {
             levelText.setText(`Lv ${selectedLevel}`);
             denomText.setText(`1 / ${pvpDenom}`);
 
-            presetButtons.forEach(pb => {
-                if (pb.id === selectedPresetId) {
-                    pb.btn.setBackgroundColor('#883344');
-                    pb.btn.setColor('#ffff00');
+            charButtons.forEach(cb => {
+                const isSelected = selectedCharIds.includes(cb.def.id);
+                const mark = isSelected ? '☑' : '☐';
+                const roleBadge = cb.def.isDefaultFront ? '[前]' : '[後]';
+                cb.btn.setText(`${mark} ${cb.def.name.padEnd(5, '　')} ${roleBadge} ${cb.def.roleName}`);
+
+                if (isSelected) {
+                    cb.btn.setBackgroundColor('#442e55');
+                    cb.btn.setColor('#ffff88');
                 } else {
-                    pb.btn.setBackgroundColor('#2a2a3a');
-                    pb.btn.setColor('#ffffff');
+                    cb.btn.setBackgroundColor('#20202c');
+                    cb.btn.setColor('#8888aa');
                 }
             });
 
-            // プレビューテキスト作成
-            const dummyParty = PvpEnemyGenerator.generateEnemyParty(selectedPresetId, selectedLevel);
-            const first = dummyParty[0] || {};
-            const atk = 100 + selectedLevel * 50;
-            const wlv = Math.ceil(selectedLevel / 2) + 1;
-            previewText.setText(
-                `敵人数: ${dummyParty.length}人 | 敵Lv: ${selectedLevel} | PvP補正: 1/${pvpDenom}\n` +
-                `攻撃力: ${atk} (100 + Lv*50) | 技Lv: 近接Lv${wlv} / 遠隔Lv${wlv}\n` +
-                `基準HP: 約${first.maxHp || 1000} | 基準MP: 約${first.maxSp || 500}`
-            );
+            const partyCount = selectedCharIds.length;
+            if (partyCount === 0) {
+                statusSummaryText.setText('⚠️ 敵メンバーが未選択です（1人以上選んでね）');
+                statusSummaryText.setColor('#ff8888');
+                startBtn.setBackgroundColor('#555566');
+                startBtn.setColor('#999999');
+                previewText.setText('キャラクターを1人以上選択してください');
+            } else {
+                const dummyParty = PvpEnemyGenerator.generateEnemyPartyFromIds(selectedCharIds, selectedLevel);
+                const frontCount = dummyParty.filter(e => e.isFront).length;
+                const rearCount = dummyParty.filter(e => !e.isFront).length;
+                statusSummaryText.setText(`選択中: ${partyCount}人 （前衛 ${frontCount}人 / 後衛 ${rearCount}人）`);
+                statusSummaryText.setColor('#aaffcc');
+                startBtn.setBackgroundColor('#aa2244');
+                startBtn.setColor('#ffffff');
+
+                const first = dummyParty[0] || {};
+                const atk = 100 + selectedLevel * 50;
+                const wlv = Math.ceil(selectedLevel / 2) + 1;
+                previewText.setText(
+                    `敵人数: ${partyCount}人 (前衛${frontCount}/後衛${rearCount}) | 敵Lv: ${selectedLevel} | PvP倍率: 1/${pvpDenom}\n` +
+                    `攻撃力: ${atk} (100 + Lv*50) | 技Lv: 近接Lv${wlv} / 遠隔Lv${wlv}\n` +
+                    `基準HP: 約${first.maxHp || 1000} | 基準MP: 約${first.maxSp || 500}`
+                );
+            }
         };
 
         updateView();

@@ -1880,7 +1880,9 @@ export class PvpEnemyCharacter extends PlayerCharacter {
             '005': 'green',
             '007': 'yellow',
             '008': 'red',
-            '010': 'blue'
+            '009': 'green',
+            '010': 'blue',
+            '011': 'purple'
         };
         this.attribute = charIdToAttr[this.charId] || 'yellow';
 

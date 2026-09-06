@@ -19,12 +19,12 @@ export class PvpAiController {
 
     /** キャラクターごとのロールタイプを取得 */
     getRoleType(charId) {
-        if (charId === '002' || charId === '003') {
-            return 'melee'; // 【近接攻撃型】 蒼樹(002), 紅華(003)
-        } else if (charId === '005' || charId === '010') {
-            return 'ranged'; // 【後衛型】 李乃果(005), 白蓮(010)
+        if (charId === '002' || charId === '003' || charId === '009') {
+            return 'melee'; // 【近接攻撃型】 蒼樹(002), 紅華(003), リフィエル(009)
+        } else if (charId === '005' || charId === '008' || charId === '010' || charId === '011') {
+            return 'ranged'; // 【後衛型】 李乃果(005), ノア(008), プロセル(010), 白蓮(011)
         } else {
-            return 'support'; // 【支援型】 紫苑(001), 黄蘭(004)
+            return 'support'; // 【支援型】 紫苑(001), 黄蘭(004), ななよ(007)
         }
     }
 
@@ -200,7 +200,7 @@ export class PvpAiController {
         }
     }
 
-    /** レーン移動およびスワップ（入れ替え）処理 - 必ず隣接レーン(±1)との1ステップ入れ替えに制限 */
+    /** レーン移動およびスワップ（入れ替え）処理 - 必ず隣接レーン(±1)との1ステップ入れ替えに制限（同列同士のみ） */
     _swapLane(member, targetLane, myTeam, now, teamKey) {
         const currentLane = member.lane !== undefined ? member.lane : 0;
         if (targetLane === currentLane) return;
@@ -210,7 +210,8 @@ export class PvpAiController {
         const nextLane = Math.max(-2, Math.min(2, currentLane + step));
         if (nextLane === currentLane) return;
 
-        const occupant = myTeam.find(m => m !== member && m.lane === nextLane);
+        // 同列（前衛同士、または後衛同士）にいる occupant のみとスワップ
+        const occupant = myTeam.find(m => m !== member && m.lane === nextLane && m.isFront === member.isFront);
 
         if (occupant) {
             occupant.lane = currentLane;
@@ -220,14 +221,15 @@ export class PvpAiController {
         this.teamLastLaneMoveTime[teamKey] = now;
     }
 
-    /** ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する */
+    /** ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する（同列チェック） */
     _tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey) {
         const currentLane = member.lane !== undefined ? member.lane : 0;
         const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
         for (const d of dirs) {
             const targetLane = currentLane + d;
             if (targetLane >= -2 && targetLane <= 2) {
-                const isOccupied = myTeam.some(m => m !== member && m.lane === targetLane);
+                // 同列でそのレーンにいる人がいないかチェック
+                const isOccupied = myTeam.some(m => m !== member && m.lane === targetLane && m.isFront === member.isFront);
                 if (!isOccupied) {
                     this._swapLane(member, targetLane, myTeam, now, teamKey);
                     return true;
