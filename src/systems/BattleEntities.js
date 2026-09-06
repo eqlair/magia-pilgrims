@@ -191,7 +191,7 @@ export class PlayerCharacter extends BattleEntity {
 
         this.updateAttackPatterns();
         // --- 特技（オートスキル）用のプロパティ ---
-        this.specialInterval = this.charId === '005' ? 5.0 : (this.charId === '003' ? 12.0 : 10.0);
+        this.specialInterval = (this.charId === '005' || this.charId === '009') ? 5.0 : (this.charId === '003' ? 12.0 : 10.0);
         this.specialTimer = this.specialInterval; // 開幕はリロードタイムからスタート
         this.reloadMultiplier = 1.0;
         this.hitRateBonus = 0;
@@ -398,7 +398,7 @@ export class PlayerCharacter extends BattleEntity {
 
         // --- 定期発動特技 ---
         let specialInterval = 10.0;
-        if (this.charId === '005') specialInterval = 5.0; // 李乃果は5秒に1回！
+        if (this.charId === '005' || this.charId === '009') specialInterval = 5.0; // 李乃果・リフィエルは5秒に1回！
         else if (this.charId === '003' || this.charId === '007') specialInterval = 12.0;
         else if (this.charId === '008') specialInterval = 15.0;
 
@@ -575,36 +575,81 @@ export class PlayerCharacter extends BattleEntity {
                     }
                 }
             } else if (this.charId === '009') {
-                // リフィエル (回復: 従来仕様を維持)
-                let baseHeal = 10 + (this.wlv * 3);
-                let altHeal = baseHeal;
+                // リフィエル: 5秒に1回、2人回復
+                // 前列: 自身HP < 90%なら自身＋もう一人、90%以上なら自身含め最もHP割合の低い2人
+                // 後衛: 最もHP割合の低い2人
+                // 回復量: リフィエルの生命力の (WLV / 2 + 14)%
+                // 消費精神力: 回復させた人数 * 0.4% (最大SPの0.4%)
+                let healAmount = this.maxHp * ((this.wlv / 2.0 + 14.0) / 100.0);
+                let spCostPerPerson = this.maxSp * 0.004;
 
+                // PvP対戦時は回復量および消費精神力もPvPスケールで圧縮
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
                 if (isPvp) {
                     const gs = GlobalState.getInstance();
                     const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
-                    baseHeal *= (1.0 / denom);
-                    altHeal *= (1.0 / denom);
+                    healAmount *= (1.0 / denom);
+                    spCostPerPerson *= (1.0 / denom);
                 }
-                
+
+                const alive = players.filter(p => !p.isDead);
+
+                let candidates = [];
                 if (this.isFront) {
-                    if (this.hp / this.maxHp >= 0.9 && lowestHpPlayer) {
-                        lowestHpPlayer.hp = Math.min(lowestHpPlayer.maxHp, lowestHpPlayer.hp + altHeal);
-                        const displayAmount = altHeal <= 1.0 ? altHeal.toFixed(2) : Math.ceil(altHeal);
-                        floatingTexts.push({ id: Math.random(), x: lowestHpPlayer.x, yOffset: 0, z: lowestHpPlayer.z, amount: displayAmount, type: "heal", lifeTime: 1.0, maxLife: 1.0 });
-                        effects.push(new EffectEntity(lowestHpPlayer.x, lowestHpPlayer.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
+                    if (this.hp < this.maxHp * 0.90) {
+                        // 自身が90%未満: 自身＋最もHPが少ない仲間1人
+                        candidates.push(this);
+                        const others = alive.filter(p => p !== this)
+                            .sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+                        if (others.length > 0) candidates.push(others[0]);
                     } else {
-                        this.hp = Math.min(this.maxHp, this.hp + baseHeal);
-                        const displayAmount = baseHeal <= 1.0 ? baseHeal.toFixed(2) : Math.ceil(baseHeal);
-                        floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: displayAmount, type: "heal", lifeTime: 1.0, maxLife: 1.0 });
-                        effects.push(new EffectEntity(this.x, this.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
+                        // 自身が90%以上: 全員の中でHP割合が低い順に2人
+                        candidates = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp)).slice(0, 2);
                     }
                 } else {
-                    if (lowestHpPlayer) {
-                        lowestHpPlayer.hp = Math.min(lowestHpPlayer.maxHp, lowestHpPlayer.hp + baseHeal);
-                        const displayAmount = baseHeal <= 1.0 ? baseHeal.toFixed(2) : Math.ceil(baseHeal);
-                        floatingTexts.push({ id: Math.random(), x: lowestHpPlayer.x, yOffset: 0, z: lowestHpPlayer.z, amount: displayAmount, type: "heal", lifeTime: 1.0, maxLife: 1.0 });
-                        effects.push(new EffectEntity(lowestHpPlayer.x, lowestHpPlayer.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'green' } }));
+                    // 後衛: 全員の中でHP割合が低い順に2人
+                    candidates = [...alive].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp)).slice(0, 2);
+                }
+
+                // 実際にHPが減っているメンバーのみを対象とする（満タン時はSPを無駄消費しない）
+                const targets = candidates.filter(p => p.hp < p.maxHp);
+
+                if (targets.length > 0) {
+                    for (const target of targets) {
+                        if (this.sp >= spCostPerPerson) {
+                            this.sp = Math.max(0, this.sp - spCostPerPerson);
+                            target.hp = Math.min(target.maxHp, target.hp + healAmount);
+                            const displayAmount = healAmount <= 1.0 ? healAmount.toFixed(2) : Math.ceil(healAmount);
+                            floatingTexts.push({
+                                id: Math.random(),
+                                x: target.x,
+                                yOffset: 0,
+                                z: target.z,
+                                amount: displayAmount,
+                                type: "heal",
+                                lifeTime: 1.0,
+                                maxLife: 1.0
+                            });
+                            effects.push(new EffectEntity(target.x, target.z, {
+                                type: 'buff_circle',
+                                radius: 1.5,
+                                lifeTime: 0.5,
+                                customData: { color: 'green' }
+                            }));
+                        } else {
+                            // MP不足
+                            floatingTexts.push({
+                                id: Math.random(),
+                                x: this.x,
+                                yOffset: 0,
+                                z: this.z,
+                                amount: "NO MP",
+                                type: "miss",
+                                lifeTime: 1.0,
+                                maxLife: 1.0
+                            });
+                            break;
+                        }
                     }
                 }
             } else if (this.charId === '003') {
