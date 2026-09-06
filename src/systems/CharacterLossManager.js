@@ -11,6 +11,7 @@ export class CharacterLossManager {
         '003': 'evx_003', // 紅華
         '004': 'evx_004', // 黄蘭
         '005': 'evx_005', // 李乃果
+        '009': 'evx_009', // リフィエル
         '010': 'evx_010'  // 白蓮
     };
 

@@ -60,8 +60,9 @@ export default class BattleScene extends Phaser.Scene {
         this.load.image('weapon_008_ult_b', 'files/CHR/008004b.png');
 
         this.load.spritesheet('battle_009', 'files/CHR/009002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_009_b', 'files/CHR/009002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_009_b', 'files/CHR/009002a.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('battle_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_009_adult_b', 'files/CHR/009002d.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_009', 'files/CHR/090003.png');
         this.load.image('weapon_009_spear', 'files/CHR/090003.png');
         this.load.image('weapon_009_pollen', 'files/CHR/090004.png');

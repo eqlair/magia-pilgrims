@@ -76,9 +76,10 @@ export default class BootScene extends Phaser.Scene {
         const battleCharIds = ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'];
         for (const cid of battleCharIds) {
             this.load.spritesheet(`battle_${cid}`, `files/CHR/${cid === '009' ? '009002' : `${cid}002`}.png`, { frameWidth: 150, frameHeight: 150 });
-            this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid === '009' ? '009002' : `${cid}002`}b.png`, { frameWidth: 150, frameHeight: 150 });
+            this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid === '009' ? '009002a' : `${cid}002b`}.png`, { frameWidth: 150, frameHeight: 150 });
         }
         this.load.spritesheet('battle_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_009_adult_b', 'files/CHR/009002d.png', { frameWidth: 150, frameHeight: 150 });
         this.load.image('weapon_002', 'files/CHR/002003.png');
         this.load.image('weapon_003', 'files/CHR/003003.png');
         this.load.image('weapon_004', 'files/CHR/004003.png');
@@ -190,6 +191,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('evx_003', 'files/event/evx003.jpg');
         this.load.image('evx_004', 'files/event/evx005.jpg');
         this.load.image('evx_005', 'files/event/evx006.jpg');
+        this.load.image('evx_009', 'files/event/evx009.jpg');
         this.load.image('evx_010', 'files/event/evx011.jpg');
         
         // 12/7, 12/14, 12/21, 周回イベント画像とBGM

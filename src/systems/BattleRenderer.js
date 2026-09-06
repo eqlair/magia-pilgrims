@@ -318,14 +318,9 @@ export class BattleRenderer {
                 }
 
                 if (entity.hp <= 0 || entity.isDead) {
-                    // 死亡ダウンフレーム
-                    if (charId === '009') {
-                        sprite.setTexture(motionTex);
-                        sprite.setFrame(6); // 倒れダウン
-                    } else {
-                        sprite.setTexture(baseTex);
-                        sprite.setFrame(6); // 死亡フレーム（index 6）
-                    }
+                    // 死亡ダウンフレーム（baseTexのフレーム6が全キャラ共通の倒れ姿）
+                    sprite.setTexture(baseTex);
+                    sprite.setFrame(6);
                 } else if (isAttackMotion && this.scene.textures.exists(motionTex)) {
                     // ── 攻撃特殊モーション (_bシート) ──
                     sprite.setTexture(motionTex);
