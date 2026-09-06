@@ -1856,6 +1856,7 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         super(x, z, data);
         this.owner = 'enemy';
         this.isEnemy = true;
+        this.isPvpEnemy = true;
         this.name = data.name || '敵・魔法少女';
         this.charId = data.charId || '001';
         this.lane = data.lane !== undefined ? data.lane : 0;

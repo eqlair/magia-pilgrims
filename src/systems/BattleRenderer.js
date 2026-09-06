@@ -831,19 +831,27 @@ export class BattleRenderer {
             const hpRatio = entity.maxHp > 0 ? Math.max(0, entity.hp / entity.maxHp) : 0;
             const spRatio = entity.maxSp > 0 ? Math.max(0, entity.sp / entity.maxSp) : 0;
             
+            const isPlayer = (entity.owner === 'player');
+            const isPvpEnemy = !!(entity.isPvpEnemy || (entity.owner === 'enemy' && entity.charId && entity.maxUltimateCooldown > 0));
+
             let ultRatio = 0;
             let ultColor = 0x880088; // 紫（リロード中）
-            if (entity.owner === 'player') {
+            if (isPlayer || isPvpEnemy) {
                 if (entity.ultimateCooldown > 0 && entity.maxUltimateCooldown > 0) {
                     // リロード中（0% -> 100%へ伸びる）
                     ultRatio = 1.0 - (entity.ultimateCooldown / entity.maxUltimateCooldown);
                 } else {
-                    const cost = entity.charId === '005' ? 25 + entity.wlv : 10 + entity.wlv;
-                    if (entity.sp >= cost) {
+                    if (isPvpEnemy) {
                         ultRatio = 1.0;
                         ultColor = 0xff0000; // 赤（発動可能）
                     } else {
-                        ultRatio = 0.0;
+                        const cost = entity.charId === '005' ? 25 + entity.wlv : 10 + entity.wlv;
+                        if (entity.sp >= cost) {
+                            ultRatio = 1.0;
+                            ultColor = 0xff0000; // 赤（発動可能）
+                        } else {
+                            ultRatio = 0.0;
+                        }
                     }
                 }
             }
@@ -867,7 +875,7 @@ export class BattleRenderer {
             ui.hpBg.setPosition(p.x, hpY).setDepth(depth).setVisible(true);
             ui.hpBar.setPosition(p.x, hpY).setDepth(depth).setVisible(true);
             
-            if (entity.owner === 'player') {
+            if (isPlayer || isPvpEnemy) {
                 ui.ultBg.setPosition(p.x, ultY).setDepth(depth).setVisible(true);
                 ui.ultBar.setPosition(p.x, ultY).setDepth(depth).setVisible(true);
             } else {
@@ -875,8 +883,13 @@ export class BattleRenderer {
                 ui.ultBar.setVisible(false);
             }
 
-            ui.spBg.setPosition(p.x, spY).setDepth(depth).setVisible(true);
-            ui.spBar.setPosition(p.x, spY).setDepth(depth).setVisible(true);
+            if (isPlayer) {
+                ui.spBg.setPosition(p.x, spY).setDepth(depth).setVisible(true);
+                ui.spBar.setPosition(p.x, spY).setDepth(depth).setVisible(true);
+            } else {
+                ui.spBg.setVisible(false);
+                ui.spBar.setVisible(false);
+            }
             
             // 死にかけ（透明化中）の時はゲージも透明に
             if (entity.isDying) {
@@ -886,8 +899,8 @@ export class BattleRenderer {
                 ui.spBg.setAlpha(alpha); ui.spBar.setAlpha(alpha);
             } else {
                 let alpha = 1.0;
-                if (entity.owner === 'enemy') {
-                    // 敵の場合は被弾後1秒間だけ表示（最初の0.5秒は1.0、後の0.5秒で0.0へ）
+                if (entity.owner === 'enemy' && !isPvpEnemy) {
+                    // 通常の雑魚敵の場合は被弾後1秒間だけ表示（最初の0.5秒は1.0、後の0.5秒で0.0へ）
                     const timeSinceDamaged = this.engine.time - entity.lastDamagedTime;
                     if (timeSinceDamaged < 0.5) {
                         alpha = 1.0;
@@ -900,11 +913,14 @@ export class BattleRenderer {
 
                 ui.hpBg.setAlpha(alpha); ui.hpBar.setAlpha(alpha);
 
-                // 敵はSPなし
-                if (entity.owner === 'enemy') {
+                if (isPlayer || isPvpEnemy) {
+                    ui.ultBg.setAlpha(alpha); ui.ultBar.setAlpha(alpha);
+                }
+
+                // 敵は精神力(SP)なし
+                if (!isPlayer) {
                     ui.spBg.setVisible(false); ui.spBar.setVisible(false);
                 } else {
-                    ui.ultBg.setAlpha(alpha); ui.ultBar.setAlpha(alpha);
                     ui.spBg.setAlpha(alpha); ui.spBar.setAlpha(alpha);
                 }
 
