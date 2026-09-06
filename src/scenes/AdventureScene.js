@@ -2178,15 +2178,18 @@ export default class AdventureScene extends Phaser.Scene {
 
         // 3. トーク（53F専用掛け合い または 通常風景掛け合い）
         const currentFloor = 59 - hex.row;
+        const char1 = this.party[Math.floor(Math.random() * this.party.length)];
+        const talkData1 = this.cache.json.get(`talk_${char1}`);
+        const charData = GlobalState.getInstance().characters[char1];
+        let char1Name = charData ? charData.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ';
+
         if (this.isTowerMode && currentFloor === 52) {
             // 53F専用掛け合い（①ヒント発見、2人以上なら②推理(とんちんかん)）
             this._build53FHintEvents(events);
         } else {
-            const char1 = this.party[Math.floor(Math.random() * this.party.length)];
             events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
             
             // トーク内容の取得（地名固有セリフ ➔ 汎用0~25/x1~x7セリフ）
-            const talkData1 = this.cache.json.get(`talk_${char1}`);
             let locationText = '……。';
             if (talkData1) {
                 // "現在の地名"のセリフを探す
@@ -2206,10 +2209,6 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            
-            // トーク名（データから取得して表示用の名前に整形する）
-            const charData = GlobalState.getInstance().characters[char1];
-            let char1Name = charData ? charData.name.replace(/^[0-9]+/, '').replace(/data$/, '') : 'キャラ';
             events.push({ cmd: 'text', name: char1Name, body: locationText });
         }
 
