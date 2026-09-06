@@ -706,11 +706,20 @@ export class PlayerCharacter extends BattleEntity {
                     ? activeOrbs.map(o => ({ x: o.x, z: o.z }))
                     : [{ x: this.x, z: this.z + forwardZ }];
 
+                const baseAngle = this.isEnemy ? -Math.PI / 2 : Math.PI / 2; // 敵なら手前(-Z)、味方なら奥(+Z)
+                const fieldSpeed = 3.0; // 秒速3m
+
                 for (const pt of spawnPoints) {
+                    const devDeg = (Math.random() - 0.5) * 10; // ランダム±5度
+                    const devRad = devDeg * (Math.PI / 180);
+                    const shootAngle = baseAngle + devRad;
+                    const vx = Math.cos(shootAngle) * fieldSpeed;
+                    const vz = Math.sin(shootAngle) * fieldSpeed;
+
                     const specialField = new Bullet(pt.x, pt.z, {
                         owner: this.owner || (this.isEnemy ? 'enemy' : 'player'),
-                        vx: 0,
-                        vz: 0, // その場に固定で5秒間維持
+                        vx: vx,
+                        vz: vz, // 秒速3mで前方向ランダム±5度に進む
                         damage: 0,
                         knockback: 0,
                         size: 3.0, // 直径3m
@@ -719,7 +728,8 @@ export class PlayerCharacter extends BattleEntity {
                         textureKey: 'weapon_008_orb',
                         isPiercing: true,
                         debuffDuration: debuffDuration,
-                        baseDebuff: 50
+                        baseDebuff: 50,
+                        opacity: 0.5
                     });
                     specialField.sourceEntity = this;
                     if (this.engine) {
@@ -2064,6 +2074,7 @@ export class Bullet extends BattleEntity {
         this.color = data.color || null; // 属性色用
         this.targetDist = data.targetDist || 20.0;
         this.type = data.type || 'bullet';
+        this.opacity = data.opacity !== undefined ? data.opacity : undefined;
 
         this.distanceTraveled = 0;
         this.hitTargets = new Set();
