@@ -48,11 +48,17 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('portrait_003_b', 'files/CHR/003001b.png');
         this.load.image('portrait_004_b', 'files/CHR/004001b.png');
         this.load.image('portrait_005_b', 'files/CHR/005001b.png');
+        this.load.image('portrait_006_b', 'files/CHR/006001b.png');
         this.load.image('portrait_007_b', 'files/CHR/007001.png');
         this.load.image('portrait_008_b', 'files/CHR/008001.png');
         this.load.image('portrait_009_b', 'files/CHR/009001.png');
         this.load.image('portrait_010_b', 'files/CHR/010001b.png');
         this.load.image('portrait_011_b', 'files/CHR/011001b.png');
+        this.load.spritesheet('mini_006', 'files/CHR/006002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_006_b', 'files/CHR/006002b.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_006_c', 'files/CHR/006002c.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('shockwave_006', 'files/CHR/006003.png');
+        this.load.image('weapon_006_bunker', 'files/CHR/006003b.png');
         this.load.spritesheet('mini_007', 'files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('mini_008', 'files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('mini_009', 'files/CHR/009002.png', { frameWidth: 150, frameHeight: 150 });
@@ -73,7 +79,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('weapon_011b', 'files/CHR/011003b.png');
 
         // 戦闘用ミニキャラ・モーション・武器の事前ロード（初回バトル突入時の通信遅延を防止）
-        const battleCharIds = ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'];
+        const battleCharIds = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'];
         for (const cid of battleCharIds) {
             this.load.spritesheet(`battle_${cid}`, `files/CHR/${cid}002.png`, { frameWidth: 150, frameHeight: 150 });
             this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid}002b.png`, { frameWidth: 150, frameHeight: 150 });
@@ -131,6 +137,7 @@ export default class BootScene extends Phaser.Scene {
 
 
         }
+        this.load.image('face_006', 'files/CHR/006p.jpg');
         this.load.image('face_007', 'files/CHR/007p.jpg');
         this.load.image('face_008', 'files/CHR/008p.jpg');
         this.load.image('face_009', 'files/CHR/009p.jpg');

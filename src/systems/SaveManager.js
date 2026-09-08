@@ -41,6 +41,7 @@ export class SaveManager {
                 devilStockSp: gs.devilStockSp || 0,
                 maxPastExp: gs.maxPastExp || 0,
                 currentRunTotalExp: gs.currentRunTotalExp || 0,
+                totalGachaRolls: gs.totalGachaRolls || 0,
                 food: gs.food,
                 currentMonth: gs.currentMonth,
                 currentDay: gs.currentDay,
@@ -244,6 +245,7 @@ export class SaveManager {
         if (d.devilStockSp !== undefined) gs.devilStockSp = d.devilStockSp;
         if (d.maxPastExp !== undefined) gs.maxPastExp = d.maxPastExp;
         if (d.currentRunTotalExp !== undefined) gs.currentRunTotalExp = d.currentRunTotalExp;
+        if (d.totalGachaRolls !== undefined) gs.totalGachaRolls = d.totalGachaRolls;
         if (d.food !== undefined) gs.food = d.food;
         if (d.currentMonth !== undefined) gs.currentMonth = d.currentMonth;
         if (d.currentDay !== undefined) gs.currentDay = d.currentDay;
@@ -263,14 +265,21 @@ export class SaveManager {
                 { id: '003', name: '紅華' },
                 { id: '004', name: '黄蘭' },
                 { id: '005', name: '李乃果' },
+                { id: '006', name: 'さくら' },
                 { id: '007', name: 'ななよ' },
                 { id: '008', name: 'ノア' },
-                { id: '010', name: '白蓮' }
+                { id: '009', name: 'リフィエル' },
+                { id: '010', name: 'プロセル' },
+                { id: '011', name: '白蓮' }
             ];
             for (const req of requiredChars) {
                 if (!gs.characters[req.id]) {
                     gs.characters[req.id] = gs.createInitialCharData(req.id, req.name, 1);
                 }
+            }
+            // 010が旧バグで「白蓮」になっていた場合の修正
+            if (gs.characters['010'] && gs.characters['010'].name === '白蓮') {
+                gs.characters['010'].name = 'プロセル';
             }
             // 既存キャラの基礎ステータス最新同期＆hasAccompanied 自動補完
             for (const cid in gs.characters) {

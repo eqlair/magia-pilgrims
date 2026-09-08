@@ -19,8 +19,8 @@ export class PvpAiController {
 
     /** キャラクターごとのロールタイプを取得 */
     getRoleType(charId) {
-        if (charId === '002' || charId === '003' || charId === '009') {
-            return 'melee'; // 【近接攻撃型】 蒼樹(002), 紅華(003), リフィエル(009)
+        if (charId === '002' || charId === '003' || charId === '006' || charId === '009') {
+            return 'melee'; // 【近接攻撃型】 蒼樹(002), 紅華(003), さくら(006), リフィエル(009)
         } else if (charId === '005' || charId === '008' || charId === '010' || charId === '011') {
             return 'ranged'; // 【後衛型】 李乃果(005), ノア(008), プロセル(010), 白蓮(011)
         } else {
@@ -98,7 +98,9 @@ export class PvpAiController {
             timer.posCheckTimer -= dt;
             if (timer.posCheckTimer <= 0) {
                 timer.posCheckTimer = 0.5;
-                this._updatePositionAndLane(member, role, myTeam, opponents, isPlayerTeam, now);
+                if (!member.isMarching) {
+                    this._updatePositionAndLane(member, role, myTeam, opponents, isPlayerTeam, now);
+                }
             }
         }
     }
@@ -202,18 +204,16 @@ export class PvpAiController {
         const targetZ = targetIsFront ? frontZ : rearZ;
         const currentZ = member.isFront ? frontZ : rearZ;
 
-        // 敵チーム限定: 同じレーンで移動先の列にすでにいる味方がいる場合、前後を入れ替える
-        if (!isPlayerTeam) {
-            const currentLane = member.lane !== undefined ? member.lane : 0;
-            const occupant = myTeam.find(m => m !== member && !m.isDead && m.lane === currentLane && m.isFront === targetIsFront);
-            if (occupant) {
-                occupant.isFront = member.isFront;
-                occupant.targetZ = currentZ;
+        // 同じレーンで移動先の列にすでにいる味方がいる場合、前後を入れ替える
+        const currentLane = member.lane !== undefined ? member.lane : 0;
+        const occupant = myTeam.find(m => m !== member && !m.isDead && m.lane === currentLane && m.isFront === targetIsFront);
+        if (occupant) {
+            occupant.isFront = member.isFront;
+            occupant.targetZ = currentZ;
 
-                const occupantTimer = this.charTimers.get(occupant);
-                if (occupantTimer) {
-                    occupantTimer.lastFrontBackTime = now;
-                }
+            const occupantTimer = this.charTimers.get(occupant);
+            if (occupantTimer) {
+                occupantTimer.lastFrontBackTime = now;
             }
         }
 
@@ -225,7 +225,7 @@ export class PvpAiController {
         }
     }
 
-    /** レーン移動およびスワップ（入れ替え）処理 - 必ず隣接レーン(±1)との1ステップ入れ替えに制限（同列同士のみ） */
+    /** レーン移動およびスワップ（入れ替え）処理 - 必ず隣接レーン(±1)との1ステップ入れ替えに制限 */
     _swapLane(member, targetLane, myTeam, now, teamKey) {
         const currentLane = member.lane !== undefined ? member.lane : 0;
         if (targetLane === currentLane) return;
@@ -235,8 +235,12 @@ export class PvpAiController {
         const nextLane = Math.max(-2, Math.min(2, currentLane + step));
         if (nextLane === currentLane) return;
 
-        // 同列（前衛同士、または後衛同士）にいる occupant のみとスワップ
-        const occupant = myTeam.find(m => m !== member && m.lane === nextLane && m.isFront === member.isFront);
+        // チーム人数が5人以下の場合は、前後列(isFront)が違っていても移動先レーンにいるキャラと左右スワップする
+        // （6人以上の場合はレーン数が足りないため同列同士のみスワップ）
+        const aliveTeam = myTeam.filter(m => !m.isDead && m.hp > 0);
+        const occupant = aliveTeam.length <= 5
+            ? myTeam.find(m => m !== member && !m.isDead && m.lane === nextLane)
+            : myTeam.find(m => m !== member && !m.isDead && m.lane === nextLane && m.isFront === member.isFront);
 
         if (occupant) {
             occupant.lane = currentLane;
@@ -246,15 +250,22 @@ export class PvpAiController {
         this.teamLastLaneMoveTime[teamKey] = now;
     }
 
-    /** ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する（同列チェック） */
+    /** ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する */
     _tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey) {
         const currentLane = member.lane !== undefined ? member.lane : 0;
         const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
+        const aliveTeam = myTeam.filter(m => !m.isDead && m.hp > 0);
+        const mustBeCompletelyEmpty = (aliveTeam.length <= 5);
+
         for (const d of dirs) {
             const targetLane = currentLane + d;
             if (targetLane >= -2 && targetLane <= 2) {
-                // 同列でそのレーンにいる人がいないかチェック
-                const isOccupied = myTeam.some(m => m !== member && m.lane === targetLane && m.isFront === member.isFront);
+                // 5人以下の場合は前後列に関わらず誰もいない完全な空きレーンかチェック
+                // 6人以上の場合は同列に誰もいないかチェック
+                const isOccupied = mustBeCompletelyEmpty
+                    ? myTeam.some(m => m !== member && !m.isDead && m.lane === targetLane)
+                    : myTeam.some(m => m !== member && !m.isDead && m.lane === targetLane && m.isFront === member.isFront);
+
                 if (!isOccupied) {
                     this._swapLane(member, targetLane, myTeam, now, teamKey);
                     return true;

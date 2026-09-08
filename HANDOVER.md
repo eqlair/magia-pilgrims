@@ -1,4 +1,4 @@
-﻿# Magia Pilgrims (マギア・ピルグリム) 開発・ビルド・運用 総合引継ぎ書
+# Magia Pilgrims (マギア・ピルグリム) 開発・ビルド・運用 総合引継ぎ書
 
 本書は、ゲームプロジェクト『Magia Pilgrims』の開発環境、データ更新、Android版APKビルド、Web/PWA公開、およびGitHub Actionsを用いたiPhone(iOS)向けIPAアプリの自動製造手順をまとめた総合引継ぎマニュアルです。
 
@@ -47,14 +47,23 @@ npm run build:android
 # (内部で vite build && cap sync android が実行されます)
 ```
 
-### 3.2 Android Studio でのAPK生成
+### 3.2 クラウド自動ビルド（GitHub Actions ➔ APK自動生成）
+PCにAndroid Studioをインストールしていなくても、GitHub Actionsで自動的にAPKを製造・ダウンロードできます。
+
+1. ブラウザでリポジトリのActions画面を開く:  
+   👉 `https://github.com/eqlair/magia-pilgrims/actions/workflows/build-android.yml`
+2. 右上の **[Run workflow]** ボタンをクリック ➔ 緑の **[Run workflow]** を押す（または `main` ブランチへ push すると自動実行されます）。
+3. 完了後、Artifacts（成果物）から **`magia_pilgrims_android_apk`** をダウンロード。
+4. ZIPを解凍すると `magia_pilgrims-debug.apk` が得られるので、Androidスマホへ転送（Google DriveやUSB経由）してタップするだけで直接インストール可能！
+
+### 3.3 ローカル (Android Studio) でのAPK生成
 1. **Android Studio** で `c:\Users\user\.antigravity\game\android` を開く。
 2. 上部メニューの **[Build] ➔ [Build Bundle(s) / APK(s)] ➔ [Build APK(s)]** を実行。
 3. 生成されるファイル:
    - パス: `android/app/build/outputs/apk/debug/magia_pilgrims-debug.apk`
    - （`android/app/build.gradle` の `archivesBaseName` 設定により、自動で `magia_pilgrims-*.apk` 名で出力されます）
 
-### 3.3 アプリアイコン・表示名
+### 3.4 アプリアイコン・表示名
 - **アプリ表示名**: `android/app/src/main/res/values/strings.xml` の `app_name`
 - **アイコン画像**: `android/app/src/main/res/mipmap-*`
 
@@ -75,6 +84,10 @@ npx gh-pages -d dist
   1. iPhoneのSafariで上記URLを開く。
   2. 画面下の共有ボタン（⎋）➔ **「ホーム画面に追加」** をタップ。
   3. ホーム画面にアイコンが作成され、URLバーのない全画面アプリとして起動可能。
+- **Androidでの遊び方（ブラウザ/PWA）**:
+  1. AndroidのChromeで上記URLを開く。
+  2. 右上のメニュー（⋮）➔ **「アプリをインストール」** または **「ホーム画面に追加」** をタップ。
+  3. インストールされ、全画面で通常のアプリと同じようにサクサク遊べます。
 
 ---
 

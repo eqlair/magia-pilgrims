@@ -209,7 +209,7 @@ export class BattleEngine {
 
             const pvpDataList = this.config.pvpEnemies || [];
             for (const eData of pvpDataList) {
-                const ep = new PvpEnemyCharacter(eData.lane * 1.8, eData.isFront ? 12.0 : 17.0, eData);
+                const ep = new PvpEnemyCharacter(eData.lane * 1.8, eData.isFront ? 9.0 : 14.0, eData);
                 ep.engine = this;
                 this.pvpEnemies.push(ep);
             }
@@ -276,6 +276,7 @@ export class BattleEngine {
                 '003': 'red',
                 '004': 'yellow',
                 '005': 'green',
+                '006': 'purple',
                 '007': 'yellow',
                 '008': 'red',
                 '009': 'green',
@@ -671,12 +672,16 @@ export class BattleEngine {
 
 
 
-    applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null) {
+    applyDamage(attacker, defender, amount, type = 'normal', distance = 0, hitX = null, hitZ = null, isSureHit = false) {
         try {
             const attrMap = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
             if (!defender || defender.isDead || defender.isDying || defender.hp <= 0) return false;
             // 実体化前（スポーン演出中）は無敵
             if (defender.spawnDropTimer > 0 || defender.spawnAnimTimer > 0) return false;
+            // さくらの完全無敵判定（必殺技天衣無縫中、またはミラージュシフト移動中）
+            if (defender.isSakuraInvincible || (defender.sakuraUltTimer && defender.sakuraUltTimer > 0) || defender.isMirageShiftInvincible) {
+                return false;
+            }
 
             let finalDamage = (typeof amount === 'number' && !isNaN(amount)) ? amount : 1;
             let damageType = type;
@@ -831,8 +836,8 @@ export class BattleEngine {
             }
             hitRate = Math.max(0.01, Math.min(1.0, hitRate)); // 1%〜100%
             
-            // 回避判定
-            if (Math.random() > hitRate) {
+            // 回避判定（必中攻撃、またはさくらの近接衝撃波等は回避されない）
+            if (!isSureHit && damageType !== 'sure_hit' && Math.random() > hitRate) {
                 // MISS
                 this.floatingTexts.push({
                     id: ++this.floatingTextIdCounter,
@@ -992,7 +997,7 @@ export class BattleEngine {
                 defender.sp = Math.max(0, defender.sp - spDrainPerHit);
             }
 
-            const displayAmount = finalDamage <= 1.0 ? finalDamage.toFixed(2) : Math.ceil(finalDamage);
+            const displayAmount = finalDamage < 1.0 ? finalDamage.toFixed(2) : Math.ceil(finalDamage);
             
             this.floatingTexts.push({
                 id: ++this.floatingTextIdCounter,
@@ -1235,6 +1240,11 @@ export class BattleEngine {
                                 const dx = Math.abs(e.x - p.x);
                                 const dz = Math.abs(e.z - p.z);
                                 if (dx < 1.0 && dz < 1.0) {
+                                    if (!p.ramHitTimes) p.ramHitTimes = new Map();
+                                    const lastRam = p.ramHitTimes.get(e) || -999;
+                                    if (this.time - lastRam < 0.2) continue;
+                                    p.ramHitTimes.set(e, this.time);
+
                                     // 1. 体当たり（衝突）ダメージ＝キャラクターの（攻撃力 + 体重）
                                     const ramAtk = p.atk || 10;
                                     const ramWeight = p.weight || 50;
@@ -1431,8 +1441,30 @@ export class BattleEngine {
             
             // 行動不能判定（HP0 または SP0、またはスタン中）
             if (p.hp <= 0 || p.sp <= 0 || p.stunTimer > 0) {
-                p.combatState.phase = 'idle';
-                p.combatState.cancelled = false;
+                if (p.stunTimer > 0) {
+                    // ⚡ スタン中：繰り出し中だったコンボや攻撃アクションを完全リセット＆凍結
+                    p.combatState.phase = 'stunned';
+                    p.combatState.comboType = null;
+                    p.combatState.stepIdx = 0;
+                    p.combatState.countIdx = 0;
+                    p.combatState.reloadTimer = Math.max(p.combatState.reloadTimer || 0, 0.6);
+                    p.combatState.cancelled = true;
+                    p.isKickAttacking = false;
+                    p.kickTimer = 0;
+                    p.sakuraStrikeTimer = 0;
+                } else {
+                    p.combatState.phase = 'idle';
+                    p.combatState.cancelled = false;
+                }
+                continue;
+            }
+
+            // 直前までスタンしていた場合、解除直後に即座に攻撃せず立ち直り硬直(リロード)を挟む
+            if (p.combatState.phase === 'stunned') {
+                p.combatState.phase = 'reloading';
+                p.combatState.reloadTimer = Math.max(p.combatState.reloadTimer || 0, 0.6);
+                p.combatState.cancelled = true;
+                p.combatState.comboType = null;
                 continue;
             }
 
@@ -1447,10 +1479,22 @@ export class BattleEngine {
                 // 死亡中、または実体化演出中（spawnDropTimer/spawnAnimTimer > 0）の敵はターゲットにしない
                 if (e.isDead || e.isDying || e.hp <= 0 || e.spawnDropTimer > 0 || e.spawnAnimTimer > 0) continue;
                 const dx = e.x - p.x;
-
                 const dz = e.z - p.z;
-                const distCenter = Math.sqrt(dx*dx + dz*dz);
-                const surfaceDist = Math.max(0, distCenter - ((e.size || 1.0) / 2));
+                let surfaceDist;
+                let distCenter;
+                if (e.isBoss) {
+                    const zOffset = (e.size || 1.0) * 0.15;
+                    const bossDz = (e.z + zOffset) - p.z;
+                    const rx = (e.size || 1.0) / 2;
+                    const rz = rx * 0.65;
+                    const angle = Math.atan2(bossDz, dx);
+                    const ellipseRadius = (rx * rz) / Math.sqrt((rz * Math.cos(angle)) ** 2 + (rx * Math.sin(angle)) ** 2);
+                    distCenter = Math.hypot(dx, bossDz);
+                    surfaceDist = Math.max(0, distCenter - ellipseRadius);
+                } else {
+                    distCenter = Math.sqrt(dx*dx + dz*dz);
+                    surfaceDist = Math.max(0, distCenter - ((e.size || 1.0) / 2));
+                }
                 if (surfaceDist < minDist) { 
                     minDist = surfaceDist; 
                     minDistCenter = distCenter; 
@@ -1465,8 +1509,8 @@ export class BattleEngine {
             if (cs.phase === 'reloading') {
                 cs.reloadTimer -= dt;
                 if (cs.reloadTimer <= 0) {
-                    if (cs.cancelled) {
-                        // キャンセル由来 → コンボをリセットして判断フェーズへ
+                    if (cs.cancelled || !cs.comboType || !p.patterns[cs.comboType]) {
+                        // キャンセル由来、またはcomboType未定義 → コンボをリセットして判断フェーズへ
                         cs.comboType = null;
                         cs.stepIdx   = 0;
                         cs.countIdx  = 0;
@@ -1481,6 +1525,14 @@ export class BattleEngine {
                             cs.countIdx = 0;
                             cs.stepIdx++;
                             if (cs.stepIdx >= p.patterns[cs.comboType].length) {
+                                // さくら(006)の遠距離アクション後: 移動先から近距離射程(8m)内に敵がいれば近距離攻撃へ移行！
+                                if (p.charId === '006' && cs.comboType === 'far' && target && minDist <= p.nearThreshold) {
+                                    cs.comboType = 'near';
+                                    cs.stepIdx   = 0;
+                                    cs.countIdx  = 0;
+                                    cs.phase     = 'acting';
+                                    continue;
+                                }
                                 // コンボ全完了 → 判断フェーズへ戻り、元の位置へ戻る
                                 cs.stepIdx   = 0;
                                 cs.comboType = null;
@@ -1517,6 +1569,136 @@ export class BattleEngine {
             if (cs.phase === 'acting') {
                 const action = p.patterns[cs.comboType][cs.stepIdx];
 
+                // 🌸 さくら(006) 遠距離: ミラージュシフト (目標に向かって最大10mスライド残像移動、無敵、秒速3m)
+                if (action.type === 'mirage_shift_006') {
+                    if (!target) {
+                        cs.phase = 'idle';
+                        continue;
+                    }
+                    const dx = target.x - p.x;
+                    const dz = target.z - p.z;
+                    const dist = Math.hypot(dx, dz) || 1.0;
+                    const dirX = dx / dist;
+                    const dirZ = dz / dist;
+
+                    const shiftDist = Math.min(10.0, Math.max(0, dist - 1.5));
+                    p.targetOffsetX = (p.targetOffsetX || 0) + dirX * shiftDist;
+                    p.targetOffsetZ = (p.targetOffsetZ || 0) + dirZ * shiftDist;
+                    p.isMirageShift = true;
+                    p.isMirageShiftInvincible = true;
+                    p.mirageAfterimageTimer = 0;
+                    if (!p.afterimages) p.afterimages = [];
+                    p.afterimages.push({ x: p.x, z: p.z, alpha: 0.8, lifeTime: 0.4 });
+
+                    // 秒速12mでの所要移動時間 + リロード時間
+                    const moveTime = shiftDist / 12.0;
+                    cs.cancelled = false;
+                    cs.reloadTimer = moveTime + (action.reload || 0.5) * (p.reloadMultiplier || 1.0);
+                    cs.phase = 'reloading';
+                    continue;
+                }
+
+                // 🌸 さくら(006) 近距離: 各種必殺技 (6m踏み込み、半径2mの完全貫通衝撃波＋1秒スタン＋ノックバック100、8種スプライトランダム)
+                if (action.type === 'strike_006') {
+                    if (!target) {
+                        cs.phase = 'idle';
+                        continue;
+                    }
+                    const dx = target.x - p.x;
+                    const dz = target.z - p.z;
+                    const dist = Math.hypot(dx, dz) || 1.0;
+                    const dirX = dx / dist;
+                    const dirZ = dz / dist;
+
+                    p.sakuraAttackDirX = dirX; // 攻撃の左右向きを記録（左向きならスプライト反転）
+
+                    let stepDist = 0;
+                    if (dist <= 2.0) {
+                        // 攻撃の有効範囲内(半径2m)以内に敵がいれば踏み込まずに攻撃
+                        stepDist = 0;
+                    } else {
+                        // 踏み込み距離は6mだけど、それより近くに敵がいれば敵の1m手前まで接近
+                        const maxStepDist = action.stepDist !== undefined ? action.stepDist : 6.0;
+                        stepDist = Math.min(maxStepDist, Math.max(0, dist - 1.0));
+                    }
+
+                    // 秒速12mでの踏み込み所要時間
+                    const stepTime = stepDist > 0 ? (stepDist / 12.0) : 0;
+
+                    if (stepDist > 0) {
+                        if (!p.afterimages) p.afterimages = [];
+                        p.afterimages.push({ x: p.x, z: p.z, alpha: 0.7, lifeTime: 0.3 });
+                        p.targetOffsetX = (p.targetOffsetX || 0) + dirX * stepDist;
+                        p.targetOffsetZ = (p.targetOffsetZ || 0) + dirZ * stepDist;
+                        p.isSakuraStepping = true; // 秒速12mでスライド踏み込み
+                    }
+
+                    // 衝撃波の発生処理（踏み込みがある場合は到着時に発生、なければ即座に発生）
+                    const isFinalHit = (cs.countIdx === action.count - 1);
+                    const spawnShockwave = () => {
+                        if (p.hp <= 0 || p.sp <= 0 || p.stunTimer > 0) return;
+                        // 前回と連続して同じスプライトが選ばれないようにランダム選択
+                        const lastFrame = p.sakuraAttackFrame !== undefined ? p.sakuraAttackFrame : -1;
+                        let nextFrame = Math.floor(Math.random() * 7);
+                        if (lastFrame >= 0 && nextFrame >= lastFrame) {
+                            nextFrame = (nextFrame + 1) % 8;
+                        }
+                        p.sakuraAttackFrame = nextFrame;
+                        p.sakuraStrikeTimer = action.duration || 0.8;
+
+                        const baseRadius = action.radius || 2.0;
+                        const waveRadius = isFinalHit ? (baseRadius * 2.0) : baseRadius; // 最後の一発は範囲2倍！
+                        const baseDmg = (p.atk * (action.power || 150)) / 100;
+                        const waveDmg = isFinalHit ? (baseDmg * 2.0) : baseDmg; // 最後の一発は威力2倍！
+                        const waveKnockback = isFinalHit ? 500 : (action.knockback !== undefined ? action.knockback : 80); // 最後の一発はノックバック500！
+
+                        const waveBullet = new Bullet(p.x, p.z, {
+                            owner: p.owner || 'player',
+                            vx: 0, vz: 0,
+                            damage: waveDmg,
+                            knockback: waveKnockback,
+                            size: waveRadius * 2.0,
+                            lifeTime: action.duration || 0.8,
+                            maxLife: action.duration || 0.8,
+                            type: 'strike_wave_006',
+                            textureKey: 'shockwave_006',
+                            isPiercing: true,
+                            stunDuration: action.stun || 1.5,
+                            stunChance: 1.0,
+                            isFollowOwner: false,
+                            erasesEnemyBullets: true, // 弾丸無限吸収！
+                            isFinalHit: isFinalHit
+                        });
+                        waveBullet.sourceEntity = p;
+                        this.bullets.push(waveBullet);
+                        if (p.triggerAttackShake) p.triggerAttackShake();
+                    };
+
+                    if (stepTime > 0) {
+                        p.delayedActions.push({ timer: stepTime, action: spawnShockwave });
+                    } else {
+                        spawnShockwave();
+                    }
+
+                    cs.cancelled = false;
+                    cs.reloadTimer = stepTime + (action.reload || 1.0) * (p.reloadMultiplier || 1.0);
+                    cs.phase = 'reloading';
+                    continue;
+                }
+
+                // 🌸 さくら(006) 近距離リロード: 配置位置へ戻る (残像あり、無敵なし)
+                if (action.type === 'return_reload_006') {
+                    p.hopBack();
+                    if (!p.afterimages) p.afterimages = [];
+                    p.afterimages.push({ x: p.x, z: p.z, alpha: 0.8, lifeTime: 0.4 });
+                    p.afterimages.push({ x: p.x, z: p.z, alpha: 0.6, lifeTime: 0.6 });
+
+                    cs.cancelled = false;
+                    cs.reloadTimer = (action.reload || 2.0) * (p.reloadMultiplier || 1.0);
+                    cs.phase = 'reloading';
+                    continue;
+                }
+
                 // キックアクションの判定
                 const isKick = action.type === 'kick';
 
@@ -1530,8 +1712,19 @@ export class BattleEngine {
                         if (!e.isDead && !e.isDying && e.hp > 0) {
                             const edx = e.x - p.x;
                             const edz = e.z - p.z;
-                            const edist = Math.sqrt(edx*edx + edz*edz);
-                            const surfDist = edist - ((e.size || 1.0) / 2);
+                            let surfDist;
+                            if (e.isBoss) {
+                                const zOffset = (e.size || 1.0) * 0.15;
+                                const bossEdz = (e.z + zOffset) - p.z;
+                                const rx = (e.size || 1.0) / 2;
+                                const rz = rx * 0.65;
+                                const angle = Math.atan2(bossEdz, edx);
+                                const ellipseRadius = (rx * rz) / Math.sqrt((rz * Math.cos(angle)) ** 2 + (rx * Math.sin(angle)) ** 2);
+                                surfDist = Math.hypot(edx, bossEdz) - ellipseRadius;
+                            } else {
+                                const edist = Math.sqrt(edx*edx + edz*edz);
+                                surfDist = edist - ((e.size || 1.0) / 2);
+                            }
                             if (surfDist <= kickRange && surfDist < minKickDist) {
                                 minKickDist = surfDist;
                                 kickTarget = e;
@@ -1663,8 +1856,8 @@ export class BattleEngine {
                             isPiercing: action.isPiercing !== false,
                             type:       `swing_${p.charId}`,
                             lifeTime:   swingDuration,
-                            stunDuration: (p.charId === '004' ? 1.0 : (action.stunDuration || 0)),
-                            stunChance: 1.0
+                            stunDuration: (action.stun !== undefined ? action.stun : (action.stunDuration !== undefined ? action.stunDuration : (p.charId === '004' ? 1.0 : 0))),
+                            stunChance: (action.stunChance !== undefined ? action.stunChance : (p.charId === '004' ? 0.75 : 1.0))
                         });
 
                         b.sourceEntity = p;
@@ -1745,16 +1938,17 @@ export class BattleEngine {
                                 baseDamage: damage,
                                 knockback:  action.knockback || 0,
                                 owner:      'player',
-                                size:       action.size || 0.6,
+                                size:       action.size || (action.type === 'pile_bunker_006' ? 0.8 : 0.6),
                                 isPiercing: isSankosho ? true : (action.isPiercing || false),
                                 erasesEnemyBullets: action.erasesEnemyBullets || false,
                                 bulletDurability: barrierDurability,
                                 maxDurability: barrierDurability,
                                 type:       action.type,
+                                textureKey: action.type === 'pile_bunker_006' ? 'weapon_006_bunker' : (action.type),
                                 targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
                                 lifeTime:   isSankosho ? 4.0 : (action.speed ? (action.range / action.speed) * 2 + 1 : 5),
-                                stunDuration: (p.charId === '004' ? 1.0 : (action.stunDuration || 0)),
-                                stunChance: 1.0
+                                stunDuration: (action.stun !== undefined ? action.stun : (action.stunDuration !== undefined ? action.stunDuration : (p.charId === '004' ? 1.0 : 0))),
+                                stunChance: (action.stunChance !== undefined ? action.stunChance : (p.charId === '004' ? 0.75 : 1.0))
                             });
 
                             if (isSankoshoFar) {
@@ -1771,6 +1965,9 @@ export class BattleEngine {
 
                             b.sourceEntity = p;
                             this.bullets.push(b); if (b && b.sourceEntity && b.sourceEntity.triggerAttackShake) b.sourceEntity.triggerAttackShake();
+                            if (p.charId === '006' && action.type === 'pile_bunker_006') {
+                                p.sakuraFarAttackTimer = Math.max(0.45, (action.reload || 0.3) + 0.15);
+                            }
                         }
                     }
                     cs.cancelled = false;
@@ -2043,6 +2240,9 @@ export class BattleEngine {
                 }
 
                 // --- 攻撃パターン ---
+                // 弾幕生成に関する魔女レベルは LV13 を上限とする
+                const bulletLevel = Math.min(13, e.level || 1);
+
                 e.atkTimers.randomBullet -= dt;
                 e.atkTimers.dpsBullet -= dt;
                 e.atkTimers.nearAttack -= dt;
@@ -2064,9 +2264,9 @@ export class BattleEngine {
                     this.bullets.push(bullet); if (bullet.sourceEntity && bullet.sourceEntity.triggerAttackShake) bullet.sourceEntity.triggerAttackShake();
                     
                     if (e.attribute === 'red') {
-                        e.atkTimers.randomBullet = Math.max(0.2, (0.9 + Math.random() * 0.5) - (e.level * 0.05));
+                        e.atkTimers.randomBullet = Math.max(0.2, (0.9 + Math.random() * 0.5) - (bulletLevel * 0.05));
                     } else {
-                        e.atkTimers.randomBullet = Math.max(0.2, (1.2 + Math.random() * 0.5) - (e.level * 0.05));
+                        e.atkTimers.randomBullet = Math.max(0.2, (1.2 + Math.random() * 0.5) - (bulletLevel * 0.05));
                     }
                 }
                 
@@ -2120,17 +2320,17 @@ export class BattleEngine {
                         let selectedSpecial = 4;
                         if (e.attribute === 'red') {
                             selectedSpecial = 4 + Math.floor(Math.random() * 4);
-                            e.atkTimers.special = 16.0 - e.level;
+                            e.atkTimers.special = Math.max(2.0, 16.0 - bulletLevel);
                         } else {
                             const attrToSpecial = { 'yellow': 4, 'purple': 5, 'blue': 6, 'green': 7 };
                             const favored = attrToSpecial[e.attribute];
                             if (favored && Math.random() < 0.5) {
                                 selectedSpecial = favored;
-                                e.atkTimers.special = 12.0 - e.level;
+                                e.atkTimers.special = Math.max(2.0, 12.0 - bulletLevel);
                             } else {
                                 const others = [4, 5, 6, 7].filter(num => num !== favored);
                                 selectedSpecial = others[Math.floor(Math.random() * others.length)];
-                                e.atkTimers.special = 16.0 - e.level;
+                                e.atkTimers.special = Math.max(2.0, 16.0 - bulletLevel);
                             }
                         }
 
@@ -2138,7 +2338,7 @@ export class BattleEngine {
                         if (selectedSpecial === 4) {
                             // 貯め弾幕（黄）
                             if (e.triggerAttackShake) e.triggerAttackShake();
-                            const durationSeconds = 2 + (e.level || 1);
+                            const durationSeconds = 2 + bulletLevel;
                             const bulletCount = 20 * durationSeconds;
                             for (let i = 0; i < bulletCount; i++) {
                                 if (!e.delayedActions) e.delayedActions = [];
@@ -2164,7 +2364,7 @@ export class BattleEngine {
                         } else if (selectedSpecial === 5) {
                             // 大量弾（紫）
                             if (e.triggerAttackShake) e.triggerAttackShake();
-                            const waveCount = 2 + (e.level || 1);
+                            const waveCount = 2 + bulletLevel;
                             for (let wave = 0; wave < waveCount; wave++) {
                                 if (!e.delayedActions) e.delayedActions = [];
                                 e.delayedActions.push({
@@ -2197,11 +2397,11 @@ export class BattleEngine {
                                 const nx = dx/dist;
                                 const nz = dz/dist;
                                 
-                                const bulletCount = (2 + (e.level || 1)) * 10;
+                                const bulletCount = (2 + bulletLevel) * 10;
                                 for (let i = 0; i < bulletCount; i++) {
                                     if (!e.delayedActions) e.delayedActions = [];
                                     e.delayedActions.push({
-                                        timer: (i / bulletCount) * (2 + (e.level || 1)),
+                                        timer: (i / bulletCount) * (2 + bulletLevel),
                                         action: () => {
                                             const bullet = new Bullet(e.x, e.z, {
                                                 vx: nx*50, vz: nz*50,
@@ -2215,7 +2415,7 @@ export class BattleEngine {
                         } else if (selectedSpecial === 7) {
                             // 並列弾（緑）: 秒間20発、垂直真下から±2度ブレさせて自然にバラけさせる
                             if (e.triggerAttackShake) e.triggerAttackShake();
-                            const durationSeconds = 2 + (e.level || 1);
+                            const durationSeconds = 2 + bulletLevel;
                             const bulletCount = 20 * durationSeconds;
                             for (let i = 0; i < bulletCount; i++) {
                                 if (!e.delayedActions) e.delayedActions = [];
@@ -2300,8 +2500,13 @@ export class BattleEngine {
                             const dz = p.z - e.z;
                             const dist = Math.sqrt(dx*dx + dz*dz);
                             if (dist < (e.size/2 + 0.5)) { // 女の子のサイズ(約1.0)の半径0.5と自分の半径
-                                // ダメージ判定
-                                const isHit = this.applyDamage(e, p, e.atkPower, 'normal', dist);
+                                // 同一対象からは1秒間に最大5回(0.2秒間隔)までしかダメージ判定を行わない
+                                if (!e.contactHitTimes) e.contactHitTimes = new Map();
+                                const lastHit = e.contactHitTimes.get(p) || -999;
+                                if (this.time - lastHit >= 0.2) {
+                                    e.contactHitTimes.set(p, this.time);
+                                    this.applyDamage(e, p, e.atkPower, 'normal', dist);
+                                }
                                 // 180度反転
                                 e.vx *= -1;
                                 e.vz *= -1;
@@ -2359,17 +2564,52 @@ export class BattleEngine {
                 ep.updateSpecialSkills(dt, this.pvpEnemies, this.effects, this.floatingTexts);
 
                 if (ep.kickTimer > 0) {
-                    ep.kickTimer -= dt;
-                    if (ep.kickTimer <= 0) {
-                        ep.isKickAttacking = false;
+                    if (ep.stunTimer <= 0) {
+                        ep.kickTimer -= dt;
+                        if (ep.kickTimer <= 0) {
+                            ep.isKickAttacking = false;
+                        }
+                    }
+                }
+                if (ep.sakuraStrikeTimer > 0) {
+                    if (ep.stunTimer <= 0) {
+                        ep.sakuraStrikeTimer -= dt;
+                    }
+                }
+                if (ep.sakuraFarAttackTimer > 0) {
+                    if (ep.stunTimer <= 0) {
+                        ep.sakuraFarAttackTimer -= dt;
                     }
                 }
 
                 // 行動不能判定（HP0 または SP0、またはスタン中）
                 if (ep.hp <= 0 || ep.sp <= 0 || ep.stunTimer > 0) {
-                    ep.combatState.phase = 'idle';
-                    ep.combatState.cancelled = false;
+                    if (ep.stunTimer > 0) {
+                        // ⚡ スタン中：繰り出し中だったコンボや攻撃アクションを完全リセット＆凍結
+                        ep.combatState.phase = 'stunned';
+                        ep.combatState.comboType = null;
+                        ep.combatState.stepIdx = 0;
+                        ep.combatState.countIdx = 0;
+                        ep.combatState.reloadTimer = Math.max(ep.combatState.reloadTimer || 0, 0.6);
+                        ep.combatState.cancelled = true;
+                        ep.isKickAttacking = false;
+                        ep.kickTimer = 0;
+                        ep.sakuraStrikeTimer = 0;
+                        ep.sakuraFarAttackTimer = 0;
+                    } else {
+                        ep.combatState.phase = 'idle';
+                        ep.combatState.cancelled = false;
+                    }
                     ep.isDead = (ep.hp <= 0);
+                    continue;
+                }
+
+                // 直前までスタンしていた場合、解除直後に即座に攻撃せず立ち直り硬直(リロード)を挟む
+                if (ep.combatState.phase === 'stunned') {
+                    ep.combatState.phase = 'reloading';
+                    ep.combatState.reloadTimer = Math.max(ep.combatState.reloadTimer || 0, 0.6);
+                    ep.combatState.cancelled = true;
+                    ep.combatState.comboType = null;
                     continue;
                 }
 
@@ -2400,7 +2640,7 @@ export class BattleEngine {
                 if (cs.phase === 'reloading') {
                     cs.reloadTimer -= dt;
                     if (cs.reloadTimer <= 0) {
-                        if (cs.cancelled) {
+                        if (cs.cancelled || !cs.comboType || !ep.patterns[cs.comboType]) {
                             cs.comboType = null;
                             cs.stepIdx   = 0;
                             cs.countIdx  = 0;
@@ -2413,6 +2653,14 @@ export class BattleEngine {
                                 cs.countIdx = 0;
                                 cs.stepIdx++;
                                 if (cs.stepIdx >= ep.patterns[cs.comboType].length) {
+                                    // さくら(006)の遠距離アクション後: 移動先から近距離射程(8m)内に敵がいれば近距離攻撃へ移行
+                                    if (ep.charId === '006' && cs.comboType === 'far' && target && minDist <= ep.nearThreshold) {
+                                        cs.comboType = 'near';
+                                        cs.stepIdx   = 0;
+                                        cs.countIdx  = 0;
+                                        cs.phase     = 'acting';
+                                        continue;
+                                    }
                                     cs.stepIdx   = 0;
                                     cs.comboType = null;
                                     cs.phase     = 'deciding';
@@ -2448,6 +2696,136 @@ export class BattleEngine {
                     const action = ep.patterns[cs.comboType][cs.stepIdx];
                     if (!action) {
                         cs.phase = 'deciding';
+                        continue;
+                    }
+
+                    // 🌸 さくら(006) 遠距離: ミラージュシフト (目標に向かって最大10mスライド残像移動、無敵、秒速3m)
+                    if (action.type === 'mirage_shift_006') {
+                        if (!target) {
+                            cs.phase = 'idle';
+                            continue;
+                        }
+                        const dx = target.x - ep.x;
+                        const dz = target.z - ep.z;
+                        const dist = Math.hypot(dx, dz) || 1.0;
+                        const dirX = dx / dist;
+                        const dirZ = dz / dist;
+
+                        const shiftDist = Math.min(10.0, Math.max(0, dist - 1.5));
+                        ep.targetOffsetX = (ep.targetOffsetX || 0) + dirX * shiftDist;
+                        ep.targetOffsetZ = (ep.targetOffsetZ || 0) + dirZ * shiftDist;
+                        ep.isMirageShift = true;
+                        ep.isMirageShiftInvincible = true;
+                        ep.mirageAfterimageTimer = 0;
+                        if (!ep.afterimages) ep.afterimages = [];
+                        ep.afterimages.push({ x: ep.x, z: ep.z, alpha: 0.8, lifeTime: 0.4 });
+
+                        // 秒速12mでの所要移動時間 + リロード時間
+                        const moveTime = shiftDist / 12.0;
+                        cs.cancelled = false;
+                        cs.reloadTimer = moveTime + (action.reload || 0.5) * (ep.reloadMultiplier || 1.0);
+                        cs.phase = 'reloading';
+                        continue;
+                    }
+
+                    // 🌸 さくら(006) 近距離: 各種必殺技 (6m踏み込み、半径2mの完全貫通判定、1秒スタン＋ノックバック100、8種スプライトランダム)
+                    if (action.type === 'strike_006') {
+                        if (!target) {
+                            cs.phase = 'idle';
+                            continue;
+                        }
+                        const dx = target.x - ep.x;
+                        const dz = target.z - ep.z;
+                        const dist = Math.hypot(dx, dz) || 1.0;
+                        const dirX = dx / dist;
+                        const dirZ = dz / dist;
+
+                        ep.sakuraAttackDirX = dirX;
+
+                        let stepDist = 0;
+                        if (dist <= 2.0) {
+                            // 攻撃の有効範囲内(半径2m)以内に敵がいれば踏み込まずに攻撃
+                            stepDist = 0;
+                        } else {
+                            // 踏み込み距離は6mだけど、それより近くに敵がいれば敵の1m手前まで接近
+                            const maxStepDist = action.stepDist !== undefined ? action.stepDist : 6.0;
+                            stepDist = Math.min(maxStepDist, Math.max(0, dist - 1.0));
+                        }
+
+                        // 秒速12mでの踏み込み所要時間
+                        const stepTime = stepDist > 0 ? (stepDist / 12.0) : 0;
+
+                        if (stepDist > 0) {
+                            if (!ep.afterimages) ep.afterimages = [];
+                            ep.afterimages.push({ x: ep.x, z: ep.z, alpha: 0.7, lifeTime: 0.3 });
+                            ep.targetOffsetX = (ep.targetOffsetX || 0) + dirX * stepDist;
+                            ep.targetOffsetZ = (ep.targetOffsetZ || 0) + dirZ * stepDist;
+                            ep.isSakuraStepping = true; // 秒速12mでスライド踏み込み
+                        }
+
+                        // 衝撃波の発生処理（踏み込みがある場合は到着時に発生、なければ即座に発生）
+                        const isFinalHit = (cs.countIdx === action.count - 1);
+                        const spawnShockwave = () => {
+                            if (ep.hp <= 0 || ep.sp <= 0 || ep.stunTimer > 0) return;
+                            // 前回と連続して同じスプライトが選ばれないようにランダム選択
+                            const lastFrame = ep.sakuraAttackFrame !== undefined ? ep.sakuraAttackFrame : -1;
+                            let nextFrame = Math.floor(Math.random() * 7);
+                            if (lastFrame >= 0 && nextFrame >= lastFrame) {
+                                nextFrame = (nextFrame + 1) % 8;
+                            }
+                            ep.sakuraAttackFrame = nextFrame;
+                            ep.sakuraStrikeTimer = action.duration || 0.8;
+
+                            const baseRadius = action.radius || 2.0;
+                            const waveRadius = isFinalHit ? (baseRadius * 2.0) : baseRadius; // 最後の一発は範囲2倍！
+                            const baseDmg = (ep.atk * (action.power || 150)) / 100;
+                            const waveDmg = isFinalHit ? (baseDmg * 2.0) : baseDmg; // 最後の一発は威力2倍！
+                            const waveKnockback = isFinalHit ? 500 : (action.knockback !== undefined ? action.knockback : 80); // 最後の一発はノックバック500！
+
+                            const waveBullet = new Bullet(ep.x, ep.z, {
+                                owner: 'enemy',
+                                vx: 0, vz: 0,
+                                damage: waveDmg,
+                                knockback: waveKnockback,
+                                size: waveRadius * 2.0,
+                                lifeTime: action.duration || 0.8,
+                                maxLife: action.duration || 0.8,
+                                type: 'strike_wave_006',
+                                textureKey: 'shockwave_006',
+                                isPiercing: true,
+                                stunDuration: action.stun || 1.5,
+                                stunChance: 1.0,
+                                isFollowOwner: false,
+                                erasesEnemyBullets: true, // 弾丸無限吸収！
+                                isFinalHit: isFinalHit
+                            });
+                            waveBullet.sourceEntity = ep;
+                            this.bullets.push(waveBullet);
+                            if (ep.triggerAttackShake) ep.triggerAttackShake();
+                        };
+
+                        if (stepTime > 0) {
+                            ep.delayedActions.push({ timer: stepTime, action: spawnShockwave });
+                        } else {
+                            spawnShockwave();
+                        }
+
+                        cs.cancelled = false;
+                        cs.reloadTimer = stepTime + (action.reload || 1.0) * (ep.reloadMultiplier || 1.0);
+                        cs.phase = 'reloading';
+                        continue;
+                    }
+
+                    // 🌸 さくら(006) 近距離リロード: 配置位置へ戻る (残像あり、無敵なし)
+                    if (action.type === 'return_reload_006') {
+                        ep.hopBack();
+                        if (!ep.afterimages) ep.afterimages = [];
+                        ep.afterimages.push({ x: ep.x, z: ep.z, alpha: 0.8, lifeTime: 0.4 });
+                        ep.afterimages.push({ x: ep.x, z: ep.z, alpha: 0.6, lifeTime: 0.6 });
+
+                        cs.cancelled = false;
+                        cs.reloadTimer = (action.reload || 2.0) * (ep.reloadMultiplier || 1.0);
+                        cs.phase = 'reloading';
                         continue;
                     }
 
@@ -2567,8 +2945,8 @@ export class BattleEngine {
                                 type:       `swing_${ep.charId}`,
                                 textureKey: `weapon_${ep.charId}`,
                                 lifeTime:   swingDuration,
-                                stunDuration: (ep.charId === '004' ? 1.0 : (action.stunDuration || 0)),
-                                stunChance: 1.0
+                                stunDuration: (action.stun !== undefined ? action.stun : (action.stunDuration !== undefined ? action.stunDuration : (ep.charId === '004' ? 1.0 : 0))),
+                                stunChance: (action.stunChance !== undefined ? action.stunChance : (ep.charId === '004' ? 0.75 : 1.0))
                             });
 
                             b.sourceEntity = ep;
@@ -2626,17 +3004,17 @@ export class BattleEngine {
                                     baseDamage: damage,
                                     knockback:  action.knockback || 0,
                                     owner:      'enemy',
-                                    size:       action.size || (action.type === 'grenade' ? 0.8 : 0.6),
+                                    size:       action.size || (action.type === 'pile_bunker_006' ? 0.8 : (action.type === 'grenade' ? 0.8 : 0.6)),
                                     isPiercing: isSankosho ? true : (action.isPiercing || false),
                                     erasesEnemyBullets: action.erasesEnemyBullets || false,
                                     bulletDurability: barrierDurability,
                                     maxDurability: barrierDurability,
                                     type:       action.type,
-                                    textureKey: action.type,
+                                    textureKey: action.type === 'pile_bunker_006' ? 'weapon_006_bunker' : action.type,
                                     targetDist: isSankosho ? 9999 : (action.range !== undefined ? action.range : 20.0),
                                     lifeTime:   isSankosho ? 4.0 : (action.speed ? (action.range / action.speed) * 2 + 1 : 5),
-                                    stunDuration: (ep.charId === '004' ? 1.0 : (action.stunDuration || 0)),
-                                    stunChance: 1.0
+                                    stunDuration: (action.stun !== undefined ? action.stun : (action.stunDuration !== undefined ? action.stunDuration : (ep.charId === '004' ? 1.0 : 0))),
+                                    stunChance: (action.stunChance !== undefined ? action.stunChance : (ep.charId === '004' ? 0.75 : 1.0))
                                 });
 
                                 if (isSankoshoFar) {
@@ -2654,6 +3032,9 @@ export class BattleEngine {
                                 b.sourceEntity = ep;
                                 this.bullets.push(b);
                                 if (ep.triggerAttackShake) ep.triggerAttackShake();
+                                if (ep.charId === '006' && action.type === 'pile_bunker_006') {
+                                    ep.sakuraFarAttackTimer = Math.max(0.45, (action.reload || 0.3) + 0.15);
+                                }
                             }
                         }
                         cs.cancelled = false;
@@ -3067,6 +3448,15 @@ export class BattleEngine {
                 }
             }
 
+            // ノア(008)の爆炎 (noah_flame_008): 3秒かけて等減速で速度がゼロになり、透明になって消滅
+            if (b.type === 'noah_flame_008') {
+                const maxLife = b.maxLife || 3.0;
+                const ratio = Math.max(0, b.lifeTime / maxLife); // 1.0 -> 0.0
+                b.vx = (b.initialFlameVx || 0) * ratio;
+                b.vz = (b.initialFlameVz || 0) * ratio;
+                b.alpha = ratio;
+            }
+
             // プロセル(010)のつらら大 (icicle_large_010): 命中するか18m進むと半径1.5mの氷塊(010004.png)を展開
             if (b.type === 'icicle_large_010') {
                 b.distTravel = (b.distTravel || 0) + Math.hypot(b.vx, b.vz) * dt;
@@ -3121,6 +3511,7 @@ export class BattleEngine {
                         const eradius = (b.size / 2) + (eb.size / 2);
                         if (edistSq <= eradius * eradius) {
                             eb.isDead = true; // 相手の弾を打ち消し消滅！
+                            eb.isDissolving = true;
                             this.effects.push(new EffectEntity(eb.x, eb.z, { type: 'spark', radius: 0.5, lifeTime: 0.2 }));
 
                             // 耐久力消費（特技バリア・近接バリア）
@@ -3133,6 +3524,7 @@ export class BattleEngine {
                                 }
                                 if (b.bulletDurability <= 0 || (b.damage !== undefined && b.damage < 1.0)) {
                                     b.isDead = true;
+                                    b.isDissolving = true;
                                     break;
                                 }
                             }
@@ -3189,7 +3581,7 @@ export class BattleEngine {
             }
 
 
-            if (b.type && !b.type.startsWith('swing_') && b.type !== 'sankosho_circle_007' && b.type !== 'sankosho_007' && b.type !== 'ultimate_007' && b.distanceTraveled >= b.targetDist) {
+            if (b.type && !b.type.startsWith('swing_') && b.type !== 'sankosho_circle_007' && b.type !== 'sankosho_007' && b.type !== 'ultimate_007' && b.type !== 'noah_flame_008' && b.distanceTraveled >= b.targetDist) {
                 if (b.type === 'grenade') {
                     this.effects.push(new EffectEntity(b.x, b.z, { type: 'grenade_explosion', radius: 2.0, lifeTime: 0.5 }));
 
@@ -3206,20 +3598,7 @@ export class BattleEngine {
                         }
                     }
                 } else if (b.type === 'noah_bullet_008') {
-                    this.effects.push(new EffectEntity(b.x, b.z, { type: 'noah_bullet_explosion', radius: 1.5, lifeTime: 0.4, customData: { color: 'red' } }));
-
-                    const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
-                    const aoeTargets = b.owner === 'player' ? enemyList : this.players;
-                    for (const aoeTarget of aoeTargets) {
-                        if (aoeTarget.isDead || aoeTarget.isDying || aoeTarget.hp <= 0) continue;
-                        const adx = b.x - aoeTarget.x;
-                        const adz = b.z - aoeTarget.z;
-                        if (adx*adx + adz*adz <= 2.25) { // 半径1.5m (直径3.0m)
-                            this.applyDamage(b.sourceEntity, aoeTarget, b.damage, 'normal', 0, b.x, b.z);
-                            const len = Math.sqrt(adx*adx + adz*adz) || 1.0;
-                            aoeTarget.applyKnockback((b.knockback * -adx)/len, (b.knockback * -adz)/len);
-                        }
-                    }
+                    this.spawnNoahFlame(b, null);
                 }
                 b.isDead = true;
                 continue;
@@ -3229,20 +3608,39 @@ export class BattleEngine {
             const targets = b.owner === 'player' ? enemyList : this.players;
             for (const t of targets) {
                 if (t.isDead || t.isDying || t.hp <= 0) continue;
+                if (b.excludedTarget && t === b.excludedTarget) continue; // 本命の対象を除外（さくらの中間衝撃波など）
 
                 if (!b.hitTimes) b.hitTimes = new Map();
                 const lastHitTime = b.hitTimes.get(t) || -999;
-                if (this.time - lastHitTime < 0.2) continue; // 同じ対象には0.2秒間ダメージを与えない
+                const hitCooldown = (b.type === 'pile_bunker_006' && t.isBoss) ? 0.08 : 0.2;
+                if (this.time - lastHitTime < hitCooldown) continue; // 同じ対象にはクールダウン間隔ダメージを与えない
 
                 const dx = b.x - t.x;
                 const dz = b.z - t.z;
-                const distSq = dx*dx + dz*dz;
+                const distSq = dx * dx + dz * dz;
                 
                 // 武器の場合は hitRange が設定されていればそれを当たり判定半径とする
                 const hitRadius = b.hitRange !== undefined ? b.hitRange : (b.size/2);
-                const r = hitRadius + (t.size/2);
 
-                if (distSq < r*r) {
+                let isHit = false;
+                if (t.isBoss) {
+                    // ★ 魔女（ボス）専用：見た目にピッタリ合わせた横長楕円判定＆奥方向オフセット
+                    // 1. 中心を少し奥(+Z)にオフセットして、画面下側（手前）への飛び出しを解消
+                    const zOffset = (t.size || 1.0) * 0.15;
+                    const bossDz = b.z - (t.z + zOffset);
+                    
+                    // 2. 横半径 rx はそのまま魔女の横幅、奥行き半径 rz は0.65倍の横長楕円
+                    const rx = ((t.size || 1.0) / 2) + hitRadius;
+                    const rz = ((t.size || 1.0) / 2) * 0.65 + hitRadius;
+                    
+                    const normDist = (dx * dx) / (rx * rx) + (bossDz * bossDz) / (rz * rz);
+                    isHit = (normDist <= 1.0);
+                } else {
+                    const r = hitRadius + (t.size/2);
+                    isHit = (distSq < r * r);
+                }
+
+                if (isHit) {
                     // スイング攻撃の角度チェック
                     if (b.type && b.type.startsWith('swing_')) {
                         let inAngle = false;
@@ -3297,20 +3695,7 @@ export class BattleEngine {
                             }
                         }
                     } else if (b.type === 'noah_bullet_008') {
-                        this.effects.push(new EffectEntity(b.x, b.z, { type: 'noah_bullet_explosion', radius: 1.5, lifeTime: 0.4, customData: { color: 'red' } }));
-
-                        for (const aoeTarget of targets) {
-                            if (aoeTarget.isDead || aoeTarget.isDying) continue;
-                            const adx = b.x - aoeTarget.x;
-                            const adz = b.z - aoeTarget.z;
-                            if (adx*adx + adz*adz <= 2.25) { // 半径1.5m (直径3.0m)
-                                const len = Math.sqrt(adx*adx + adz*adz) || 1.0;
-                                const isHit = this.applyDamage(b.sourceEntity, aoeTarget, b.damage, 'normal', b.distanceTraveled, b.x, b.z);
-                                if (isHit) {
-                                    aoeTarget.applyKnockback((b.knockback * -adx)/len, (b.knockback * -adz)/len);
-                                }
-                            }
-                        }
+                        this.spawnNoahFlame(b, t);
                         b.isDead = true;
                         break;
                     } else {
@@ -3326,12 +3711,13 @@ export class BattleEngine {
                             // ななよの遠距離三鈷杵投げ: ヒットごとに1/3(33.3%)ずつ減衰
                             const decayMult = Math.max(0, 1.0 - ((b.hitCount || 0) * (1 / 3)));
                             finalDmg *= decayMult;
-                        } else if (isPiercing && !isSwing && b.type !== 'ultimate_003' && b.type !== 'kick_bullet' && b.hitCount > 0) {
+                        } else if (isPiercing && !isSwing && b.type !== 'ultimate_003' && b.type !== 'kick_bullet' && b.type !== 'noah_flame_008' && b.hitCount > 0) {
                             finalDmg *= Math.pow(2/3, b.hitCount);
                         }
                         
                         const dist = Math.sqrt(distSq);
-                        const isHit = this.applyDamage(b.sourceEntity, t, finalDmg, type, b.distanceTraveled, b.x, b.z);
+                        const isSureHit = (b.type === 'strike_wave_006');
+                        const isHit = this.applyDamage(b.sourceEntity, t, finalDmg, type, b.distanceTraveled, b.x, b.z, isSureHit);
                         if (isHit) {
                             // 🛡️ 白蓮のバリア弾(barrier_011 / barrier_010): 敵に当たって威力減衰＆耐久消費、1未満または耐久0で消滅！
                             if (b.type === 'barrier_011' || b.type === 'barrier_010') {
@@ -3342,24 +3728,130 @@ export class BattleEngine {
                                 }
                                 if (b.damage < 1.0 || (b.bulletDurability !== undefined && b.bulletDurability <= 0)) {
                                     b.isDead = true;
+                                    b.isDissolving = true;
                                 }
                             }
                             // 🛡️ 白蓮の特技バリア(special_barrier_011): 敵に接触したら消滅！
                             if (b.type === 'special_barrier_011' || b.type === 'special_barrier_010') {
                                 b.isDead = true;
+                                b.isDissolving = true;
                             }
-                            if (b.stunDuration > 0 && Math.random() < b.stunChance) {
-                                const resist = t.debuffResist !== undefined ? t.debuffResist : 0;
-                                if (resist >= 100) {
-                                    // デバフ抵抗100以上(ボス等)は完全に効かない
-                                    t.stunTimer = 0;
-                                } else {
-                                    // デバフ抵抗に応じて効果時間が増減 (例: 50 -> 0.5秒, -50 -> 1.5秒)
-                                    const resistMult = Math.max(0, 1.0 - (resist / 100));
-                                    t.stunTimer = b.stunDuration * resistMult;
-                                    t.debuffColor = (b.sourceEntity && b.sourceEntity.charId === '004') ? 0xffff00 : 0xffff00;
+
+                            // 🌸 さくら(006) 近接衝撃波ヒット時の特殊効果:
+                            // 攻撃を食らった相手(t)とさくら(src)の中間座標にも攻撃時と同じ衝撃波を発生させ、
+                            // それは狙われた相手(t)以外に対してノックバック200！
+                            if (b.type === 'strike_wave_006' && !b.hasSpawnedSubwave) {
+                                b.hasSpawnedSubwave = true; // 初回命中時に1度だけ余波を生成
+                                const src = b.sourceEntity;
+                                if (src) {
+                                    const midX = (src.x + t.x) / 2;
+                                    const midZ = (src.z + t.z) / 2;
+                                    const subWaveKnockback = b.isFinalHit ? 500 : 200; // 最後の一発なら中間衝撃波もノックバック500！
+                                    const subWave = new Bullet(midX, midZ, {
+                                        owner: b.owner,
+                                        vx: 0, vz: 0,
+                                        damage: b.damage,
+                                        knockback: subWaveKnockback,
+                                        size: b.size || 4.0,
+                                        lifeTime: b.lifeTime || 0.8,
+                                        maxLife: b.maxLife || 0.8,
+                                        type: 'strike_subwave_006',
+                                        textureKey: 'shockwave_006',
+                                        isPiercing: true,
+                                        stunDuration: b.stunDuration,
+                                        stunChance: b.stunChance,
+                                        isFollowOwner: false,
+                                        excludedTarget: t, // 本命の相手(t)はこの中間衝撃波の対象外
+                                        erasesEnemyBullets: true, // 弾丸無限吸収！
+                                        isFinalHit: b.isFinalHit
+                                    });
+                                    subWave.sourceEntity = src;
+                                    this.bullets.push(subWave);
                                 }
                             }
+
+                            // 🌸 さくら(006) 遠距離パイルバンカー:
+                            // 敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、
+                            // 範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。
+                            // 魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。
+                            if (b.type === 'pile_bunker_006') {
+                                const src = b.sourceEntity;
+                                const baseAtk = src ? (src.atk || 100) : 100;
+                                const shockwave = new Bullet(t.x, t.z, {
+                                    owner: b.owner,
+                                    vx: 0, vz: 0,
+                                    damage: Math.floor(baseAtk * 0.5), // 攻撃力の50%ダメージ
+                                    knockback: 100, // ノックバック100
+                                    size: 4.0, // 半径2m (直径4m)
+                                    lifeTime: 0.8,
+                                    maxLife: 0.8,
+                                    type: 'strike_wave_006',
+                                    textureKey: 'shockwave_006',
+                                    isPiercing: true,
+                                    stunDuration: 0.5, // スタン0.5秒
+                                    stunChance: 1.0,
+                                    isFollowOwner: false,
+                                    erasesEnemyBullets: true // 弾丸を消す
+                                });
+                                shockwave.sourceEntity = src;
+                                this.bullets.push(shockwave);
+                                if (src && src.triggerAttackShake) src.triggerAttackShake();
+                            }
+
+                            // デバフ耐性値の算出（100基準。0以下になっても最低1%保証、ゼロ除算防止）
+                            let effResist = 100;
+                            if (t.isBoss && (t.debuffResist >= 100)) {
+                                effResist = 0; // ボス（魔女・サンドバッグ等で耐性100以上）のみ完全無効化
+                            } else if (t.isEnemy && !t.isPvpEnemy && t.debuffResist !== undefined) {
+                                // 通常モンスター: 定義値(0〜100)を反映 (0なら100, 50なら50)
+                                effResist = Math.max(0, 100 - t.debuffResist);
+                            } else {
+                                // 魔法少女 (プレイヤー・PvP敵コピー): debuffResist (100基準、PvP敵はLvごとに2減少)
+                                effResist = t.debuffResist !== undefined ? t.debuffResist : 100;
+                            }
+
+                            // ゼロ除算防止＆最低1%保証 (完全無効のボス除き、最低1%＝0.01)
+                            const resistRate = (effResist <= 0 && t.isBoss) ? 0 : Math.max(0.01, effResist / 100);
+                            const baseStunChance = b.stunChance !== undefined ? b.stunChance : 1.0;
+                            const finalStunChance = baseStunChance * resistRate;
+
+                            if (b.stunDuration > 0 && Math.random() < finalStunChance) {
+                                // 効果時間も耐性倍率で増減（最低0.01秒保証）
+                                const calculatedStunTime = Math.max(0.01, b.stunDuration * resistRate);
+                                t.stunTimer = Math.max(t.stunTimer || 0, calculatedStunTime);
+                                t.debuffColor = 0xffff00;
+                                if (t.stunTimer > 0) {
+                                    // STUNテキストは非表示 (画面を見ればスタン状態と分かるため)
+
+                                        // ⚡ スタンを受けたキャラの行動をその場で即座に中断＆攻撃判定を消滅させる
+                                        if (t.combatState) {
+                                            t.combatState.phase = 'stunned';
+                                            t.combatState.comboType = null;
+                                            t.combatState.stepIdx = 0;
+                                            t.combatState.countIdx = 0;
+                                            t.combatState.reloadTimer = Math.max(t.combatState.reloadTimer || 0, 0.6);
+                                            t.combatState.cancelled = true;
+                                        }
+                                        t.isKickAttacking = false;
+                                        t.kickTimer = 0;
+                                        t.sakuraStrikeTimer = 0;
+                                        t.isHopping = false;
+                                        t.isMirageShift = false;
+                                        t.isMirageShiftInvincible = false;
+                                        t.targetOffsetX = 0;
+                                        t.targetOffsetZ = 0;
+                                        if (t.delayedActions) t.delayedActions = [];
+
+                                        // スタンされたキャラが自身で振っていた近接スイング武器（swing_xxx）の弾丸を即座に消去
+                                        for (const myBullet of this.bullets) {
+                                            if (!myBullet.isDead && myBullet.sourceEntity === t) {
+                                                if (myBullet.type && myBullet.type.startsWith('swing_')) {
+                                                    myBullet.isDead = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
 
 
                             if (b.type && b.type.startsWith('swing_')) {
@@ -3399,6 +3891,10 @@ export class BattleEngine {
                                     }));
 
                                 }
+                            } else if (b.type === 'strike_wave_006' || b.type === 'strike_subwave_006' || b.type === 'noah_flame_008' || (b.vx === 0 && b.vz === 0)) {
+                                // 衝撃波や定点判定、爆炎は中心から対象へ放射状に吹き飛ばす
+                                const len = Math.sqrt(dx*dx + dz*dz) || 1.0;
+                                t.applyKnockback((b.knockback * -dx) / len, (b.knockback * -dz) / len);
                             } else {
                                 const len = Math.sqrt(b.vx*b.vx + b.vz*b.vz) || 1.0;
                                 t.applyKnockback((b.knockback * b.vx) / len, (b.knockback * b.vz) / len);
@@ -3655,5 +4151,52 @@ export class BattleEngine {
         for (const item of standbyMembers) {
             queue.push(item.member);
         }
+    }
+
+    spawnNoahFlame(b, directHitTarget = null) {
+        // ビームの時のベクトルを継承し、初速を1/5にする
+        const currentSpeed = Math.hypot(b.vx, b.vz);
+        const flameSpeed = currentSpeed * 0.2;
+        let dirX = 0;
+        let dirZ = b.owner === 'enemy' ? -1 : 1;
+        if (currentSpeed > 0.001) {
+            dirX = b.vx / currentSpeed;
+            dirZ = b.vz / currentSpeed;
+        }
+        const initialVx = dirX * flameSpeed;
+        const initialVz = dirZ * flameSpeed;
+
+        const flame = new Bullet(b.x, b.z, {
+            owner: b.owner,
+            vx: initialVx,
+            vz: initialVz,
+            damage: b.damage, // 弾丸と爆炎の持続ダメージは同じ値
+            baseDamage: b.baseDamage || b.damage,
+            knockback: 5, // 範囲内をジワジワ押し出すノックバック
+            size: 3.0, // 半径1.5m (直径3.0m)
+            hitRange: 1.5,
+            isPiercing: true, // 貫通無限
+            type: 'noah_flame_008',
+            textureKey: 'nrg',
+            lifeTime: 3.0,
+            maxLife: 3.0,
+            targetDist: 99999
+        });
+        flame.sourceEntity = b.sourceEntity;
+        flame.initialFlameVx = initialVx;
+        flame.initialFlameVz = initialVz;
+        flame.spinOffset = Math.random() * 360;
+        flame.hitTimes = new Map();
+
+        if (directHitTarget) {
+            // 直撃した敵には即座に弾丸のダメージを与え、爆炎の直後の多段判定クールタイムをセット
+            const isHit = this.applyDamage(b.sourceEntity, directHitTarget, b.damage, 'normal', b.distanceTraveled, b.x, b.z);
+            if (isHit && b.knockback > 0) {
+                directHitTarget.applyKnockback(dirX * b.knockback, dirZ * b.knockback);
+            }
+            flame.hitTimes.set(directHitTarget, this.time);
+        }
+
+        this.bullets.push(flame);
     }
 }

@@ -139,6 +139,7 @@ export default class BattleScene extends Phaser.Scene {
             'battle_003', 'battle_003_b', 'weapon_003',
             'battle_004', 'battle_004_b', 'weapon_004',
             'battle_005', 'battle_005_b', 'weapon_005',
+            'battle_006', 'battle_006_b', 'battle_006_c',
             'battle_007', 'battle_007_b', 'weapon_007',
             'battle_008', 'battle_008_b', 'weapon_008_orb', 'weapon_008_bullet', 'weapon_008_ult_a', 'weapon_008_ult_b',
             'battle_009', 'battle_009_b', 'battle_009_adult', 'battle_009_adult_b', 'weapon_009', 'weapon_009_spear', 'weapon_009_pollen',
@@ -670,33 +671,38 @@ export default class BattleScene extends Phaser.Scene {
             }
         }
 
-        // PvP対人戦テストモードの終了時（勝利クリア・全滅・撤退すべて離脱扱い）
+        // PvP対人戦テストモードの終了時（勝利クリア・全滅・撤退すべて離脱扱い。ただし塔PvPの勝利クリアはResultSceneへ進む）
         if (this.battleConfig && this.battleConfig.isPvpBattle && (this.engine.waveState === 'cleared' || this.engine.waveState === 'gameover' || this.engine.waveState === 'retreated') && !this.isExiting) {
-            console.log('[BattleScene] PvP Test finished, returning to map as retreat');
-            this.isExiting = true;
+            // 塔PvP（59階ボス戦など）で勝利した場合はリザルト画面へ遷移させる
+            if (this.battleConfig.isTowerPvP && this.engine.waveState === 'cleared') {
+                // 通常のクリア遷移（ResultScene）へそのまま流すため何もしない
+            } else {
+                console.log('[BattleScene] PvP Test finished, returning to map as retreat');
+                this.isExiting = true;
 
-            if (this.fogEffect) {
-                this.fogEffect.fadeOut(1500);
-            }
-
-            const targetScene = this.battleConfig.returnScene || 'AdventureScene';
-            this.time.delayedCall(2000, () => {
-                if (this.sound) this.sound.stopAll();
-                const stateObj = {
-                    isRetreated: true,
-                    fromBattle: true
-                };
-
-                if (this.scene.isPaused(targetScene)) {
-                    TransitionManager.fadeOut(this, () => {
-                        this.scene.stop();
-                        this.scene.resume(targetScene, stateObj);
-                    });
-                } else {
-                    TransitionManager.transitionTo(this, targetScene, stateObj);
+                if (this.fogEffect) {
+                    this.fogEffect.fadeOut(1500);
                 }
-            });
-            return;
+
+                const targetScene = this.battleConfig.returnScene || 'AdventureScene';
+                this.time.delayedCall(2000, () => {
+                    if (this.sound) this.sound.stopAll();
+                    const stateObj = {
+                        isRetreated: true,
+                        fromBattle: true
+                    };
+
+                    if (this.scene.isPaused(targetScene)) {
+                        TransitionManager.fadeOut(this, () => {
+                            this.scene.stop();
+                            this.scene.resume(targetScene, stateObj);
+                        });
+                    } else {
+                        TransitionManager.transitionTo(this, targetScene, stateObj);
+                    }
+                });
+                return;
+            }
         }
 
         // ミッションクリア時の遷移

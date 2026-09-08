@@ -1358,7 +1358,8 @@
               "shotCount": 4,
               "spread": 15,
               "deviation": 5,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             },
             {
               "name": "リロード",
@@ -1390,7 +1391,8 @@
               "shotCount": 4,
               "spread": 15,
               "deviation": 5,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             },
             {
               "name": "リロード",
@@ -1422,7 +1424,8 @@
               "shotCount": 4,
               "spread": 15,
               "deviation": 5,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             },
             {
               "name": "リロード",
@@ -1454,7 +1457,8 @@
               "shotCount": 4,
               "spread": 15,
               "deviation": 5,
-              "stunChance": 0.8
+              "stunChance": 0.8,
+              "stun": 1
             },
             {
               "name": "リロード",
@@ -1486,7 +1490,8 @@
               "shotCount": 5,
               "spread": 20,
               "deviation": 5,
-              "stunChance": 0.8
+              "stunChance": 0.8,
+              "stun": 1
             },
             {
               "name": "リロード",
@@ -1518,7 +1523,8 @@
               "shotCount": 5,
               "spread": 20,
               "deviation": 5,
-              "stunChance": 0.8
+              "stunChance": 0.8,
+              "stun": 1
             },
             {
               "name": "リロード",
@@ -1550,7 +1556,8 @@
               "shotCount": 5,
               "spread": 20,
               "deviation": 5,
-              "stunChance": 0.9
+              "stunChance": 0.9,
+              "stun": 1
             },
             {
               "name": "リロード",
@@ -1597,7 +1604,8 @@
               "shotCount": 4,
               "spread": 30,
               "deviation": 0,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             }
           ],
           "2": [
@@ -1629,7 +1637,8 @@
               "shotCount": 4,
               "spread": 30,
               "deviation": 0,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             }
           ],
           "3": [
@@ -1661,7 +1670,8 @@
               "shotCount": 4,
               "spread": 30,
               "deviation": 0,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             }
           ],
           "4": [
@@ -1693,7 +1703,8 @@
               "shotCount": 5,
               "spread": 35,
               "deviation": 0,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             }
           ],
           "5": [
@@ -1725,7 +1736,8 @@
               "shotCount": 5,
               "spread": 35,
               "deviation": 0,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             }
           ],
           "6": [
@@ -1757,7 +1769,8 @@
               "shotCount": 5,
               "spread": 35,
               "deviation": 0,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             }
           ],
           "7": [
@@ -1789,7 +1802,8 @@
               "shotCount": 5,
               "spread": 35,
               "deviation": 0,
-              "stunChance": 0.75
+              "stunChance": 0.75,
+              "stun": 1
             }
           ]
         }
@@ -3123,7 +3137,7 @@
             {
               "name": "赤い弾丸",
               "type": "noah_bullet_008",
-              "power": 50,
+              "power": 20,
               "reload": 0.5,
               "count": 1,
               "speed": 20,
@@ -3147,7 +3161,7 @@
             {
               "name": "赤い弾丸",
               "type": "noah_bullet_008",
-              "power": 50,
+              "power": 25,
               "reload": 0.5,
               "count": 1,
               "speed": 20,
@@ -3171,7 +3185,7 @@
             {
               "name": "赤い弾丸",
               "type": "noah_bullet_008",
-              "power": 50,
+              "power": 30,
               "reload": 0.5,
               "count": 1,
               "speed": 20,
@@ -3195,7 +3209,7 @@
             {
               "name": "赤い弾丸",
               "type": "noah_bullet_008",
-              "power": 50,
+              "power": 35,
               "reload": 0.5,
               "count": 1,
               "speed": 20,
@@ -3219,7 +3233,7 @@
             {
               "name": "赤い弾丸",
               "type": "noah_bullet_008",
-              "power": 50,
+              "power": 40,
               "reload": 0.5,
               "count": 1,
               "speed": 20,
@@ -3243,7 +3257,7 @@
             {
               "name": "赤い弾丸",
               "type": "noah_bullet_008",
-              "power": 50,
+              "power": 45,
               "reload": 0.5,
               "count": 1,
               "speed": 20,
@@ -4501,6 +4515,502 @@
         "description": "前方に秒速2mで進む直径1mのバリア弾を形成。8m進むと直径8mに拡大して破裂し、範囲内に基本攻撃力の(100+10*WLV)%ダメージ。爆発は5秒+(WLV/2)秒持続し、継続ダメージを与え敵弾を吸収し続ける。",
         "spCost": "10+WLV",
         "cooldown": "60-WLV*2"
+      }
+    },
+    "006": {
+      "name": "さくら",
+      "baseHp": 1100,
+      "baseSp": 1100,
+      "baseAtk": 100,
+      "weight": 47,
+      "attribute": "purple",
+      "attrDef": {
+        "red": 125,
+        "purple": 100,
+        "green": 75,
+        "yellow": 100,
+        "blue": 100
+      },
+      "debuffResist": {
+        "red": 125,
+        "purple": 100,
+        "green": 75,
+        "yellow": 100,
+        "blue": 100
+      },
+      "patterns": {
+        "far": {
+          "1": [
+            {
+              "name": "パイルバンカー",
+              "type": "pile_bunker_006",
+              "power": 0,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 25,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 18,
+              "deviation": 2,
+              "isPiercing": true,
+              "erasesEnemyBullets": true,
+              "description": "目標の敵に向かってエネルギーの杭を飛ばす。全貫通し射程まで飛ぶ。敵弾丸に触れると敵弾丸を消す。敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。衝撃波は半径2mの大きさで不透明度0％から0.05秒で現れ、0.8秒かけてわずかに拡大しながら薄れて消えてゆく。魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。"
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "攻撃後0.1秒のスキがある。移動先位置から近距離射程内に敵が居れば近距離攻撃を始める。居なければ配置位置に戻る。"
+            }
+          ],
+          "2": [
+            {
+              "name": "パイルバンカー",
+              "type": "pile_bunker_006",
+              "power": 0,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 25,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 18,
+              "deviation": 2,
+              "isPiercing": true,
+              "erasesEnemyBullets": true,
+              "description": "目標の敵に向かってエネルギーの杭を飛ばす。全貫通し射程まで飛ぶ。敵弾丸に触れると敵弾丸を消す。敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。衝撃波は半径2mの大きさで不透明度0％から0.05秒で現れ、0.8秒かけてわずかに拡大しながら薄れて消えてゆく。魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。"
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "攻撃後0.1秒のスキがある。移動先位置から近距離射程内に敵が居れば近距離攻撃を始める。居なければ配置位置に戻る。"
+            }
+          ],
+          "3": [
+            {
+              "name": "パイルバンカー",
+              "type": "pile_bunker_006",
+              "power": 0,
+              "reload": 0.3,
+              "count": 1,
+              "speed": 25,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 18,
+              "deviation": 2,
+              "isPiercing": true,
+              "erasesEnemyBullets": true,
+              "description": "目標の敵に向かってエネルギーの杭を飛ばす。全貫通し射程まで飛ぶ。敵弾丸に触れると敵弾丸を消す。敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。衝撃波は半径2mの大きさで不透明度0％から0.05秒で現れ、0.8秒かけてわずかに拡大しながら薄れて消えてゆく。魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。"
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "攻撃後0.1秒のスキがある。移動先位置から近距離射程内に敵が居れば近距離攻撃を始める。居なければ配置位置に戻る。"
+            }
+          ],
+          "4": [
+            {
+              "name": "パイルバンカー",
+              "type": "pile_bunker_006",
+              "power": 0,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 25,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 18,
+              "deviation": 2,
+              "isPiercing": true,
+              "erasesEnemyBullets": true,
+              "description": "目標の敵に向かってエネルギーの杭を飛ばす。全貫通し射程まで飛ぶ。敵弾丸に触れると敵弾丸を消す。敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。衝撃波は半径2mの大きさで不透明度0％から0.05秒で現れ、0.8秒かけてわずかに拡大しながら薄れて消えてゆく。魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。"
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "攻撃後0.1秒のスキがある。移動先位置から近距離射程内に敵が居れば近距離攻撃を始める。居なければ配置位置に戻る。"
+            }
+          ],
+          "5": [
+            {
+              "name": "パイルバンカー",
+              "type": "pile_bunker_006",
+              "power": 0,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 25,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 18,
+              "deviation": 2,
+              "isPiercing": true,
+              "erasesEnemyBullets": true,
+              "description": "目標の敵に向かってエネルギーの杭を飛ばす。全貫通し射程まで飛ぶ。敵弾丸に触れると敵弾丸を消す。敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。衝撃波は半径2mの大きさで不透明度0％から0.05秒で現れ、0.8秒かけてわずかに拡大しながら薄れて消えてゆく。魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。"
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "攻撃後0.1秒のスキがある。移動先位置から近距離射程内に敵が居れば近距離攻撃を始める。居なければ配置位置に戻る。"
+            }
+          ],
+          "6": [
+            {
+              "name": "パイルバンカー",
+              "type": "pile_bunker_006",
+              "power": 0,
+              "reload": 0.3,
+              "count": 2,
+              "speed": 25,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 18,
+              "deviation": 2,
+              "isPiercing": true,
+              "erasesEnemyBullets": true,
+              "description": "目標の敵に向かってエネルギーの杭を飛ばす。全貫通し射程まで飛ぶ。敵弾丸に触れると敵弾丸を消す。敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。衝撃波は半径2mの大きさで不透明度0％から0.05秒で現れ、0.8秒かけてわずかに拡大しながら薄れて消えてゆく。魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。"
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "攻撃後0.1秒のスキがある。移動先位置から近距離射程内に敵が居れば近距離攻撃を始める。居なければ配置位置に戻る。"
+            }
+          ],
+          "7": [
+            {
+              "name": "パイルバンカー",
+              "type": "pile_bunker_006",
+              "power": 0,
+              "reload": 0.3,
+              "count": 3,
+              "speed": 25,
+              "range": 18,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 18,
+              "deviation": 2,
+              "isPiercing": true,
+              "erasesEnemyBullets": true,
+              "description": "目標の敵に向かってエネルギーの杭を飛ばす。全貫通し射程まで飛ぶ。敵弾丸に触れると敵弾丸を消す。敵に触れるごとに半径2mの衝撃波を起こし、衝撃波の当たり判定は1回、範囲内に攻撃力の50％ダメージとノックバック100、スタン0.5秒を与え、弾丸を消す。衝撃波は半径2mの大きさで不透明度0％から0.05秒で現れ、0.8秒かけてわずかに拡大しながら薄れて消えてゆく。魔女には貫通しながら何度もヒットし、その都度衝撃波を起こす。"
+            },
+            {
+              "name": "リロード",
+              "type": "reload",
+              "power": 0,
+              "reload": 0.1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "攻撃後0.1秒のスキがある。移動先位置から近距離射程内に敵が居れば近距離攻撃を始める。居なければ配置位置に戻る。"
+            }
+          ]
+        },
+        "near": {
+          "1": [
+            {
+              "name": "各種必殺技",
+              "type": "strike_006",
+              "power": 150,
+              "reload": 1,
+              "count": 3,
+              "speed": 30,
+              "range": 8,
+              "stepDist": 6,
+              "knockback": 80,
+              "weaponRange": 2,
+              "isPiercing": true,
+              "radius": 2,
+              "duration": 0.8,
+              "stun": 1.5,
+              "description": "自身を中心とした半径2mの範囲に完全貫通の範囲を発生させ、範囲は0.8秒持続、範囲内にダメージ、ノックバック、1.5秒スタンさせる。"
+            },
+            {
+              "name": "リロード",
+              "type": "return_reload_006",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "配置位置に戻る。不透明度80%と不透明度60%の残像を伴う。無敵ではない"
+            }
+          ],
+          "2": [
+            {
+              "name": "各種必殺技",
+              "type": "strike_006",
+              "power": 150,
+              "reload": 0.9,
+              "count": 4,
+              "speed": 30,
+              "range": 8,
+              "stepDist": 6,
+              "knockback": 80,
+              "weaponRange": 2,
+              "isPiercing": true,
+              "radius": 2,
+              "duration": 0.8,
+              "stun": 1.5,
+              "description": "自身を中心とした半径2mの範囲に完全貫通の範囲を発生させ、範囲は0.8秒持続、範囲内にダメージ、ノックバック、1.5秒スタンさせる。"
+            },
+            {
+              "name": "リロード",
+              "type": "return_reload_006",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "配置位置に戻る。不透明度80%と不透明度60%の残像を伴う。無敵ではない"
+            }
+          ],
+          "3": [
+            {
+              "name": "各種必殺技",
+              "type": "strike_006",
+              "power": 150,
+              "reload": 0.8,
+              "count": 5,
+              "speed": 30,
+              "range": 8,
+              "stepDist": 6,
+              "knockback": 80,
+              "weaponRange": 2,
+              "isPiercing": true,
+              "radius": 2,
+              "duration": 0.7,
+              "stun": 1.5,
+              "description": "自身を中心とした半径2mの範囲に完全貫通の範囲を発生させ、範囲は0.7秒持続、範囲内にダメージ、ノックバック、1.5秒スタンさせる。"
+            },
+            {
+              "name": "リロード",
+              "type": "return_reload_006",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "配置位置に戻る。不透明度80%と不透明度60%の残像を伴う。無敵ではない"
+            }
+          ],
+          "4": [
+            {
+              "name": "各種必殺技",
+              "type": "strike_006",
+              "power": 150,
+              "reload": 0.7,
+              "count": 6,
+              "speed": 30,
+              "range": 8,
+              "stepDist": 6,
+              "knockback": 80,
+              "weaponRange": 2,
+              "isPiercing": true,
+              "radius": 2,
+              "duration": 0.7,
+              "stun": 1.5,
+              "description": "自身を中心とした半径2mの範囲に完全貫通の範囲を発生させ、範囲は0.7秒持続、範囲内にダメージ、ノックバック、1.5秒スタンさせる。"
+            },
+            {
+              "name": "リロード",
+              "type": "return_reload_006",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "配置位置に戻る。不透明度80%と不透明度60%の残像を伴う。無敵ではない"
+            }
+          ],
+          "5": [
+            {
+              "name": "各種必殺技",
+              "type": "strike_006",
+              "power": 150,
+              "reload": 0.6,
+              "count": 7,
+              "speed": 30,
+              "range": 8,
+              "stepDist": 6,
+              "knockback": 80,
+              "weaponRange": 2,
+              "isPiercing": true,
+              "radius": 2,
+              "duration": 0.6,
+              "stun": 1.5,
+              "description": "自身を中心とした半径2mの範囲に完全貫通の範囲を発生させ、範囲は0.6秒持続、範囲内にダメージ、ノックバック、1.5秒スタンさせる。"
+            },
+            {
+              "name": "リロード",
+              "type": "return_reload_006",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "配置位置に戻る。不透明度80%と不透明度60%の残像を伴う。無敵ではない"
+            }
+          ],
+          "6": [
+            {
+              "name": "各種必殺技",
+              "type": "strike_006",
+              "power": 150,
+              "reload": 0.5,
+              "count": 8,
+              "speed": 30,
+              "range": 8,
+              "stepDist": 6,
+              "knockback": 80,
+              "weaponRange": 2,
+              "isPiercing": true,
+              "radius": 2,
+              "duration": 0.6,
+              "stun": 1.5,
+              "description": "自身を中心とした半径2mの範囲に完全貫通の範囲を発生させ、範囲は0.6秒持続、範囲内にダメージ、ノックバック、1.5秒スタンさせる。"
+            },
+            {
+              "name": "リロード",
+              "type": "return_reload_006",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "配置位置に戻る。不透明度80%と不透明度60%の残像を伴う。無敵ではない"
+            }
+          ],
+          "7": [
+            {
+              "name": "各種必殺技",
+              "type": "strike_006",
+              "power": 150,
+              "reload": 0.4,
+              "count": 9,
+              "speed": 30,
+              "range": 8,
+              "stepDist": 6,
+              "knockback": 80,
+              "weaponRange": 2,
+              "isPiercing": true,
+              "radius": 2,
+              "duration": 0.6,
+              "stun": 1.5,
+              "description": "自身を中心とした半径2mの範囲に完全貫通の範囲を発生させ、範囲は0.6秒持続、範囲内にダメージ、ノックバック、1.5秒スタンさせる。"
+            },
+            {
+              "name": "リロード",
+              "type": "return_reload_006",
+              "power": 0,
+              "reload": 1,
+              "count": 1,
+              "speed": 0,
+              "range": 0,
+              "stepDist": 0,
+              "knockback": 0,
+              "weaponRange": 0,
+              "isPiercing": false,
+              "description": "配置位置に戻る。不透明度80%と不透明度60%の残像を伴う。無敵ではない"
+            }
+          ]
+        }
+      },
+      "special": {
+        "name": "浄化衝撃波",
+        "description": "5秒に1回、自身を中心に半径3mに衝撃波を起こし、範囲内の敵の弾丸、デバフ空間、バリアなどのオブジェクトを消す。衝撃波は半径3mの大きさで不透明度0％から0.05秒で現れ、0.4秒かけてわずかに拡大しながら薄れて消えてゆく",
+        "interval": 5,
+        "radius": 3
+      },
+      "ultimate": {
+        "name": "天衣無縫",
+        "description": "10+（WLV/2）秒の間リロード時間を半減し、ダメージを受けなくなる。",
+        "spCost": "20+WLV",
+        "cooldown": "30-WLV*2",
+        "duration": "10+(WLV/2)"
       }
     }
   }

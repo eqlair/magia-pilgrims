@@ -7,6 +7,7 @@ export class PvpEnemyGenerator {
         { id: '003', name: '紅華', roleName: '前衛/双剣突進', isDefaultFront: true, color: '#ff6666' },
         { id: '004', name: '黄蘭', roleName: '後衛/リボン支援', isDefaultFront: false, color: '#ffea77' },
         { id: '005', name: '李乃果', roleName: '後衛/全体回復', isDefaultFront: false, color: '#77ff88' },
+        { id: '006', name: 'さくら', roleName: '前衛/瞬間移動連撃', isDefaultFront: true, color: '#ff77aa' },
         { id: '007', name: 'ななよ', roleName: '後衛/三鈷杵結界', isDefaultFront: false, color: '#ffbb66' },
         { id: '008', name: 'ノア', roleName: '後衛/不死鳥射撃', isDefaultFront: false, color: '#ff7755' },
         { id: '009', name: 'リフィエル', roleName: '前衛/変身槍連撃', isDefaultFront: true, color: '#55ffcc' },
@@ -20,7 +21,7 @@ export class PvpEnemyGenerator {
         { id: 3, name: '③ 紫苑・黄蘭・李乃果 (3人)', party: ['001', '004', '005'] },
         { id: 4, name: '④ 蒼樹・紅華・黄蘭・白蓮 (4人)', party: ['002', '003', '004', '010'] },
         { id: 5, name: '⑤ 5人初期編成 (5人)', party: ['001', '002', '003', '004', '005'] },
-        { id: 6, name: '⑥ 10人全員出撃！ (10人)', party: ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'] }
+        { id: 6, name: '⑥ 11人全員出撃！ (11人)', party: ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'] }
     ];
 
     static LANE_PATTERNS = {
@@ -28,7 +29,8 @@ export class PvpEnemyGenerator {
         2: [-1, 1],
         3: [-1, 0, 1],
         4: [-2, -1, 1, 2],
-        5: [-2, -1, 0, 1, 2]
+        5: [-2, -1, 0, 1, 2],
+        6: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]
     };
 
     /** 指定されたキャラクターIDリストから敵パーティを生成（最大10人対応、友好度対応） */
@@ -64,8 +66,46 @@ export class PvpEnemyGenerator {
         }
 
         // 3. レーンの割り当て
-        const frontLanes = this.LANE_PATTERNS[frontCandidates.length] || [0];
-        const rearLanes = this.LANE_PATTERNS[rearCandidates.length] || [0];
+        const totalCount = frontCandidates.length + rearCandidates.length;
+        let frontLanes = [];
+        let rearLanes = [];
+
+        if (totalCount <= 5) {
+            // 5人以下の場合は、プレイヤー側と同様に前衛と後衛でレーンが絶対に重複しないよう綺麗に配分する
+            const fCount = frontCandidates.length;
+            const rCount = rearCandidates.length;
+
+            if (totalCount === 5) {
+                if (fCount === 5) { frontLanes = [-2, -1, 0, 1, 2]; rearLanes = []; }
+                else if (fCount === 4) { frontLanes = [-2, -1, 1, 2]; rearLanes = [0]; }
+                else if (fCount === 3) { frontLanes = [-1, 0, 1]; rearLanes = [-2, 2]; }
+                else if (fCount === 2) { frontLanes = [-1, 1]; rearLanes = [-2, 0, 2]; }
+                else if (fCount === 1) { frontLanes = [0]; rearLanes = [-2, -1, 1, 2]; }
+                else { frontLanes = []; rearLanes = [-2, -1, 0, 1, 2]; }
+            } else if (totalCount === 4) {
+                if (fCount === 4) { frontLanes = [-2, -1, 1, 2]; rearLanes = []; }
+                else if (fCount === 3) { frontLanes = [-1, 0, 1]; rearLanes = [2]; }
+                else if (fCount === 2) { frontLanes = [-1, 1]; rearLanes = [-2, 2]; }
+                else if (fCount === 1) { frontLanes = [0]; rearLanes = [-2, -1, 1]; }
+                else { frontLanes = []; rearLanes = [-2, -1, 1, 2]; }
+            } else if (totalCount === 3) {
+                if (fCount === 3) { frontLanes = [-1, 0, 1]; rearLanes = []; }
+                else if (fCount === 2) { frontLanes = [-1, 1]; rearLanes = [0]; }
+                else if (fCount === 1) { frontLanes = [0]; rearLanes = [-1, 1]; }
+                else { frontLanes = []; rearLanes = [-1, 0, 1]; }
+            } else if (totalCount === 2) {
+                if (fCount === 2) { frontLanes = [-1, 1]; rearLanes = []; }
+                else if (fCount === 1) { frontLanes = [-1]; rearLanes = [1]; }
+                else { frontLanes = []; rearLanes = [-1, 1]; }
+            } else {
+                frontLanes = fCount > 0 ? [0] : [];
+                rearLanes = rCount > 0 ? [0] : [];
+            }
+        } else {
+            // 6人以上の場合は各列ごとに独立してレーンを割り振る
+            frontLanes = this.LANE_PATTERNS[frontCandidates.length] || [0];
+            rearLanes = this.LANE_PATTERNS[rearCandidates.length] || [0];
+        }
 
         const enemies = [];
 

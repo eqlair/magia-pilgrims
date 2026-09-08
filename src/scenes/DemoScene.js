@@ -224,6 +224,7 @@ export default class DemoScene extends Phaser.Scene {
                 <label><input type="checkbox" class="bc-party" value="003"> 3.紅華</label><br>
                 <label><input type="checkbox" class="bc-party" value="004"> 4.黄蘭</label><br>
                 <label><input type="checkbox" class="bc-party" value="005"> 5.李乃果</label><br>
+                <label><input type="checkbox" class="bc-party" value="006"> 6.さくら</label><br>
                 <label><input type="checkbox" class="bc-party" value="007"> 7.ななよ</label><br>
                 <label><input type="checkbox" class="bc-party" value="008"> 8.ノア</label><br>
                 <label><input type="checkbox" class="bc-party" value="009"> 9.リフィエル</label><br>

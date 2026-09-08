@@ -1151,11 +1151,18 @@ export default class JikukanScene extends Phaser.Scene {
         closeBtn.on('pointerdown', () => this.charModalContainer.destroy());
         this.charModalContainer.add(closeBtn);
 
-        const eligibleCharIds = ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'];
+        const eligibleCharIds = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'];
+        const fallbackNames = {
+            '001': '紫苑', '002': '蒼樹', '003': '紅華', '004': '黄蘭', '005': '李乃果',
+            '006': 'さくら', '007': 'ななよ', '008': 'ノア', '009': 'リフィエル', '010': 'プロセル', '011': '白蓮'
+        };
         const availableChars = [];
         for (const cid of eligibleCharIds) {
+            if (!gs.characters[cid]) {
+                gs.characters[cid] = gs.createInitialCharData(cid, fallbackNames[cid] || cid, 1);
+            }
             const c = gs.characters[cid];
-            if (c && (c.hasAccompanied || c.isJoined || cid === '001' || GlobalState.IS_DEBUG_MODE)) {
+            if (c && (c.hasAccompanied || c.isJoined || cid === '001' || cid === '006' || GlobalState.IS_DEBUG_MODE)) {
                 availableChars.push(c);
             }
         }

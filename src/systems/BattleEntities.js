@@ -133,8 +133,8 @@ export class BattleEntity {
         this.knockbackOffsetX = (this.knockbackOffsetX || 0) + distanceX;
         this.knockbackOffsetZ = (this.knockbackOffsetZ || 0) + distanceZ;
 
-        // baseXを持たない通常雑魚敵用の直接座標移動
-        if (this.baseX === undefined && !this.isEnemy) {
+        // baseXを持たない通常敵・ボス等の直接座標移動
+        if (this.baseX === undefined) {
             this.x += distanceX;
             this.z += distanceZ;
             this.z = Math.min(this.z, 24.0);
@@ -180,7 +180,8 @@ export class PlayerCharacter extends BattleEntity {
         this.elemMods = (stats && stats.elemMods) ? stats.elemMods : { red: 0, blue: 0, green: 0, yellow: 0, purple: 0 };
         this.damageResist = (stats && stats.damageResist) ? stats.damageResist : 0;
         this.allElemDef = Math.round(this.damageResist * 100); // 道場等の全属性防御力ボーナス(%)
-        this.debuffResist = Math.round(this.damageResist * 100); // 道場等のデバフ耐性ボーナス(%)
+        const dojoResistBonus = Math.round(this.damageResist * 100);
+        this.debuffResist = Math.max(1, 100 - dojoResistBonus); // 基本100(100%通る)。道場等の耐性ボーナスで下がる
         this.spDrainRate = (stats && stats.spDrainRate) ? stats.spDrainRate : 1.0;
         this.level = (stats && stats.level) ? stats.level : 1;
         
@@ -192,6 +193,7 @@ export class PlayerCharacter extends BattleEntity {
             '003': 'red',
             '004': 'yellow',
             '005': 'green',
+            '006': 'purple',
             '007': 'yellow',
             '008': 'red',
             '009': 'green',
@@ -208,13 +210,13 @@ export class PlayerCharacter extends BattleEntity {
         this.gachaTimer = 1.0;
 
         // 起動射程（キャラクター固有の閾値）
-        this.nearThreshold = this.charId === '003' ? 5.5 : (this.charId === '005' || this.charId === '010' ? 8.0 : (this.charId === '009' || this.charId === '011' ? 6.0 : 4.0));
-        this.farThreshold = this.charId === '001' ? 20.0 : (this.charId === '004' || this.charId === '009' || this.charId === '010' || this.charId === '011' ? 19.0 : 16.0);
+        this.nearThreshold = this.charId === '003' ? 5.5 : (this.charId === '005' || this.charId === '006' || this.charId === '010' ? 8.0 : (this.charId === '009' || this.charId === '011' ? 6.0 : 4.0));
+        this.farThreshold = this.charId === '001' ? 20.0 : (this.charId === '006' ? 18.0 : (this.charId === '004' || this.charId === '009' || this.charId === '010' || this.charId === '011' ? 19.0 : 16.0));
         if (this.charId === '001') this.nearThreshold = 8.0;
 
         this.updateAttackPatterns();
         // --- 特技（オートスキル）用のプロパティ ---
-        this.specialInterval = (this.charId === '005' || this.charId === '009' || this.charId === '011') ? 5.0 : (this.charId === '003' ? 12.0 : 10.0);
+        this.specialInterval = (this.charId === '005' || this.charId === '006' || this.charId === '009' || this.charId === '011') ? 5.0 : (this.charId === '003' ? 12.0 : 10.0);
         this.specialTimer = this.specialInterval; // 開幕はリロードタイムからスタート
         this.byakurenSpecialTimer2 = 0;
         this.reloadMultiplier = 1.0;
@@ -222,11 +224,19 @@ export class PlayerCharacter extends BattleEntity {
         this.barrierHp = 0;
         this.barrierTimer = 0;
         this.buffTimer = 0; // 紫苑のバフタイマーなど
-
+        this.sakuraUltTimer = 0;
+        this.isSakuraInvincible = false;
+        this.isMirageShiftInvincible = false;
+        this.sakuraStrikeTimer = 0;
+        this.sakuraFarAttackTimer = 0;
+        this.sakuraAttackFrame = 0;
+        this.afterimages = [];
 
         // 必殺技のクールダウン設定
         if (this.charId === '005') {
             this.maxUltimateCooldown = Math.max(10, 25.0 - this.wlv);
+        } else if (this.charId === '006') {
+            this.maxUltimateCooldown = Math.max(10, 30.0 - (this.wlv * 2.0));
         } else {
             this.maxUltimateCooldown = Math.max(0, 60.0 - (this.wlv * 2.0));
         }
@@ -361,6 +371,7 @@ export class PlayerCharacter extends BattleEntity {
 
     updateSpecialSkills(dt, players, effects, floatingTexts) {
         if (this.isDead) return;
+        if (this.stunTimer > 0) return; // ⚡ スタン中：特技・パッシブタイマー・SP減少を完全凍結
 
         // SP定期減少（1秒ごとに1削る、食料がない場合は+1削る、道場強化で軽減）※敵魔法少女は除外
         if (!this.isEnemy) {
@@ -429,9 +440,40 @@ export class PlayerCharacter extends BattleEntity {
             }
         }
 
+        // --- さくら(006)の必殺技・ストライク・残像タイマー ---
+        if (this.charId === '006') {
+            if (this.sakuraUltTimer > 0) {
+                this.sakuraUltTimer -= dt;
+                if (this.sakuraUltTimer <= 0) {
+                    this.sakuraUltTimer = 0;
+                    this.isSakuraInvincible = false;
+                    this.reloadMultiplier = 1.0;
+                    this.isUltimateMode = false;
+                }
+            }
+            if (this.sakuraStrikeTimer > 0) {
+                this.sakuraStrikeTimer -= dt;
+                if (this.sakuraStrikeTimer <= 0) {
+                    this.sakuraStrikeTimer = 0;
+                }
+            }
+            if (this.sakuraFarAttackTimer > 0) {
+                this.sakuraFarAttackTimer -= dt;
+                if (this.sakuraFarAttackTimer <= 0) {
+                    this.sakuraFarAttackTimer = 0;
+                }
+            }
+            if (this.afterimages && this.afterimages.length > 0) {
+                for (const img of this.afterimages) {
+                    img.lifeTime -= dt;
+                }
+                this.afterimages = this.afterimages.filter(img => img.lifeTime > 0);
+            }
+        }
+
         // --- 定期発動特技 ---
         let specialInterval = 10.0;
-        if (this.charId === '005' || this.charId === '009' || this.charId === '011') specialInterval = 5.0; // 李乃果・リフィエル・白蓮は5秒に1回！
+        if (this.charId === '005' || this.charId === '006' || this.charId === '009' || this.charId === '011') specialInterval = 5.0; // 李乃果・さくら・リフィエル・白蓮は5秒に1回！
         else if (this.charId === '003' || this.charId === '007') specialInterval = 12.0;
         else if (this.charId === '008') specialInterval = 15.0;
 
@@ -466,6 +508,93 @@ export class PlayerCharacter extends BattleEntity {
                         }
                     }
                     floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "HIT RATE UP", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
+                }
+            } else if (this.charId === '002') {
+                // 蒼樹 (特技: 10秒に1回、単体回復)
+                // 前列配置時: 自身HP < 90%なら自身、90%以上なら自身を含めもっとも生命力の少ないメンバー
+                // 後衛配置時: 自身
+                // 回復量: 蒼樹の生命力の (WL/3 + 6)%
+                // 消費精神力: 最大精神力の 0.4%
+                let healAmount = this.maxHp * ((this.wlv / 3.0 + 6.0) / 100.0);
+                let spCost = this.maxSp * 0.004;
+
+                const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
+                if (isPvp) {
+                    const gs = GlobalState.getInstance();
+                    const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
+                    healAmount *= (1.0 / denom);
+                    spCost *= (1.0 / denom);
+                }
+
+                let target = null;
+                if (this.isFront) {
+                    if (this.hp / this.maxHp < 0.90) {
+                        target = this;
+                    } else {
+                        target = lowestHpPlayer;
+                    }
+                } else {
+                    target = this;
+                }
+
+                // 全員HPMAX（対象がHP満タン）の時はスキップ
+                if (target && target.hp < target.maxHp) {
+                    if (this.sp >= spCost) {
+                        this.sp = Math.max(0, this.sp - spCost);
+                        target.hp = Math.min(target.maxHp, target.hp + healAmount);
+                        const displayAmount = healAmount <= 1.0 ? healAmount.toFixed(2) : Math.ceil(healAmount);
+                        floatingTexts.push({
+                            id: Math.random(),
+                            x: target.x,
+                            yOffset: 0,
+                            z: target.z,
+                            amount: displayAmount,
+                            type: "heal",
+                            lifeTime: 1.0,
+                            maxLife: 1.0
+                        });
+                        effects.push(new EffectEntity(target.x, target.z, {
+                            type: 'buff_circle',
+                            radius: 1.5,
+                            lifeTime: 0.5,
+                            customData: { color: 'green' }
+                        }));
+                    } else {
+                        // MP不足
+                        floatingTexts.push({
+                            id: Math.random(),
+                            x: this.x,
+                            yOffset: 0,
+                            z: this.z,
+                            amount: "NO MP",
+                            type: "miss",
+                            lifeTime: 1.0,
+                            maxLife: 1.0
+                        });
+                    }
+                }
+            } else if (this.charId === '003') {
+                // 紅華 (バリア: 12秒に1回、耐久量 10 + wlv * 3、持続 8.0秒)
+                const barrierVal = 10 + (this.wlv * 3);
+                let targets = [];
+                if (this.isFront) {
+                    targets.push(this);
+                    const others = players.filter(p => p !== this && p.isFront && !p.isDead).slice(0, 2);
+                    targets.push(...others);
+                } else {
+                    const frontAllies = players.filter(p => p.isFront && !p.isDead).slice(0, 2);
+                    if (frontAllies.length > 0) {
+                        targets.push(...frontAllies);
+                    } else {
+                        const backAllies = players.filter(p => !p.isFront && !p.isDead).slice(0, 2);
+                        targets.push(...backAllies);
+                    }
+                }
+                for (const t of targets) {
+                    t.barrierHp = barrierVal;
+                    t.barrierTimer = 8.0;
+                    floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "BARRIER", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
+                    effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
                 }
             } else if (this.charId === '005') {
                 // 李乃果: 5秒に1回、2人回復
@@ -543,70 +672,144 @@ export class PlayerCharacter extends BattleEntity {
                         }
                     }
                 }
-            } else if (this.charId === '002') {
-                // 蒼樹 (特技: 10秒に1回、単体回復)
-                // 前列配置時: 自身HP < 90%なら自身、90%以上なら自身を含めもっとも生命力の少ないメンバー
-                // 後衛配置時: 自身
-                // 回復量: 蒼樹の生命力の (WL/3 + 6)%
-                // 消費精神力: 最大精神力の 0.4%
-                let healAmount = this.maxHp * ((this.wlv / 3.0 + 6.0) / 100.0);
-                let spCost = this.maxSp * 0.004;
+            } else if (this.charId === '006') {
+                // さくら (特技: 5秒に1回、自身を中心に半径3mに衝撃波を起こし、範囲内の敵の弾丸、デバフ空間、バリアなどのオブジェクトを消す。0.4秒持続)
+                const radius = 3.0;
+                effects.push(new EffectEntity(this.x, this.z, {
+                    type: 'sakura_cleanse_shockwave',
+                    radius: radius,
+                    lifeTime: 0.4,
+                    customData: { color: 0xffaacc, textureKey: 'shockwave_006' }
+                }));
+                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "浄化衝撃波！", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
 
-                const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
-                if (isPvp) {
-                    const gs = GlobalState.getInstance();
-                    const denom = (gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30;
-                    healAmount *= (1.0 / denom);
-                    spCost *= (1.0 / denom);
-                }
+                // 範囲内のオブジェクト消去処理
+                if (this.engine) {
+                    const myOwner = this.owner || (this.isEnemy ? 'enemy' : 'player');
+                    const enemyOwner = myOwner === 'player' ? 'enemy' : 'player';
 
-                let target = null;
-                if (this.isFront) {
-                    if (this.hp / this.maxHp < 0.90) {
-                        target = this;
-                    } else {
-                        target = lowestHpPlayer;
+                    // 1. 敵の弾丸・デバフ空間（special_field_008, smoke_field_009等）を消去
+                    for (const b of this.engine.bullets) {
+                        if (b.isDead) continue;
+                        if (b.owner === enemyOwner || b.owner !== myOwner) {
+                            const bdx = b.x - this.x;
+                            const bdz = b.z - this.z;
+                            if (Math.sqrt(bdx * bdx + bdz * bdz) <= radius + (b.size || 0.5) / 2) {
+                                b.isDead = true;
+                                b.isDissolving = true;
+                                effects.push(new EffectEntity(b.x, b.z, {
+                                    type: 'hit_spark',
+                                    radius: 0.5,
+                                    lifeTime: 0.2
+                                }));
+                            }
+                        }
                     }
-                } else {
-                    target = this;
-                }
 
-                // 全員HPMAX（対象がHP満タン）の時はスキップ
-                if (target && target.hp < target.maxHp) {
-                    if (this.sp >= spCost) {
-                        this.sp = Math.max(0, this.sp - spCost);
-                        target.hp = Math.min(target.maxHp, target.hp + healAmount);
-                        const displayAmount = healAmount <= 1.0 ? healAmount.toFixed(2) : Math.ceil(healAmount);
-                        floatingTexts.push({
-                            id: Math.random(),
-                            x: target.x,
-                            yOffset: 0,
-                            z: target.z,
-                            amount: displayAmount,
-                            type: "heal",
-                            lifeTime: 1.0,
-                            maxLife: 1.0
-                        });
-                        effects.push(new EffectEntity(target.x, target.z, {
-                            type: 'buff_circle',
-                            radius: 1.5,
-                            lifeTime: 0.5,
-                            customData: { color: 'green' }
-                        }));
-                    } else {
-                        // MP不足
-                        floatingTexts.push({
-                            id: Math.random(),
-                            x: this.x,
-                            yOffset: 0,
-                            z: this.z,
-                            amount: "NO MP",
-                            type: "miss",
-                            lifeTime: 1.0,
-                            maxLife: 1.0
-                        });
+                    // 0.4秒間持続する浄化判定弾（持続中も敵弾を無限吸収！）
+                    const cleanseBullet = new Bullet(this.x, this.z, {
+                        owner: myOwner,
+                        vx: 0, vz: 0,
+                        damage: 0,
+                        size: radius * 2.0,
+                        lifeTime: 0.4,
+                        maxLife: 0.4,
+                        type: 'sakura_cleanse_bullet',
+                        isPiercing: true,
+                        isFollowOwner: true,
+                        ownerEntity: this,
+                        erasesEnemyBullets: true
+                    });
+                    this.engine.bullets.push(cleanseBullet);
+
+                    // 2. 敵のバリアを消去
+                    const opponents = myOwner === 'player'
+                        ? (this.engine.isPvpBattle ? this.engine.pvpEnemies : this.engine.enemies)
+                        : this.engine.players;
+                    for (const opp of opponents) {
+                        if (!opp.isDead && opp.hp > 0) {
+                            const odx = opp.x - this.x;
+                            const odz = opp.z - this.z;
+                            if (Math.sqrt(odx * odx + odz * odz) <= radius + (opp.size || 1.0) / 2) {
+                                if (opp.barrierHp > 0) {
+                                    opp.barrierHp = 0;
+                                    floatingTexts.push({
+                                        id: Math.random(),
+                                        x: opp.x,
+                                        yOffset: 0,
+                                        z: opp.z,
+                                        amount: "BARRIER BREAK",
+                                        type: "miss",
+                                        lifeTime: 1.0,
+                                        maxLife: 1.0
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
+                floatingTexts.push({
+                    id: Math.random(),
+                    x: this.x,
+                    yOffset: 0,
+                    z: this.z,
+                    amount: "CLEANSE!",
+                    type: "skill",
+                    lifeTime: 1.0,
+                    maxLife: 1.0
+                });
+            } else if (this.charId === '007') {
+                // ななよ (特技: 12秒に1回、自身と隣接レーンの味方の属性防御・デバフ抵抗を30下げる＝ダメージ軽減、持続 3 + wlv/2 秒)
+                const buffDuration = 3.0 + (this.wlv / 2.0);
+                const targets = players.filter(p => !p.isDead && Math.abs((p.lane !== undefined ? p.lane : 1) - (this.lane !== undefined ? this.lane : 1)) <= 1);
+                for (const t of targets) {
+                    t.elementalDefBuff = 30;
+                    t.elementalDefBuffTimer = buffDuration;
+                    floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "DEF UP!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
+                    effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'yellow' } }));
+                }
+            } else if (this.charId === '008') {
+                // ノア (特技: 15秒に1回、エネルギー球の位置に直径3mのフィールドを形成。5秒間維持、攻撃力0、触れた敵の属性防御力を50上げる(弱体化、敵のデバフ抵抗力で増減)。デバフ効果は 5 + WLV 秒維持)
+                const debuffDuration = 5.0 + this.wlv;
+                const activeOrbs = (this.noahOrbs || []).filter(o => !o.isDead);
+                
+                // 生きているエネルギー球体の位置、なければノアの前方にフィールドを形成
+                const forwardZ = this.isEnemy ? -1.5 : 1.5;
+                const spawnPoints = activeOrbs.length > 0 
+                    ? activeOrbs.map(o => ({ x: o.x, z: o.z }))
+                    : [{ x: this.x, z: this.z + forwardZ }];
+
+                const baseAngle = this.isEnemy ? -Math.PI / 2 : Math.PI / 2; // 敵なら手前(-Z)、味方なら奥(+Z)
+                const fieldSpeed = 3.0; // 秒速3m
+
+                for (const pt of spawnPoints) {
+                    const devDeg = (Math.random() - 0.5) * 10; // ランダム±5度
+                    const devRad = devDeg * (Math.PI / 180);
+                    const shootAngle = baseAngle + devRad;
+                    const vx = Math.cos(shootAngle) * fieldSpeed;
+                    const vz = Math.sin(shootAngle) * fieldSpeed;
+
+                    const specialField = new Bullet(pt.x, pt.z, {
+                        owner: this.owner || (this.isEnemy ? 'enemy' : 'player'),
+                        vx: vx,
+                        vz: vz, // 秒速3mで前方向ランダム±5度に進む
+                        damage: 0,
+                        knockback: 0,
+                        size: 3.0, // 直径3m
+                        lifeTime: 5.0,
+                        type: 'special_field_008',
+                        textureKey: 'weapon_008_orb',
+                        isPiercing: true,
+                        debuffDuration: debuffDuration,
+                        baseDebuff: 50,
+                        opacity: 0.5
+                    });
+                    specialField.sourceEntity = this;
+                    if (this.engine) {
+                        this.engine.bullets.push(specialField);
+                    }
+                }
+                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "WEAKEN FIELD!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '009') {
                 // リフィエル: 5秒に1回、2人回復
                 // 前列: 自身HP < 90%なら自身＋もう一人、90%以上なら自身含め最もHP割合の低い2人
@@ -685,81 +888,6 @@ export class PlayerCharacter extends BattleEntity {
                         }
                     }
                 }
-            } else if (this.charId === '003') {
-                // 紅華 (バリア: 12秒に1回、耐久量 10 + wlv * 3、持続 8.0秒)
-                const barrierVal = 10 + (this.wlv * 3);
-                let targets = [];
-                if (this.isFront) {
-                    targets.push(this);
-                    const others = players.filter(p => p !== this && p.isFront && !p.isDead).slice(0, 2);
-                    targets.push(...others);
-                } else {
-                    const frontAllies = players.filter(p => p.isFront && !p.isDead).slice(0, 2);
-                    if (frontAllies.length > 0) {
-                        targets.push(...frontAllies);
-                    } else {
-                        const backAllies = players.filter(p => !p.isFront && !p.isDead).slice(0, 2);
-                        targets.push(...backAllies);
-                    }
-                }
-                for (const t of targets) {
-                    t.barrierHp = barrierVal;
-                    t.barrierTimer = 8.0;
-                    floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "BARRIER", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
-                    effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'cyan' } }));
-                }
-            } else if (this.charId === '007') {
-                // ななよ (特技: 12秒に1回、自身と隣接レーンの味方の属性防御・デバフ抵抗を30下げる＝ダメージ軽減、持続 3 + wlv/2 秒)
-                const buffDuration = 3.0 + (this.wlv / 2.0);
-                const targets = players.filter(p => !p.isDead && Math.abs((p.lane !== undefined ? p.lane : 1) - (this.lane !== undefined ? this.lane : 1)) <= 1);
-                for (const t of targets) {
-                    t.elementalDefBuff = 30;
-                    t.elementalDefBuffTimer = buffDuration;
-                    floatingTexts.push({ id: Math.random(), x: t.x, yOffset: 0, z: t.z, amount: "DEF UP!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
-                    effects.push(new EffectEntity(t.x, t.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.5, customData: { color: 'yellow' } }));
-                }
-            } else if (this.charId === '008') {
-                // ノア (特技: 15秒に1回、エネルギー球の位置に直径3mのフィールドを形成。5秒間維持、攻撃力0、触れた敵の属性防御力を50上げる(弱体化、敵のデバフ抵抗力で増減)。デバフ効果は 5 + WLV 秒維持)
-                const debuffDuration = 5.0 + this.wlv;
-                const activeOrbs = (this.noahOrbs || []).filter(o => !o.isDead);
-                
-                // 生きているエネルギー球体の位置、なければノアの前方にフィールドを形成
-                const forwardZ = this.isEnemy ? -1.5 : 1.5;
-                const spawnPoints = activeOrbs.length > 0 
-                    ? activeOrbs.map(o => ({ x: o.x, z: o.z }))
-                    : [{ x: this.x, z: this.z + forwardZ }];
-
-                const baseAngle = this.isEnemy ? -Math.PI / 2 : Math.PI / 2; // 敵なら手前(-Z)、味方なら奥(+Z)
-                const fieldSpeed = 3.0; // 秒速3m
-
-                for (const pt of spawnPoints) {
-                    const devDeg = (Math.random() - 0.5) * 10; // ランダム±5度
-                    const devRad = devDeg * (Math.PI / 180);
-                    const shootAngle = baseAngle + devRad;
-                    const vx = Math.cos(shootAngle) * fieldSpeed;
-                    const vz = Math.sin(shootAngle) * fieldSpeed;
-
-                    const specialField = new Bullet(pt.x, pt.z, {
-                        owner: this.owner || (this.isEnemy ? 'enemy' : 'player'),
-                        vx: vx,
-                        vz: vz, // 秒速3mで前方向ランダム±5度に進む
-                        damage: 0,
-                        knockback: 0,
-                        size: 3.0, // 直径3m
-                        lifeTime: 5.0,
-                        type: 'special_field_008',
-                        textureKey: 'weapon_008_orb',
-                        isPiercing: true,
-                        debuffDuration: debuffDuration,
-                        baseDebuff: 50,
-                        opacity: 0.5
-                    });
-                    specialField.sourceEntity = this;
-                    if (this.engine) {
-                        this.engine.bullets.push(specialField);
-                    }
-                }
-                floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "WEAKEN FIELD!", type: "skill", lifeTime: 1.0, maxLife: 1.0 });
             } else if (this.charId === '010') {
                 // プロセル (特技: 10秒に1回、前衛なら2m前、後衛なら8m前に直径1.5mの氷塊を生成。敵弾を5+WLV発吸収、6秒持続)
                 const spawnZ = this.z + (this.isEnemy ? (this.isFront ? -2.0 : -8.0) : (this.isFront ? 2.0 : 8.0));
@@ -861,7 +989,7 @@ export class PlayerCharacter extends BattleEntity {
         let rawCost;
         if (this.charId === '005') {
             rawCost = this.maxSp * 0.10;
-        } else if (this.charId === '009') {
+        } else if (this.charId === '006' || this.charId === '009') {
             rawCost = 20 + this.wlv;
         } else {
             rawCost = 10 + this.wlv;
@@ -970,6 +1098,54 @@ export class PlayerCharacter extends BattleEntity {
                 }});
             }
 
+        } else if (this.charId === '003') {
+            // 紅華: 4m槍投げ（両端を繋げた形）
+            const dmg = 2.0 * this.atk * ultimateDamageMultiplier;
+            const spawnX = this.x;
+            const spawnZ = this.z;
+            let dirX = 0; let dirZ = this.isEnemy ? -1 : 1;
+            
+            const bObj = new Bullet(spawnX, spawnZ, {
+                owner: this.owner || 'player', isPiercing: true,
+                vx: dirX * 5.0, vz: dirZ * 5.0, // 初速5.0m/s
+                damage: dmg, knockback: 200, size: 30.0, hitRange: 3.0, lifeTime: 10.0, type: 'ultimate_003'
+            });
+            bObj.sourceEntity = this;
+            bObj.isReturning = false;
+            bObj.distanceTraveled = 0;
+            bObj.spinAngle = 0;
+            
+            bObj.update = function(dt) {
+                this.spinAngle += 5 * Math.PI * dt;
+                if (!this.isReturning) {
+                    this.x += this.vx * dt; 
+                    this.z += this.vz * dt; 
+                    this.distanceTraveled += 5.0 * dt;
+                    if (this.distanceTraveled >= 16.0) {
+                        this.isReturning = true;
+                    }
+                } else {
+                    const dx = this.sourceEntity.x - this.x;
+                    const dz = this.sourceEntity.z - this.z;
+                    const dist = Math.sqrt(dx*dx + dz*dz) || 0.001;
+                    if (dist < 1.0) {
+                        this.isDead = true;
+                        this.sourceEntity.isUltimateActive = false;
+                        return;
+                    }
+                    const spd = 10.0 * dt;
+                    this.x += (dx / dist) * spd;
+                    this.z += (dz / dist) * spd;
+                }
+            };
+            
+            this.isUltimateActive = true;
+            this.ultimateTimer = 0;
+            if (this.engine) {
+                this.engine.bullets.push(bObj); if (bObj && bObj.sourceEntity && bObj.sourceEntity.triggerAttackShake) bObj.sourceEntity.triggerAttackShake();
+            } else {
+                bullets.push(bObj); if (bObj && bObj.sourceEntity && bObj.sourceEntity.triggerAttackShake) bObj.sourceEntity.triggerAttackShake();
+            }
         } else if (this.charId === '004') {
             // 黄蘭: 垂直上向きから左右に10度づつの二方向に黄色い帯が伸びる
             const ribbonDmg = 1.2 * this.atk * ultimateDamageMultiplier;
@@ -1061,80 +1237,33 @@ export class PlayerCharacter extends BattleEntity {
                     effects.push(new EffectEntity(p.x, p.z, { type: 'buff_circle', radius: 1.5, lifeTime: 0.6, customData: { color: 'green' } }));
                 }
             }
-        } else if (this.charId === '009') {
-            // リフィエル 必殺技: 10 + WLV 秒間大人の姿に変身して槍で猛攻撃！
-            this.isUltimateActive = true;
-            this.riphielUltTimer = 15.0 + this.wlv;
-            this.updateAttackPatterns();
-            this.combatState.phase = 'idle';
-            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "大人の覚醒！", type: "skill", lifeTime: 1.5, maxLife: 1.5 });
+        } else if (this.charId === '006') {
+            // さくら 必殺技 (天衣無縫):
+            // 消費SP: 20 + WLV, CD: 30 - WLV*2
+            // 10 + (WLV/2) 秒の間、リロード時間を半減し、ダメージを受けなくなる（完全無敵）
+            if (!isLinked) {
+                const spCost = Math.floor((20 + this.wlv) * spCostMultiplier);
+                if (this.sp < spCost) return false;
+                this.sp -= spCost;
 
-            // ① nrg.png 加算合成バーストフラッシュ（大小の姿を重ねて光らせる）
-            effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_009', radius: 3.0, lifeTime: 0.6 }));
-
-            // ② 直径3m(半径1.5m)の押し返しバレットを生成（槍回しと同じ攻撃力・ノックバック）
-            const blastDmg = 1.2 * this.atk;
-            const blastBullet = new Bullet(this.x, this.z, {
-                owner: this.owner || 'player',
-                vx: 0, vz: 0,
-                damage: blastDmg,
-                knockback: 15,
-                size: 3.0,
-                hitRange: 1.5,
-                isPiercing: true,
-                type: 'blast_009',
-                lifeTime: 0.4
-            });
-            blastBullet.sourceEntity = this;
-            bullets.push(blastBullet);
-        } else if (this.charId === '003') {
-            // 紅華: 4m槍投げ（両端を繋げた形）
-            const dmg = 2.0 * this.atk * ultimateDamageMultiplier;
-            const spawnX = this.x;
-            const spawnZ = this.z;
-            let dirX = 0; let dirZ = this.isEnemy ? -1 : 1;
-            
-            const bObj = new Bullet(spawnX, spawnZ, {
-                owner: this.owner || 'player', isPiercing: true,
-                vx: dirX * 5.0, vz: dirZ * 5.0, // 初速5.0m/s
-                damage: dmg, knockback: 200, size: 30.0, hitRange: 3.0, lifeTime: 10.0, type: 'ultimate_003'
-            });
-            bObj.sourceEntity = this;
-            bObj.isReturning = false;
-            bObj.distanceTraveled = 0;
-            bObj.spinAngle = 0;
-            
-            bObj.update = function(dt) {
-                this.spinAngle += 5 * Math.PI * dt;
-                if (!this.isReturning) {
-                    this.x += this.vx * dt; 
-                    this.z += this.vz * dt; 
-                    this.distanceTraveled += 5.0 * dt;
-                    if (this.distanceTraveled >= 16.0) {
-                        this.isReturning = true;
-                    }
-                } else {
-                    const dx = this.sourceEntity.x - this.x;
-                    const dz = this.sourceEntity.z - this.z;
-                    const dist = Math.sqrt(dx*dx + dz*dz) || 0.001;
-                    if (dist < 1.0) {
-                        this.isDead = true;
-                        this.sourceEntity.isUltimateActive = false;
-                        return;
-                    }
-                    const spd = 10.0 * dt;
-                    this.x += (dx / dist) * spd;
-                    this.z += (dz / dist) * spd;
-                }
-            };
-            
-            this.isUltimateActive = true;
-            this.ultimateTimer = 0;
-            if (this.engine) {
-                this.engine.bullets.push(bObj); if (bObj && bObj.sourceEntity && bObj.sourceEntity.triggerAttackShake) bObj.sourceEntity.triggerAttackShake();
-            } else {
-                bullets.push(bObj); if (bObj && bObj.sourceEntity && bObj.sourceEntity.triggerAttackShake) bObj.sourceEntity.triggerAttackShake();
+                const cdVal = Math.max(10, 30 - (this.wlv * 2));
+                this.ultimateCooldown = cdVal;
             }
+
+            const dur = 10.0 + (this.wlv / 2.0);
+            this.sakuraUltTimer = dur;
+            this.isSakuraInvincible = true;
+            this.reloadMultiplier = 0.5;
+            this.isUltimateMode = true;
+
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "天衣無縫！", type: "skill", lifeTime: 1.5, maxLife: 1.5 });
+            effects.push(new EffectEntity(this.x, this.z, {
+                type: 'sakura_invincible_aura',
+                radius: 2.0,
+                lifeTime: dur,
+                customData: { color: 0xffaacc, alpha: 0.6 },
+                ownerEntity: this
+            }));
         } else if (this.charId === '007') {
             // ななよ 必殺技:
             // 消費SP: 10 + WLV, CD: 60 - WLV*2
@@ -1314,6 +1443,32 @@ export class PlayerCharacter extends BattleEntity {
                 bullets.push(ultBullet);
             }
             floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "不滅の不死鳥！", type: "skill", lifeTime: 1.2, maxLife: 1.2 });
+        } else if (this.charId === '009') {
+            // リフィエル 必殺技: 10 + WLV 秒間大人の姿に変身して槍で猛攻撃！
+            this.isUltimateActive = true;
+            this.riphielUltTimer = 15.0 + this.wlv;
+            this.updateAttackPatterns();
+            this.combatState.phase = 'idle';
+            floatingTexts.push({ id: Math.random(), x: this.x, yOffset: 0, z: this.z, amount: "大人の覚醒！", type: "skill", lifeTime: 1.5, maxLife: 1.5 });
+
+            // ① nrg.png 加算合成バーストフラッシュ（大小の姿を重ねて光らせる）
+            effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_009', radius: 3.0, lifeTime: 0.6 }));
+
+            // ② 直径3m(半径1.5m)の押し返しバレットを生成（槍回しと同じ攻撃力・ノックバック）
+            const blastDmg = 1.2 * this.atk;
+            const blastBullet = new Bullet(this.x, this.z, {
+                owner: this.owner || 'player',
+                vx: 0, vz: 0,
+                damage: blastDmg,
+                knockback: 15,
+                size: 3.0,
+                hitRange: 1.5,
+                isPiercing: true,
+                type: 'blast_009',
+                lifeTime: 0.4
+            });
+            blastBullet.sourceEntity = this;
+            bullets.push(blastBullet);
         } else if (this.charId === '010') {
             // プロセル 必殺技:
             // 消費SP: 20 + WLV, CD: 30 - WLV*2
@@ -1437,6 +1592,27 @@ export class PlayerCharacter extends BattleEntity {
             return;
         }
 
+        if (this.stunTimer > 0) {
+            // ⚡ スタン中：吹っ飛ばされた位置のまま完全フリーズ。
+            // レーン移動、元の隊列への復帰、踏み込み(animOffset)、ノックバック復帰、予約攻撃(delayedActions)をすべて停止する
+            this.isHopping = false;
+            this.isMirageShift = false;
+            this.isMirageShiftInvincible = false;
+            this.isSakuraStepping = false;
+            this.isKickAttacking = false;
+            this.kickTimer = 0;
+            this.sakuraStrikeTimer = 0;
+            this.sakuraFarAttackTimer = 0;
+            this.targetOffsetX = 0;
+            this.targetOffsetZ = 0;
+            this.delayedActions = []; // 予約されていた攻撃も完全キャンセル
+
+            this.x = this.baseX + this.animOffsetX + (this.knockbackOffsetX || 0);
+            this.z = this.baseZ + this.animOffsetZ + (this.knockbackOffsetZ || 0);
+            super.update(dt);
+            return;
+        }
+
         // ベース位置の更新
         const laneSpacing = this.isEnemy ? 1.8 : 2.0;
         const defaultFrontZ = this.isEnemy ? 9.0 : 6.0;
@@ -1452,7 +1628,21 @@ export class PlayerCharacter extends BattleEntity {
         }
         
         this.baseX += (targetX - this.baseX) * 10.0 * dt;
-        this.baseZ += (targetZ - this.baseZ) * 5.0 * dt;
+        if (this.isMarching) {
+            // ⚔️ 対人戦開幕の進軍演出: 目標配置位置に向かって秒速5.0mの等速で前進
+            if (this.baseZ > targetZ) {
+                this.baseZ = Math.max(targetZ, this.baseZ - 5.0 * dt);
+                if (this.baseZ <= targetZ) {
+                    this.baseZ = targetZ;
+                    this.isMarching = false;
+                }
+            } else {
+                this.isMarching = false;
+                this.baseZ += (targetZ - this.baseZ) * 5.0 * dt;
+            }
+        } else {
+            this.baseZ += (targetZ - this.baseZ) * 5.0 * dt;
+        }
 
         // オフセットの更新（跳び戻り中の場合は特別な補間）
         for (let i = this.delayedActions.length - 1; i >= 0; i--) {
@@ -1462,7 +1652,32 @@ export class PlayerCharacter extends BattleEntity {
                 this.delayedActions.splice(i, 1);
             }
         }
-        if (this.isHopping) {
+        if (this.isMirageShift || this.isSakuraStepping) {
+            // 🌸 さくら ミラージュシフト＆近接踏み込み: 秒速12.0mで一定速度スライド移動
+            const speed = 12.0;
+            const step = speed * dt;
+            const diffX = this.targetOffsetX - this.animOffsetX;
+            const diffZ = this.targetOffsetZ - this.animOffsetZ;
+            const dist = Math.hypot(diffX, diffZ);
+            if (dist <= step || dist < 0.01) {
+                this.animOffsetX = this.targetOffsetX;
+                this.animOffsetZ = this.targetOffsetZ;
+                this.isMirageShift = false;
+                this.isMirageShiftInvincible = false;
+                this.isSakuraStepping = false;
+            } else {
+                this.animOffsetX += (diffX / dist) * step;
+                this.animOffsetZ += (diffZ / dist) * step;
+                // 移動中に定期的に残像を生成 (0.15秒ごと)
+                this.mirageAfterimageTimer = (this.mirageAfterimageTimer || 0) + dt;
+                if (this.mirageAfterimageTimer >= 0.15) {
+                    this.mirageAfterimageTimer = 0;
+                    if (!this.afterimages) this.afterimages = [];
+                    this.afterimages.push({ x: this.x, z: this.z, alpha: 0.7, lifeTime: 0.35 });
+                }
+            }
+            this.animY = 0;
+        } else if (this.isHopping) {
             this.hopTimer -= dt;
             if (this.hopTimer <= 0) {
                 this.isHopping = false;
@@ -1793,21 +2008,26 @@ export class PlayerCharacter extends BattleEntity {
                         const deviationRad = (Math.random() - 0.5) * (6 * Math.PI / 180); // 3度ブレ
                         const shootAngle = baseAngle + deviationRad;
 
-                        const bulletSpeed = 25.0; // 速度25m/s
-                        const bulletDmg = Math.max(1, Math.floor(this.atk * 0.50)); // 威力: 攻撃力の50%
+                        const farPattern = (this.patterns && this.patterns.far && this.patterns.far[0]) || { power: 20, speed: 20, range: 10, knockback: 20 };
+                        const power = farPattern.power !== undefined ? farPattern.power : 20;
+                        const bulletDmg = Math.max(1, Math.floor((this.atk * power) / 100)); // 威力: 攻撃力のpower% (Lv1=20% 〜 Lv7=50%)
+                        const bulletSpeed = farPattern.speed !== undefined ? farPattern.speed : 20.0;
+                        const bulletRange = farPattern.range !== undefined ? farPattern.range : 10.0;
+                        const bulletKnockback = farPattern.knockback !== undefined ? farPattern.knockback : 20;
 
                         const bullet = new Bullet(orb.x, orb.z, {
                             owner: this.owner || (this.isEnemy ? 'enemy' : 'player'),
                             vx: Math.cos(shootAngle) * bulletSpeed,
                             vz: Math.sin(shootAngle) * bulletSpeed,
                             damage: bulletDmg,
-                            knockback: 20,
+                            baseDamage: bulletDmg,
+                            knockback: bulletKnockback,
                             size: 0.8,
                             isPiercing: false,
                             type: 'noah_bullet_008',
                             textureKey: 'weapon_008_bullet',
-                            targetDist: 15.0,
-                            lifeTime: 15.0 / bulletSpeed + 0.1 // 射程15m
+                            targetDist: bulletRange,
+                            lifeTime: bulletRange / bulletSpeed + 0.1 // 射程到達で爆炎に移行
                         });
                         bullet.sourceEntity = this;
                         bullet.textureKey = 'weapon_008_bullet';
@@ -1854,8 +2074,8 @@ export class EnemyCharacter extends BattleEntity {
 
         this.weight = data.weight || 5;
         this.debuffResist = data.debuffResist !== undefined ? data.debuffResist : 0;
-        const sizeBonus = data.isTowerEnemy ? 0 : Math.max(0, this.level - 1) * 0.1;
-        const baseSize = (data.size || 1.0) + sizeBonus;
+        const sizeMult = data.isTowerEnemy ? 1.0 : (1.0 + (Math.sqrt(Math.max(1, this.level)) - 1.0) * 0.38);
+        const baseSize = (data.size || 1.0) * sizeMult;
 
         this.size = baseSize * (gs.debugEnemySizeMultiplier || 1.0);
 
@@ -2016,12 +2236,13 @@ export class BossCharacter extends BattleEntity {
         this.animTimer = 0;
         this.nextAnimTime = 0.5 + Math.random() * 7.5; // 0.5秒〜8秒
 
-        // 攻撃用タイマー群
+        // 攻撃用タイマー群 (弾幕生成に関する魔女レベルはLV13を上限とする)
+        const bulletLevel = Math.min(13, level);
         this.atkTimers = {
             randomBullet: 1.0,  // ランダム弾
             dpsBullet: 4.5,     // 狙い撃ち弾
             nearAttack: 0.9,    // 近接攻撃
-            special: 12.0 - level
+            special: Math.max(2.0, 12.0 - bulletLevel)
         };
         if (gs.enemySpeedHalf) {
             this.atkTimers.randomBullet *= 2;
@@ -2102,11 +2323,14 @@ export class Bullet extends BattleEntity {
         this.distanceTraveled = 0;
         this.hitTargets = new Set();
         this.lifeTime = data.lifeTime || 5.0;
+        this.maxLife = data.maxLife || this.lifeTime;
         
         this.swayPhase = data.swayPhase || 0;
         this.swayAmp = data.swayAmp || 0;
         this.baseVx = this.vx;
         this.stunDuration = data.stunDuration || 0; // 行動不能効果
+        this.stunChance = data.stunChance !== undefined ? data.stunChance : 1.0; // スタン発生確率
+        this.excludedTarget = data.excludedTarget || null; // この判定を受けない除外対象（さくらの中間衝撃波の本命除外用）
         this.bulletDurability = data.bulletDurability;
         this.maxDurability = data.maxDurability;
         this.baseDamage = data.baseDamage !== undefined ? data.baseDamage : this.damage;
@@ -2209,23 +2433,30 @@ export class PvpEnemyCharacter extends PlayerCharacter {
         this.farLevel = data.rangedLevel || Math.max(1, Math.min(7, Math.floor(this.level / 2)));
         this.wlv = this.nearLevel + this.farLevel;
         this.weight = data.weight || 50;
+        this.damageResist = data.damageResist !== undefined ? data.damageResist : 0;
+        const baseResist = data.debuffResist !== undefined ? data.debuffResist : 100;
+        this.debuffResist = Math.max(1, baseResist - (this.level * 2)); // 1レベルにつき2ずつデバフ耐性を下げる(強化)
+        const baseDebuffDef = data.debuffDef !== undefined ? data.debuffDef : 100;
+        this.debuffDef = Math.max(1, baseDebuffDef - (this.level * 2)); // 1レベルにつき2ずつデバフ防御を下げる(強化)
+        this.allElemDef = data.allElemDef !== undefined ? data.allElemDef : 0;
 
         // 必殺技ゲージ: 開幕は0%（最大クールダウン値）からスタート
         this.maxUltimateCooldown = this.charId === '005'
             ? Math.max(10, 25.0 - this.wlv)
-            : Math.max(0, 60.0 - (this.wlv * 2.0));
+            : (this.charId === '006' ? Math.max(10, 30.0 - (this.wlv * 2.0)) : Math.max(0, 60.0 - (this.wlv * 2.0)));
         this.ultimateCooldown = this.maxUltimateCooldown;
-        if (this.charId === '005') {
+        if (this.charId === '005' || this.charId === '006' || this.charId === '009' || this.charId === '011') {
             this.specialInterval = 5.0;
             this.specialTimer = 5.0;
         }
 
-        // 座標: 前衛なら Z=9.0、後衛なら Z=14.0
+        // 座標: 開幕は画面上部奥(Z=25前後)からスタートし、目標配置位置(前衛Z=9.0、後衛Z=14.0)に向かって秒速5mで進軍
         this.baseX = this.lane * 1.8;
-        this.baseZ = this.isFront ? 9.0 : 14.0;
+        this.targetZ = this.isFront ? 9.0 : 14.0;
+        this.baseZ = this.isFront ? 25.0 : 28.0;
         this.x = this.baseX;
         this.z = this.baseZ;
-        this.targetZ = this.baseZ;
+        this.isMarching = true;
 
         const charIdToAttr = {
             '001': 'purple',
@@ -2233,6 +2464,7 @@ export class PvpEnemyCharacter extends PlayerCharacter {
             '003': 'red',
             '004': 'yellow',
             '005': 'green',
+            '006': 'purple',
             '007': 'yellow',
             '008': 'red',
             '009': 'green',

@@ -316,6 +316,21 @@ export default class RestScene extends Phaser.Scene {
 
         });
 
+        // 全員全回復ボタン
+        const { totalStockSpNeeded, isAnyNeedHeal } = this.calcHealAllCost();
+        const canHealAll = isAnyNeedHeal;
+        const healAllBtnColor = canHealAll ? '#227744' : '#333333';
+        const healAllTextColor = canHealAll ? '#ffffff' : '#777777';
+        const healAllBtn = this.add.text(width / 2, height - 75, '全員全回復', {
+            fontFamily: 'sans-serif', fontSize: '20px', color: healAllTextColor, backgroundColor: healAllBtnColor, padding: { x: 25, y: 8 }
+        }).setOrigin(0.5, 0.5);
+
+        if (canHealAll) {
+            healAllBtn.setInteractive({ useHandCursor: true });
+            healAllBtn.on('pointerdown', () => this.confirmHealAll());
+        }
+        this.mainViewContainer.add(healAllBtn);
+
         // 最下部「休息を終える」ボタン
         const finishBtn = this.add.text(width / 2, height - 25, '休息を終える', {
             fontFamily: 'sans-serif', fontSize: '22px', color: '#ffffff', backgroundColor: '#883333', padding: { x: 25, y: 8 }
@@ -393,6 +408,65 @@ export default class RestScene extends Phaser.Scene {
         });
     }
 
+    calcHealAllCost() {
+        let totalStockSpNeeded = 0;
+        let isAnyNeedHeal = false;
+
+        for (const charId of this.party) {
+            const charData = this.globalState.characters[charId];
+            if (!charData) continue;
+            const stats = this.globalState.calcStats(charId, this.party);
+            const maxHp = stats.maxHp;
+            const maxSp = stats.maxSp;
+            const curHp = Math.floor(charData.currentHp !== undefined ? charData.currentHp : maxHp);
+            const curSp = Math.floor(charData.currentSp !== undefined ? charData.currentSp : maxSp);
+
+            const hpDeficit = Math.max(0, maxHp - curHp);
+            const spDeficit = Math.max(0, maxSp - curSp);
+
+            if (hpDeficit > 0 || spDeficit > 0) {
+                isAnyNeedHeal = true;
+            }
+
+            const hpRate = (charData.dojo && charData.dojo.statsBonus && charData.dojo.statsBonus.hpRecoveryRate) || 30;
+            const spRate = (charData.dojo && charData.dojo.statsBonus && charData.dojo.statsBonus.spEfficiency) || 0.001;
+
+            // HP回復に必要なキャラSP
+            const neededSelfSpForHp = Math.ceil(hpDeficit / hpRate);
+            // 最終的にSPもmaxSpにするために必要な総SP不足分
+            const totalSpDeficit = spDeficit + neededSelfSpForHp;
+            if (totalSpDeficit > 0) {
+                const neededStock = Math.max(1, Math.ceil(totalSpDeficit / (maxSp * spRate)));
+                totalStockSpNeeded += neededStock;
+            }
+        }
+
+        return { totalStockSpNeeded, isAnyNeedHeal };
+    }
+
+    confirmHealAll() {
+        const { totalStockSpNeeded, isAnyNeedHeal } = this.calcHealAllCost();
+        if (!isAnyNeedHeal) return;
+
+        const currentStock = Math.floor(this.globalState.stockSp || 0);
+        if (currentStock < totalStockSpNeeded) {
+            this.showDialog(`所持SPが不足しています。\n(必要SP: ${totalStockSpNeeded} / 所持SP: ${currentStock})`, null, false);
+            return;
+        }
+
+        this.showDialog(`SP：${totalStockSpNeeded} 使用します。\nよろしいですか？`, () => {
+            this.globalState.stockSp = Math.max(0, currentStock - totalStockSpNeeded);
+            for (const charId of this.party) {
+                const charData = this.globalState.characters[charId];
+                if (!charData) continue;
+                const stats = this.globalState.calcStats(charId, this.party);
+                charData.currentHp = stats.maxHp;
+                charData.currentSp = stats.maxSp;
+            }
+            SaveManager.saveGame();
+            this.drawMainView(this.cameras.main.width, this.cameras.main.height);
+        });
+    }
 
     confirmFinishRest() {
         this.showDialog('休息を終えると時間が進みます。\nよろしいですか？', () => this.finishRest());
@@ -452,7 +526,7 @@ export default class RestScene extends Phaser.Scene {
     }
 
 
-    showDialog(message, onYes) {
+    showDialog(message, onYes, showNo = true) {
         const { width, height } = this.scale;
         const dialogContainer = this.add.container(0, 0).setDepth(2000);
         const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6).setInteractive();
@@ -460,20 +534,35 @@ export default class RestScene extends Phaser.Scene {
         const msgText = this.add.text(width / 2, height / 2 - 35, message, {
             fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff', align: 'center', wordWrap: { width: 400 }
         }).setOrigin(0.5, 0.5);
-        const yesBtn = this.add.text(width / 2 - 70, height / 2 + 45, 'はい', {
-            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff', backgroundColor: '#338833', padding: { x: 25, y: 8 }
-        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-        yesBtn.on('pointerdown', () => {
-            dialogContainer.destroy();
-            onYes();
-        });
-        const noBtn = this.add.text(width / 2 + 70, height / 2 + 45, 'いいえ', {
-            fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff', backgroundColor: '#555555', padding: { x: 25, y: 8 }
-        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-        noBtn.on('pointerdown', () => {
-            dialogContainer.destroy();
-        });
-        dialogContainer.add([backdrop, box, msgText, yesBtn, noBtn]);
+
+        const elements = [backdrop, box, msgText];
+
+        if (!showNo) {
+            const closeBtn = this.add.text(width / 2, height / 2 + 45, '閉じる', {
+                fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff', backgroundColor: '#555555', padding: { x: 25, y: 8 }
+            }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+            closeBtn.on('pointerdown', () => {
+                dialogContainer.destroy();
+                if (onYes) onYes();
+            });
+            elements.push(closeBtn);
+        } else {
+            const yesBtn = this.add.text(width / 2 - 70, height / 2 + 45, 'はい', {
+                fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff', backgroundColor: '#338833', padding: { x: 25, y: 8 }
+            }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+            yesBtn.on('pointerdown', () => {
+                dialogContainer.destroy();
+                if (onYes) onYes();
+            });
+            const noBtn = this.add.text(width / 2 + 70, height / 2 + 45, 'いいえ', {
+                fontFamily: 'sans-serif', fontSize: '20px', color: '#ffffff', backgroundColor: '#555555', padding: { x: 25, y: 8 }
+            }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+            noBtn.on('pointerdown', () => {
+                dialogContainer.destroy();
+            });
+            elements.push(yesBtn, noBtn);
+        }
+        dialogContainer.add(elements);
     }
 
     /** 休息画面に入った時の「チュートリアル(休息)」会話再生 */

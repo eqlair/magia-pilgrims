@@ -22,6 +22,7 @@ import JikukanScene from './scenes/JikukanScene';
 import { DebugMenuScene } from './scenes/DebugMenuScene';
 import MapEventAdjustScene from './scenes/MapEventAdjustScene';
 import EventTestScene from './scenes/EventTestScene';
+import EndingScene from './scenes/EndingScene';
 import { AudioOptimizer } from './systems/AudioOptimizer';
 import { GlobalState } from './systems/GlobalState';
 
@@ -99,7 +100,7 @@ const config = {
     pixelArt: false,
     // canvasは透明にして背面の動画が見えるようにする
     transparent: true,
-    scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DojoScene, JikukanScene, DebugMenuScene, MapEventAdjustScene, EventTestScene]
+    scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DojoScene, JikukanScene, DebugMenuScene, MapEventAdjustScene, EventTestScene, EndingScene]
 };
 
 
@@ -141,4 +142,30 @@ document.addEventListener('visibilitychange', () => {
 // 3. ウィンドウフォーカス喪失時も保険で一時停止
 window.addEventListener('blur', handleAppPause);
 window.addEventListener('focus', handleAppResume);
+
+// 4. Android ハードウェア戻るボタン対応（Capacitor）
+App.addListener('backButton', ({ canGoBack }) => {
+    console.log('[App] Android backButton pressed, canGoBack:', canGoBack);
+    // アクティブなシーンを取得
+    if (game && game.scene) {
+        const scenes = game.scene.getScenes(true);
+        const topScene = scenes && scenes.length > 0 ? scenes[scenes.length - 1] : null;
+        const sceneKey = topScene ? topScene.scene.key : null;
+
+        if (sceneKey === 'TitleScene' || sceneKey === 'BootScene') {
+            // タイトル画面ならアプリをバックグラウンドへ（終了）
+            App.exitApp();
+        } else if (sceneKey === 'DemoScene' || sceneKey === 'DebugMenuScene') {
+            game.scene.stop(sceneKey);
+            game.scene.start('TitleScene');
+        } else if (sceneKey === 'DojoScene' || sceneKey === 'CampScene' || sceneKey === 'FormationScene' || sceneKey === 'EquipmentScene' || sceneKey === 'JikukanScene') {
+            // メニュー系シーンなら前画面（AdventureScene等）に戻る
+            game.scene.stop(sceneKey);
+            game.scene.resume('AdventureScene');
+        } else {
+            // 戦闘中やアドベンチャーマップ中は誤タップで終了しないようガード
+            console.log('[App] Back button ignored in scene:', sceneKey);
+        }
+    }
+});
 

@@ -171,15 +171,18 @@ export class CharacterDetailHelper {
         // 1行目: 属性アイコン・名前・レベル
         const getElementImage = (id) => {
             switch(id) {
-                case '001': return 'em_2'; // 混沌
-                case '002': return 'em_5'; // 統制
-                case '003': return 'em_1'; // 情熱
-                case '004': return 'em_4'; // 犠牲
-                case '005': return 'em_3'; // 調和
+                case '001': return 'em_2'; // 混沌 (紫苑・紫)
+                case '002': return 'em_5'; // 統制 (蒼樹・青)
+                case '003': return 'em_1'; // 情熱 (紅華・赤)
+                case '004': return 'em_4'; // 犠牲 (黄蘭・黄)
+                case '005': return 'em_3'; // 調和 (李乃果・緑)
+                case '006': return 'em_2'; // 混沌 (さくら・紫)
                 case '007': return 'em_4'; // 犠牲 (ななよ・黄)
                 case '008': return 'em_1'; // 情熱 (ノア・赤)
-                case '010': return 'em_5'; // 統制 (白蓮)
-                default: return 'em_1';
+                case '009': return 'em_3'; // 調和 (リフィエル・緑)
+                case '010': return 'em_2'; // 混沌 (プロセル・紫)
+                case '011': return 'em_5'; // 統制 (白蓮・青)
+                default: return 'em_2';
             }
         };
         const elementIcon = scene.add.image(rx - 25, ry + 16, getElementImage(charId)).setScale(0.15).setInteractive({ useHandCursor: true });
@@ -212,9 +215,12 @@ export class CharacterDetailHelper {
             '003': { strong: 'purple', weak: 'blue' },
             '004': { strong: 'blue', weak: 'green' },
             '005': { strong: 'yellow', weak: 'purple' },
+            '006': { strong: 'green', weak: 'red' },
             '007': { strong: 'blue', weak: 'green' },
             '008': { strong: 'purple', weak: 'blue' },
-            '010': { strong: 'red', weak: 'yellow' }
+            '009': { strong: 'yellow', weak: 'purple' },
+            '010': { strong: 'green', weak: 'red' },
+            '011': { strong: 'red', weak: 'yellow' }
         };
 
         pageContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
@@ -621,9 +627,12 @@ export class CharacterDetailHelper {
             '003': { strong: 'purple', weak: 'blue' },
             '004': { strong: 'blue', weak: 'green' },
             '005': { strong: 'yellow', weak: 'purple' },
+            '006': { strong: 'green', weak: 'red' },
             '007': { strong: 'blue', weak: 'green' },
             '008': { strong: 'purple', weak: 'blue' },
-            '010': { strong: 'red', weak: 'yellow' }
+            '009': { strong: 'yellow', weak: 'purple' },
+            '010': { strong: 'green', weak: 'red' },
+            '011': { strong: 'red', weak: 'yellow' }
         };
 
         const elements = [

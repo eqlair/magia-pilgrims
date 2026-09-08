@@ -86,7 +86,7 @@ export default class TitleScene extends Phaser.Scene {
             const hh = String(d.getHours()).padStart(2, '0');
             const min = String(d.getMinutes()).padStart(2, '0');
             const hex = parseInt(`${yy}${mm}${dd}${hh}${min}`, 10).toString(16).toUpperCase();
-            return `ver.0.1${hex}`;
+            return `ver.1.0${hex}`;
         })();
 
         this.add.text(width - 12, height - 12, buildVer, {

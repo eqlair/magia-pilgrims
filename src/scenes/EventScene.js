@@ -486,8 +486,18 @@ export default class EventScene extends Phaser.Scene {
                 return;
             }
 
-            if (this.fromOpTutorial && this.battleConfig) {
-                TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
+            if (this.battleConfig) {
+                if (this.fromOpTutorial) {
+                    TransitionManager.transitionTo(this, 'BattleScene', this.battleConfig);
+                } else {
+                    if (this.engine) this.engine.cleanup();
+                    if (this.returnScene) {
+                        const retScene = this.scene.get(this.returnScene);
+                        if (retScene && retScene.hideMapVisuals) retScene.hideMapVisuals();
+                    }
+                    this.scene.sleep();
+                    this.scene.launch('BattleScene', this.battleConfig);
+                }
                 return;
             }
 

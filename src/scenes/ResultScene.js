@@ -389,8 +389,8 @@ export default class ResultScene extends Phaser.Scene {
                 ui.stat.currentHp += (newStats.maxHp - oldStats.maxHp);
                 ui.stat.currentSp += (newStats.maxSp - oldStats.maxSp);
                 
-                // レベルアップ時に友好度ボーナスポイントを1獲得
-                ui.stat.friendshipPoints = (ui.stat.friendshipPoints || 0) + 1;
+                // レベルアップ時に編成中の仲間からランダムに1人選んで友好度+1（一人旅や全員上限の場合はボーナスポイント獲得）
+                this.globalState.allocateLevelUpFriendship(ui.charId, this.party);
                 
                 currentLevel++;
             }

@@ -54,12 +54,26 @@ export default class FormationScene extends Phaser.Scene {
             }
             
             const sprite = this.add.sprite(0, 0, actualTexture).setOrigin(0.5, 0.5);
+
+            // 近WL、遠WL、熟練度(1/XX または MAX)を表示する3行テキスト
+            const infoText = this.add.text(0, 0, '', {
+                fontFamily: 'sans-serif',
+                fontSize: '13px',
+                color: '#ffffff',
+                align: 'center',
+                stroke: '#000000',
+                strokeThickness: 3,
+                lineSpacing: 1,
+                backgroundColor: '#000000bb',
+                padding: { x: 5, y: 2 }
+            });
             
             this.characters.push({
                 charId: charId,
                 lane: lane,
                 isFront: isFront,
-                sprite: sprite
+                sprite: sprite,
+                infoText: infoText
             });
         }
 
@@ -175,6 +189,13 @@ export default class FormationScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold'
         }).setOrigin(0.5, 0.5).setAlpha(0.6);
 
+        // ── 画面最下部：熟練度ガチャ試行回数の常時表示（累計経験値の上） ──
+        const gachaRolls = this.globalState.totalGachaRolls || 0;
+        this.gachaRollsText = this.add.text(width / 2, height - 82, `🎲 熟練度ガチャ試行回数: ${gachaRolls.toLocaleString()} 回`, {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffea88', fontStyle: 'bold',
+            stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5, 0.5);
+
         // ── 画面最下部：周回経験値ボーナス情報の常時表示 ──
         const maxExp = this.globalState.maxPastExp || 0;
         const curExp = this.globalState.currentRunTotalExp || 0;
@@ -216,6 +237,9 @@ export default class FormationScene extends Phaser.Scene {
             this.input.keyboard.on('keydown-K', () => {
                 this.applyCheatRelics();
             });
+            this.input.keyboard.on('keydown-H', () => {
+                this.simulateGacha100Seconds();
+            });
 
             // 画面右上チートボタン群（タップ操作用）
             const btnLv7 = this.add.text(width - 16, 16, '⚔️ 全Lv7 (J)', {
@@ -235,6 +259,12 @@ export default class FormationScene extends Phaser.Scene {
                 backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
             }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
             btnRelics.on('pointerdown', () => this.applyCheatRelics());
+
+            const btnGacha = this.add.text(width - 16, 124, '🎲 ガチャ100回 (H)', {
+                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffcc66',
+                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
+            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            btnGacha.on('pointerdown', () => this.simulateGacha100Seconds());
         }
     }
 
@@ -308,6 +338,25 @@ export default class FormationScene extends Phaser.Scene {
             char.baseScale = p.scale * (1.0 / baseWidth) * 2.4;
             char.sprite.setScale(char.baseScale); 
             char.sprite.setDepth(100 - z);
+
+            if (char.infoText) {
+                const charData = this.globalState.characters[char.charId] || {};
+                const melee = charData.meleeLevel || 1;
+                const ranged = charData.rangedLevel || 1;
+                const isMax = (melee >= 7 && ranged >= 7);
+                const denom = this.globalState.getAttackLevelGachaDenominator(char.charId);
+                const zz = isMax ? 'MAX' : `1/${denom}`;
+                char.infoText.setText(`近WL：${melee}\n遠WL：${ranged}\n${zz}`);
+
+                const displayHeight = (char.sprite.height || 728) * char.baseScale;
+                const textY = char.isFront
+                    ? (p.y - (displayHeight / 2) - 6) // 前衛: 頭の上
+                    : (p.y + (displayHeight / 2) + 6); // 後衛: キャラクターの下（足元）
+
+                char.infoText.setPosition(p.x, textY);
+                char.infoText.setOrigin(0.5, char.isFront ? 1.0 : 0.0);
+                char.infoText.setDepth(101 - z);
+            }
         }
     }
 
@@ -441,7 +490,59 @@ export default class FormationScene extends Phaser.Scene {
             }
         }
         SaveManager.saveGame();
+        this.updateCharacterTexts();
         this.showDebugToast('[DEBUG] みんなの攻撃レベルを全部7にしました！(近接7 / 遠隔7)');
+    }
+
+    updateCharacterTexts() {
+        if (!this.characters) return;
+        for (const char of this.characters) {
+            if (char.infoText) {
+                const charData = this.globalState.characters[char.charId] || {};
+                const melee = charData.meleeLevel || 1;
+                const ranged = charData.rangedLevel || 1;
+                const isMax = (melee >= 7 && ranged >= 7);
+                const denom = this.globalState.getAttackLevelGachaDenominator(char.charId);
+                const zz = isMax ? 'MAX' : `1/${denom}`;
+                char.infoText.setText(`近WL：${melee}\n遠WL：${ranged}\n${zz}`);
+            }
+        }
+    }
+
+    updateGachaRollsDisplay() {
+        if (this.gachaRollsText) {
+            const gachaRolls = this.globalState.totalGachaRolls || 0;
+            this.gachaRollsText.setText(`🎲 熟練度ガチャ試行回数: ${gachaRolls.toLocaleString()} 回`);
+        }
+    }
+
+    simulateGacha100Seconds() {
+        if (!this.characters || this.characters.length === 0) return;
+
+        let meleeUps = 0;
+        let rangedUps = 0;
+        let rollsCount = 0;
+
+        for (let i = 0; i < 100; i++) {
+            // 戦闘中と同じ抽選（編成メンバー + ハズレ枠1枠）
+            const candidates = [...this.characters, null];
+            const winner = candidates[Math.floor(Math.random() * candidates.length)];
+            if (winner) {
+                rollsCount++;
+                const res = this.globalState.rollAttackLevelGacha(winner.charId, winner.isFront);
+                if (res.type === 'melee') meleeUps++;
+                else if (res.type === 'ranged') rangedUps++;
+            }
+        }
+
+        SaveManager.saveGame();
+        this.updateCharacterTexts();
+        this.updateGachaRollsDisplay();
+
+        const toastMsg = (meleeUps > 0 || rangedUps > 0)
+            ? `[DEBUG] 100秒戦闘シミュ完了！ (${rollsCount}回試行 / 近接+${meleeUps}, 遠隔+${rangedUps} UP!)`
+            : `[DEBUG] 100秒戦闘シミュ完了！ (${rollsCount}回試行 / レベルアップなし)`;
+        this.showDebugToast(toastMsg);
     }
 
     applyCheatExpSp() {

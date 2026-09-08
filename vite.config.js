@@ -14,7 +14,7 @@ function getBuildVersion() {
 
     const num = parseInt(`${yy}${mm}${dd}${hh}${min}`, 10);
     const hex = num.toString(16).toUpperCase();
-    return `ver.0.1${hex}`;
+    return `ver.1.0${hex}`;
 }
 
 export default defineConfig({

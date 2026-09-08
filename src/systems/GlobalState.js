@@ -53,6 +53,8 @@ export class GlobalState {
         // 悪魔のSP回収箱（リスポーン時に回収されたSPの累積）
         this.devilStockSp = 0;
         
+        // 熟練度ガチャ累計試行回数
+        this.totalGachaRolls = 0;
         // OP戦完了フラグ（OP戦をクリアして本編マップに突入したか）
         this.isOpCompleted = false;
         
@@ -164,6 +166,7 @@ export class GlobalState {
             '003': this.createInitialCharData('003', '紅華', 1),
             '004': this.createInitialCharData('004', '黄蘭', 1),
             '005': this.createInitialCharData('005', '李乃果', 1),
+            '006': this.createInitialCharData('006', 'さくら', 1),
             '007': this.createInitialCharData('007', 'ななよ', 1),
             '008': this.createInitialCharData('008', 'ノア', 1),
             '009': this.createInitialCharData('009', 'リフィエル', 1),
@@ -381,6 +384,7 @@ export class GlobalState {
         if (str === '9' || str === '009') return '009';
         if (str === '8' || str === '008') return '008';
         if (str === '7' || str === '007') return '007';
+        if (str === '6' || str === '006') return '006';
         if (str === '1' || str === '001') return '001';
         if (str === '2' || str === '002' || str === '12') return '002';
         if (str === '3' || str === '003') return '003';
@@ -393,7 +397,7 @@ export class GlobalState {
         if (!id) return null;
         const normId = this.normalizeCharId(id);
         if (!this.characters[normId]) {
-            const charNames = { '001': '紫苑', '002': '蒼樹', '003': '紅華', '004': '黄蘭', '005': '李乃果', '007': 'ななよ', '008': 'ノア', '009': 'リフィエル', '010': 'プロセル', '011': '白蓮' };
+            const charNames = { '001': '紫苑', '002': '蒼樹', '003': '紅華', '004': '黄蘭', '005': '李乃果', '006': 'さくら', '007': 'ななよ', '008': 'ノア', '009': 'リフィエル', '010': 'プロセル', '011': '白蓮' };
             const name = charNames[normId] || `キャラ_${normId}`;
             this.characters[normId] = this.createInitialCharData(normId, name, 1);
         }
@@ -402,7 +406,7 @@ export class GlobalState {
 
     getTotalAffection() {
         let total = 0;
-        const uniqueChars = ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'];
+        const uniqueChars = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'];
         for (const id of uniqueChars) {
             const char = this.characters[id];
             if (char) {
@@ -449,6 +453,7 @@ export class GlobalState {
             meleeLevel: 1, // 近接攻撃レベル
             rangedLevel: 1, // 遠隔攻撃レベル
             gachaFails: 0, // 攻撃レベル上昇ガチャのハズレ回数
+            totalGachaRolls: 0, // 熟練度ガチャ試行回数
             baseHp: baseHp,
             baseSp: baseSp,
             baseAtk: baseAtk, // ベース攻撃力
@@ -1148,6 +1153,38 @@ export class GlobalState {
     }
 
 
+    // レベルアップ時の友好度割り振り処理（編成中の仲間からランダムに1人選んで友好度+1、一人旅や全員上限の場合はボーナスポイント+1）
+    allocateLevelUpFriendship(charId, party = null) {
+        const char = this.characters[charId];
+        if (!char) return null;
+
+        const p = party || (Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : [charId]);
+        const availableMembers = p.filter(id => id !== charId && this.characters[id] && ((char.friendships?.[id] || 0) < 25));
+
+        let targetName = null;
+        let targetCharId = null;
+        let isBonus = false;
+
+        if (availableMembers.length > 0) {
+            targetCharId = availableMembers[Math.floor(Math.random() * availableMembers.length)];
+            if (!char.friendships) char.friendships = {};
+            char.friendships[targetCharId] = (char.friendships[targetCharId] || 0) + 1;
+            
+            if (!char.metCharacters) char.metCharacters = [];
+            if (!char.metCharacters.includes(targetCharId)) char.metCharacters.push(targetCharId);
+
+            const targetChar = this.characters[targetCharId];
+            targetName = targetChar ? targetChar.name : `Char ${targetCharId}`;
+            console.log(`[LevelUp Affection] ${char.name} (+1 friendship towards ${targetName})`);
+        } else {
+            char.friendshipPoints = (char.friendshipPoints || 0) + 1;
+            isBonus = true;
+            console.log(`[LevelUp Affection] ${char.name} gained +1 friendship bonus point`);
+        }
+
+        return { targetCharId, targetName, isBonus };
+    }
+
     // レベルを上げる処理
     levelUp(charId, party = null) {
         const char = this.characters[charId];
@@ -1178,29 +1215,10 @@ export class GlobalState {
             const newStats = this.calcStats(charId);
 
             // 現在編成中の仲間からランダムに1人選んで友好度+1（一人旅や全員上限の場合はボーナスポイント獲得）
-            const p = party || (Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : [charId]);
-            const availableMembers = p.filter(id => id !== charId && this.characters[id] && ((char.friendships?.[id] || 0) < 25));
-
-            let targetName = null;
-            let targetCharId = null;
-            let isBonus = false;
-
-            if (availableMembers.length > 0) {
-                targetCharId = availableMembers[Math.floor(Math.random() * availableMembers.length)];
-                if (!char.friendships) char.friendships = {};
-                char.friendships[targetCharId] = (char.friendships[targetCharId] || 0) + 1;
-                
-                if (!char.metCharacters) char.metCharacters = [];
-                if (!char.metCharacters.includes(targetCharId)) char.metCharacters.push(targetCharId);
-
-                const targetChar = this.characters[targetCharId];
-                targetName = targetChar ? targetChar.name : `Char ${targetCharId}`;
-                console.log(`[LevelUp Affection] ${char.name} (+1 friendship towards ${targetName})`);
-            } else {
-                char.friendshipPoints = (char.friendshipPoints || 0) + 1;
-                isBonus = true;
-                console.log(`[LevelUp Affection] ${char.name} gained +1 friendship bonus point`);
-            }
+            const affectionResult = this.allocateLevelUpFriendship(charId, party);
+            const targetCharId = affectionResult ? affectionResult.targetCharId : null;
+            const targetName = affectionResult ? affectionResult.targetName : null;
+            const isBonus = affectionResult ? affectionResult.isBonus : false;
 
             // 上昇分を現在HPにも加算
             char.currentHp += (newStats.maxHp - oldStats.maxHp);
@@ -1302,10 +1320,25 @@ export class GlobalState {
     }
 
 
+    getAttackLevelGachaDenominator(charId) {
+        const char = this.characters[charId];
+        if (!char) return 100;
+        if (char.meleeLevel >= 7 && char.rangedLevel >= 7) {
+            return 0; // カンスト
+        }
+        const totalLevelUps = (char.meleeLevel - 1) + (char.rangedLevel - 1);
+        const baseDenominator = 100 + (totalLevelUps * 100);
+        return Math.max(1, baseDenominator - (char.gachaFails || 0));
+    }
+
     rollAttackLevelGacha(charId, isFront) {
         const char = this.characters[charId];
         if (!char) return { type: null, denominator: 1 };
         
+        // 熟練度ガチャ試行回数の記録（全体＆キャラ個別）
+        this.totalGachaRolls = (this.totalGachaRolls || 0) + 1;
+        char.totalGachaRolls = (char.totalGachaRolls || 0) + 1;
+
         // 両方ともレベル7の場合はガチャを回さない
         if (char.meleeLevel >= 7 && char.rangedLevel >= 7) {
             return { type: null, denominator: 1 };

@@ -51,11 +51,37 @@ export class BattleRenderer {
                     continue;
                 }
 
-                sprite.destroy();
+                this.spriteMap.delete(entity);
+
+                // 弾丸やバリアなどの消滅演出: 0.1秒で1.2倍に拡大しながら不透明度100→0で消滅
+                const isSwing = entity.type && entity.type.startsWith('swing_');
+                const isBulletOrBarrier = entity.isDissolving || (!entity.isEnemy && !isPlayerChar && !isSwing && sprite && sprite.visible);
+
+                if (isBulletOrBarrier && sprite && sprite.active && sprite.visible && this.scene && this.scene.tweens) {
+                    const origScaleX = sprite.scaleX;
+                    const origScaleY = sprite.scaleY;
+                    this.scene.tweens.add({
+                        targets: sprite,
+                        scaleX: origScaleX * 1.2,
+                        scaleY: origScaleY * 1.2,
+                        alpha: 0,
+                        duration: 100, // 0.1秒
+                        ease: 'Linear',
+                        onComplete: () => {
+                            if (sprite && sprite.scene && sprite.active) {
+                                sprite.destroy();
+                            }
+                        }
+                    });
+                } else {
+                    if (sprite && sprite.active) {
+                        sprite.destroy();
+                    }
+                }
+
                 if (entity.sprite2) {
                     entity.sprite2.destroy();
                 }
-                this.spriteMap.delete(entity);
                 
                 if (this.uiMap.has(entity)) {
                     const ui = this.uiMap.get(entity);
@@ -83,6 +109,10 @@ export class BattleRenderer {
             if (p.charId === '008') {
                 this._updateNoahOrbs(p);
             }
+            // さくら(006)の残像描画
+            if (p.charId === '006') {
+                this._updateSakuraAfterimages(p);
+            }
         }
 
         // 敵の描画更新
@@ -103,6 +133,10 @@ export class BattleRenderer {
                 if (ep.charId === '008') {
                     this._updateNoahOrbs(ep);
                 }
+                // さくら(006)の残像描画 (敵側)
+                if (ep.charId === '006') {
+                    this._updateSakuraAfterimages(ep);
+                }
             }
         }
 
@@ -122,6 +156,7 @@ export class BattleRenderer {
             else if (b.type === 'weapon_005' || b.type === 'swing_005') textureKey = 'weapon_005';
             else if (b.type === 'sankosho_007' || b.type === 'sankosho_circle_007' || b.type === 'weapon_007' || b.type === 'ultimate_007') textureKey = 'weapon_007';
             else if (b.type === 'noah_bullet_008' || b.type === 'weapon_008_bullet') textureKey = 'weapon_008_bullet';
+            else if (b.type === 'noah_flame_008') textureKey = 'nrg';
             else if (b.type === 'special_field_008') textureKey = 'weapon_008_orb';
             else if (b.type === 'ultimate_008') textureKey = b.textureKey || 'weapon_008_ult_a';
             else if (b.type === 'pollen_smoke_009' || b.type === 'smoke_field_009' || b.type === 'weapon_009_pollen') textureKey = 'weapon_009_pollen';
@@ -132,6 +167,8 @@ export class BattleRenderer {
             else if (b.type === 'laser_011' || b.type === 'weapon_011') textureKey = 'weapon_011';
             else if (b.type === 'barrier_011' || b.type === 'weapon_011b') textureKey = 'weapon_011b';
             else if (b.type === 'special_barrier_011' || b.type === 'ultimate_011' || b.type === 'ultimate_burst_field_011' || b.type === 'special_barrier_010' || b.type === 'ultimate_010') textureKey = 'nrg';
+            else if (b.type === 'strike_wave_006' || b.type === 'strike_subwave_006' || b.type === 'shockwave_006') textureKey = 'shockwave_006';
+            else if (b.type === 'pile_bunker_006' || b.type === 'weapon_006_bunker') textureKey = 'weapon_006_bunker';
             // 汎用: swing_XXX 形式
             else if (b.type && b.type.startsWith('swing_')) {
                 const id = b.type.replace('swing_', '');
@@ -216,16 +253,16 @@ export class BattleRenderer {
     _updateSprite(entity, textureKey) {
         let sprite = this.spriteMap.get(entity);
         if (!sprite) {
-            // 弾丸・バリア弾・手りゅう弾は画像の中心(0.5, 0.5)を基準点に。キャラは基本足元(1.0)だが、魔女は表示を1/3下げるため0.666にする
+            // 弾丸・バリア弾・手りゅう弾・衝撃波は画像の中心(0.5, 0.5)を基準点に。キャラは基本足元(1.0)だが、魔女は表示を1/3下げるため0.666にする
             const isBarrier = (entity.type && (entity.type.includes('barrier') || entity.type.includes('010')));
-            const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || isBarrier;
+            const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || isBarrier || textureKey === 'shockwave_006';
             let originY = 1.0;
             if (isProjectile) {
                 // スイングの場合は持ち手(1.0)を軸にする
                 if ((entity.type && entity.type.startsWith('swing_')) || entity.type === 'ultimate_003') {
                     originY = 1.0;
                 } else {
-                    originY = 0.5; // バリア弾を含む各種飛び道具は画像中心(0.5)を中心点にする！
+                    originY = 0.5; // バリア弾・衝撃波を含む各種飛び道具は画像中心(0.5)を中心点にする！
                 }
             } else if (entity.isBoss) {
                 originY = 0.666; // Z軸方向（画面下方向）に1/3下げる
@@ -241,8 +278,11 @@ export class BattleRenderer {
             
             // 弾丸や手りゅう弾はキャラの足元(Y)ではなく、腰の高さ（おおよそ1.0mの高さ）に表示する
             const isBarrier = (entity.type && (entity.type.includes('barrier') || entity.type.includes('010')));
-            const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || isBarrier;
+            const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || isBarrier || textureKey === 'shockwave_006';
             let heightOffset = isProjectile ? p.scale * 1.0 : 0;
+            if (textureKey === 'shockwave_006') {
+                heightOffset = p.scale * 0.5; // さくらの中心座標（腰・中心あたり）
+            }
             if (entity.animY) {
                 heightOffset += p.scale * entity.animY;
             }
@@ -267,17 +307,27 @@ export class BattleRenderer {
                 finalX += (Math.random() - 0.5) * shakeMag;
                 finalY += (Math.random() - 0.5) * shakeMag;
             }
+            if (!isProjectile && entity.stunTimer > 0 && !isDown) {
+                // ⚡ スタン時の痺れ振動（小刻みなジッター）
+                const stunShakeMag = 0.12 * p.scale;
+                finalX += (Math.random() - 0.5) * stunShakeMag;
+                finalY += (Math.random() - 0.5) * stunShakeMag;
+            }
             sprite.setPosition(finalX, finalY);
             
             // Zソート（手前にあるものほど p.depth(rz) が小さくなるため、1000 から引いて手前を上に描画）
             sprite.setDepth(1000 - p.depth);
             
-            // 魔女（ボス）の場合はサイズ確認用のデバッグ円を描画
+            // 魔女（ボス）の場合はサイズ確認用のデバッグ楕円を描画
             if (entity.isBoss && this.debugGraphics) {
-                // p.x, p.y は画面座標。物理サイズ(entity.size)を画面上のピクセルに変換する
-                const screenRadius = entity.size / 2 * this.PPU * p.scale;
-                this.debugGraphics.lineStyle(2, 0xff0000, 1.0);
-                this.debugGraphics.strokeCircle(p.x, p.y, screenRadius);
+                const zOffset = (entity.size || 1.0) * 0.15;
+                const pOffset = this.projector.project(entity.x, entity.z + zOffset);
+                if (pOffset.visible) {
+                    const width = (entity.size || 1.0) * p.scale;
+                    const height = (entity.size || 1.0) * 0.65 * p.scale * 0.22; // 見下ろし角77.5度のZ圧縮率(約0.22)
+                    this.debugGraphics.lineStyle(2, 0xff0000, 1.0);
+                    this.debugGraphics.strokeEllipse(pOffset.x, pOffset.y, width, height);
+                }
             }
 
             // 向きおよびテクスチャ・モーションの変更 (武器・弾は除外してプレイヤー本体のみ対象)
@@ -303,6 +353,8 @@ export class BattleRenderer {
                 if (entity.isEnemy) {
                     if (charId === '001' || charId === '005') {
                         isAttackMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
+                    } else if (charId === '006') {
+                        isAttackMotion = (entity.sakuraStrikeTimer > 0) || (entity.sakuraFarAttackTimer > 0) || isAttacking;
                     } else {
                         isAttackMotion = (entity.attackAnimTimer > 0);
                     }
@@ -310,6 +362,9 @@ export class BattleRenderer {
                     if (charId === '001' || charId === '005') {
                         // 紫苑・李乃果: 実際にキック発動中のときのみ表示
                         isAttackMotion = (entity.kickTimer > 0 || !!entity.isKickAttacking);
+                    } else if (charId === '006') {
+                        // さくら: 近接ストライク中 または 遠距離攻撃中 または 攻撃実行中
+                        isAttackMotion = (entity.sakuraStrikeTimer > 0) || (entity.sakuraFarAttackTimer > 0) || isAttacking;
                     } else if (charId === '010') {
                         // プロセル: 攻撃実行中(acting) または 必殺技乱射中
                         isAttackMotion = isAttacking || !!entity.isUltimateActive;
@@ -322,10 +377,42 @@ export class BattleRenderer {
                     }
                 }
 
+                // キャラクターのスプライト反転を初期化
+                sprite.setFlipX(false);
+
                 if (entity.hp <= 0 || entity.isDead) {
                     // 死亡ダウンフレーム（baseTexのフレーム6が全キャラ共通の倒れ姿）
                     sprite.setTexture(baseTex);
                     sprite.setFrame(6);
+                } else if (entity.stunTimer > 0) {
+                    // ⚡ スタン状態: 攻撃モーションを中断し、正面または背面ポーズで痺れ硬直
+                    sprite.setTexture(baseTex);
+                    sprite.setFrame(entity.isEnemy ? 0 : 3);
+                } else if (charId === '006' && entity.sakuraStrikeTimer > 0 && this.scene.textures.exists('battle_006_c')) {
+                    // 🌸 さくら(006) 各種必殺技連撃: battle_006_c (8ポーズからランダム表示)
+                    sprite.setTexture('battle_006_c');
+                    const attackFrame = entity.sakuraAttackFrame !== undefined ? entity.sakuraAttackFrame : 0;
+                    sprite.setFrame(attackFrame % 8);
+                    // 必殺技スプライトは右向きで作られているため、左側攻撃時は左右反転
+                    const isLeftAttack = (entity.sakuraAttackDirX !== undefined)
+                        ? (entity.sakuraAttackDirX < 0)
+                        : (entity.targetEnemy ? (entity.targetEnemy.x < entity.x) : false);
+                    sprite.setFlipX(isLeftAttack);
+                } else if (charId === '006' && (entity.sakuraFarAttackTimer > 0 || (cs && cs.comboType === 'far' && (isAttacking || isReloading))) && this.scene.textures.exists(motionTex)) {
+                    // 🌸 さくら(006) パイルバンカー攻撃モーション: 006002b.png の0〜3番（0:下/手前, 1:右, 2:左, 3:上/奥）を使用
+                    sprite.setTexture(motionTex);
+                    let dirFrame = entity.isEnemy ? 0 : 3;
+                    const target = entity.targetEnemy;
+                    if (target) {
+                        const dx = target.x - entity.x;
+                        const dz = target.z - entity.z;
+                        if (Math.abs(dx) > Math.abs(dz) * 1.2) {
+                            dirFrame = dx > 0 ? 1 : 2; // 右向き: 1, 左向き: 2
+                        } else {
+                            dirFrame = dz > 0 ? 3 : 0; // 奥/上向き: 3, 手前/下向き: 0
+                        }
+                    }
+                    sprite.setFrame(dirFrame);
                 } else if (isAttackMotion && this.scene.textures.exists(motionTex)) {
                     // ── 攻撃特殊モーション (_bシート) ──
                     sprite.setTexture(motionTex);
@@ -355,6 +442,11 @@ export class BattleRenderer {
                         sprite.setFrame(frame);
                     }
 
+                } else if (entity.isMarching && this.scene.textures.exists(motionTex)) {
+                    // 🏃‍♀️ 対人戦開幕進軍: 前向き（手前向き）走行モーション（コマ6, 7を0.18秒ごとに交互再生）
+                    const marchFrame = Math.floor(this.scene.time.now / 180) % 2 === 0 ? 6 : 7;
+                    sprite.setTexture(motionTex);
+                    sprite.setFrame(marchFrame);
                 } else if (isBreakthrough) {
                     // 突破ステージ: 基本は全キャラ上向き走行(コマ4,5を0.25s交互)
                     const runFrame = Math.floor(this.scene.time.now / 250) % 2 === 0 ? 4 : 5;
@@ -481,9 +573,10 @@ export class BattleRenderer {
             }
 
             // 色付け（デバフ状態や属性ごとの敵弾丸用など）
-            if (entity.owner === 'enemy' && entity.stunTimer > 0 && !isDown) {
-                // スタン/デバフ状態：デバフ属性カラー（黄欄=黄色 0xffff22）のフィルターを被せる
-                const debuffColor = entity.debuffColor !== undefined ? entity.debuffColor : 0xffff22;
+            if (entity.stunTimer > 0 && !isDown) {
+                // ⚡ スタン/痺れ状態：黄色と白色の高速ビリビリ点滅で行動不能を強調
+                const isFlash = Math.floor((this.scene.time.now || 0) / 70) % 2 === 0;
+                const debuffColor = isFlash ? 0xffff00 : 0xffffff;
                 sprite.setTint(debuffColor);
                 sprite.setBlendMode(Phaser.BlendModes.NORMAL);
             } else if (textureKey === 'enemy_bullet' || (entity.owner === 'enemy' && (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'nrg'))) {
@@ -500,11 +593,15 @@ export class BattleRenderer {
                 }
                 sprite.setTint(tintColor);
                 sprite.setBlendMode(Phaser.BlendModes.ADD); // 💥 敵の放つ弾丸：加算合成（重なるほど明るく白熱発光！）
-            } else if (textureKey === 'weapon_010' || textureKey === 'weapon_010b' || textureKey === 'weapon_011' || textureKey === 'weapon_011b' || textureKey === 'nrg' || (entity.type && (entity.type.includes('barrier') || entity.type.includes('010') || entity.type.includes('011')))) {
-                // 🛡️ 白蓮のバリア弾各種・レーザー
+            } else if (textureKey === 'weapon_010' || textureKey === 'weapon_010b' || textureKey === 'weapon_011' || textureKey === 'weapon_011b' || textureKey === 'nrg' || entity.type === 'noah_flame_008' || (entity.type && (entity.type.includes('barrier') || entity.type.includes('010') || entity.type.includes('011')))) {
+                // 🛡️ 白蓮のバリア弾各種・レーザー・ノアの爆炎
                 sprite.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で鮮やかに発光！
             } else {
-                sprite.clearTint();
+                if (entity.isShadowEnemy && !isDown) {
+                    sprite.setTint(0x707070); // 50%黒フィルター（暗黒・影の分身）
+                } else {
+                    sprite.clearTint();
+                }
                 sprite.setBlendMode(Phaser.BlendModes.NORMAL);
             }
 
@@ -532,7 +629,7 @@ export class BattleRenderer {
                 }
             }
 
-            if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_')) {
+            if (textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || textureKey === 'shockwave_006' || textureKey === 'bomb' || entity.type === 'noah_flame_008') {
                 // entity.size (m) に対応するスケールを計算
                 // baseWidthピクセルの画像が、ワールド上でentity.size(m)の幅になるようにする
                 const baseWidth = sprite.width || 100; 
@@ -555,7 +652,19 @@ export class BattleRenderer {
 
                 
                 // 進行方向に向ける（弾丸のみ、手りゅう弾は回転させないかクルクル回すか）
-                if (textureKey === 'weapon_008_orb') {
+                if (entity.type === 'noah_flame_008') {
+                    // ノアの爆炎: nrg.png を赤く発光させて使用。半径1.5m(直径3.0m)、3秒かけて等減速で進行し、透明になって消滅
+                    const flameBaseWidth = sprite.width || 200;
+                    const visualSize = entity.size || 3.0; // 直径3.0m
+                    const targetScale = p.scale * (visualSize / flameBaseWidth);
+                    sprite.setScale(targetScale);
+                    sprite.setAngle((this.scene.time.now || 0) * 0.08 + (entity.spinOffset || 0));
+                    sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    sprite.setTint(0xff2222); // 鮮やかな赤（nrg.png 加算合成）
+                    const alpha = entity.alpha !== undefined ? entity.alpha : Math.max(0, entity.lifeTime / (entity.maxLife || 3.0));
+                    sprite.setAlpha(alpha * 0.9);
+                    sprite.setDepth(1000 - p.depth + 35);
+                } else if (textureKey === 'weapon_008_orb') {
                     // ノアのエネルギー球体 / 特技フィールド (special_field_008)
                     const baseSize = sprite.height || 200;
                     const isSpecialField = entity.type === 'special_field_008';
@@ -570,9 +679,9 @@ export class BattleRenderer {
                     // 赤いレーザー弾丸: 進行方向に向けて鮮やかに発光（大きく太く見やすく！）
                     const baseHeight = sprite.height || 360;
                     const baseWidth = sprite.width || 180;
-                    const visualLength = 4.0; // 長さ約4m相当の太いレーザービーム
+                    const visualLength = 4.0; // 長さ約4m相当のレーザービーム
                     const scaleY = p.scale * (visualLength / baseHeight);
-                    const scaleX = scaleY * 1.8; // 横幅も1.8倍に太く
+                    const scaleX = scaleY * 0.9; // 半分の太さに調整
                     sprite.setScale(scaleX, scaleY);
                     const angle = Math.atan2(-entity.vz, entity.vx) * 180 / Math.PI + 90;
                     sprite.setAngle(angle);
@@ -590,6 +699,35 @@ export class BattleRenderer {
                     sprite.setBlendMode(Phaser.BlendModes.ADD);
                     sprite.setDepth(1000 - p.depth + 40);
                     sprite.setAlpha(1.0);
+                } else if (textureKey === 'shockwave_006') {
+                    // さくら(006)の近接衝撃波 (strike_wave_006): 見た目半分、わずかに拡大しながら薄れて消えていく
+                    const baseSize = sprite.width || 200;
+                    const maxLife = entity.maxLife || 0.8;
+                    const progress = 1.0 - Math.max(0, Math.min(1.0, entity.lifeTime / maxLife));
+                    // 小さくなりすぎたので今の1.5倍（0.5 * 1.5 = 0.75）の大きさに
+                    const visualSize = (entity.size || 4.0) * 0.75;
+                    // わずかに拡大
+                    const scaleExpand = 0.95 + progress * 0.20;
+                    const targetScale = p.scale * (visualSize / baseSize) * scaleExpand;
+                    sprite.setScale(targetScale);
+                    sprite.setAngle(0);
+                    sprite.setTint(0xff88ee);
+                    sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    sprite.setDepth(1000 - p.depth + 35);
+                    // 薄れて消えていく
+                    const alpha = Math.max(0, (1.0 - progress) * 0.85);
+                    sprite.setAlpha(alpha);
+                } else if (textureKey === 'weapon_006_bunker') {
+                    // さくら(006)の遠距離パイルバンカー: 長さ約2.5mのエネルギー杭。進行方向に向けてADDブレンド発光
+                    const baseHeight = sprite.height || 360;
+                    const visualLength = 2.5; // 長さ2.5m
+                    const targetScale = p.scale * (visualLength / baseHeight);
+                    sprite.setScale(targetScale);
+                    const angleDeg = Math.atan2(entity.vx, entity.vz) * (180 / Math.PI);
+                    sprite.setAngle(angleDeg);
+                    sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    sprite.setDepth(1000 - p.depth + 35);
+                    sprite.setAlpha(0.95);
                 } else if (textureKey === 'weapon_010b' || textureKey === 'weapon_011b' || textureKey === 'nrg') {
                     // 白蓮のバリア弾各種 (barrier_011, special_barrier_011, ultimate_011, ultimate_burst_field_011): 直径サイズに合わせて加算合成で美しく回転発光
                     const baseSize = sprite.width || 200;
@@ -1003,28 +1141,38 @@ export class BattleRenderer {
             }
 
             const p = this.projector.project(ft.x, ft.z);
-            if (p.visible) {
-                textObj.setVisible(true);
-                if (textObj.isPhaserText) {
-                    let scale = (p.scale / 70.0);
-                    if (ft.type === 'kuji_word') {
-                        scale = Math.max(1.0, (p.scale / 70.0) * 1.5);
-                    }
-                    textObj.setPosition(p.x, p.y - p.scale * 2.0 - (ft.yOffset || 0) * p.scale);
-                    textObj.setScale(scale);
-                } else {
-                    let textScale = (p.scale / 70.0) * 0.8;
-                    textObj.setPosition(p.x, p.y - p.scale * 2.0 - (ft.yOffset || 0) * p.scale);
-                    textObj.setScale(textScale);
-                }
-                
-                // 寿命0.4秒以下からフェードアウト
-                const fadeProgress = Math.max(0, (0.4 - ft.lifeTime) / 0.4);
-                textObj.setAlpha(1.0 - fadeProgress);
-                textObj.setDepth(2000); // 常に最前面
-            } else {
-                textObj.setVisible(false);
-            }
+
+            // 画面サイズ取得
+            const screenW = this.projector.screenWidth || (this.scene.scale ? this.scene.scale.width : 540);
+            const screenH = this.projector.screenHeight || (this.scene.scale ? this.scene.scale.height : 960);
+
+            // スケール計算（画面外や超遠距離でも読みやすいように最小スケール0.65を保証）
+            const projScale = p.visible ? p.scale : 40.0;
+            let scale = textObj.isPhaserText
+                ? (ft.type === 'kuji_word' ? Math.max(1.0, (projScale / 70.0) * 1.5) : (projScale / 70.0))
+                : ((projScale / 70.0) * 0.8);
+            scale = Math.max(0.65, Math.min(1.8, scale));
+
+            // ワールド投射位置（頭上オフセット）
+            let rawX = p.visible ? p.x : (ft.x < 0 ? -100 : screenW + 100);
+            let rawY = p.visible ? (p.y - projScale * 2.0 - (ft.yOffset || 0) * projScale) : (ft.z > 20 ? -100 : screenH + 100);
+
+            // 画面内に収まらない文字を画面スミギリギリにクランプ表示（左右マージン35px, 上45px, 下60px）
+            const marginX = 35;
+            const marginTop = 45;
+            const marginBottom = 60;
+
+            const clampedX = Math.max(marginX, Math.min(screenW - marginX, rawX));
+            const clampedY = Math.max(marginTop, Math.min(screenH - marginBottom, rawY));
+
+            textObj.setVisible(true);
+            textObj.setPosition(clampedX, clampedY);
+            textObj.setScale(scale);
+
+            // 寿命0.4秒以下からフェードアウト
+            const fadeProgress = Math.max(0, (0.4 - ft.lifeTime) / 0.4);
+            textObj.setAlpha(1.0 - fadeProgress);
+            textObj.setDepth(2000); // 常に最前面
         }
     }
 
@@ -1057,6 +1205,10 @@ export class BattleRenderer {
             } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit' || eff.type === 'ultimate_burst_010' || eff.type === 'ultimate_burst_009') {
                 obj = this.scene.add.sprite(0, 0, 'nrg');
                 obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成で黒枠を完全透明化しエネルギー発光！
+                obj.setDepth(1500);
+            } else if (eff.type === 'sakura_cleanse_shockwave') {
+                obj = this.scene.add.sprite(0, 0, 'shockwave_006');
+                obj.setBlendMode(Phaser.BlendModes.ADD);
                 obj.setDepth(1500);
             } else if (eff.type === 'grenade_explosion') {
                 obj = this.scene.add.sprite(0, 0, 'grenade_explosion');
@@ -1150,6 +1302,29 @@ export class BattleRenderer {
                 const alpha = progress < 0.5 ? 1.0 : (1.0 - (progress - 0.5) / 0.5);
                 obj.setAlpha(alpha);
                 obj.setDepth(1000 + 10); // キャラより前面
+                return;
+            }
+
+            if (eff.type === 'sakura_cleanse_shockwave') {
+                // 🌸 さくらの特技: 半径3mの大きさで0.05秒で現れ、0.4秒かけてわずかに拡大しながら薄れて消えてゆく
+                obj.setPosition(p.x, p.y - p.scale * 0.5);
+                obj.setTint(0xff88ee); // 桜色・紫の輝き
+                obj.setBlendMode(Phaser.BlendModes.ADD);
+                const baseWidth = obj.width || 200;
+                // 半径3mを基準にわずかに拡大（1.0 → 1.15倍）
+                const expandScale = 1.0 + progress * 0.15;
+                const currentRadius = (eff.radius || 3.0) * p.scale * expandScale;
+                obj.setScale((currentRadius * 2.0) / baseWidth);
+                // 0.05秒（全0.4秒の12.5%）でパッと現れ、その後薄れて消えてゆく
+                let alpha = 0;
+                if (progress < 0.125) {
+                    alpha = (progress / 0.125) * 0.95;
+                } else {
+                    alpha = Math.max(0, (1.0 - (progress - 0.125) / 0.875) * 0.95);
+                }
+                obj.setAlpha(alpha);
+                obj.setAngle(0);
+                obj.setDepth(1000 - p.depth + 45);
                 return;
             }
 
@@ -1614,6 +1789,49 @@ export class BattleRenderer {
         }
     }
 
+    // 🌸 さくら(006) ミラージュシフト・帰還残像の描画
+    _updateSakuraAfterimages(entity) {
+        if (!this.sakuraAfterimageMap) this.sakuraAfterimageMap = new Map();
+        let sprites = this.sakuraAfterimageMap.get(entity);
+        if (!sprites) {
+            sprites = [];
+            this.sakuraAfterimageMap.set(entity, sprites);
+        }
+
+        const afterimages = entity.afterimages || [];
+        // 最大4つまでのスプライトを確保
+        while (sprites.length < Math.min(4, afterimages.length)) {
+            const s = this.scene.add.sprite(0, 0, 'battle_006', 0).setOrigin(0.5, 1.0);
+            s.setBlendMode(Phaser.BlendModes.ADD);
+            sprites.push(s);
+        }
+
+        for (let i = 0; i < sprites.length; i++) {
+            const s = sprites[i];
+            if (i < afterimages.length && !entity.isDead && entity.hp > 0) {
+                const img = afterimages[i];
+                const p = this.projector.project(img.x, img.z);
+                if (p.visible) {
+                    s.setVisible(true);
+                    s.setPosition(p.x, p.y);
+                    s.setScale(p.scale * (1.5 / 150));
+                    s.setAlpha(img.alpha * 0.75);
+                    s.setDepth(1000 - p.depth - 2);
+                    s.setFrame(entity.isEnemy ? 0 : 3);
+                    if (entity.isShadowEnemy) {
+                        s.setTint(0x774466); // 影の分身用の暗い残像
+                    } else {
+                        s.setTint(0xff88ee);
+                    }
+                } else {
+                    s.setVisible(false);
+                }
+            } else {
+                s.setVisible(false);
+            }
+        }
+    }
+
     // クリーンアップ
     destroy() {
         for (const sprite of this.spriteMap.values()) {
@@ -1637,6 +1855,13 @@ export class BattleRenderer {
                 if (trails.s2) trails.s2.destroy();
             }
             this.noahUltTrailMap.clear();
+        }
+
+        if (this.sakuraAfterimageMap) {
+            for (const sprites of this.sakuraAfterimageMap.values()) {
+                for (const s of sprites) s.destroy();
+            }
+            this.sakuraAfterimageMap.clear();
         }
 
         for (const ui of this.uiMap.values()) {

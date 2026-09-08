@@ -96,6 +96,12 @@ export default class AdventureScene extends Phaser.Scene {
         this.load.spritesheet('mini_003', 'files/CHR/003002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('mini_004', 'files/CHR/004002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('mini_005', 'files/CHR/005002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_006', 'files/CHR/006002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_007', 'files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_008', 'files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_009', 'files/CHR/009002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_010', 'files/CHR/010002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_011', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('sion', 'files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
 
 
@@ -404,6 +410,49 @@ export default class AdventureScene extends Phaser.Scene {
                 }
                 const toast = this.add.text(this.scale.width / 2, 50, `[DEBUG] 経験値 +${addedExp.toLocaleString()} / SP +50,000 (SP: ${globalState.stockSp.toLocaleString()})`, {
                     fontSize: '18px', fontStyle: 'bold', color: '#ffffaa', backgroundColor: '#000000dd', padding: { x: 12, y: 6 }
+                }).setOrigin(0.5).setDepth(9999);
+                this.time.delayedCall(2200, () => toast.destroy());
+            });
+
+            // ⏰ [DEBUG] Tキー: 時間を進める（戦闘・探索・休息を経ずに安全に時間経過）
+            this.input.keyboard.on('keydown-T', () => {
+                if (this.isTowerMode) {
+                    const toast = this.add.text(this.scale.width / 2, 50, '[DEBUG] 塔モードでは時間経過は無効です', {
+                        fontSize: '18px', fontStyle: 'bold', color: '#ffaaaa', backgroundColor: '#220000dd', padding: { x: 12, y: 6 }
+                    }).setOrigin(0.5).setDepth(9999);
+                    this.time.delayedCall(1500, () => toast.destroy());
+                    return;
+                }
+
+                // 進行中・演出中の多重発火ガード
+                if (this._isAdvancingTimeDebug || this._isExploring || this.inRestMode || this._pendingTimeSignal) {
+                    return;
+                }
+                if (this.eventQueue && this.eventQueue.length > 0) {
+                    return;
+                }
+                if (this.scene.isActive('EventScene') || this.scene.isActive('RestScene') || this.scene.isActive('TarotScene') || this.scene.isActive('BattleScene')) {
+                    return;
+                }
+                if (this._pvpModalContainer || this._modalContainer) {
+                    return;
+                }
+
+                this._isAdvancingTimeDebug = true;
+                this._skipTarotSceneDebug = true; // デバッグ時間経過時はタロット演出画面をスキップして自動ドロー
+                this.time.delayedCall(2000, () => {
+                    this._isAdvancingTimeDebug = false;
+                    this._skipTarotSceneDebug = false;
+                });
+
+                // 🍖 デバッグ時間経過時は食料を140に補給
+                globalState.food = 140;
+                this._updateFoodDisplay();
+
+                this.advanceTime();
+
+                const toast = this.add.text(this.scale.width / 2, 50, `[DEBUG] 時間を進めました ➔ ${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay} (食料: 140)`, {
+                    fontSize: '18px', fontStyle: 'bold', color: '#aaffff', backgroundColor: '#002233dd', padding: { x: 12, y: 6 }
                 }).setOrigin(0.5).setDepth(9999);
                 this.time.delayedCall(2200, () => toast.destroy());
             });
@@ -2108,6 +2157,16 @@ export default class AdventureScene extends Phaser.Scene {
                         SaveManager.saveGame(this);
                         return;
                     }
+
+                    // ★ 60階（top of tower: hex.row === 0）到達時：エンディング演出へ突入！
+                    if (this.isTowerMode && hex.row === 0) {
+                        this.isJumping = false;
+                        SaveManager.saveGame(this);
+                        this.time.delayedCall(400, () => {
+                            TransitionManager.transitionTo(this, 'EndingScene');
+                        });
+                        return;
+                    }
                     
                     if (isUnexplored && animate) {
                         // 未踏破への移動なら1秒待ってイベントシーンへ
@@ -2162,6 +2221,12 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     _startEventSequence(hex) {
+        if (this.isTowerMode && hex.row === 0) {
+            this.isJumping = false;
+            TransitionManager.transitionTo(this, 'EndingScene');
+            return;
+        }
+
         // イベント配列を構築
         const events = [];
         
@@ -2276,6 +2341,35 @@ export default class AdventureScene extends Phaser.Scene {
             const witchLevel = hex.cellData.witchLevel || 0;
             const witchPattern = hex.cellData.witchPattern || 1;
 
+            // ★ 59階（targetFloor === 58）はPvP形式：天王寺さくら単騎 LV50（ダークフィルター）
+            if (targetFloor === 58) {
+                const enemyParty = PvpEnemyGenerator.generateEnemyPartyFromIds(['006'], 50);
+                for (const ep of enemyParty) {
+                    ep.isShadowEnemy = true; // 50%黒フィルターフラグ
+                }
+                this.cameras.main.flash(1000, 255, 255, 255);
+                this.time.delayedCall(1000, () => {
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: events,
+                        returnScene: 'AdventureScene',
+                        isTowerBattle: true,
+                        battleConfig: {
+                            rule: 0,
+                            isPvpBattle: true,
+                            isTowerPvP: true,
+                            isTowerBattle: true,
+                            pvpEnemies: enemyParty,
+                            party: this.party && this.party.length > 0 ? this.party : ['001'],
+                            enemyLevel: 50,
+                            returnScene: 'AdventureScene'
+                        }
+                    });
+                    this.isJumping = false;
+                });
+                return;
+            }
+
             this.cameras.main.flash(1000, 255, 255, 255);
             this.time.delayedCall(1000, () => {
                 this.scene.pause();
@@ -2355,9 +2449,9 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                 }
 
-                // 53F〜58F（0-indexed: 52〜57）は階段探索不要で上の階へ移動可能
-                const isColorTrialFloor = (currentFloor >= 52 && currentFloor <= 57);
-                if (!isColorTrialFloor) {
+                // 53F〜59F（0-indexed: 52〜58）は階段探索不要で上の階へ移動可能
+                const isStairsExemptFloor = (currentFloor >= 52);
+                if (!isStairsExemptFloor) {
                     const stairsFound = !!gs.towerStairsFound[currentFloor];
                     if (!stairsFound && !isCleared) {
                         this.showToast('上の階への階段が見つかっていない…（探索で探そう）');
@@ -2558,10 +2652,15 @@ export default class AdventureScene extends Phaser.Scene {
         }
         
         // 食料減少（5〜40ランダム）
-        const foodDrain = Math.floor(Math.random() * 36) + 5;
         const gs = GlobalState.getInstance();
         const wasZero = gs.food <= 0;
-        gs.food = Math.max(0, gs.food - foodDrain);
+        if (this._isAdvancingTimeDebug) {
+            // 🍖 デバッグ時間経過時は食料を140に固定維持！
+            gs.food = 140;
+        } else {
+            const foodDrain = Math.floor(Math.random() * 36) + 5;
+            gs.food = Math.max(0, gs.food - foodDrain);
+        }
         this._updateFoodDisplay();
         let timeSignalCb = null;
         if (gs.food <= 0 && !wasZero && this.party.length > 0) {
@@ -2664,6 +2763,82 @@ export default class AdventureScene extends Phaser.Scene {
         this.updateVisibility();
     }
 
+    /** 🃏 [DEBUG] タロットカードを自動で1枚引いて早送り適用する処理 */
+    _autoDrawTarotDebug() {
+        const gs = GlobalState.getInstance();
+        if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
+        if (gs.drawnTarotCards.length >= 22) return;
+
+        // 未獲得のカードIDリストを作成 (1〜22)
+        const availableCardIds = [];
+        for (let i = 1; i <= 22; i++) {
+            if (!gs.drawnTarotCards.includes(i)) {
+                availableCardIds.push(i);
+            }
+        }
+        if (availableCardIds.length === 0) return;
+
+        // ランダムに1枚抽選
+        const cardId = availableCardIds[Math.floor(Math.random() * availableCardIds.length)];
+        const isUpright = Math.random() >= 0.5;
+
+        // 獲得カードリストとアクティブリストに反映
+        gs.drawnTarotCards.push(cardId);
+        if (!gs.activeTarots) gs.activeTarots = [];
+        gs.activeTarots.push({ id: cardId, isUpright: isUpright });
+        gs.applyImmediateTarotEffect(cardId, isUpright);
+
+        // タロットデータの名称を取得
+        const tarotData = this.cache.json.get('tarot_data');
+        const cardInfo = (tarotData && tarotData[cardId.toString()]) ? tarotData[cardId.toString()] : null;
+        const cardName = cardInfo ? cardInfo.name : `No.${cardId}`;
+        const posStr = isUpright ? '正位置' : '逆位置';
+
+        console.log(`[DEBUG Tarot AutoDraw] No.${cardId} ${cardName} (${posStr}) を自動獲得しました`);
+
+        // 仲間加入対象のカードかチェック (1:007, 4:004, 5:008, 9:003, 10:011, 12:002, 15:005)
+        const charMap = { 1: '007', 4: '004', 5: '008', 9: '003', 10: '011', 12: '002', 15: '005' };
+        const rawJoinId = charMap[cardId];
+        let joinNotice = '';
+        if (rawJoinId) {
+            const normJoinId = gs.normalizeCharId(rawJoinId);
+            const currentNorm = (this.party || []).map(id => gs.normalizeCharId(id));
+            const isPartyFull = currentNorm.length >= 5;
+            const alreadyInParty = currentNorm.includes(normJoinId);
+
+            if (!alreadyInParty && !isPartyFull) {
+                this.party.push(normJoinId);
+                gs.assignFormationForNewMember(normJoinId);
+
+                const joinedChar = gs.characters[normJoinId];
+                if (joinedChar) {
+                    joinedChar.hasAccompanied = true;
+                    const stats = gs.calcStats(normJoinId, this.party);
+                    if (stats) {
+                        joinedChar.currentHp = stats.maxHp;
+                        joinedChar.currentSp = stats.maxSp;
+                    }
+                }
+
+                // GlobalState.savedFormation のキーと this.party を確実に同期
+                if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+                    this.party = Object.keys(gs.savedFormation);
+                }
+
+                const charName = gs.characters[normJoinId]?.name || normJoinId;
+                joinNotice = ` ＆ ${charName}が加入！`;
+                SaveManager.saveGame(this);
+                console.log('[DEBUG Tarot AutoDraw] Joined party & saved formation:', normJoinId, this.party);
+            }
+        }
+
+        // トースト通知
+        const toast = this.add.text(this.scale.width / 2, 85, `[DEBUG] 🃏 タロット早送り: ${cardName}（${posStr}）${joinNotice}`, {
+            fontSize: '16px', fontStyle: 'bold', color: isUpright ? '#aaffaa' : '#ffaaff', backgroundColor: '#000000dd', padding: { x: 12, y: 5 }
+        }).setOrigin(0.5).setDepth(9999);
+        this.time.delayedCall(2500, () => toast.destroy());
+    }
+
     /** 時間経過後の各種イベント・タロットチェックと時報の優先度制御 */
     handlePostTimeAdvance(onComplete = null) {
         // ── 【行動後・時報前設定】 ──
@@ -2673,12 +2848,17 @@ export default class AdventureScene extends Phaser.Scene {
         if (this._pendingTarot) {
             this._pendingTarot = false;
             if (!gs.drawnTarotCards || gs.drawnTarotCards.length < 22) {
-                const currentHex = this.grid[this.playerRow]?.[this.playerCol];
-                const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_map_base';
-                this.enqueueEvent({
-                    type: 'tarot',
-                    data: { returnScene: 'AdventureScene', party: this.party, bgKey: bgKey }
-                });
+                if (this._skipTarotSceneDebug) {
+                    this._skipTarotSceneDebug = false;
+                    this._autoDrawTarotDebug();
+                } else {
+                    const currentHex = this.grid[this.playerRow]?.[this.playerCol];
+                    const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_map_base';
+                    this.enqueueEvent({
+                        type: 'tarot',
+                        data: { returnScene: 'AdventureScene', party: this.party, bgKey: bgKey }
+                    });
+                }
             }
         }
 
@@ -4811,7 +4991,7 @@ export default class AdventureScene extends Phaser.Scene {
 
         // ダイアログ枠
         const modalW = Math.min(width * 0.9, 640);
-        const modalH = Math.min(height * 0.92, 800);
+        const modalH = Math.min(height * 0.94, 830);
         const modalBox = this.add.rectangle(width / 2, height / 2, modalW, modalH, 0x181822, 0.95)
             .setStrokeStyle(3, 0xff6688);
         container.add(modalBox);
@@ -4829,7 +5009,7 @@ export default class AdventureScene extends Phaser.Scene {
         const startY = height / 2 - modalH / 2;
 
         // 編成選択タイトル
-        const charHeader = this.add.text(width / 2 - modalW / 2 + 30, startY + 58, '【敵メンバー選択（複数・最大10人）】', {
+        const charHeader = this.add.text(width / 2 - modalW / 2 + 30, startY + 58, '【敵メンバー選択（複数・最大11人）】', {
             fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
         });
         container.add(charHeader);
@@ -4837,9 +5017,9 @@ export default class AdventureScene extends Phaser.Scene {
         // クイック一括選択ボタン群
         const quickRowY = startY + 85;
         const quickActions = [
-            { label: '全員(10人)', ids: ['001', '002', '003', '004', '005', '007', '008', '009', '010', '011'] },
+            { label: '全員(11人)', ids: ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'] },
             { label: '初期5人', ids: ['001', '002', '003', '004', '005'] },
-            { label: '前衛のみ', ids: ['001', '002', '003', '009'] },
+            { label: '前衛のみ', ids: ['001', '002', '003', '006', '009'] },
             { label: '後衛のみ', ids: ['004', '005', '007', '008', '010', '011'] },
             { label: '全解除', ids: [] }
         ];
@@ -4859,23 +5039,24 @@ export default class AdventureScene extends Phaser.Scene {
             container.add(qBtn);
         });
 
-        // キャラクターチェックボックスリスト（左右2列、各5行）
+        // キャラクターチェックボックスリスト（左右2列、各6行対応）
         const charList = PvpEnemyGenerator.CHAR_LIST;
         const charButtons = [];
         const leftColX = width / 2 - 140;
         const rightColX = width / 2 + 140;
-        const charListStartY = startY + 118;
-        const charRowHeight = 36;
+        const charListStartY = startY + 114;
+        const charRowHeight = 31;
+        const perCol = Math.ceil(charList.length / 2); // 11人なら6人
 
         charList.forEach((charDef, idx) => {
-            const col = idx < 5 ? 0 : 1;
-            const row = idx % 5;
+            const col = Math.floor(idx / perCol);
+            const row = idx % perCol;
             const btnX = col === 0 ? leftColX : rightColX;
             const btnY = charListStartY + row * charRowHeight;
 
             const btn = this.add.text(btnX, btnY, '', {
                 fontFamily: 'sans-serif', fontSize: '13px', color: '#ffffff',
-                backgroundColor: '#252535', padding: { x: 10, y: 5 }, fixedWidth: 265, align: 'left'
+                backgroundColor: '#252535', padding: { x: 10, y: 4 }, fixedWidth: 265, align: 'left'
             }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
             btn.on('pointerdown', () => {
@@ -4893,63 +5074,109 @@ export default class AdventureScene extends Phaser.Scene {
         });
 
         // 選択人数のリアルタイムサマリ
-        const statusSummaryText = this.add.text(width / 2, startY + 312, '', {
+        const statusSummaryText = this.add.text(width / 2, startY + 306, '', {
             fontFamily: 'sans-serif', fontSize: '14px', color: '#aaffcc', fontStyle: 'bold'
         }).setOrigin(0.5);
         container.add(statusSummaryText);
 
-        // レベル選択エリア
-        const levelY = startY + 348;
-        const levelHeader = this.add.text(width / 2 - modalW / 2 + 30, levelY, '【敵レベル選択】', {
+        // レベル選択エリア (Lv 1〜50)
+        const levelY = startY + 332;
+        const levelHeader = this.add.text(width / 2 - modalW / 2 + 30, levelY, '【敵レベル選択 (Lv 1〜50)】', {
             fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
         });
         container.add(levelHeader);
 
-        const levelMinusBtn = this.add.text(width / 2 - 120, levelY + 34, '◀ Lv -1', {
-            fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 14, y: 6 }
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-        const levelPlusBtn = this.add.text(width / 2 + 120, levelY + 34, 'Lv +1 ▶', {
-            fontFamily: 'sans-serif', fontSize: '18px', color: '#ffffff',
-            backgroundColor: '#444466', padding: { x: 14, y: 6 }
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-        const levelText = this.add.text(width / 2, levelY + 34, `Lv ${selectedLevel}`, {
-            fontFamily: 'sans-serif', fontSize: '23px', color: '#ffea77', fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        levelMinusBtn.on('pointerdown', () => {
-            selectedLevel = Math.max(1, selectedLevel - 1);
+        const setLevel = (newLv) => {
+            selectedLevel = Math.max(1, Math.min(50, newLv));
             updateView();
+        };
+
+        // レベル微調整行 ( -10, -1, [表示・直接入力], +1, +10 )
+        const adjustLevelY = levelY + 30;
+        const btnM10 = this.add.text(width / 2 - 160, adjustLevelY, '◀ -10', {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff',
+            backgroundColor: '#383855', padding: { x: 10, y: 5 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        btnM10.on('pointerdown', () => setLevel(selectedLevel - 10));
+
+        const btnM1 = this.add.text(width / 2 - 90, adjustLevelY, '◀ -1', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 10, y: 5 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        btnM1.on('pointerdown', () => setLevel(selectedLevel - 1));
+
+        const levelText = this.add.text(width / 2, adjustLevelY, `Lv ${selectedLevel}`, {
+            fontFamily: 'sans-serif', fontSize: '23px', color: '#ffea77', fontStyle: 'bold',
+            backgroundColor: '#1b1b2f', padding: { x: 14, y: 3 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        levelText.on('pointerdown', () => {
+            const promptInput = window.prompt('敵レベルを入力してください (1〜50):', String(selectedLevel));
+            if (promptInput !== null) {
+                const parsed = parseInt(promptInput, 10);
+                if (!isNaN(parsed)) setLevel(parsed);
+            }
         });
 
-        levelPlusBtn.on('pointerdown', () => {
-            selectedLevel = Math.min(15, selectedLevel + 1);
-            updateView();
+        const btnP1 = this.add.text(width / 2 + 90, adjustLevelY, '+1 ▶', {
+            fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
+            backgroundColor: '#444466', padding: { x: 10, y: 5 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        btnP1.on('pointerdown', () => setLevel(selectedLevel + 1));
+
+        const btnP10 = this.add.text(width / 2 + 160, adjustLevelY, '+10 ▶', {
+            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff',
+            backgroundColor: '#383855', padding: { x: 10, y: 5 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        btnP10.on('pointerdown', () => setLevel(selectedLevel + 10));
+
+        container.add([btnM10, btnM1, levelText, btnP1, btnP10]);
+
+        // レベルクイックジャンプ行 ( 1, 10, 20, 30, 40, 50, ⌨️入力 )
+        const quickLvs = [1, 10, 20, 30, 40, 50];
+        const quickLvY = levelY + 66;
+        const quickLvStartX = width / 2 - 200;
+        const quickLvSpacing = 56;
+        quickLvs.forEach((lv, idx) => {
+            const qBtn = this.add.text(quickLvStartX + idx * quickLvSpacing, quickLvY, `Lv${lv}`, {
+                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: lv === 50 ? '#ff99bb' : '#ffea77',
+                backgroundColor: '#2e2e42', padding: { x: 6, y: 3 }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            qBtn.on('pointerdown', () => setLevel(lv));
+            container.add(qBtn);
         });
 
-        container.add([levelMinusBtn, levelPlusBtn, levelText]);
+        const inputPromptBtn = this.add.text(quickLvStartX + 6 * quickLvSpacing + 14, quickLvY, '⌨️ 入力', {
+            fontFamily: 'sans-serif', fontSize: '13px', color: '#ddeeff',
+            backgroundColor: '#3d3d5c', padding: { x: 8, y: 3 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        inputPromptBtn.on('pointerdown', () => {
+            const promptInput = window.prompt('敵レベルを入力してください (1〜50):', String(selectedLevel));
+            if (promptInput !== null) {
+                const parsed = parseInt(promptInput, 10);
+                if (!isNaN(parsed)) setLevel(parsed);
+            }
+        });
+        container.add(inputPromptBtn);
 
         // ── PvPダメージ倍率調整エリア ──
         let pvpDenom = GlobalState.getInstance().pvpDamageDenominator || 30;
-        const denomY = levelY + 66;
+        const denomY = levelY + 100;
         const denomHeader = this.add.text(width / 2 - modalW / 2 + 30, denomY, '【PvPダメージ倍率】', {
             fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
         });
         container.add(denomHeader);
 
-        const denomMinusBtn = this.add.text(width / 2 - 120, denomY + 32, '◀ -5 (強)', {
+        const denomMinusBtn = this.add.text(width / 2 - 120, denomY + 30, '◀ -5 (強)', {
             fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
             backgroundColor: '#444466', padding: { x: 12, y: 5 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        const denomPlusBtn = this.add.text(width / 2 + 120, denomY + 32, '+5 (弱) ▶', {
+        const denomPlusBtn = this.add.text(width / 2 + 120, denomY + 30, '+5 (弱) ▶', {
             fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff',
             backgroundColor: '#444466', padding: { x: 12, y: 5 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        const denomText = this.add.text(width / 2, denomY + 32, `1 / ${pvpDenom}`, {
+        const denomText = this.add.text(width / 2, denomY + 30, `1 / ${pvpDenom}`, {
             fontFamily: 'sans-serif', fontSize: '21px', color: '#ff99aa', fontStyle: 'bold'
         }).setOrigin(0.5);
 
@@ -4968,10 +5195,10 @@ export default class AdventureScene extends Phaser.Scene {
         container.add([denomMinusBtn, denomPlusBtn, denomText]);
 
         // ステータスプレビューエリア
-        const previewY = denomY + 62;
-        const previewBox = this.add.rectangle(width / 2, previewY + 36, modalW - 60, 68, 0x11111a, 0.8)
+        const previewY = denomY + 58;
+        const previewBox = this.add.rectangle(width / 2, previewY + 34, modalW - 60, 68, 0x11111a, 0.8)
             .setStrokeStyle(1, 0x444466);
-        const previewText = this.add.text(width / 2, previewY + 36, '', {
+        const previewText = this.add.text(width / 2, previewY + 34, '', {
             fontFamily: 'monospace', fontSize: '13px', color: '#aaffaa', align: 'center', lineSpacing: 3
         }).setOrigin(0.5);
         container.add([previewBox, previewText]);
@@ -5053,7 +5280,7 @@ export default class AdventureScene extends Phaser.Scene {
 
                 const first = dummyParty[0] || {};
                 const atk = 100 + selectedLevel * 50;
-                const wlv = Math.ceil(selectedLevel / 2) + 1;
+                const wlv = Math.max(1, Math.min(7, Math.floor(selectedLevel / 2)));
                 previewText.setText(
                     `敵人数: ${partyCount}人 (前衛${frontCount}/後衛${rearCount}) | 敵Lv: ${selectedLevel} | PvP倍率: 1/${pvpDenom}\n` +
                     `攻撃力: ${atk} (100 + Lv*50) | 技Lv: 近接Lv${wlv} / 遠隔Lv${wlv}\n` +
