@@ -315,6 +315,12 @@ export class EventEngine {
         const screenH = Math.max(this.H, this.scene.scale ? this.scene.scale.height : 0);
         const screenW = Math.max(this.W, this.scene.scale ? this.scene.scale.width : 0);
 
+        // 友好度イベント等の横長一枚絵(evl...)がbg指定された場合、全画面拡大による横切れを防ぐため一枚絵として表示
+        if (key && key.startsWith('evl')) {
+            this._showIllust(key, callback);
+            return;
+        }
+
         const isHexMapBg = key && (
             key.startsWith('bg_img_') ||
             key.startsWith('tower_bg_') ||

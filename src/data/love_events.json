@@ -5,7 +5,7 @@
     "bg": "evl001",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl001"
       },
       {
@@ -121,7 +121,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl001"
       },
       {
@@ -247,7 +247,7 @@
     "bg": "evl002",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl002"
       },
       {
@@ -403,7 +403,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl002"
       },
       {
@@ -564,7 +564,7 @@
     "bg": "evl003",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl003"
       },
       {
@@ -665,7 +665,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl003"
       },
       {
@@ -771,7 +771,7 @@
     "bg": "evl004",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl004"
       },
       {
@@ -877,7 +877,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl004"
       },
       {
@@ -993,7 +993,7 @@
     "bg": "evl005",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl005"
       },
       {
@@ -1084,7 +1084,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl005"
       },
       {
@@ -1176,7 +1176,7 @@
     "front": {
       "stage1": [
         {
-          "cmd": "bg",
+          "cmd": "image",
           "key": "evl006"
         },
         {
@@ -1252,7 +1252,7 @@
       ],
       "stage2": [
         {
-          "cmd": "bg",
+          "cmd": "image",
           "key": "evl006"
         },
         {
@@ -1330,7 +1330,7 @@
     "back": {
       "stage1": [
         {
-          "cmd": "bg",
+          "cmd": "image",
           "key": "evl006"
         },
         {
@@ -1436,7 +1436,7 @@
       ],
       "stage2": [
         {
-          "cmd": "bg",
+          "cmd": "image",
           "key": "evl006"
         },
         {
@@ -1533,7 +1533,7 @@
     "bg": "evl007",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl007"
       },
       {
@@ -1609,7 +1609,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl007"
       },
       {
@@ -1680,7 +1680,7 @@
     "bg": "evl008",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl008"
       },
       {
@@ -1746,7 +1746,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl008"
       },
       {
@@ -1817,7 +1817,7 @@
     "bg": "evl009",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl009"
       },
       {
@@ -1883,7 +1883,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl009"
       },
       {
@@ -1944,7 +1944,7 @@
     "bg": "evl010",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl010"
       },
       {
@@ -2020,7 +2020,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl010"
       },
       {
@@ -2096,7 +2096,7 @@
     "bg": "evl011",
     "stage1": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl011"
       },
       {
@@ -2172,7 +2172,7 @@
     ],
     "stage2": [
       {
-        "cmd": "bg",
+        "cmd": "image",
         "key": "evl011"
       },
       {
