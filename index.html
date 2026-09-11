@@ -17,7 +17,10 @@
         user-select: none;
       }
       body, html {
-        width: 100%; height: 100%;
+        width: 100%;
+        height: 100%;
+        height: 100vh;
+        height: 100dvh;
         background-color: #000;
         overflow: hidden;
         touch-action: none; /* スワイプ時のブラウザ画面スクロール・更新防止 */
@@ -26,13 +29,20 @@
       /*
        * ゲーム全体のコンテナ
        * position: fixed + inset: 0 で全画面に固定し、
+       * 100dvh (Dynamic Viewport Height) でアドレスバー表示時も画面下が見切れないようにする。
        * flexbox で canvas を縦長画面でも完璧な画面真ん中に配置する。
        */
       #game-container {
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
         width: 100vw;
+        height: 100%;
         height: 100vh;
+        height: 100dvh;
         display: flex;
         justify-content: center;
         align-items: center;

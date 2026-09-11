@@ -169,3 +169,28 @@ App.addListener('backButton', ({ canGoBack }) => {
     }
 });
 
+// ── 📱 モバイルブラウザのアドレスバー・ナビバー出入りによる画面下部見切れ対策 ──
+const updateViewportSize = () => {
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+    const container = document.getElementById('game-container');
+    if (container) {
+        container.style.height = `${vh}px`;
+        container.style.width = `${vw}px`;
+    }
+    if (game && game.scale) {
+        game.scale.refresh();
+    }
+};
+
+window.addEventListener('resize', updateViewportSize);
+window.addEventListener('orientationchange', () => {
+    setTimeout(updateViewportSize, 150);
+});
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateViewportSize);
+}
+// 初回起動時にも確実に反映
+updateViewportSize();
+
+
