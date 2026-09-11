@@ -67,10 +67,62 @@
         display: block;
         margin: 0 !important;
       }
+      /* 初期ローディング画面 */
+      #loading-screen {
+        position: absolute;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: #0a0a16;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        transition: opacity 0.5s ease-out;
+      }
+      .loading-title {
+        font-size: 22px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        color: #ffea77;
+        margin-bottom: 24px;
+        text-shadow: 0 0 12px rgba(255, 234, 119, 0.4);
+      }
+      .loading-bar-wrapper {
+        width: 240px;
+        height: 8px;
+        background: #1a1a2e;
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid #444466;
+        box-shadow: 0 0 8px rgba(0,0,0,0.6);
+        margin-bottom: 12px;
+      }
+      .loading-bar-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #ff8800, #ffea77);
+        border-radius: 4px;
+        transition: width 0.1s ease-out;
+      }
+      .loading-text {
+        font-size: 13px;
+        color: #aaaacc;
+        letter-spacing: 1px;
+      }
     </style>
   </head>
   <body>
     <div id="game-container">
+      <!-- 起動直後から最速で表示されるローディング画面 -->
+      <div id="loading-screen">
+        <div class="loading-title">Magia Pilgrims</div>
+        <div class="loading-bar-wrapper">
+          <div id="loading-bar-fill" class="loading-bar-fill"></div>
+        </div>
+        <div id="loading-text" class="loading-text">Now Loading... 0%</div>
+      </div>
       <video id="title-video" muted loop playsinline preload="auto">
         <source src="/files/OP/OP001.mp4" type="video/mp4">
       </video>

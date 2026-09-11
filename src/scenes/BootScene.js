@@ -9,6 +9,47 @@ export default class BootScene extends Phaser.Scene {
     }
 
     preload() {
+        const { width, height } = this.scale;
+
+        // ── 🎨 初期ローディング画面（システムフォント＆軽量図形で即時描画） ──
+        this.add.rectangle(width / 2, height / 2, width, height, 0x0a0a16);
+
+        const titleText = this.add.text(width / 2, height / 2 - 50, 'Magia Pilgrims', {
+            fontFamily: 'sans-serif',
+            fontSize: '22px',
+            color: '#ffea77',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        const barWidth = 240;
+        const barHeight = 8;
+        const barBg = this.add.rectangle(width / 2, height / 2 + 10, barWidth, barHeight, 0x1a1a2e).setOrigin(0.5);
+        const barFill = this.add.rectangle(width / 2 - barWidth / 2, height / 2 + 10, 0, barHeight, 0xffea77).setOrigin(0, 0.5);
+
+        const progressText = this.add.text(width / 2, height / 2 + 35, 'Now Loading... 0%', {
+            fontFamily: 'sans-serif',
+            fontSize: '13px',
+            color: '#aaaacc'
+        }).setOrigin(0.5);
+
+        // HTML側の最速ローディング画面とも連動
+        const htmlBar = document.getElementById('loading-bar-fill');
+        const htmlText = document.getElementById('loading-text');
+
+        this.load.on('progress', (value) => {
+            const percent = Math.floor(value * 100);
+            barFill.width = barWidth * value;
+            progressText.setText(`Now Loading... ${percent}%`);
+            if (htmlBar) htmlBar.style.width = `${percent}%`;
+            if (htmlText) htmlText.innerText = `Now Loading... ${percent}%`;
+        });
+
+        this.load.on('complete', () => {
+            progressText.setText('Now Loading... 100%');
+            if (htmlBar) htmlBar.style.width = '100%';
+            if (htmlText) htmlText.innerText = 'Now Loading... 100%';
+        });
+
         // キャラクター立ち絵画像（portrait_XXX: アドベンチャー/UI用）
         this.load.image('map_witch', 'files/MAP/map_witch.png');
         this.load.image('daily_roulette', 'files/OP/rour.png');
@@ -376,30 +417,33 @@ export default class BootScene extends Phaser.Scene {
 
         const { width, height } = this.scale;
 
-        this.add.rectangle(width / 2, height / 2, width, height, 0x0a0a1a);
-        
-        // 実際のゲームではTitleSceneへ
-        this.time.delayedCall(1000, () => {
-            this.scene.start('TitleScene', {
-                loadedAt: new Date().toISOString()
-            });
-        });
-
-        this.add.text(width / 2, height / 2, 'Loading...', {
-            fontFamily: FONT_MAIN,
-            fontSize: fontSize.medium(width),
-            color: '#ffffff'
-        }).setOrigin(0.5);
+        // HTMLローディング画面のフェードアウト消去
+        const hideLoadingScreen = () => {
+            const htmlLoading = document.getElementById('loading-screen');
+            if (htmlLoading) {
+                htmlLoading.style.opacity = '0';
+                setTimeout(() => {
+                    if (htmlLoading.parentNode) {
+                        htmlLoading.parentNode.removeChild(htmlLoading);
+                    }
+                }, 500);
+            }
+        };
 
         // ── フォント読み込み完了を待ってからタイトルへ遷移 ──
-        // document.fonts.ready は Google Fonts 含む全フォントが
-        // 読み込まれた後に解決する Promise。
-        // これを待つことで「フォント未ロードのままテキスト描画」を防ぐ。
+        let transitioned = false;
+        const goToTitle = () => {
+            if (transitioned) return;
+            transitioned = true;
+            hideLoadingScreen();
+            TransitionManager.transitionTo(this, 'TitleScene');
+        };
+
         document.fonts.ready.then(() => {
-            // フォント読み込み完了後、少し待ってからタイトルへ
-            this.time.delayedCall(300, () => {
-                TransitionManager.transitionTo(this, 'TitleScene');
-            });
+            this.time.delayedCall(200, goToTitle);
         });
+
+        // フォールバック（フォントイベントが来ない場合でも最大2秒で遷移）
+        this.time.delayedCall(2000, goToTitle);
     }
 }
