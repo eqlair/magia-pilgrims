@@ -7,7 +7,7 @@ import { RelicGenerator } from './RelicGenerator.js';
 
 export class GlobalState {
     static instance = null;
-    static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
+    static IS_DEBUG_MODE = true; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
 
     constructor() {
         if (typeof window !== 'undefined' && window.__MAGIA_GLOBAL_STATE_INSTANCE__) {
