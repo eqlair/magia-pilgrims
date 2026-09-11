@@ -186,6 +186,13 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`evp${numStr}`, `files/event/evp${numStr}.jpg`);
         }
 
+        // 好感度イベント一枚絵 (evl001 ~ evl011) & イベントデータ
+        for (let i = 1; i <= 11; i++) {
+            const numStr = i.toString().padStart(3, '0');
+            this.load.image(`evl${numStr}`, `files/event/evl${numStr}.jpg`);
+        }
+        this.load.json('love_events', 'files/DATA/love_events.json');
+
         // 探索・休息イベント画像
         this.load.image('ev_expr', 'files/event/ev_expr.jpg');
         this.load.image('ev_exprX', 'files/event/ev_exprX.jpg');
@@ -235,6 +242,18 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('ikebukuro02', 'files/event/ikebukuro02.jpg');
         this.load.audio('unknoun_terror', 'files/BGM/unknoun_terror.mp3');
 
+        // タワー21階ボス（プロセル氷像）イベント＆敵アセット
+        this.load.json('event_tow21', 'files/DATA/event_tow21.json');
+        this.load.json('event_tow21b', 'files/DATA/event_tow21b.json');
+        this.load.image('event_tow_21', 'files/event/tow_21.jpg');
+        this.load.image('event_tow_21b', 'files/event/tow_21b.jpg');
+        this.load.audio('tow_frozen_silence', 'files/BGM/tow_Frozen Silence.mp3');
+        this.load.audio('tow_magma_core', 'files/BGM/tow_Magma Core.mp3');
+        this.load.audio('tow_black_onyx', 'files/BGM/tow_Black Onyx area.mp3');
+        this.load.audio('tow_sakura', 'files/BGM/tow_sakura.mp3');
+        this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.png');
+        this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.png');
+
         // タワー編アセット
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
@@ -275,6 +294,13 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`tower_bg_${key}`, paths.bg);
             this.load.image(`tower_map_${key}`, paths.hex); // 互換用
         }
+
+        // タワー戦闘背景用画像 (files/BG_battle/)
+        const towerBattleBgs = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '外', '黒', '赤', '青', '黄', '緑', '紫', '白'];
+        for (const key of towerBattleBgs) {
+            this.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.jpg`);
+        }
+        this.load.image('battle_bg_top of tower', 'files/BG_battle/白.jpg');
 
         this.load.image('bg_resp', 'files/event/resp.jpg');
         this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
@@ -320,6 +346,26 @@ export default class BootScene extends Phaser.Scene {
             }
             this.registry.set('charStats', initialStats);
             this.registry.set('stockExp', 0);
+        }
+
+        // プロセル巨大ボス用テクスチャ結合 (enemy_prc_a: 上半身 + enemy_prc_b: 下半身 = 342x584)
+        if (this.textures.exists('enemy_prc_a') && this.textures.exists('enemy_prc_b')) {
+            if (!this.textures.exists('enemy_prc_full')) {
+                const canvas = this.textures.createCanvas('enemy_prc_full', 342, 584);
+                if (canvas) {
+                    const ctx = canvas.getContext();
+                    const imgA = this.textures.get('enemy_prc_a').getSourceImage();
+                    const imgB = this.textures.get('enemy_prc_b').getSourceImage();
+                    if (imgA && imgB) {
+                        ctx.drawImage(imgA, 0, 0);
+                        // 下半身は床下に埋まって透けて見えている表現のため半透明(alpha 0.60)で描画
+                        ctx.globalAlpha = 0.60;
+                        ctx.drawImage(imgB, 0, 292);
+                        ctx.globalAlpha = 1.0;
+                        canvas.refresh();
+                    }
+                }
+            }
         }
 
         // タイトル動画を非表示にする（他シーンから戻ってきた場合も含む）

@@ -67,6 +67,7 @@ export class SaveManager {
                 ikebukuro02Played: gs.ikebukuro02Played || false,
                 dec21MorningTalkSeen: gs.dec21MorningTalkSeen || false,
                 dec21AfternoonTalkSeen: gs.dec21AfternoonTalkSeen || false,
+                seenLoveEvents: gs.seenLoveEvents ? JSON.parse(JSON.stringify(gs.seenLoveEvents)) : {},
                 isTowerMode: gs.isTowerMode || false,
                 hasEnteredTower: gs.hasEnteredTower || false,
 
@@ -141,6 +142,7 @@ export class SaveManager {
                         towerStairsFound: gs.towerStairsFound ? JSON.parse(JSON.stringify(gs.towerStairsFound)) : {},
                         towerSearchCount: gs.towerSearchCount ? JSON.parse(JSON.stringify(gs.towerSearchCount)) : {},
                         towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
+                        tower21BossDefeated: !!gs.tower21BossDefeated,
                         towerHexStates: hexStates
                     };
                     if (existing && existing.adventureState) {
@@ -326,6 +328,7 @@ export class SaveManager {
         if (d.ikebukuro02Played !== undefined) gs.ikebukuro02Played = d.ikebukuro02Played;
         if (d.dec21MorningTalkSeen !== undefined) gs.dec21MorningTalkSeen = d.dec21MorningTalkSeen;
         if (d.dec21AfternoonTalkSeen !== undefined) gs.dec21AfternoonTalkSeen = d.dec21AfternoonTalkSeen;
+        if (d.seenLoveEvents !== undefined) gs.seenLoveEvents = d.seenLoveEvents || {};
         if (d.isTowerMode !== undefined) gs.isTowerMode = d.isTowerMode;
         if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
         if (d.seenEventHistory !== undefined) gs.seenEventHistory = d.seenEventHistory || [];
@@ -361,6 +364,7 @@ export class SaveManager {
             if (ts.towerStairsFound) gs.towerStairsFound = ts.towerStairsFound;
             if (ts.towerSearchCount) gs.towerSearchCount = ts.towerSearchCount;
             if (ts.towerClearedHexes) gs.towerClearedHexes = ts.towerClearedHexes;
+            if (ts.tower21BossDefeated !== undefined) gs.tower21BossDefeated = ts.tower21BossDefeated;
         }
 
         // 通常マップ座標の復元

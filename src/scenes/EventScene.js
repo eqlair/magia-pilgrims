@@ -47,6 +47,10 @@ export default class EventScene extends Phaser.Scene {
         this.fromOpTutorial = data.fromOpTutorial || false;
         this.battleConfig = data.battleConfig || null;
         this.isTowerBattle = data.isTowerBattle || false;
+        this.towerAreaName = data.towerAreaName || (this.battleConfig?.towerAreaName || '');
+        if (this.battleConfig && this.towerAreaName && !this.battleConfig.towerAreaName) {
+            this.battleConfig.towerAreaName = this.towerAreaName;
+        }
         this.towerEnemy1 = data.towerEnemy1 !== undefined ? data.towerEnemy1 : 0;
         this.towerEnemy2 = data.towerEnemy2 !== undefined ? data.towerEnemy2 : 0;
         this.towerEnemiesList = data.towerEnemiesList || null;
@@ -557,7 +561,7 @@ export default class EventScene extends Phaser.Scene {
                     majoLevel: this.majoLevel || 0,
                     witchPattern: this.witchPattern || 1,
                     isWitchOnly: this.isWitchOnly || false,
-                    bgmKey: this.selectedBgmKey,
+                    bgmKey: (this.isTowerBattle && (this.towerAreaName === '白' || this.towerAreaName === 'top of tower')) ? 'tow_sakura' : this.selectedBgmKey,
                     isOverlay: true,
                     returnScene: 'AdventureScene',
                     party: party,
@@ -567,7 +571,8 @@ export default class EventScene extends Phaser.Scene {
                     isTowerBattle: this.isTowerBattle,
                     towerEnemy1: this.towerEnemy1,
                     towerEnemy2: this.towerEnemy2,
-                    towerEnemiesList: this.towerEnemiesList
+                    towerEnemiesList: this.towerEnemiesList,
+                    towerAreaName: this.towerAreaName
                 };
 
                 if (this.engine) this.engine.cleanup();

@@ -265,7 +265,7 @@ export class BattleRenderer {
                     originY = 0.5; // バリア弾・衝撃波を含む各種飛び道具は画像中心(0.5)を中心点にする！
                 }
             } else if (entity.isBoss) {
-                originY = 0.666; // Z軸方向（画面下方向）に1/3下げる
+                originY = entity.isProcellBoss ? 0.50 : 0.666; // プロセルは腰(0.50)を接地基準にして、上半身を地上、下半身を床下に配置
             }
 
             sprite = this.scene.add.sprite(0, 0, textureKey, 0).setOrigin(0.5, originY);
@@ -881,8 +881,8 @@ export class BattleRenderer {
                     const baseWidth = sprite.width || 256;
                     finalScale = p.scale * (entity.size / baseWidth);
                     
-                    // ★ 登場アニメーション
-                    if (entity.spawnAnimTimer !== undefined && entity.spawnAnimTimer > 0) {
+                    // ★ 登場アニメーション（プロセルは最初から固定配置のためスキップ）
+                    if (!entity.isProcellBoss && entity.spawnAnimTimer !== undefined && entity.spawnAnimTimer > 0) {
                         const progress = 1.0 - (entity.spawnAnimTimer / entity.spawnAnimMax); // 0.0 -> 1.0
                         // 拡大率2倍から1倍へ
                         finalScale *= (2.0 - progress);
@@ -1012,8 +1012,13 @@ export class BattleRenderer {
             const ultY = p.y + p.scale * 0.25; // 必殺技ゲージを間に挟む
             const spY = p.y + p.scale * 0.40;
             
-            ui.hpBg.setPosition(p.x, hpY).setDepth(depth).setVisible(true);
-            ui.hpBar.setPosition(p.x, hpY).setDepth(depth).setVisible(true);
+            if (entity.isProcellBoss) {
+                ui.hpBg.setVisible(false);
+                ui.hpBar.setVisible(false);
+            } else {
+                ui.hpBg.setPosition(p.x, hpY).setDepth(depth).setVisible(true);
+                ui.hpBar.setPosition(p.x, hpY).setDepth(depth).setVisible(true);
+            }
             
             if (isPlayer || isPvpEnemy) {
                 ui.ultBg.setPosition(p.x, ultY).setDepth(depth).setVisible(true);
@@ -1418,8 +1423,8 @@ export class BattleRenderer {
 
             
             if ((eff.type && (eff.type.startsWith('element_hit_') || eff.type.startsWith('enemy_death_'))) || eff.type === 'kick_hit') {
-
-                obj.setPosition(p.x, p.y - p.scale * 1.0); // 衝突点(腰の高さ)
+                const effHeight = eff.customData?.isProcellBoss ? 1.4 : 1.0;
+                obj.setPosition(p.x, p.y - p.scale * effHeight); // 衝突点(腰の高さ、プロセルは胸の高さ)
                 
                 let sizeM = 0;
                 let alpha = 0.8;

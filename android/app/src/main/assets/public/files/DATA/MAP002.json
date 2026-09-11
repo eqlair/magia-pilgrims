@@ -705,7 +705,7 @@
       "row": 8
     },
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 35.5,
       "hasWitch": false,
@@ -821,7 +821,7 @@
   ],
   [
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 34.5,
       "hasWitch": false,
@@ -951,7 +951,7 @@
       "row": 11
     },
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 34,
       "hasWitch": false,
@@ -1067,7 +1067,7 @@
   ],
   [
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 33,
       "hasWitch": false,
@@ -1279,7 +1279,7 @@
       "row": 15
     },
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 32,
       "hasWitch": false,
@@ -1395,7 +1395,7 @@
   ],
   [
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 31,
       "hasWitch": false,
@@ -1607,7 +1607,7 @@
       "row": 19
     },
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 30,
       "hasWitch": true,
@@ -1723,7 +1723,7 @@
   ],
   [
     {
-      "name": "黒",
+      "name": "外",
       "exists": true,
       "enemyLevel": 29,
       "hasWitch": false,

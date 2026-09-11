@@ -42,6 +42,7 @@ export class GlobalState {
         this.towerStairsFound = {}; // { [floor]: true }
         this.towerSearchCount = {}; // { [floor]: Number }
         this.towerClearedHexes = {}; // { [`${col}_${row}`]: true }
+        this.tower21BossDefeated = false; // タワー21階ボス（プロセル氷像）撃破フラグ
         
         // 通常マップのプレイヤー座標保持用
         this.normalPlayerCol = 3;
@@ -159,6 +160,9 @@ export class GlobalState {
         // ── 🏛️ 時空館コンテンツ・ステート ──
         this.jikukanState = null;
         this.lastDailyRewardDate = '';   // 最後に取得した日付 (YYYY-MM-DD)
+
+        // ── 好感度イベント既読フラグ (charId -> { stage1: bool, stage2: bool }) ──
+        this.seenLoveEvents = {};
 
         this.characters = {
             '001': this.createInitialCharData('001', '紫苑', 1),
@@ -903,16 +907,30 @@ export class GlobalState {
             const invRelics = (this.inventory && this.inventory.relics) ? this.inventory.relics : [];
             const invGems = (this.inventory && this.inventory.gems) ? this.inventory.gems : [];
 
-            if (char.jikukanEquipGem && !invGems.includes(char.jikukanEquipGem)) {
-                purgedNames.push(char.jikukanEquipGem.name || '宝石');
-                char.jikukanEquipGem = null;
+            if (char.jikukanEquipGem) {
+                // 参照一致 または ID一致でインベントリ内の実体を検索
+                const realGem = invGems.find(g => g === char.jikukanEquipGem || (g && g.id && char.jikukanEquipGem.id && g.id === char.jikukanEquipGem.id));
+                if (realGem) {
+                    // インベントリの実体と参照を再リンク（同期）
+                    char.jikukanEquipGem = realGem;
+                } else {
+                    purgedNames.push(char.jikukanEquipGem.name || '宝石');
+                    char.jikukanEquipGem = null;
+                }
             }
 
             for (let i = 0; i < 5; i++) {
                 const r = char.jikukanEquipRelics[i];
-                if (r && !invRelics.includes(r)) {
-                    purgedNames.push(r.name || 'レリクス');
-                    char.jikukanEquipRelics[i] = null;
+                if (r) {
+                    // 参照一致 または ID一致でインベントリ内の実体を検索
+                    const realRelic = invRelics.find(item => item === r || (item && item.id && r.id && item.id === r.id));
+                    if (realRelic) {
+                        // インベントリの実体と参照を再リンク（同期）
+                        char.jikukanEquipRelics[i] = realRelic;
+                    } else {
+                        purgedNames.push(r.name || 'レリクス');
+                        char.jikukanEquipRelics[i] = null;
+                    }
                 }
             }
 

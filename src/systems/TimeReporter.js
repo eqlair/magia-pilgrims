@@ -121,12 +121,18 @@ export class TimeReporter {
      * タワー用フロア告知
      * @param {Phaser.Scene} scene - 現在のシーン
      * @param {number} floorNum - フロア番号（1〜60）
+     * @param {string|Function} [subTitle] - エリア正式名称（英語名）またはコールバック
      * @param {Function} [onComplete] - コールバック
      */
-    static showFloor(scene, floorNum, onComplete = null) {
+    static showFloor(scene, floorNum, subTitle = null, onComplete = null) {
+        if (typeof subTitle === 'function') {
+            onComplete = subTitle;
+            subTitle = null;
+        }
+
         const { width, height } = scene.scale;
         const DEPTH = 6000;
-        const BAND_H = Math.floor(height / 5);
+        const BAND_H = Math.floor(height / 4.8);
         const CX = width / 2;
         const CY = height / 2;
 
@@ -144,14 +150,28 @@ export class TimeReporter {
             .setScrollFactor(0)
             .setScale(1, 0.01);
 
-        const label = scene.add.text(width + 400, CY, displayText, {
+        const labelY = subTitle ? CY - 24 : CY;
+        const label = scene.add.text(width + 400, labelY, displayText, {
             fontFamily: FONT_MAIN,
-            fontSize: Math.floor(height / 13) + 'px',
+            fontSize: Math.floor(height / 14) + 'px',
             color: '#00ffff',
             fontStyle: 'bold',
             stroke: '#001122',
             strokeThickness: 6
         }).setOrigin(0.5, 0.5).setDepth(DEPTH + 1).setScrollFactor(0);
+
+        let subLabel = null;
+        if (subTitle) {
+            subLabel = scene.add.text(width + 400, CY + 30, `― ${subTitle} ―`, {
+                fontFamily: FONT_MAIN,
+                fontSize: '22px',
+                color: '#ffe49e',
+                fontStyle: 'bold italic',
+                stroke: '#1a1005',
+                strokeThickness: 4,
+                shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 6, fill: true }
+            }).setOrigin(0.5, 0.5).setDepth(DEPTH + 1).setScrollFactor(0);
+        }
 
         scene.tweens.add({
             targets: band,
@@ -160,15 +180,16 @@ export class TimeReporter {
             duration: 250,
             ease: 'Cubic.easeOut',
             onComplete: () => {
+                const tweenTargets = subLabel ? [label, subLabel] : [label];
                 scene.tweens.add({
-                    targets: label,
+                    targets: tweenTargets,
                     x: CX,
                     duration: 350,
                     ease: 'Cubic.easeOut',
                     onComplete: () => {
-                        scene.time.delayedCall(700, () => {
+                        scene.time.delayedCall(850, () => {
                             scene.tweens.add({
-                                targets: label,
+                                targets: tweenTargets,
                                 x: -400,
                                 duration: 300,
                                 ease: 'Cubic.easeIn',
@@ -181,6 +202,7 @@ export class TimeReporter {
                                         ease: 'Cubic.easeIn',
                                         onComplete: () => {
                                             label.destroy();
+                                            if (subLabel) subLabel.destroy();
                                             band.destroy();
                                             blocker.destroy();
                                             if (typeof onComplete === 'function') onComplete();

@@ -122,6 +122,7 @@ export class BattleEntity {
     }
 
     applyKnockback(forceX, forceZ) {
+        if (this.isImmobile) return; // 不動ボス等はノックバック無効
         // 力 / 重量 = 移動距離
         let distanceX = forceX / (this.weight || 50);
         let distanceZ = forceZ / (this.weight || 50);
@@ -1024,9 +1025,7 @@ export class PlayerCharacter extends BattleEntity {
             this.sp -= cost;
             if (this.sp <= 0) {
                 this.sp = 0;
-                // ※仕様に従うならSP0で気絶や死亡する仕組みがある場合は維持
-                // this.isDead = true; 
-                // effects.push(new EffectEntity(this.x, this.z, { type: 'majo_death_1', radius: 3.0, lifeTime: 1.0 }));
+                this.isDead = true; // 必殺技で精神力を使い果たした場合は即座に昏睡・ダウン
             }
             this.ultimateCooldown = this.maxUltimateCooldown;
         }
@@ -2227,6 +2226,28 @@ export class BossCharacter extends BattleEntity {
         this.textureKey = data.textureKey || 'boss001';
         this.frame = 0;
         this.attribute = data.attribute || 'red';
+
+        this.isProcellBoss = !!(data.isProcellBoss || data.isTower21Boss);
+        if (this.isProcellBoss) {
+            this.name = 'プロセル';
+            this.isImmobile = true;
+            this.hp = 400000;
+            this.maxHp = 400000;
+            this.attribute = 'blue';
+            this.textureKey = 'enemy_prc_full';
+            this.size = 7.5; // 半分の大きさに調整
+            this.x = 0;
+            this.z = 9.0;
+            this.baseX = 0;
+            this.baseZ = 9.0;
+            this.allElemDef = 30;
+            this.evadeRateBonus = 0.20;
+            this.atkPower = 34;
+            this.weight = 20000;
+            this.debuffResist = 100;
+            this.spawnAnimTimer = 0; // 拡縮・半透明を伴わず最初から床に固定配置
+            this.spawnAnimMax = 0;
+        }
 
         // 移動ステート
         this.moveTimer = this.moveInterval;

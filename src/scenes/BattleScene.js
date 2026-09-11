@@ -194,6 +194,16 @@ export default class BattleScene extends Phaser.Scene {
                 strokeThickness: 3
             }).setOrigin(0.5);
             this.breakthroughContainer.add([barBg, this.breakthroughBar, this.breakthroughText]);
+        } else if (this.battleConfig.isTowerBattle) {
+            const rawArea = this.battleConfig.towerAreaName || '街';
+            let bgKey = `battle_bg_${rawArea}`;
+            if (!this.textures.exists(bgKey)) {
+                bgKey = 'battle_bg_街';
+            }
+            const bg = this.add.image(width / 2, height / 2, bgKey);
+            bg.setOrigin(0.5, 0.5);
+            bg.setScale(Math.max(width / bg.width, height / bg.height));
+            bg.setDepth(-100);
         } else {
             const bgIndex = Math.floor(Math.random() * 3) + 1;
             const bg = this.add.image(width / 2, height / 2, `bg00${bgIndex}`);
@@ -590,7 +600,7 @@ export default class BattleScene extends Phaser.Scene {
             
             // BGMフェードアウト (3秒ウェイトしてから1秒でフェードアウト)
             this.time.delayedCall(3000, () => {
-                const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa'];
+                const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx', 'tow_sakura'];
                 bgmKeys.forEach(key => {
                     try {
                         const s = this.sound.get(key);
@@ -634,7 +644,7 @@ export default class BattleScene extends Phaser.Scene {
             this.isBossBgmStarted = true;
             
             // 確実に前のBGMを全て止める
-            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa'];
+            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx', 'tow_sakura'];
             bgmKeys.forEach(key => {
                 if (this.sound.stopByKey) {
                     this.sound.stopByKey(key);
@@ -716,7 +726,7 @@ export default class BattleScene extends Phaser.Scene {
             }
 
             // BGMフェードアウト（キー名指定で安全に取得）
-            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa'];
+            const bgmKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx', 'tow_sakura'];
             bgmKeys.forEach(key => {
                 try {
                     const s = this.sound.get(key);
@@ -782,6 +792,7 @@ export default class BattleScene extends Phaser.Scene {
                     enemyLevel: this.battleConfig.enemyLevel || this.battleConfig.majoLevel || 1,
                     majoLevel: this.battleConfig.majoLevel || 0,
                     isNightExploration: this.battleConfig.isNightExploration || false,
+                    isTower21Boss: !!this.battleConfig.isTower21Boss,
                     returnScene: this.battleConfig.returnScene || 'AdventureScene'
                 });
 

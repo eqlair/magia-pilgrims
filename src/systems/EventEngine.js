@@ -263,9 +263,17 @@ export class EventEngine {
         }
         if (!name) return;
 
+        // 長い英字エリア名（Forest Malachite area など）でも画面内に綺麗に収まるよう動的にフォントサイズを調整
+        let fSize = '54px';
+        if (name.length > 15) {
+            fSize = '30px';
+        } else if (name.length > 8) {
+            fSize = '40px';
+        }
+
         this.locationLabel = this.scene.add.text(this.W / 2, 80, name, {
             fontFamily: FONT_MAIN,
-            fontSize: '54px',
+            fontSize: fSize,
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 6,

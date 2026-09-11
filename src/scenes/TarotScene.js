@@ -436,6 +436,7 @@ export default class TarotScene extends Phaser.Scene {
     }
 
     getCharacterId(tarotId) {
+        const gs = GlobalState.getInstance();
         const map = {
             1: '007',   // ななよ (愚者)
             4: '004',   // 黄蘭 (女帝)
@@ -445,6 +446,10 @@ export default class TarotScene extends Phaser.Scene {
             12: '002',  // 蒼樹 (正義)
             15: '005'   // 李乃果 (節制)
         };
+        // ★ 悪魔（ID: 16）: 塔21階のプロセル氷像を撃破済みの場合、プロセル(010)が加入対象になる
+        if (tarotId === 16 && (gs.tower21BossDefeated || GlobalState.IS_DEBUG_MODE)) {
+            return '010';
+        }
         return map[tarotId] || null;
     }
 

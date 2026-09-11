@@ -55,6 +55,28 @@ export class RelicGenerator {
         };
     }
 
+    /**
+     * キャラクター専用メモリア生成
+     * @param {number} rank - レアリティランク（4: SSR, 5: UR）
+     * @param {string} charName - キャラクター名（例: "紫苑", "ななよ"）
+     */
+    static generateCharacterRelic(rank, charName) {
+        const pList = relicWords.prefixes[rank] || relicWords.prefixes[1];
+        const nList = relicWords.nouns;
+        
+        const prefix = pList[Math.floor(Math.random() * pList.length)] || '';
+        const noun = nList[Math.floor(Math.random() * nList.length)] || '';
+        
+        return {
+            id: 'relic_' + Date.now() + '_' + Math.floor(Math.random() * 100000),
+            type: 'relic',
+            name: `${prefix}${charName}の${noun}`,
+            rank: rank,
+            traits: this.generateTraits(rank),
+            isLocked: false
+        };
+    }
+
     static generateRandomGem(targetRank = null) {
         return this.generateGem(targetRank);
     }

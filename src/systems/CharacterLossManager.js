@@ -22,8 +22,9 @@ export class CharacterLossManager {
      * @param {Function} onComplete 完了コールバック
      */
     static checkAndTriggerLoss(scene, party, onComplete = null) {
-        const gs = GlobalState.getInstance();
-        const currentParty = party || gs.party || ['001'];
+        // ★ 精神力1/5以下による即時キャラロストは一時凍結
+        if (onComplete) onComplete(false);
+        return;
         
         // 紫苑(001)以外の仲間で、精神力が1/5以下のキャラを抽出
         const lossCandidates = [];

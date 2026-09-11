@@ -189,12 +189,15 @@ export class BattleEngine {
             this.spawnedInWave = 3; // スポーン済み扱いにして追加スポーンを防止
             this.waveState = 'playing';
             this.waveTimer = 0;
-        } else if (this.config.isWitchOnly || (this.isTowerBattle && this.majoLevel > 0)) {
-            // 魔女単体戦モード (タワーの魔女マスなど: 雑魚戦なしで直接魔女出現)
+        } else if (this.config.isTower21Boss || this.config.isProcellBoss || this.config.isWitchOnly || (this.isTowerBattle && this.majoLevel > 0)) {
+            // 魔女単体戦モード (タワー21階ボス / タワーの魔女マスなど: 雑魚戦なしで直接魔女出現)
             this.totalWaves = 0;
             this.waveState = 'boss_presentation';
             this.bossPresTimer = 2.0; // 2秒の警告演出後に魔女出現
             this.waveTimer = 0;
+            if (this.config.isTower21Boss || this.config.isProcellBoss) {
+                this.majoLevel = 20;
+            }
         }
 
         // 対人戦（PvP魔法少女テスト）モード
@@ -651,6 +654,22 @@ export class BattleEngine {
     }
 
     spawnBoss(x, z) {
+        if (this.config.isTower21Boss || this.config.isProcellBoss) {
+            const bossData = {
+                name: 'プロセル',
+                level: 20,
+                textureKey: 'enemy_prc_full',
+                attribute: 'blue',
+                isProcellBoss: true,
+                isTower21Boss: true,
+                isImmobile: true,
+                movePattern: 1
+            };
+            const boss = new BossCharacter(0, 9.0, bossData);
+            this.enemies.push(boss);
+            return boss;
+        }
+
         const textureIndex = Math.floor(Math.random() * 4) + 1;
         const textureKey = `boss00${textureIndex}`;
         const bossData = {
@@ -1016,7 +1035,9 @@ export class BattleEngine {
                 const effId = attrMap[atkAttr];
                 let effX = defender.x;
                 let effZ = defender.z;
-                if (hitX !== null && hitZ !== null) {
+                if (defender.isProcellBoss) {
+                    effZ = defender.z + 1.0; // プロセルの上半身（胸部）の中心
+                } else if (hitX !== null && hitZ !== null) {
                     effX = (defender.x + hitX) / 2;
                     effZ = (defender.z + hitZ) / 2;
                 }
@@ -1034,6 +1055,7 @@ export class BattleEngine {
                     customData: {
                         isFatal: isFatal,
                         targetSize: defender.size || 1.0,
+                        isProcellBoss: !!defender.isProcellBoss,
                         pattern: hitPattern
                     }
                 }));
@@ -1393,11 +1415,15 @@ export class BattleEngine {
         for (const p of this.players) {
             p.update(dt);
             
-            // 死亡判定と後衛への吹き飛ばし
-            if (p.hp <= 0 && !p.isDead) {
-                p.hp = 0;
+            // 死亡判定と後衛への吹き飛ばし（HP0 または SP0 による昏睡・戦闘不能）
+            if ((p.hp <= 0 || p.sp <= 0) && !p.isDead) {
+                if (p.hp <= 0) {
+                    p.hp = 0;
+                    p.sp = Math.floor(p.sp / 2); // HP切れによる戦闘不能時は精神力の半分を失う
+                } else if (p.sp <= 0) {
+                    p.sp = 0; // 精神力枯渇による昏睡
+                }
                 p.isDead = true;
-                p.sp = Math.floor(p.sp / 2); // 戦闘不能時にその時の精神力の半分を失う
                 if (p.isFront) {
                     p.isFront = false;
                     if (this.rule !== 2) {
@@ -1483,10 +1509,10 @@ export class BattleEngine {
                 let surfaceDist;
                 let distCenter;
                 if (e.isBoss) {
-                    const zOffset = (e.size || 1.0) * 0.15;
+                    const zOffset = e.isProcellBoss ? 1.0 : (e.size || 1.0) * 0.15;
                     const bossDz = (e.z + zOffset) - p.z;
-                    const rx = (e.size || 1.0) / 2;
-                    const rz = rx * 0.65;
+                    const rx = e.isProcellBoss ? (((e.size || 7.5) / 2) * 0.85) : ((e.size || 1.0) / 2);
+                    const rz = e.isProcellBoss ? 1.5 : rx * 0.65;
                     const angle = Math.atan2(bossDz, dx);
                     const ellipseRadius = (rx * rz) / Math.sqrt((rz * Math.cos(angle)) ** 2 + (rx * Math.sin(angle)) ** 2);
                     distCenter = Math.hypot(dx, bossDz);
@@ -2110,12 +2136,16 @@ export class BattleEngine {
 
 
             if (e.isBoss) {
-
-                // 魔女の行動（移動と攻撃）
-                
-                // --- 移動ロジック ---
-                // 前衛のZ座標を取得（生存プレイヤー内で最大のZ座標）
-                let vanguardZ = 0;
+                if (e.isImmobile) {
+                    // プロセル氷像ボス: 前列中央位置 (0, 9.0) から動かない
+                    e.x = 0;
+                    e.z = 9.0;
+                    e.vx = 0;
+                    e.vz = 0;
+                } else {
+                    // 魔女の通常移動ロジック
+                    // 前衛のZ座標を取得（生存プレイヤー内で最大のZ座標）
+                    let vanguardZ = 0;
                 const alivePlayers = this.players.filter(p => !p.isDead);
                 if (alivePlayers.length > 0) {
                     vanguardZ = Math.max(...alivePlayers.map(p => p.z));
@@ -2238,6 +2268,7 @@ export class BattleEngine {
                         e.vz = -Math.abs(e.vz) * 0.5;
                     }
                 }
+                }
 
                 // --- 攻撃パターン ---
                 // 弾幕生成に関する魔女レベルは LV13 を上限とする
@@ -2251,12 +2282,14 @@ export class BattleEngine {
                 if (e.atkTimers.special6) e.atkTimers.special6 -= dt;
                 if (e.atkTimers.special7) e.atkTimers.special7 -= dt;
                 
+                const spawnZ = e.isProcellBoss ? (e.z + 0.6) : e.z;
+                
                 // 1. ランダム弾 (検証用: オレンジ 0xffa500)
                 if (e.atkTimers.randomBullet <= 0) {
                     const angle = Math.random() * Math.PI * 2;
                     const speed = 12; // 12 m/s
                     const bColor = 0xffa500;
-                    const bullet = new Bullet(e.x, e.z, {
+                    const bullet = new Bullet(e.x, spawnZ, {
                         vx: Math.cos(angle)*speed, vz: Math.sin(angle)*speed,
                         damage: e.atkPower || 1, knockback: 0, owner: 'enemy', size: 0.3, type: 'enemy_bullet', targetDist: 20, textureKey: 'enemy_bullet', color: bColor, opacity: 0.75
                     });
@@ -2276,11 +2309,11 @@ export class BattleEngine {
                     if (alivePlayers.length > 0) {
                         const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
                         const dx = target.x - e.x;
-                        const dz = target.z - e.z;
+                        const dz = target.z - spawnZ;
                         const dist = Math.sqrt(dx*dx + dz*dz) || 1.0;
                         const speed = 12; // 12 m/s
                         const bColor = 0x99cc00;
-                        const bullet = new Bullet(e.x, e.z, {
+                        const bullet = new Bullet(e.x, spawnZ, {
                             vx: (dx/dist)*speed, vz: (dz/dist)*speed,
                             damage: e.atkPower || 1, knockback: 0, owner: 'enemy', size: 0.3, type: 'enemy_bullet', targetDist: 20, textureKey: 'enemy_bullet', color: bColor, opacity: 0.75
                         });
@@ -2295,13 +2328,13 @@ export class BattleEngine {
                     for (const p of this.players) {
                         if (p.isDead) continue;
                         const dx = p.x - e.x;
-                        const dz = p.z - e.z;
+                        const dz = p.z - spawnZ;
                         const dist = Math.sqrt(dx*dx + dz*dz) || 1.0;
                         // 魔女の大きさ/2 + 2m の範囲
                         if (dist <= e.size / 2 + 2.0) {
                             const speed = 18; // 18 m/s
                             const bColor = 0x00ffff;
-                            const bullet = new Bullet(e.x, e.z, {
+                            const bullet = new Bullet(e.x, spawnZ, {
                                 vx: (dx/dist)*speed, vz: (dz/dist)*speed,
                                 damage: e.atkPower || 1, knockback: 10, owner: 'enemy', size: 0.3, type: 'enemy_bullet', targetDist: dist, textureKey: 'enemy_bullet', color: bColor, opacity: 0.75
                             });
@@ -3624,17 +3657,31 @@ export class BattleEngine {
 
                 let isHit = false;
                 if (t.isBoss) {
-                    // ★ 魔女（ボス）専用：見た目にピッタリ合わせた横長楕円判定＆奥方向オフセット
-                    // 1. 中心を少し奥(+Z)にオフセットして、画面下側（手前）への飛び出しを解消
-                    const zOffset = (t.size || 1.0) * 0.15;
-                    const bossDz = b.z - (t.z + zOffset);
-                    
-                    // 2. 横半径 rx はそのまま魔女の横幅、奥行き半径 rz は0.65倍の横長楕円
-                    const rx = ((t.size || 1.0) / 2) + hitRadius;
-                    const rz = ((t.size || 1.0) / 2) * 0.65 + hitRadius;
-                    
-                    const normDist = (dx * dx) / (rx * rx) + (bossDz * bossDz) / (rz * rz);
-                    isHit = (normDist <= 1.0);
+                    if (t.isProcellBoss) {
+                        // ★ プロセル専用：下半身（床下、z < 9.0）には一切当たり判定がなく、上半身（腰 z >= 9.0 以奥）のみヒット
+                        if (b.z < t.z - 0.2) {
+                            isHit = false; // 下半身領域は完全に素通り（当たり判定なし）
+                        } else {
+                            const zOffset = 1.0; // 上半身（胸部）の中心へ奥にオフセット
+                            const bossDz = b.z - (t.z + zOffset);
+                            const rx = (((t.size || 7.5) / 2) * 0.85) + hitRadius;
+                            const rz = 1.5 + hitRadius;
+                            const normDist = (dx * dx) / (rx * rx) + (bossDz * bossDz) / (rz * rz);
+                            isHit = (normDist <= 1.0);
+                        }
+                    } else {
+                        // ★ 通常魔女（ボス）専用：見た目にピッタリ合わせた横長楕円判定＆奥方向オフセット
+                        // 1. 中心を少し奥(+Z)にオフセットして、画面下側（手前）への飛び出しを解消
+                        const zOffset = (t.size || 1.0) * 0.15;
+                        const bossDz = b.z - (t.z + zOffset);
+                        
+                        // 2. 横半径 rx はそのまま魔女の横幅、奥行き半径 rz は0.65倍の横長楕円
+                        const rx = ((t.size || 1.0) / 2) + hitRadius;
+                        const rz = ((t.size || 1.0) / 2) * 0.65 + hitRadius;
+                        
+                        const normDist = (dx * dx) / (rx * rx) + (bossDz * bossDz) / (rz * rz);
+                        isHit = (normDist <= 1.0);
+                    }
                 } else {
                     const r = hitRadius + (t.size/2);
                     isHit = (distSq < r * r);

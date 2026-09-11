@@ -29,6 +29,27 @@ const TOWER_COLOR_CORRECT = {
     57: '青'  // 58F (Row 2)
 };
 
+export const TOWER_AREA_ENGLISH_NAMES = {
+    '街': 'City area',
+    '石': 'Boulders area',
+    '樹': 'Treeland area',
+    '骨': 'Skeleton area',
+    '氷': 'Iceland area',
+    '顔': 'Face area',
+    '炎': 'Fire area',
+    '金': 'Golden City area',
+    '異': 'Arien area',
+    '外': 'Outside area',
+    '黒': 'Black Onyx area',
+    '赤': 'Fire Crystal area',
+    '紫': 'Abyss Beryl area',
+    '緑': 'Forest Malachite area',
+    '黄': 'Eclair Amber area',
+    '青': 'Aqua Quartz area',
+    '白': 'Moon Stone area',
+    'top of tower': 'Top of Tower'
+};
+
 const TOWER_HINT_CHAR_MAP = {
     '001': ['紫苑'],
     '002': ['蒼樹'],
@@ -309,6 +330,16 @@ export default class AdventureScene extends Phaser.Scene {
             h.witchSprite.setVisible(false);
             h.container.add(h.witchSprite);
 
+            // ★ タワー21階 C40セル (row: 39, col: 2): プロセル巨大氷像の置物スプライト
+            if (this.isTowerMode && h.row === 39 && h.col === 2) {
+                h.procellStatue = this.add.sprite(0, 0, 'enemy_prc_a');
+                const prcW = h.procellStatue.width || 342;
+                h.procellStatue.setScale(140.0 / prcW);
+                h.procellStatue.setOrigin(0.5, 0.95);
+                h.procellStatue.setVisible(!gs.tower21BossDefeated);
+                h.container.add(h.procellStatue);
+            }
+
             
             const attrColors = {
                 1: '#ff4444', 2: '#aa44ff', 3: '#44ff44', 4: '#ffff44', 5: '#44aaff'
@@ -416,45 +447,12 @@ export default class AdventureScene extends Phaser.Scene {
 
             // ⏰ [DEBUG] Tキー: 時間を進める（戦闘・探索・休息を経ずに安全に時間経過）
             this.input.keyboard.on('keydown-T', () => {
-                if (this.isTowerMode) {
-                    const toast = this.add.text(this.scale.width / 2, 50, '[DEBUG] 塔モードでは時間経過は無効です', {
-                        fontSize: '18px', fontStyle: 'bold', color: '#ffaaaa', backgroundColor: '#220000dd', padding: { x: 12, y: 6 }
-                    }).setOrigin(0.5).setDepth(9999);
-                    this.time.delayedCall(1500, () => toast.destroy());
-                    return;
-                }
+                this._advanceTimeDebug();
+            });
 
-                // 進行中・演出中の多重発火ガード
-                if (this._isAdvancingTimeDebug || this._isExploring || this.inRestMode || this._pendingTimeSignal) {
-                    return;
-                }
-                if (this.eventQueue && this.eventQueue.length > 0) {
-                    return;
-                }
-                if (this.scene.isActive('EventScene') || this.scene.isActive('RestScene') || this.scene.isActive('TarotScene') || this.scene.isActive('BattleScene')) {
-                    return;
-                }
-                if (this._pvpModalContainer || this._modalContainer) {
-                    return;
-                }
-
-                this._isAdvancingTimeDebug = true;
-                this._skipTarotSceneDebug = true; // デバッグ時間経過時はタロット演出画面をスキップして自動ドロー
-                this.time.delayedCall(2000, () => {
-                    this._isAdvancingTimeDebug = false;
-                    this._skipTarotSceneDebug = false;
-                });
-
-                // 🍖 デバッグ時間経過時は食料を140に補給
-                globalState.food = 140;
-                this._updateFoodDisplay();
-
-                this.advanceTime();
-
-                const toast = this.add.text(this.scale.width / 2, 50, `[DEBUG] 時間を進めました ➔ ${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay} (食料: 140)`, {
-                    fontSize: '18px', fontStyle: 'bold', color: '#aaffff', backgroundColor: '#002233dd', padding: { x: 12, y: 6 }
-                }).setOrigin(0.5).setDepth(9999);
-                this.time.delayedCall(2200, () => toast.destroy());
+            // ⏩ [DEBUG] Nキー: 翌朝午前まで早送りスキップ（イベントがあれば停止）
+            this.input.keyboard.on('keydown-N', () => {
+                this._skipToNextMorningDebug();
             });
         }
 
@@ -722,6 +720,7 @@ export default class AdventureScene extends Phaser.Scene {
 
                 SaveManager.saveGame(this);
                 TransitionManager.fadeIn(this);
+                this._playMapBgm(true);
                 return;
             }
 
@@ -803,6 +802,7 @@ export default class AdventureScene extends Phaser.Scene {
 
                 SaveManager.saveGame(this);
                 TransitionManager.fadeIn(this);
+                this._playMapBgm(true);
                 return;
             }
 
@@ -911,7 +911,60 @@ export default class AdventureScene extends Phaser.Scene {
                     }
                     this._updateDateTimeDisplay();
                     const currentFloor = 59 - this.playerRow;
-                    TimeReporter.showFloor(this, currentFloor + 1);
+                    const curHex = this.grid[this.playerRow]?.[this.playerCol];
+                    const engName = TOWER_AREA_ENGLISH_NAMES[curHex?.cellData?.name] || '';
+                    TimeReporter.showFloor(this, currentFloor + 1, engName);
+
+                    // ★ 21階ボス（プロセル氷像）撃破後の勝利イベント（塔21Fb）および仲間加入
+                    if (data.fromTower21Boss && !data.isRetreated) {
+                        gs.tower21BossDefeated = true;
+                        SaveManager.saveGame(this);
+                        this.updateVisibility();
+
+                        const event21bData = this.cache.json.get('event_tow21b');
+                        if (event21bData) {
+                            let joinDone = false;
+                            const onTower21bEnd = (scene, resumeData) => {
+                                if (joinDone) return;
+                                joinDone = true;
+                                this.events.off('resume', onTower21bEnd);
+
+                                // 現状欠員（5人未満）がいればプロセルが即座に仲間に加わる！
+                                const normId = gs.normalizeCharId('010');
+                                const currentNorm = (this.party || []).map(id => gs.normalizeCharId(id));
+                                if (!currentNorm.includes(normId) && (this.party || []).length < 5) {
+                                    this.party.push(normId);
+                                    gs.assignFormationForNewMember(normId);
+                                    const joinedChar = gs.getCharacter(normId);
+                                    if (joinedChar) {
+                                        const stats = gs.calcStats(normId, this.party);
+                                        if (stats) {
+                                            joinedChar.currentHp = stats.maxHp;
+                                            joinedChar.currentSp = stats.maxSp;
+                                        }
+                                    }
+                                    const toast = this.add.text(this.scale.width / 2, 80, '悪魔プロセルが仲間に加わった！', {
+                                        fontFamily: 'sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#aaffff',
+                                        backgroundColor: '#002244dd', padding: { x: 16, y: 8 }
+                                    }).setOrigin(0.5).setDepth(9999);
+                                    this.time.delayedCall(3000, () => toast.destroy());
+                                }
+                                SaveManager.saveGame(this);
+                                this.updateVisibility();
+                                this._playMapBgm(true);
+                            };
+                            this.events.on('resume', onTower21bEnd);
+
+                            this.hideMapVisuals();
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: event21bData,
+                                returnScene: 'AdventureScene',
+                                eventId: 'event_tow21b'
+                            });
+                            return;
+                        }
+                    }
                 }
 
                 // 現在のヘクスを制圧済みに（敵レベル・魔女レベルを0にして敵なしヘクスにする）
@@ -1378,6 +1431,23 @@ export default class AdventureScene extends Phaser.Scene {
             this.cameras.main.ignore(this.towerGuideText);
         }
 
+        // --- タワー用 画面上部エリア名プレート (画面最上部中央 y=34) ---
+        this.towerAreaPlateContainer = this.add.container(width / 2, 34).setDepth(1500).setScrollFactor(0).setVisible(false);
+        this.towerAreaPlateBg = this.add.graphics();
+        this.towerAreaPlateText = this.add.text(0, 0, '', {
+            fontFamily: FONT_MAIN,
+            fontSize: '15px',
+            fontStyle: 'bold',
+            color: '#ffeeaa',
+            stroke: '#111827',
+            strokeThickness: 3,
+            shadow: { offsetX: 0, offsetY: 1, color: '#000000', blur: 4, fill: true }
+        }).setOrigin(0.5, 0.5);
+        this.towerAreaPlateContainer.add([this.towerAreaPlateBg, this.towerAreaPlateText]);
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.ignore(this.towerAreaPlateContainer);
+        }
+
         // --- UI (2) 中段: 探索ボタン（Btans.png）＆ 休息ボタン（Bkyuu.png） ---
         const tansScale = 0.33;
         this.exploreBtn = this.add.image(width / 2 - 110, height - 105, 'btn_tans')
@@ -1497,29 +1567,45 @@ export default class AdventureScene extends Phaser.Scene {
                 if (h.enemyText) h.enemyText.setVisible(false);
                 if (h.affinityText) h.affinityText.setVisible(false);
                 if (h.witchSprite) h.witchSprite.setVisible(false);
+                if (h.procellStatue) h.procellStatue.setVisible(false);
             }
 
             // ── 順序②: 地形変化（ズームアウト・カメラ角度の切り替え） ──
             const targetZoom = this.isWideMap ? this.wideZoom : this.normalZoom;
             const targetTilt = this.isWideMap ? 1.0 : 0.65;
             const targetOffsetY = this.isWideMap ? 0 : this.normalOffsetY;
+
+            // アニメーション中のカメラ追従によるガタつきやワープを防ぐため一旦停止
+            this.cameras.main.stopFollow();
+
+            const startCamX = this.cameras.main.midPoint ? this.cameras.main.midPoint.x : (this.cameras.main.scrollX + this.cameras.main.width * 0.5);
+            const startCamY = this.cameras.main.midPoint ? this.cameras.main.midPoint.y : (this.cameras.main.scrollY + this.cameras.main.height * 0.5);
+
+            const currentHex = this.grid && this.grid[this.playerRow] ? this.grid[this.playerRow][this.playerCol] : null;
+            const targetPlayerX = currentHex ? currentHex.px : this.player.x;
+            const targetPlayerY = currentHex 
+                ? (currentHex.row * this.hexVertSpacing * targetTilt - this.CHAR_OFFSET_Y) 
+                : this.player.y;
+            const targetCamX = targetPlayerX;
+            const targetCamY = targetPlayerY + targetOffsetY;
             
             const tweenObj = { 
                 tilt: this.mapTiltY, 
                 zoom: this.cameras.main.zoom,
-                offsetY: this.cameras.main.followOffset.y
+                camX: startCamX,
+                camY: startCamY
             };
             
             this.tweens.add({
                 targets: tweenObj,
                 tilt: targetTilt,
                 zoom: targetZoom,
-                offsetY: targetOffsetY,
+                camX: targetCamX,
+                camY: targetCamY,
                 duration: 400,
                 ease: 'Cubic.easeInOut',
                 onUpdate: () => {
                     this.cameras.main.setZoom(tweenObj.zoom);
-                    this.cameras.main.setFollowOffset(0, tweenObj.offsetY);
                     this.mapTiltY = tweenObj.tilt;
 
                     for (const h of this.hexes) {
@@ -1528,12 +1614,15 @@ export default class AdventureScene extends Phaser.Scene {
                         if (h.outline) h.outline.scaleY = this.mapTiltY;
                     }
                     
-                    const currentHex = this.grid[this.playerRow][this.playerCol];
-                    if (currentHex) this.player.setY(currentHex.py - this.CHAR_OFFSET_Y);
+                    const curHex = this.grid && this.grid[this.playerRow] ? this.grid[this.playerRow][this.playerCol] : null;
+                    if (curHex) this.player.setY(curHex.py - this.CHAR_OFFSET_Y);
 
                     if (this.isTowerMode) {
                         this._updateTowerWideBackgroundPositions(this.mapTiltY);
                     }
+
+                    // カメラの中心をスムーズに目標位置へ移動
+                    this.cameras.main.centerOn(tweenObj.camX, tweenObj.camY);
                 },
                 onComplete: () => {
                     for (const h of this.hexes) {
@@ -1549,8 +1638,13 @@ export default class AdventureScene extends Phaser.Scene {
                     this.isTransitioningMode = false;
                     if (!this.isWideMap) {
                         this._setUIVisibilityForWideMap(true);
-                        // 通常表示に戻ったときはプレイヤーにカメラ追従を再開
+                        // 通常表示に戻ったときは目標位置で静止させてから追従を再開
+                        this.cameras.main.centerOn(targetCamX, targetCamY);
                         this.cameras.main.startFollow(this.player, true, 0.1, 0.1, 0, this.normalOffsetY);
+                    } else {
+                        // 広域表示のときはプレイヤー中心に静止させ、ドラッグ待機
+                        this.cameras.main.centerOn(targetCamX, targetCamY);
+                        this.cameras.main.stopFollow();
                     }
                     if (this.isTowerMode && this.towerWideBgContainer) {
                         this.towerWideBgContainer.setVisible(this.isWideMap);
@@ -1686,6 +1780,30 @@ export default class AdventureScene extends Phaser.Scene {
             });
 
             this.uiContainer.add([this.pvpTestBtn]);
+
+            // ⏰ 時間経過デバッグボタン（画面右側・対人戦テストの下）
+            const timeAdvanceBtnY = pvpBtnY + 45;
+            this.timeAdvanceBtn = this.add.text(width - 20, timeAdvanceBtnY, '⏰ 時間経過', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#aaffff', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.timeAdvanceBtn.on('pointerdown', () => {
+                this._advanceTimeDebug();
+            });
+
+            // ⏩ 翌朝スキップデバッグボタン（時間経過の下）
+            const skipMorningBtnY = timeAdvanceBtnY + 45;
+            this.skipMorningBtn = this.add.text(width - 20, skipMorningBtnY, '⏩ 翌朝スキップ', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc88', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.skipMorningBtn.on('pointerdown', () => {
+                this._skipToNextMorningDebug();
+            });
+
+            this.uiContainer.add([this.timeAdvanceBtn, this.skipMorningBtn]);
         }
     }
 
@@ -1784,6 +1902,7 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     updateVisibility() {
+        const gs = GlobalState.getInstance();
         // 全セルの隣接状態をリセット
         for (const h of this.hexes) {
             h.cellData.isAdjacent = false;
@@ -1874,6 +1993,15 @@ export default class AdventureScene extends Phaser.Scene {
 
             if (h.outline) {
                 h.outline.scaleY = this.mapTiltY;
+            }
+
+            if (h.procellStatue) {
+                const showProcell = !gs.tower21BossDefeated;
+                if (h.procellStatue.visible !== showProcell) {
+                    h.procellStatue.setVisible(showProcell);
+                }
+                const prcW = h.procellStatue.width || 342;
+                h.procellStatue.setScale(140.0 / prcW);
             }
 
 
@@ -2001,6 +2129,7 @@ export default class AdventureScene extends Phaser.Scene {
         const gs = GlobalState.getInstance();
         if (this.dateBg) this.dateBg.setVisible(isVisible);
         if (this.dateTimeText) this.dateTimeText.setVisible(isVisible);
+        if (this.towerAreaPlateContainer) this.towerAreaPlateContainer.setVisible(isVisible && this.isTowerMode);
 
         if (this.exploreBtn) this.exploreBtn.setVisible(isVisible);
         if (this.restBtn) this.restBtn.setVisible(isVisible);
@@ -2017,6 +2146,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.towerTestBtn) this.towerTestBtn.setVisible(isVisible);
         if (this.floorJumpBtn) this.floorJumpBtn.setVisible(isVisible);
         if (this.pvpTestBtn) this.pvpTestBtn.setVisible(isVisible);
+        if (this.timeAdvanceBtn) this.timeAdvanceBtn.setVisible(isVisible);
         if (this.dailyRewardBtn) this.dailyRewardBtn.setVisible(isVisible);
         if (this.dojoBtn) this.dojoBtn.setVisible(isVisible && (gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE));
         if (this.jikukanBtn) this.jikukanBtn.setVisible(isVisible && (gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE));
@@ -2069,12 +2199,19 @@ export default class AdventureScene extends Phaser.Scene {
         const dx = hex.px - this.player.x;
         const dy = hex.py - (this.player.y + 25); // 現在の着地位置(オフセット込み)との差分
 
+        const prevTowerRow = this.playerRow;
         this.playerCol = hex.col;
         this.playerRow = hex.row;
         const gs = GlobalState.getInstance();
         if (this.isTowerMode) {
             gs.towerPlayerCol = hex.col;
             gs.towerPlayerRow = hex.row;
+            if (prevTowerRow !== undefined && hex.row !== prevTowerRow) {
+                const newFloor = 59 - hex.row + 1;
+                const rawName = hex.cellData?.name || '';
+                const engName = TOWER_AREA_ENGLISH_NAMES[rawName] || '';
+                TimeReporter.showFloor(this, newFloor, engName);
+            }
         } else {
             gs.normalPlayerCol = hex.col;
             gs.normalPlayerRow = hex.row;
@@ -2143,6 +2280,7 @@ export default class AdventureScene extends Phaser.Scene {
                     if (this.isTowerMode) {
                         const newFloor = 59 - hex.row + 1;
                         this._updateTowerBottomBgScroll(newFloor, true);
+                        this._playMapBgm();
                     }
 
                     // 道場解放後のシルバードーム到達時：時空館解放イベント
@@ -2217,10 +2355,14 @@ export default class AdventureScene extends Phaser.Scene {
                 this.player.setPosition(hex.px, hex.py - this.CHAR_OFFSET_Y);
                 this.player.setFrame(0);
                 this.updateVisibility();
+                if (this.isTowerMode) {
+                    this._playMapBgm();
+                }
             }
     }
 
     _startEventSequence(hex) {
+        const gs = GlobalState.getInstance();
         if (this.isTowerMode && hex.row === 0) {
             this.isJumping = false;
             TransitionManager.transitionTo(this, 'EndingScene');
@@ -2238,6 +2380,9 @@ export default class AdventureScene extends Phaser.Scene {
         let displayName = hex.cellData.name;
         if (displayName.startsWith('x')) {
             displayName = '';
+        }
+        if (this.isTowerMode && displayName) {
+            displayName = TOWER_AREA_ENGLISH_NAMES[displayName] || displayName;
         }
         events.push({ cmd: 'location', name: displayName });
 
@@ -2341,6 +2486,38 @@ export default class AdventureScene extends Phaser.Scene {
             const witchLevel = hex.cellData.witchLevel || 0;
             const witchPattern = hex.cellData.witchPattern || 1;
 
+            // ★ 21階 C40セル (targetFloor === 20 && hex.col === 2): 氷漬けプロセル巨大ボス
+            if (targetFloor === 20 && hex.col === 2 && !gs.tower21BossDefeated) {
+                const event21Data = this.cache.json.get('event_tow21');
+                this.cameras.main.flash(1000, 255, 255, 255);
+                this.time.delayedCall(1000, () => {
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: event21Data || events,
+                        returnScene: 'AdventureScene',
+                        isTowerBattle: true,
+                        towerAreaName: hex.cellData?.name || '氷',
+                        eventId: 'event_tow21',
+                        battleConfig: {
+                            rule: 0,
+                            isTowerBattle: true,
+                            isTower21Boss: true,
+                            isProcellBoss: true,
+                            isBoss: true,
+                            isWitchOnly: true,
+                            majoLevel: 20,
+                            enemyLevel: 20,
+                            enemyAttribute: 'blue',
+                            towerAreaName: hex.cellData?.name || '氷',
+                            party: this.party && this.party.length > 0 ? this.party : ['001'],
+                            returnScene: 'AdventureScene'
+                        }
+                    });
+                    this.isJumping = false;
+                });
+                return;
+            }
+
             // ★ 59階（targetFloor === 58）はPvP形式：天王寺さくら単騎 LV50（ダークフィルター）
             if (targetFloor === 58) {
                 const enemyParty = PvpEnemyGenerator.generateEnemyPartyFromIds(['006'], 50);
@@ -2354,14 +2531,18 @@ export default class AdventureScene extends Phaser.Scene {
                         events: events,
                         returnScene: 'AdventureScene',
                         isTowerBattle: true,
+                        towerAreaName: hex.cellData?.name || '白',
                         battleConfig: {
                             rule: 0,
                             isPvpBattle: true,
                             isTowerPvP: true,
                             isTowerBattle: true,
+                            towerAreaName: hex.cellData?.name || '白',
                             pvpEnemies: enemyParty,
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
                             enemyLevel: 50,
+                            bgmKey: 'tow_sakura',
+                            bossBgmKey: 'tow_sakura',
                             returnScene: 'AdventureScene'
                         }
                     });
@@ -2383,6 +2564,7 @@ export default class AdventureScene extends Phaser.Scene {
                     isWitchOnly: hasWitch,
                     isNightBattle: false,
                     isTowerBattle: true,
+                    towerAreaName: hex.cellData?.name || '街',
                     towerEnemy1: enemy1,
                     towerEnemy2: enemy2,
                     towerEnemiesList: towerEnemiesList
@@ -2532,6 +2714,135 @@ export default class AdventureScene extends Phaser.Scene {
         this.player.setPosition(hex.px, hex.py - this.CHAR_OFFSET_Y);
     }
 
+    _advanceTimeDebug() {
+        if (this.isTowerMode) {
+            const toast = this.add.text(this.scale.width / 2, 50, '[DEBUG] 塔モードでは時間経過は無効です', {
+                fontSize: '18px', fontStyle: 'bold', color: '#ffaaaa', backgroundColor: '#220000dd', padding: { x: 12, y: 6 }
+            }).setOrigin(0.5).setDepth(9999);
+            this.time.delayedCall(1500, () => toast.destroy());
+            return;
+        }
+
+        // 進行中・演出中の多重発火ガード
+        if (this._isAdvancingTimeDebug || this._isExploring || this.inRestMode || this._pendingTimeSignal) {
+            return;
+        }
+        if (this.eventQueue && this.eventQueue.length > 0) {
+            return;
+        }
+        if (this.scene.isActive('EventScene') || this.scene.isActive('RestScene') || this.scene.isActive('TarotScene') || this.scene.isActive('BattleScene')) {
+            return;
+        }
+        if (this._pvpModalContainer || this._modalContainer) {
+            return;
+        }
+
+        this._isAdvancingTimeDebug = true;
+        this._skipTarotSceneDebug = true; // デバッグ時間経過時はタロット演出画面をスキップして自動ドロー
+        this.time.delayedCall(2000, () => {
+            this._isAdvancingTimeDebug = false;
+            this._skipTarotSceneDebug = false;
+        });
+
+        // 🍖 デバッグ時間経過時は食料を140に補給
+        const globalState = GlobalState.getInstance();
+        globalState.food = 140;
+        this._updateFoodDisplay();
+
+        this.advanceTime();
+
+        const toast = this.add.text(this.scale.width / 2, 50, `[DEBUG] 時間を進めました ➔ ${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay} (食料: 140)`, {
+            fontSize: '18px', fontStyle: 'bold', color: '#aaffff', backgroundColor: '#002233dd', padding: { x: 12, y: 6 }
+        }).setOrigin(0.5).setDepth(9999);
+        this.time.delayedCall(2200, () => toast.destroy());
+    }
+
+    /**
+     * ⏩ [DEBUG] 翌朝午前まで早送りスキップ
+     * 時間帯を1つずつ進め、イベントがあればそこで止まってイベントを再生。
+     * イベントがなければ午後・夜のテロップも飛ばして翌朝午前まで進む。
+     */
+    _skipToNextMorningDebug() {
+        if (this.isTowerMode) return;
+        if (this._isSkippingToNextMorning) return;
+        if (this.scene.isActive('EventScene') || this.scene.isActive('RestScene') || this.scene.isActive('TarotScene') || this.scene.isActive('BattleScene')) {
+            return;
+        }
+        if (this._pvpModalContainer || this._modalContainer) {
+            return;
+        }
+
+        this._isSkippingToNextMorning = true;
+        this._isAdvancingTimeDebug = true;
+        this._skipTarotSceneDebug = true;
+        this._skipTimeSignalDebug = true;
+
+        const gs = GlobalState.getInstance();
+        gs.food = 140;
+        this._updateFoodDisplay();
+
+        const startDay = this.currentDay;
+        const startMonth = this.currentMonth;
+        let stepCount = 0;
+        const maxSteps = 6; // 最大6ステップ（約2日分）で安全停止
+
+        const cleanupFlags = () => {
+            this._isSkippingToNextMorning = false;
+            this._isAdvancingTimeDebug = false;
+            this._skipTarotSceneDebug = false;
+            this._skipTimeSignalDebug = false;
+        };
+
+        const step = () => {
+            if (!this._isSkippingToNextMorning) return;
+            stepCount++;
+
+            // 1. 食料とデバッグフラグを維持
+            gs.food = 140;
+            this._updateFoodDisplay();
+            this._skipTarotSceneDebug = true;
+            this._skipTimeSignalDebug = true;
+
+            // 2. 1時間帯進める
+            this.advanceTime();
+
+            // 3. イベント発生チェック
+            const hasEvent = (this.eventQueue && this.eventQueue.length > 0) ||
+                             this.scene.isActive('EventScene') ||
+                             this.scene.isActive('BattleScene') ||
+                             this.scene.isActive('TarotScene');
+
+            if (hasEvent) {
+                // 📢 イベント発生！スキップを即座に停止してイベントを再生
+                cleanupFlags();
+                const toast = this.add.text(this.scale.width / 2, 50, `[DEBUG] 📢 イベント発生によりスキップ停止 ➔ ${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`, {
+                    fontSize: '18px', fontStyle: 'bold', color: '#ffccaa', backgroundColor: '#331100dd', padding: { x: 12, y: 6 }
+                }).setOrigin(0.5).setDepth(9999);
+                this.time.delayedCall(3000, () => toast.destroy());
+                return;
+            }
+
+            // 4. 到着チェック：日付が進んで「午前(index 0)」になったか？
+            const dayChanged = (this.currentDay !== startDay) || (this.currentMonth !== startMonth);
+            const isMorning = (this.timePeriodIndex === 0);
+
+            if ((dayChanged && isMorning) || stepCount >= maxSteps) {
+                // 🌅 翌朝に到着！
+                cleanupFlags();
+                const toast = this.add.text(this.scale.width / 2, 50, `[DEBUG] 🌅 翌朝へ早送り完了 ➔ ${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay} (食料: 140)`, {
+                    fontSize: '18px', fontStyle: 'bold', color: '#aaffaa', backgroundColor: '#003311dd', padding: { x: 12, y: 6 }
+                }).setOrigin(0.5).setDepth(9999);
+                this.time.delayedCall(2500, () => toast.destroy());
+                return;
+            }
+
+            // 5. まだ午前でない場合（午後または夜）は、微小ディレイを挟んで次のステップへ
+            this.time.delayedCall(60, step);
+        };
+
+        // 早送り開始
+        step();
+    }
 
     advanceTime() {
         const oldDay = this.currentDay;
@@ -2896,6 +3207,9 @@ export default class AdventureScene extends Phaser.Scene {
             // チュートリアルイベントチェック
             this.checkTutorialEvents();
 
+            // 💖 好感度イベントチェック（日中限定・他にイベントがない場合）
+            this.checkLoveEvent();
+
             // キューにイベントがあれば消化、無ければセーブして【３.行動可能】へ
             const hasNext = this.processEventQueue();
             if (!hasNext) {
@@ -2906,6 +3220,11 @@ export default class AdventureScene extends Phaser.Scene {
 
     /** 時報のみを再生して完了時に保存する処理 */
     showTimeSignalOnly(onDone = null) {
+        if (this._skipTimeSignalDebug) {
+            SaveManager.saveGame(this);
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
         TimeReporter.show(this, this.currentMonth, this.currentDay, this.timeOfDay, () => {
             SaveManager.saveGame(this);
             if (typeof onDone === 'function') onDone();
@@ -2922,6 +3241,7 @@ export default class AdventureScene extends Phaser.Scene {
                 this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
             }
             this._updateTowerGuideDisplay();
+            this._updateTowerAreaPlate();
         } catch (e) {
             console.warn('[AdventureScene] _updateDateTimeDisplay error:', e);
         }
@@ -2946,6 +3266,41 @@ export default class AdventureScene extends Phaser.Scene {
 
         // 階段が見つかっていない場合のみ画面上部中央に表示！
         this.towerGuideText.setVisible(!stairsFound);
+    }
+
+    /** 画面上部のタワーエリア正式名称（英語名）プレート表示を更新 */
+    _updateTowerAreaPlate(currentHex = null) {
+        if (!this.towerAreaPlateContainer || !this.towerAreaPlateContainer.active) return;
+        if (!this.isTowerMode || this.isWideMap) {
+            this.towerAreaPlateContainer.setVisible(false);
+            return;
+        }
+
+        const hex = currentHex || (this.grid && this.grid[this.playerRow]?.[this.playerCol]);
+        const floorNum = 59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1;
+        const rawName = (hex && hex.cellData ? hex.cellData.name : '') || '';
+        const engName = TOWER_AREA_ENGLISH_NAMES[rawName] || rawName || 'Area';
+
+        const displayStr = `${floorNum}F ｜ ${engName}`;
+        this.towerAreaPlateText.setText(displayStr);
+
+        const textWidth = this.towerAreaPlateText.width;
+        const plateW = Math.max(170, textWidth + 36);
+        const plateH = 28;
+        const radius = 14;
+
+        this.towerAreaPlateBg.clear();
+        // 影
+        this.towerAreaPlateBg.fillStyle(0x000000, 0.4);
+        this.towerAreaPlateBg.fillRoundedRect(-plateW / 2 + 1, -plateH / 2 + 2, plateW, plateH, radius);
+        // 本体（黒みの強いディープネイビー）
+        this.towerAreaPlateBg.fillStyle(0x0a1424, 0.88);
+        this.towerAreaPlateBg.fillRoundedRect(-plateW / 2, -plateH / 2, plateW, plateH, radius);
+        // 枠線（上品なスカイブルー光沢）
+        this.towerAreaPlateBg.lineStyle(1.5, 0x3d7b9c, 0.95);
+        this.towerAreaPlateBg.strokeRoundedRect(-plateW / 2, -plateH / 2, plateW, plateH, radius);
+
+        this.towerAreaPlateContainer.setVisible(true);
     }
 
     /** タワー内でフロアの全敵が全滅したかチェックし、全滅していれば階段を自動発見する */
@@ -3753,6 +4108,17 @@ export default class AdventureScene extends Phaser.Scene {
         } else if (this.idleTime < 10000 && this.isTickerActive) {
             this.stopTicker();
         }
+        // BGM自動再開フォールバック: マップ画面上でBGMが一切再生されていない場合は自動再生開始
+        this._bgmCheckTimer = (this._bgmCheckTimer || 0) + delta;
+        if (this._bgmCheckTimer >= 1000) {
+            this._bgmCheckTimer = 0;
+            if (!this.isTransitioningMode && !this.scene.isPaused('AdventureScene')) {
+                const isAnyBgmPlaying = this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying);
+                if (!isAnyBgmPlaying) {
+                    this._playMapBgm();
+                }
+            }
+        }
 
         // 12月21日の間はずっとBG_06.pngのゆらゆらエフェクト(Dec21Effect)を表示・更新 (タワー内では無効)
         const isDec21 = !this.isTowerMode && (this.currentMonth === 12 && this.currentDay === 21);
@@ -3997,6 +4363,126 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
         return fired;
+    }
+
+    /**
+     * 💖 好感度イベントチェック
+     * 日中（午前・午後）限定。
+     * いずれかの他キャラクターから対象キャラへの友好度が 7以上（段階1）または 14以上（段階2）に達している場合、
+     * 対象キャラの過去回想イベント（一枚絵付き）を1回につき1人分のみ再生する。
+     * 解放時にSSR（段階1）またはUR（段階2）のキャラクター専用メモリアを授与。
+     */
+    checkLoveEvent() {
+        if (this.isTowerMode) return false;
+        // 日中限定（午前: 0, 午後: 1）。夜(2)は発生しない
+        if (this.timePeriodIndex >= 2) return false;
+
+        // イベントスタック（キュー）に何か残っていたり、他シーンが動いていたら発火しない
+        if (this.eventQueue && this.eventQueue.length > 0) return false;
+        if (this.scene.isActive('EventScene') || this.scene.isActive('BattleScene') ||
+            this.scene.isActive('TarotScene') || this.scene.isActive('RestScene')) {
+            return false;
+        }
+        if (this._pvpModalContainer || this._modalContainer) return false;
+
+        const gs = GlobalState.getInstance();
+        if (!gs.seenLoveEvents) gs.seenLoveEvents = {};
+
+        const loveEventsData = this.cache.json.get('love_events');
+        if (!loveEventsData) return false;
+
+        // 全キャラクターIDリスト（001〜011）
+        const charIds = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'];
+
+        for (const targetId of charIds) {
+            const targetChar = gs.characters[targetId];
+            if (!targetChar) continue;
+
+            // 他の誰か一人からの最大友好度を算出
+            let maxFriendshipToTarget = -999;
+            for (const [otherId, otherChar] of Object.entries(gs.characters)) {
+                if (otherId === targetId) continue;
+                const fVal = (otherChar.friendships && otherChar.friendships[targetId] !== undefined)
+                    ? otherChar.friendships[targetId]
+                    : 0;
+                if (fVal > maxFriendshipToTarget) {
+                    maxFriendshipToTarget = fVal;
+                }
+            }
+
+            if (!gs.seenLoveEvents[targetId]) {
+                gs.seenLoveEvents[targetId] = { stage1: false, stage2: false };
+            }
+
+            let triggeredStage = null;
+            let rank = null;
+
+            // 段階1チェック: 友好度7以上 & 段階1未読
+            if (maxFriendshipToTarget >= 7 && !gs.seenLoveEvents[targetId].stage1) {
+                triggeredStage = 'stage1';
+                rank = 4; // SSR
+            }
+            // 段階2チェック: 友好度14以上 & 段階1既読 & 段階2未読
+            else if (maxFriendshipToTarget >= 14 && gs.seenLoveEvents[targetId].stage1 && !gs.seenLoveEvents[targetId].stage2) {
+                triggeredStage = 'stage2';
+                rank = 5; // UR
+            }
+
+            if (triggeredStage) {
+                const charConf = loveEventsData[targetId];
+                if (!charConf) continue;
+
+                let eventList = null;
+                if (targetId === '006') {
+                    // さくらの場合: パーティに紫苑('001')がいれば表(front)、いなければ裏(back)
+                    const hasShion = (this.party || []).some(id => gs.normalizeCharId(id) === '001');
+                    const branch = hasShion ? charConf.front : charConf.back;
+                    eventList = branch ? branch[triggeredStage] : null;
+                } else {
+                    eventList = charConf[triggeredStage];
+                }
+
+                if (!eventList || eventList.length === 0) continue;
+
+                // 既読フラグを記録
+                gs.seenLoveEvents[targetId][triggeredStage] = true;
+
+                // キャラクター専用メモリア生成（SSR/UR）
+                const rawName = targetChar.name || charConf.name;
+                const cleanName = rawName.replace(/^[0-9]+/, '').replace(/data$/, '');
+                const relic = RelicGenerator.generateCharacterRelic(rank, cleanName);
+
+                if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                if (!gs.inventory.relics) gs.inventory.relics = [];
+                gs.inventory.relics.push(relic);
+
+                const rankLabel = rank === 4 ? 'SSR' : 'UR';
+
+                // イベント末尾にメモリア獲得演出を追加
+                const runEvents = JSON.parse(JSON.stringify(eventList));
+                runEvents.push({
+                    cmd: 'text',
+                    name: 'システム',
+                    text: `【絆のメモリア獲得】\n[${rankLabel}] 『${relic.name}』 を手に入れた！`
+                });
+
+                this.enqueueEvent({
+                    type: 'event',
+                    data: {
+                        events: runEvents,
+                        returnScene: 'AdventureScene',
+                        isLoveEvent: true
+                    }
+                });
+
+                gs.addLog(`💖 [checkLoveEvent] ${cleanName} (${triggeredStage}, Rank:${rankLabel}, Relic:${relic.name})`);
+                SaveManager.saveGame(this);
+
+                return true; // 1回のチェックにつき1名のみ発火
+            }
+        }
+
+        return false;
     }
 
     /** 道場解放後にシルバードーム(k,11)到達で時空館解放イベント発生 */
@@ -4931,31 +5417,76 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     _getMapBgmKey() {
-        return this.isTowerMode ? 'bgm_toppa' : 'bgm_hexen';
+        if (!this.isTowerMode) {
+            return 'bgm_hexen';
+        }
+
+        // タワーモード時のエリア別BGM判定
+        const curHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+        const rawName = curHex?.cellData?.name || '';
+
+        // 1. 氷エリア
+        if (rawName === '氷') {
+            return 'tow_frozen_silence';
+        }
+        // 2. 炎エリア
+        if (rawName === '炎') {
+            return 'tow_magma_core';
+        }
+        // 3. 黒、赤から青まで
+        if (['黒', '赤', '紫', '緑', '黄', '青'].includes(rawName)) {
+            return 'tow_black_onyx';
+        }
+        // 4. 白、top of tower
+        if (rawName === '白' || rawName === 'top of tower') {
+            return 'tow_sakura';
+        }
+
+        // その他のエリア（街、石、樹、骨、顔、金、異、外 など）
+        return 'bgm_toppa';
     }
 
     _playMapBgm(force = false) {
         const bgmKey = this._getMapBgmKey();
         const existing = this.sound.get(bgmKey);
 
-        // すでにマップBGMが再生中ならそのまま継続
+        // すでに該当のマップBGMが再生中ならそのまま継続
         if (existing && existing.isPlaying) return;
 
-        // force=false の時、他に何かBGMが流れているなら邪魔せずスルー
+        const ALL_MAP_BGM_KEYS = ['bgm_hexen', 'bgm_toppa', 'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx', 'tow_sakura'];
+
+        // force=false の時：
+        // もし流れている音が「マップBGM以外の音（イベント音・戦闘音等）」であれば邪魔せずスルー
         if (!force && this.sound && this.sound.sounds) {
-            const isAnyOtherBgmPlaying = this.sound.sounds.some(s => s && s.isPlaying);
-            if (isAnyOtherBgmPlaying) return;
+            const isNonMapBgmPlaying = this.sound.sounds.some(s => s && s.isPlaying && !ALL_MAP_BGM_KEYS.includes(s.key));
+            if (isNonMapBgmPlaying) return;
         }
 
         if (this.tweens && typeof this.tweens.getTweens === 'function') {
             this.tweens.getTweens().forEach(t => {
-                if (t.targets && t.targets.some(target => target && (target.key === 'bgm_hexen' || target.key === 'bgm_toppa'))) {
+                if (t.targets && t.targets.some(target => target && (ALL_MAP_BGM_KEYS.includes(target.key) || target.key === 'bgm_wildhunt'))) {
                     try { t.stop(); } catch(e){}
                 }
             });
         }
 
-        this.sound.stopAll();
+        // 既存のマップBGMをスムーズに停止（フェードアウトまたは即時停止）
+        if (this.sound && this.sound.sounds) {
+            this.sound.sounds.forEach(s => {
+                if (s && s.isPlaying && ALL_MAP_BGM_KEYS.includes(s.key) && s.key !== bgmKey) {
+                    this.tweens.add({
+                        targets: s,
+                        volume: 0,
+                        duration: 800,
+                        onComplete: () => { try { s.stop(); } catch(e){} }
+                    });
+                }
+            });
+        }
+
+        if (force) {
+            this.sound.stopAll();
+        }
 
         if (this.cache.audio.exists(bgmKey)) {
             const mapBgm = this.sound.add(bgmKey, { loop: true, volume: 0 });
@@ -5901,7 +6432,9 @@ export default class AdventureScene extends Phaser.Scene {
         this._updateTowerBottomBgScroll(targetFloor, true);
 
         // フロアテロップ演出
-        TimeReporter.showFloor(this, targetFloor);
+        const rawName = targetHex?.cellData?.name || '';
+        const engName = TOWER_AREA_ENGLISH_NAMES[rawName] || '';
+        TimeReporter.showFloor(this, targetFloor, engName);
 
         // 自動保存
         SaveManager.saveGame(this);

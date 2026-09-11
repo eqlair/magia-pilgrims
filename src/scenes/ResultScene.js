@@ -3,6 +3,7 @@ import { TransitionManager } from '../systems/TransitionManager';
 import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
 import { RelicGenerator } from '../systems/RelicGenerator';
+import { CharacterLossManager } from '../systems/CharacterLossManager';
 
 
 export default class ResultScene extends Phaser.Scene {
@@ -21,6 +22,7 @@ export default class ResultScene extends Phaser.Scene {
         this.enemyLevel = data.enemyLevel || 1;
         this.majoLevel = data.majoLevel || 0;
         this.isNightExploration = data.isNightExploration || false;
+        this.isTower21Boss = data.isTower21Boss || false;
         this.isRelicScreen = false;
 
         this.relicAnimationPlaying = false;
@@ -187,30 +189,9 @@ export default class ResultScene extends Phaser.Scene {
             } else {
                 if (this.relicAnimationPlaying) return; // レリクス表示中はスキップ不可にするか、全部即表示するか。とりあえずスキップ不可
 
-                // 白画面フェードアウトしてからシーン遷移
-                const whiteScreen = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0xffffff)
-                    .setAlpha(0).setDepth(9999);
-                
-                this.tweens.add({
-                    targets: whiteScreen,
-                    alpha: 1,
-                    duration: 1000,
-                    onComplete: () => {
-                        const retParams = { 
-                            fromBattle: true, 
-                            party: this.party, 
-                            isTutorialStart: this.isTutorial,
-                            isNightExploration: this.isNightExploration 
-                        };
-                        if (this.scene.isPaused(this.returnScene)) {
-                            this.scene.stop();
-                            this.scene.resume(this.returnScene, retParams);
-                        } else {
-                            TransitionManager.transitionTo(this, this.returnScene, retParams);
-                        }
-
-
-                    }
+                // ★ SP0のキャラクターがいるかチェックし、復帰・ロスト選択ダイアログを表示
+                this.showSpZeroRevivalSequence(() => {
+                    this.proceedToReturnScene();
                 });
             }
         });
@@ -398,6 +379,214 @@ export default class ResultScene extends Phaser.Scene {
             ui.stat.exp = ui.finalExp;
         }
         SaveManager.saveGame();
+    }
+
+    proceedToReturnScene(retParamsOverride = null) {
+        // 白画面フェードアウトしてからシーン遷移
+        const whiteScreen = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0xffffff)
+            .setAlpha(0).setDepth(9999);
+        
+        this.tweens.add({
+            targets: whiteScreen,
+            alpha: 1,
+            duration: 1000,
+            onComplete: () => {
+                const retParams = retParamsOverride || { 
+                    fromBattle: true, 
+                    party: this.party, 
+                    isTutorialStart: this.isTutorial,
+                    isNightExploration: this.isNightExploration,
+                    fromTower21Boss: this.isTower21Boss
+                };
+                if (this.scene.isPaused(this.returnScene)) {
+                    this.scene.stop();
+                    this.scene.resume(this.returnScene, retParams);
+                } else {
+                    TransitionManager.transitionTo(this, this.returnScene, retParams);
+                }
+            }
+        });
+    }
+
+    /**
+     * 精神力(SP)が0のキャラクターに対する2000SP復帰・ロスト確認シーケンス
+     */
+    showSpZeroRevivalSequence(onDone) {
+        const gs = this.globalState;
+        const spZeroMembers = (this.party || []).filter(id => {
+            const c = gs.characters[id];
+            return c && (c.currentSp || 0) <= 0;
+        });
+
+        if (spZeroMembers.length === 0) {
+            onDone();
+            return;
+        }
+
+        const { width, height } = this.scale;
+        const DEPTH = 10000;
+
+        // 全面真っ黒な背景
+        const blackBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000)
+            .setDepth(DEPTH).setInteractive();
+
+        // 不穏な静寂（BGM停止）
+        if (this.sound) this.sound.stopAll();
+
+        let currentIndex = 0;
+        const container = this.add.container(0, 0).setDepth(DEPTH + 1);
+
+        const processMember = () => {
+            if (currentIndex >= spZeroMembers.length) {
+                // 全員の処理が終了
+                container.destroy();
+                blackBg.destroy();
+                onDone();
+                return;
+            }
+
+            container.removeAll(true);
+            const charId = spZeroMembers[currentIndex];
+            const charData = gs.characters[charId];
+            const charName = charData ? charData.name : `Char ${charId}`;
+            const isShion = (charId === '001');
+
+            const startY = height / 2 - 120;
+
+            // キャラクター顔画像（少し暗め・悲痛な演出）
+            const face = this.add.image(width / 2, startY, `face_${charId}`)
+                .setDisplaySize(100, 100).setTint(0x666666);
+            container.add(face);
+
+            // メッセージ本文
+            const msgText = this.add.text(width / 2, startY + 90, 
+                `${charName} は SP 2000 を使って\n回復させないと復帰できません。`, {
+                fontFamily: 'sans-serif',
+                fontSize: '22px',
+                color: '#ffffff',
+                align: 'center',
+                lineSpacing: 10
+            }).setOrigin(0.5);
+            container.add(msgText);
+
+            // 所持SP表示
+            const stockSpText = this.add.text(width / 2, startY + 170, `所持SP：${Math.floor(gs.stockSp || 0).toLocaleString()}`, {
+                fontFamily: 'sans-serif',
+                fontSize: '20px',
+                color: '#aaaaff'
+            }).setOrigin(0.5);
+            container.add(stockSpText);
+
+            // エラーメッセージ（SP不足時に冷酷に表示される）
+            const errorText = this.add.text(width / 2, startY + 215, '', {
+                fontFamily: 'sans-serif',
+                fontSize: '20px',
+                color: '#ff4444',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(errorText);
+
+            // ボタン配置
+            const btnY = startY + 280;
+            
+            // 「はい」ボタン
+            const yesBtn = this.add.text(width / 2 - 90, btnY, '　はい　', {
+                fontFamily: 'sans-serif',
+                fontSize: '24px',
+                color: '#ffffff',
+                backgroundColor: '#222222',
+                padding: { x: 16, y: 10 }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            
+            // 「いいえ」ボタン
+            const noBtn = this.add.text(width / 2 + 90, btnY, ' いいえ ', {
+                fontFamily: 'sans-serif',
+                fontSize: '24px',
+                color: '#cccccc',
+                backgroundColor: '#222222',
+                padding: { x: 16, y: 10 }
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+            container.add([yesBtn, noBtn]);
+
+            // 「はい」を押したときの処理
+            yesBtn.on('pointerdown', () => {
+                if ((gs.stockSp || 0) < 2000) {
+                    // ★ 普段なら押せないのに押せてしまい、冷酷に「SPが足りません」と表示されるのみ
+                    errorText.setColor('#ff4444').setText('SPが足りません');
+                    return;
+                }
+
+                // SPが足りている場合：2000消費して精神力を全快
+                gs.stockSp -= 2000;
+                const stats = gs.calcStats(charId, this.party);
+                const maxSp = stats ? stats.maxSp : (charData?.maxSp || 500);
+                if (charData) {
+                    charData.currentSp = maxSp;
+                    if ((charData.currentHp || 0) <= 0) {
+                        charData.currentHp = Math.floor((stats?.maxHp || charData.maxHp || 1000) * 0.2); // HPも20%回復
+                    }
+                }
+                stockSpText.setText(`所持SP：${Math.floor(gs.stockSp || 0).toLocaleString()}`);
+                SaveManager.saveGame();
+
+                // 復帰通知
+                yesBtn.disableInteractive();
+                noBtn.disableInteractive();
+                errorText.setColor('#88ff88').setText(`${charName} の精神力が全回復しました。`);
+                this.time.delayedCall(1500, () => {
+                    currentIndex++;
+                    processMember();
+                });
+            });
+
+            // 「いいえ」を押したときの処理（諦める）
+            noBtn.on('pointerdown', () => {
+                yesBtn.disableInteractive();
+                noBtn.disableInteractive();
+
+                if (isShion) {
+                    // 紫苑（001）がSP0で諦めた場合 ➔ リスポーンイベント（event_resp / event_tow_res）へ直行
+                    errorText.setColor('#ff4444').setText('紫苑は力尽きてしまった……');
+                    this.time.delayedCall(1800, () => {
+                        container.destroy();
+                        blackBg.destroy();
+                        // AdventureSceneへ周回・リスポーンフラグを渡して復帰
+                        const retParams = {
+                            fromBattle: true,
+                            isGameOver: true,
+                            sionFinalSp: 0,
+                            isSionMentalBreak: true,
+                            party: this.party,
+                            isNightExploration: this.isNightExploration,
+                            fromTower21Boss: this.isTower21Boss
+                        };
+                        if (this.scene.isPaused(this.returnScene)) {
+                            this.scene.stop();
+                            this.scene.resume(this.returnScene, retParams);
+                        } else {
+                            TransitionManager.transitionTo(this, this.returnScene, retParams);
+                        }
+                    });
+                    return;
+                }
+
+                // 仲間キャラクターの場合 ➔ 各キャラの固有一枚絵（evx）を表示して喪失イベントへ
+                container.setVisible(false);
+                blackBg.setVisible(false);
+
+                CharacterLossManager.triggerSingleLoss(this, charId, () => {
+                    // 喪失イベント終了後、パーティリストを更新して次のキャラへ
+                    this.party = (this.party || []).filter(id => id !== charId);
+                    blackBg.setVisible(true);
+                    container.setVisible(true);
+                    currentIndex++;
+                    processMember();
+                });
+            });
+        };
+
+        processMember();
     }
 }
 
