@@ -9,6 +9,7 @@
     "build:android": "vite build && cap sync android",
     "build:apk": "npm run build:android && cd android && set \"JAVA_HOME=C:\\Program Files\\Android\\Android Studio\\jbr\" && set \"PATH=C:\\Program Files\\Android\\Android Studio\\jbr\\bin;%PATH%\" && gradlew.bat assembleDebug",
     "open:android": "cap open android",
+    "deploy": "vite build && gh-pages -d dist",
     "sync": "cap sync android",
     "preview": "vite preview"
   },
