@@ -1547,24 +1547,28 @@ export default class AdventureScene extends Phaser.Scene {
             fontFamily: 'sans-serif', fontSize: '20px', color: '#aaffaa', backgroundColor: '#333333', padding: { x: 10, y: 6 }
         }).setOrigin(0, 0).setInteractive().setDepth(500).setScrollFactor(0);
 
-        // ── 秘密のデバッグトグル用不可視ボタン（「広域表示にする」ボタンの左半分に重なるように配置） ──
-        const halfWidth = Math.max(wideBtn.width / 2, 75);
-        this.invisibleDebugToggleBtn = this.add.rectangle(20, 20, halfWidth, wideBtn.height || 36, 0x000000, 0.001)
-            .setOrigin(0, 0)
-            .setDepth(501)
-            .setScrollFactor(0)
-            .setInteractive({ useHandCursor: true });
+        // ── 秘密のデバッグトグル用不可視ボタン（デバッグモード起動時限定！） ──
+        // 通常版（頒布用）では一般プレイヤーが操作できないよう隠しスイッチ自体を生成しない
+        this.invisibleDebugToggleBtn = null;
+        if (GlobalState.ALLOW_DEBUG_TOGGLE) {
+            const halfWidth = Math.max(wideBtn.width / 2, 75);
+            this.invisibleDebugToggleBtn = this.add.rectangle(20, 20, halfWidth, wideBtn.height || 36, 0x000000, 0.001)
+                .setOrigin(0, 0)
+                .setDepth(501)
+                .setScrollFactor(0)
+                .setInteractive({ useHandCursor: true });
 
-        this.invisibleDebugToggleBtn.on('pointerdown', (pointer, localX, localY, event) => {
-            if (event && event.stopPropagation) {
-                event.stopPropagation();
-            }
-            this._toggleDebugMode();
-        });
+            this.invisibleDebugToggleBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                if (event && event.stopPropagation) {
+                    event.stopPropagation();
+                }
+                this._toggleDebugMode();
+            });
+        }
 
         wideBtn.on('pointerdown', (pointer) => {
-            // 左半分がタップされた場合は不可視デバッグトグル側が担当するためスキップ
-            if (pointer && pointer.x < (wideBtn.x + wideBtn.width / 2)) {
+            // デバッグ版かつ左半分がタップされた場合は不可視デバッグトグル側が担当するためスキップ
+            if (GlobalState.ALLOW_DEBUG_TOGGLE && pointer && pointer.x < (wideBtn.x + wideBtn.width / 2)) {
                 return;
             }
             if (this.isTransitioningMode) return;
@@ -1686,9 +1690,8 @@ export default class AdventureScene extends Phaser.Scene {
         // ── 🏛️ UI: 時空館ボタン（道場の下、デバッグ時は常時表示） ──
         this.jikukanBtn = this._createJikukanButton(20, 145);
 
-        this.uiContainer.add([
+        const uiElements = [
             wideBtn,
-            this.invisibleDebugToggleBtn,
             this.dailyRewardBtn,
             this.dojoBtn,
             this.jikukanBtn,
@@ -1702,145 +1705,151 @@ export default class AdventureScene extends Phaser.Scene {
             this.spBg,
             this.spText,
             this.towerGuideText,
-        ]);
+        ];
+        if (this.invisibleDebugToggleBtn) {
+            uiElements.push(this.invisibleDebugToggleBtn);
+        }
+        this.uiContainer.add(uiElements);
 
 
 
-        // ── デバッグ用ボタン群 ──
+        // ── デバッグ用ボタン群（通常頒布版では生成しない） ──
         this.debugButtons = [];
 
-        // 突破テストボタン
-        this.breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
-            fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        this.breakTestBtn.on('pointerdown', () => {
-            TransitionManager.transitionTo(this, 'BattleScene', {
-                rule: 2,
-                isTest: true,
-                party: this.party || ['001', '002', '003', '004', '005'],
-                enemyCount: 50,
-                enemyLevel: 1,
-                spawnInterval: 1.0,
-                breakthroughTarget: 42195,
-                returnScene: 'AdventureScene'
-            });
-        });
-
-        // DPS計測ボタン
-        this.dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
-            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc00', fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        this.dpsTestBtn.on('pointerdown', () => {
-            TransitionManager.transitionTo(this, 'BattleScene', {
-                rule: 3, // DPS計測モード
-                isDpsTest: true,
-                party: this.party || ['001', '002', '003', '004', '005'],
-                returnScene: 'AdventureScene'
-            });
-        });
-
-        // タワー切替ボタン（タワー時は「通常マップへ戻る」、通常マップ時は「タワーテスト」）
-        const towerBtnLabel = this.isTowerMode ? '🗺️ 通常マップへ戻る' : '🗼 タワーテスト';
-        const towerBtnColor = this.isTowerMode ? '#aaffaa' : '#ff66ff';
-        this.towerTestBtn = this.add.text(width - 20, 190, towerBtnLabel, {
-            fontFamily: 'sans-serif', fontSize: '15px', color: towerBtnColor, fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        this.towerTestBtn.on('pointerdown', () => {
-            const gs = GlobalState.getInstance();
-            if (this.isTowerMode) {
-                // タワーから通常マップへ復帰
-                SaveManager.saveGame(this);
-                gs.isTowerMode = false;
-                TransitionManager.transitionTo(this, 'AdventureScene', {
-                    isTower: false,
-                    party: this.party && this.party.length > 0 ? this.party : ['001']
-                });
-            } else {
-                // 通常マップからタワーへ突入
-                SaveManager.saveGame(this);
-                gs.isTowerMode = true;
-                TransitionManager.transitionTo(this, 'AdventureScene', {
-                    isTower: true,
-                    party: this.party && this.party.length > 0 ? this.party : ['001']
-                });
-            }
-        });
-
-        // タワー内部専用: フロア移動デバッグボタン
-        if (this.isTowerMode) {
-            this.floorJumpBtn = this.add.text(width - 20, 235, '🔼 フロア移動', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffea00', fontStyle: 'bold',
+        if (GlobalState.ALLOW_DEBUG_TOGGLE || GlobalState.IS_DEBUG_MODE) {
+            // 突破テストボタン
+            this.breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
                 backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
             }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
-            this.floorJumpBtn.on('pointerdown', () => {
-                this._showFloorJumpModal();
+            this.breakTestBtn.on('pointerdown', () => {
+                TransitionManager.transitionTo(this, 'BattleScene', {
+                    rule: 2,
+                    isTest: true,
+                    party: this.party || ['001', '002', '003', '004', '005'],
+                    enemyCount: 50,
+                    enemyLevel: 1,
+                    spawnInterval: 1.0,
+                    breakthroughTarget: 42195,
+                    returnScene: 'AdventureScene'
+                });
             });
-            this.debugButtons.push(this.floorJumpBtn);
-            this.uiContainer.add([this.floorJumpBtn]);
+
+            // DPS計測ボタン
+            this.dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc00', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.dpsTestBtn.on('pointerdown', () => {
+                TransitionManager.transitionTo(this, 'BattleScene', {
+                    rule: 3, // DPS計測モード
+                    isDpsTest: true,
+                    party: this.party || ['001', '002', '003', '004', '005'],
+                    returnScene: 'AdventureScene'
+                });
+            });
+
+            // タワー切替ボタン（タワー時は「通常マップへ戻る」、通常マップ時は「タワーテスト」）
+            const towerBtnLabel = this.isTowerMode ? '🗺️ 通常マップへ戻る' : '🗼 タワーテスト';
+            const towerBtnColor = this.isTowerMode ? '#aaffaa' : '#ff66ff';
+            this.towerTestBtn = this.add.text(width - 20, 190, towerBtnLabel, {
+                fontFamily: 'sans-serif', fontSize: '15px', color: towerBtnColor, fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.towerTestBtn.on('pointerdown', () => {
+                const gs = GlobalState.getInstance();
+                if (this.isTowerMode) {
+                    // タワーから通常マップへ復帰
+                    SaveManager.saveGame(this);
+                    gs.isTowerMode = false;
+                    TransitionManager.transitionTo(this, 'AdventureScene', {
+                        isTower: false,
+                        party: this.party && this.party.length > 0 ? this.party : ['001']
+                    });
+                } else {
+                    // 通常マップからタワーへ突入
+                    SaveManager.saveGame(this);
+                    gs.isTowerMode = true;
+                    TransitionManager.transitionTo(this, 'AdventureScene', {
+                        isTower: true,
+                        party: this.party && this.party.length > 0 ? this.party : ['001']
+                    });
+                }
+            });
+
+            // タワー内部専用: フロア移動デバッグボタン
+            if (this.isTowerMode) {
+                this.floorJumpBtn = this.add.text(width - 20, 235, '🔼 フロア移動', {
+                    fontFamily: 'sans-serif', fontSize: '15px', color: '#ffea00', fontStyle: 'bold',
+                    backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+                }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+                this.floorJumpBtn.on('pointerdown', () => {
+                    this._showFloorJumpModal();
+                });
+                this.debugButtons.push(this.floorJumpBtn);
+                this.uiContainer.add([this.floorJumpBtn]);
+            }
+
+            // 対人戦（PvP魔法少女）テストボタン（画面右側・タワーテストの下）
+            const pvpBtnY = this.isTowerMode ? 280 : 235;
+            this.pvpTestBtn = this.add.text(width - 20, pvpBtnY, '⚔️ 対人戦テスト', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ff8888', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.pvpTestBtn.on('pointerdown', () => {
+                this._showPvpTestModal();
+            });
+
+            // ⏰ 時間経過デバッグボタン（画面右側・対人戦テストの下）
+            const timeAdvanceBtnY = pvpBtnY + 45;
+            this.timeAdvanceBtn = this.add.text(width - 20, timeAdvanceBtnY, '⏰ 時間経過', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#aaffff', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.timeAdvanceBtn.on('pointerdown', () => {
+                this._advanceTimeDebug();
+            });
+
+            // ⏩ 翌朝スキップデバッグボタン（時間経過の下）
+            const skipMorningBtnY = timeAdvanceBtnY + 45;
+            this.skipMorningBtn = this.add.text(width - 20, skipMorningBtnY, '⏩ 翌朝スキップ', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc88', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.skipMorningBtn.on('pointerdown', () => {
+                this._skipToNextMorningDebug();
+            });
+
+            this.debugButtons.push(
+                this.breakTestBtn,
+                this.dpsTestBtn,
+                this.towerTestBtn,
+                this.pvpTestBtn,
+                this.timeAdvanceBtn,
+                this.skipMorningBtn
+            );
+
+            this.uiContainer.add([
+                this.breakTestBtn,
+                this.dpsTestBtn,
+                this.towerTestBtn,
+                this.pvpTestBtn,
+                this.timeAdvanceBtn,
+                this.skipMorningBtn
+            ]);
+
+            // 初期表示設定 (デバッグモードフラグに連動)
+            this.debugButtons.forEach(btn => {
+                if (btn) btn.setVisible(GlobalState.IS_DEBUG_MODE);
+            });
         }
-
-        // 対人戦（PvP魔法少女）テストボタン（画面右側・タワーテストの下）
-        const pvpBtnY = this.isTowerMode ? 280 : 235;
-        this.pvpTestBtn = this.add.text(width - 20, pvpBtnY, '⚔️ 対人戦テスト', {
-            fontFamily: 'sans-serif', fontSize: '15px', color: '#ff8888', fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        this.pvpTestBtn.on('pointerdown', () => {
-            this._showPvpTestModal();
-        });
-
-        // ⏰ 時間経過デバッグボタン（画面右側・対人戦テストの下）
-        const timeAdvanceBtnY = pvpBtnY + 45;
-        this.timeAdvanceBtn = this.add.text(width - 20, timeAdvanceBtnY, '⏰ 時間経過', {
-            fontFamily: 'sans-serif', fontSize: '15px', color: '#aaffff', fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        this.timeAdvanceBtn.on('pointerdown', () => {
-            this._advanceTimeDebug();
-        });
-
-        // ⏩ 翌朝スキップデバッグボタン（時間経過の下）
-        const skipMorningBtnY = timeAdvanceBtnY + 45;
-        this.skipMorningBtn = this.add.text(width - 20, skipMorningBtnY, '⏩ 翌朝スキップ', {
-            fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc88', fontStyle: 'bold',
-            backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
-
-        this.skipMorningBtn.on('pointerdown', () => {
-            this._skipToNextMorningDebug();
-        });
-
-        this.debugButtons.push(
-            this.breakTestBtn,
-            this.dpsTestBtn,
-            this.towerTestBtn,
-            this.pvpTestBtn,
-            this.timeAdvanceBtn,
-            this.skipMorningBtn
-        );
-
-        this.uiContainer.add([
-            this.breakTestBtn,
-            this.dpsTestBtn,
-            this.towerTestBtn,
-            this.pvpTestBtn,
-            this.timeAdvanceBtn,
-            this.skipMorningBtn
-        ]);
-
-        // 初期表示設定 (デバッグモードフラグに連動)
-        this.debugButtons.forEach(btn => {
-            if (btn) btn.setVisible(GlobalState.IS_DEBUG_MODE);
-        });
     }
 
 

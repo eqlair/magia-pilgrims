@@ -8,6 +8,7 @@ import { RelicGenerator } from './RelicGenerator.js';
 export class GlobalState {
     static instance = null;
     static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
+    static ALLOW_DEBUG_TOGGLE = false; // デバッグ切り替え許可フラグ（デバッグモード時のみ有効化）
 
     constructor() {
         if (typeof window !== 'undefined' && window.__MAGIA_GLOBAL_STATE_INSTANCE__) {
@@ -1906,9 +1907,5 @@ export class GlobalState {
         };
     }
 }
-
-
-
-
-
-
+// デバッグ版として起動された場合のみ隠しスイッチ（一時OFF/ONトグル）を有効化
+GlobalState.ALLOW_DEBUG_TOGGLE = GlobalState.IS_DEBUG_MODE;
