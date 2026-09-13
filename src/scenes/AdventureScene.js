@@ -2556,6 +2556,7 @@ export default class AdventureScene extends Phaser.Scene {
                             enemyLevel: 20,
                             enemyAttribute: 'blue',
                             towerAreaName: hex.cellData?.name || '氷',
+                            bossBgmKey: 'bgm_boss1',
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
                             returnScene: 'AdventureScene'
                         }

@@ -469,10 +469,15 @@ export default class EventScene extends Phaser.Scene {
         GlobalState.getInstance().addLog(`🚪 [_finishScene] leaving EventScene (from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
         // ワイルドハント突破戦への遷移時はBGMを一切止めない（bgm_wildhuntをそのまま引き継ぐ）
         if (!this.from1221WildhuntEvent && this.sound && this.sound.sounds) {
-            // 戦闘BGM(bgm_battle1~4)は鳴らしたまま引き継ぐ。また探索ダイアログ(fromExploration)の時はマップBGM(bgm_hexen, bgm_toppa)も止めずに継続する
+            // 戦闘BGM(bgm_battle1~4, 選択BGM, tow_sakura, 指定BGM)は鳴らしたまま引き継ぐ。また探索ダイアログ(fromExploration)の時はマップBGM(bgm_hexen, bgm_toppa)も止めずに継続する
             this.sound.sounds.forEach(s => {
                 if (s && s.isPlaying) {
-                    const isBattleBgm = s.key && s.key.startsWith('bgm_battle');
+                    const isBattleBgm = s.key && (
+                        s.key.startsWith('bgm_battle') ||
+                        s.key === this.selectedBgmKey ||
+                        s.key === 'tow_sakura' ||
+                        (this.battleConfig && (s.key === this.battleConfig.bgmKey || s.key === this.battleConfig.bossBgmKey))
+                    );
                     const isMapBgm = s.key && (s.key === 'bgm_hexen' || s.key === 'bgm_toppa');
                     if (!isBattleBgm && !(this.fromExploration && isMapBgm)) {
                         try { s.stop(); } catch (e) {}
@@ -498,6 +503,14 @@ export default class EventScene extends Phaser.Scene {
                     if (this.returnScene) {
                         const retScene = this.scene.get(this.returnScene);
                         if (retScene && retScene.hideMapVisuals) retScene.hideMapVisuals();
+                    }
+                    if (this.sound && this.sound.sounds) {
+                        this.sound.sounds.forEach(s => {
+                            if (s && s.isPlaying && (s.key.startsWith('bgm_battle') || s.key === this.selectedBgmKey || s.key === 'tow_sakura' || (this.battleConfig && s.key === this.battleConfig.bgmKey))) {
+                                this.tweens.killTweensOf(s);
+                                try { s.setVolume(0.5); } catch(e){}
+                            }
+                        });
                     }
                     this.scene.sleep();
                     this.scene.launch('BattleScene', this.battleConfig);
@@ -579,6 +592,14 @@ export default class EventScene extends Phaser.Scene {
                 if (this.returnScene) {
                     const retScene = this.scene.get(this.returnScene);
                     if (retScene && retScene.hideMapVisuals) retScene.hideMapVisuals();
+                }
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying && (s.key.startsWith('bgm_battle') || s.key === this.selectedBgmKey || s.key === 'tow_sakura' || s.key === config.bgmKey)) {
+                            this.tweens.killTweensOf(s);
+                            try { s.setVolume(0.5); } catch(e){}
+                        }
+                    });
                 }
                 this.scene.sleep();
                 this.scene.launch('BattleScene', config);
