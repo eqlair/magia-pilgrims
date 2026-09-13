@@ -26,6 +26,40 @@ import EndingScene from './scenes/EndingScene';
 import { AudioOptimizer } from './systems/AudioOptimizer';
 import { GlobalState } from './systems/GlobalState';
 
+// ── 🛡️ Phaser 4 Textures.Frame null参照防御パッチ ──
+// 一部ブラウザやコンテナ破棄・テクスチャ再生成時に this.data / drawImage が null になる不具合を完全防止
+if (Phaser && Phaser.Textures && Phaser.Textures.Frame) {
+    const createDefaultFrameData = () => ({
+        cut: { x: 0, y: 0, w: 0, h: 0, r: 0, b: 0 },
+        trim: false,
+        sourceSize: { w: 0, h: 0 },
+        spriteSourceSize: { x: 0, y: 0, w: 0, h: 0, r: 0, b: 0 },
+        radius: 0,
+        drawImage: { x: 0, y: 0, width: 0, height: 0 },
+        is3Slice: false,
+        scale9: false,
+        scale9Borders: { x: 0, y: 0, w: 0, h: 0 }
+    });
+
+    const origUpdateUVs = Phaser.Textures.Frame.prototype.updateUVs;
+    Phaser.Textures.Frame.prototype.updateUVs = function() {
+        if (!this.data) {
+            this.data = createDefaultFrameData();
+        } else if (!this.data.drawImage) {
+            this.data.drawImage = { x: 0, y: 0, width: 0, height: 0 };
+        }
+        return origUpdateUVs.apply(this, arguments);
+    };
+
+    const origSetSize = Phaser.Textures.Frame.prototype.setSize;
+    Phaser.Textures.Frame.prototype.setSize = function() {
+        if (!this.data) {
+            this.data = createDefaultFrameData();
+        }
+        return origSetSize.apply(this, arguments);
+    };
+}
+
 // ── ?load_test_save=1 クエリ検知時の即時セーブデータ注入 ──
 try {
     const params = new URLSearchParams(window.location.search);

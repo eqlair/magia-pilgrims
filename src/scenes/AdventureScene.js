@@ -6070,6 +6070,14 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     _showDailyRouletteModal() {
+        if (this._dailySpinTween) {
+            this._dailySpinTween.stop();
+            this._dailySpinTween = null;
+        }
+        if (this._mascotRunTimer) {
+            this._mascotRunTimer.remove();
+            this._mascotRunTimer = null;
+        }
         if (this._dailyModalContainer) {
             this._dailyModalContainer.destroy();
             this._dailyModalContainer = null;
@@ -6077,9 +6085,9 @@ export default class AdventureScene extends Phaser.Scene {
 
         const { width, height } = this.scale;
         const gs = GlobalState.getInstance();
+        // モーダルはUIコンテナにネストせず、最前面の独立コンテナとして配置
         const container = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
         this._dailyModalContainer = container;
-        this.uiContainer.add(container);
 
         // 全画面暗転マスク
         const mask = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85)
@@ -6142,7 +6150,30 @@ export default class AdventureScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        let mascotRunTimer = null;
+        // 安全なテキスト設定ヘルパー（フレームやコンテキストが万一失われていても絶対クラッシュさせない）
+        const safeSetText = (textObj, str, color = null) => {
+            try {
+                if (textObj && textObj.scene) {
+                    if (textObj.frame && !textObj.frame.data) {
+                        textObj.frame.data = {
+                            cut: { x: 0, y: 0, w: 0, h: 0, r: 0, b: 0 },
+                            trim: false,
+                            sourceSize: { w: 0, h: 0 },
+                            spriteSourceSize: { x: 0, y: 0, w: 0, h: 0, r: 0, b: 0 },
+                            radius: 0,
+                            drawImage: { x: 0, y: 0, width: 0, height: 0 },
+                            is3Slice: false,
+                            scale9: false,
+                            scale9Borders: { x: 0, y: 0, w: 0, h: 0 }
+                        };
+                    }
+                    textObj.setText(str);
+                    if (color) textObj.setColor(color);
+                }
+            } catch (e) {
+                console.warn('[ROULETTE] safeSetText handled:', e);
+            }
+        };
 
         // 次回/本日の報酬プレビュー（開いた時点ではネタバレしない）
         const nextReward = gs.getNextDailyReward();
@@ -6176,6 +6207,27 @@ export default class AdventureScene extends Phaser.Scene {
         }).setOrigin(0.5);
         container.add(spinBtnText);
 
+        // 閉じるボタン
+        const closeBtn = this.add.text(width / 2, height / 2 + 310, '✖ 閉じる', {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', backgroundColor: '#333344', padding: { x: 25, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        container.add(closeBtn);
+
+        closeBtn.on('pointerdown', () => {
+            if (this._dailySpinTween) {
+                this._dailySpinTween.stop();
+                this._dailySpinTween = null;
+            }
+            if (this._mascotRunTimer) {
+                this._mascotRunTimer.remove();
+                this._mascotRunTimer = null;
+            }
+            if (this._dailyModalContainer) {
+                this._dailyModalContainer.destroy();
+                this._dailyModalContainer = null;
+            }
+        });
+
         let isSpinning = false;
         if (canClaim) {
             spinBtn.setInteractive({ useHandCursor: true });
@@ -6184,7 +6236,11 @@ export default class AdventureScene extends Phaser.Scene {
                 isSpinning = true;
                 spinBtn.disableInteractive();
                 spinBtn.setFillStyle(0x444444);
-                spinBtnText.setText('抽選中...');
+                safeSetText(spinBtnText, '抽選中...');
+
+                // スピン中は閉じるボタンを一時無効化
+                closeBtn.disableInteractive();
+                closeBtn.setAlpha(0.4);
 
                 // ── 🏃‍♀️ キャラのモーション: 正面走りへ切り替え ──
                 if (mascotBouncingTween) {
@@ -6195,7 +6251,7 @@ export default class AdventureScene extends Phaser.Scene {
 
                 let runFrameIndex = 0;
                 const runFrames = [0, 1, 0, 2];
-                mascotRunTimer = this.time.addEvent({
+                this._mascotRunTimer = this.time.addEvent({
                     delay: 130,
                     callback: () => {
                         runFrameIndex = (runFrameIndex + 1) % runFrames.length;
@@ -6205,34 +6261,35 @@ export default class AdventureScene extends Phaser.Scene {
                 });
 
                 // ── 🎯 景品に対応する回転角度（反時計回り計算） ──
-                // 角度0: EXP10000 / 45度: 宝石 / 90度: SSR / 135度: MR / 180度: SR / 270度: R / 315度: UR
                 let stopAngle = 0;
-                if (nextReward.type === 'exp') {
-                    stopAngle = 0; // EXP 10000（0度）
-                } else if (nextReward.type === 'gem') {
-                    stopAngle = 315; // 宝石（45度の位置）
-                } else if (nextReward.type === 'relic') {
-                    if (nextReward.rank === 2) {
-                        stopAngle = 90;  // Rレリクス（270度の位置）
-                    } else if (nextReward.rank === 3) {
-                        stopAngle = 180; // SRレリクス（180度の位置）
-                    } else if (nextReward.rank === 4) {
-                        stopAngle = 270; // SSRレリクス（90度の位置）
-                    } else if (nextReward.rank === 5) {
-                        stopAngle = 45;  // URレリクス（315度の位置）
-                    } else if (nextReward.rank >= 6) {
-                        stopAngle = 225; // MRレリクス（135度の位置）
+                if (nextReward) {
+                    if (nextReward.type === 'exp') {
+                        stopAngle = 0; // EXP 10000（0度）
+                    } else if (nextReward.type === 'gem') {
+                        stopAngle = 315; // 宝石（45度の位置）
+                    } else if (nextReward.type === 'relic') {
+                        if (nextReward.rank === 2) {
+                            stopAngle = 90;  // Rレリクス（270度の位置）
+                        } else if (nextReward.rank === 3) {
+                            stopAngle = 180; // SRレリクス（180度の位置）
+                        } else if (nextReward.rank === 4) {
+                            stopAngle = 270; // SSRレリクス（90度の位置）
+                        } else if (nextReward.rank === 5) {
+                            stopAngle = 45;  // URレリクス（315度の位置）
+                        } else if (nextReward.rank >= 6) {
+                            stopAngle = 225; // MRレリクス（135度の位置）
+                        }
                     }
                 }
 
-                console.log(`[ROULETTE_DEBUG] Day ${nextReward.day} Reward: ${nextReward.label}, type: ${nextReward.type}, rank: ${nextReward.rank} => stopAngle: ${stopAngle} deg`);
+                console.log(`[ROULETTE_DEBUG] Day ${nextReward?.day} Reward: ${nextReward?.label} => stopAngle: ${stopAngle} deg`);
 
                 // 6周 + 目的角度
                 const totalRotationDeg = 360 * 6 + stopAngle;
                 roulette.setRotation(0);
 
                 const spinTweenObj = { deg: 0 };
-                this.tweens.add({
+                this._dailySpinTween = this.tweens.add({
                     targets: spinTweenObj,
                     deg: totalRotationDeg,
                     duration: 3400,
@@ -6243,14 +6300,20 @@ export default class AdventureScene extends Phaser.Scene {
                         roulette.rotation = rad;
                     },
                     onComplete: () => {
+                        this._dailySpinTween = null;
                         const finalRad = Phaser.Math.DegToRad(stopAngle);
                         roulette.setRotation(finalRad);
                         roulette.rotation = finalRad;
-                        console.log(`[ROULETTE_DEBUG] Spin completed at rotation: ${stopAngle} deg (${finalRad} rad)`);
+                        console.log(`[ROULETTE_DEBUG] Spin completed at rotation: ${stopAngle} deg`);
+
+                        // 閉じるボタンを再有効化
+                        closeBtn.setInteractive({ useHandCursor: true });
+                        closeBtn.setAlpha(1.0);
+
                         // ── 🎉 キャラのモーション: 4番（喜ぶポーズ）で大きくぴょんぴょん！ ──
-                        if (mascotRunTimer) {
-                            mascotRunTimer.remove();
-                            mascotRunTimer = null;
+                        if (this._mascotRunTimer) {
+                            this._mascotRunTimer.remove();
+                            this._mascotRunTimer = null;
                         }
                         mascotSprite.setFrame(4); // 喜んでるポーズ（万歳）
                         mascotSprite.setY(charBaseY);
@@ -6275,39 +6338,30 @@ export default class AdventureScene extends Phaser.Scene {
                             this.sound.play('se_card', { volume: 0.8 });
                         }
 
-                        // ボタン表示更新
-                        spinBtnText.setText('獲得完了！');
-                        subTitle.setText(`📅 今月の獲得回数: ${gs.dailyRewardCount} / 30日（毎日0:00更新）`);
-                        previewText.setText(`✨ 【${claimResult.reward.day}日目】${claimResult.reward.label} を獲得！ ✨`);
-                        previewText.setColor('#ffff00');
+                        // ボタン表示更新（安全に更新）
+                        safeSetText(spinBtnText, '獲得完了！');
+                        safeSetText(subTitle, `📅 今月の獲得回数: ${gs.dailyRewardCount} / 30日（毎日0:00更新）`);
+                        
+                        const dayNum = (claimResult && claimResult.reward) ? claimResult.reward.day : (gs.dailyRewardCount || 1);
+                        const labelStr = (claimResult && claimResult.reward) ? claimResult.reward.label : (nextReward?.label || 'デイリー報酬');
+                        safeSetText(previewText, `✨ 【${dayNum}日目】${labelStr} を獲得！ ✨`, '#ffff00');
 
                         if (this.dailyRewardBtn && this.dailyRewardBtn.updateStatus) {
-                            this.dailyRewardBtn.updateStatus();
+                            try {
+                                this.dailyRewardBtn.updateStatus();
+                            } catch (e) {
+                                console.warn('[ROULETTE] dailyRewardBtn.updateStatus error:', e);
+                            }
                         }
 
                         // 獲得ポップアップ演出
-                        this._showRewardPopup(container, claimResult);
+                        if (claimResult && claimResult.reward) {
+                            this._showRewardPopup(container, claimResult);
+                        }
                     }
                 });
             });
         }
-
-        // 閉じるボタン
-        const closeBtn = this.add.text(width / 2, height / 2 + 310, '✖ 閉じる', {
-            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', backgroundColor: '#333344', padding: { x: 25, y: 8 }
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-        closeBtn.on('pointerdown', () => {
-            if (mascotRunTimer) {
-                mascotRunTimer.remove();
-                mascotRunTimer = null;
-            }
-            if (this._dailyModalContainer) {
-                this._dailyModalContainer.destroy();
-                this._dailyModalContainer = null;
-            }
-        });
-        container.add(closeBtn);
     }
 
     _showRewardPopup(parentContainer, claimResult) {
