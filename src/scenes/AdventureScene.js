@@ -2646,6 +2646,7 @@ export default class AdventureScene extends Phaser.Scene {
                 this.scene.launch('EventScene', {
                     events: events,
                     returnScene: 'AdventureScene',
+                    fromExploration: !(hex.cellData.enemyLevel > 0 || hasWitch),
                     enemyLevel: hex.cellData.enemyLevel || (10 + floor * 0.5),
                     enemyAttr: attrNum + 1,
                     majoLevel: hasWitch ? witchLevel : 0,
@@ -5573,10 +5574,22 @@ export default class AdventureScene extends Phaser.Scene {
 
     _playMapBgm(force = false) {
         const bgmKey = this._getMapBgmKey();
-        const existing = this.sound.get(bgmKey);
 
-        // すでに該当のマップBGMが再生中ならそのまま継続
-        if (existing && existing.isPlaying) return;
+        // すでに該当のマップBGMが再生中ならそのまま継続（リセット防止）
+        if (this.sound && this.sound.sounds) {
+            const alreadyPlaying = this.sound.sounds.find(s => s && s.key === bgmKey && s.isPlaying);
+            if (alreadyPlaying) {
+                // もし音量がフェード等で下がっていたら元の音量(0.5)へ戻す
+                if (alreadyPlaying.volume < 0.45) {
+                    this.tweens.add({
+                        targets: alreadyPlaying,
+                        volume: 0.5,
+                        duration: 500
+                    });
+                }
+                return;
+            }
+        }
 
         const ALL_MAP_BGM_KEYS = ['bgm_hexen', 'bgm_toppa', 'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx', 'tow_sakura'];
 
@@ -5595,7 +5608,7 @@ export default class AdventureScene extends Phaser.Scene {
             });
         }
 
-        // 既存のマップBGMをスムーズに停止（フェードアウトまたは即時停止）
+        // 既存の異なるマップBGMをスムーズに停止（フェードアウト）
         if (this.sound && this.sound.sounds) {
             this.sound.sounds.forEach(s => {
                 if (s && s.isPlaying && ALL_MAP_BGM_KEYS.includes(s.key) && s.key !== bgmKey) {
@@ -5611,6 +5624,14 @@ export default class AdventureScene extends Phaser.Scene {
 
         if (force) {
             this.sound.stopAll();
+        }
+
+        // 停止済みの古い同じキーのサウンドインスタンスがあればクリーンアップ
+        if (this.sound && this.sound.sounds) {
+            const stoppedSounds = this.sound.sounds.filter(s => s && s.key === bgmKey && !s.isPlaying);
+            stoppedSounds.forEach(s => {
+                try { s.destroy(); } catch(e){}
+            });
         }
 
         if (this.cache.audio.exists(bgmKey)) {
@@ -6981,7 +7002,8 @@ export default class AdventureScene extends Phaser.Scene {
         this.scene.launch('EventScene', {
             events: events,
             returnScene: 'AdventureScene',
-            isNotification: true
+            isNotification: true,
+            fromExploration: true
         });
     }
 }
