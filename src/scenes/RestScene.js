@@ -152,41 +152,30 @@ export default class RestScene extends Phaser.Scene {
         const clickZone = this.add.zone(0, 0, width, height).setOrigin(0).setInteractive();
         talkContainer.add(clickZone);
 
-        // 画面上部: シチュエーション名バナー
-        if (situTitle) {
-            const bannerBg = this.add.rectangle(width / 2, 28, 300, 32, 0x000000, 0.7)
-                .setStrokeStyle(1, 0xffcc66, 0.6);
-            const bannerText = this.add.text(width / 2, 28, `🏕️ ${situTitle}`, {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffdd88', fontStyle: 'bold'
-            }).setOrigin(0.5);
-            talkContainer.add([bannerBg, bannerText]);
-        }
-
         // スキップボタン（右上）
         const skipBtn = this.add.text(width - 20, 20, 'スキップ ⏩', {
-            fontFamily: 'sans-serif', fontSize: '14px', color: '#dddddd', backgroundColor: '#00000088',
+            fontFamily: FONT_MAIN, fontSize: '14px', color: '#dddddd', backgroundColor: '#00000088',
             padding: { x: 10, y: 5 }
         }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
         talkContainer.add(skipBtn);
 
-        // 立ち絵A（右側）
+        // 立ち絵A（右側: マップ上と同じ画面高さ60%）
         const texA = `portrait_${charA}`;
-        const spriteA = this.textures.exists(texA) ? this.add.image(width * 0.74, height * 0.50, texA) : null;
+        const targetH = height * 0.60;
+        const spriteA = this.textures.exists(texA) ? this.add.image(width * 0.75, height / 2, texA) : null;
         if (spriteA) {
-            const targetH = height * 0.70;
             spriteA.setScale(targetH / spriteA.height);
             spriteA.setAlpha(0);
             talkContainer.add(spriteA);
-            this.tweens.add({ targets: spriteA, alpha: 1.0, x: width * 0.72, duration: 350, ease: 'Cubic.easeOut' });
+            this.tweens.add({ targets: spriteA, alpha: 1.0, duration: 350, ease: 'Cubic.easeOut' });
         }
 
-        // 立ち絵B（左側・2人以上の場合のみ）
+        // 立ち絵B（左側: 2人以上の場合のみ、画面高さ60%）
         let spriteB = null;
         if (charB) {
             const texB = this.textures.exists(`portrait_${charB}_b`) ? `portrait_${charB}_b` : `portrait_${charB}`;
             if (this.textures.exists(texB)) {
-                spriteB = this.add.image(width * 0.28, height * 0.50, texB);
-                const targetH = height * 0.70;
+                spriteB = this.add.image(width * 0.25, height / 2, texB);
                 spriteB.setScale(targetH / spriteB.height);
                 if (!this.textures.exists(`portrait_${charB}_b`)) {
                     spriteB.setFlipX(true);
@@ -196,27 +185,55 @@ export default class RestScene extends Phaser.Scene {
             }
         }
 
-        // 下部セリフ枠
-        const msgBoxW = width * 0.94;
-        const msgBoxH = 114;
-        const msgBoxY = height - 70;
+        // 立ち絵表示時: キャラクターの足元を自然に暗く溶け込ませる乗算グラデーション(ev_multiply)
+        if (this.textures.exists('ev_multiply')) {
+            const multiplyOverlay = this.add.image(width / 2, height / 2, 'ev_multiply')
+                .setDisplaySize(width, height)
+                .setBlendMode(Phaser.BlendModes.MULTIPLY)
+                .setAlpha(0);
+            talkContainer.add(multiplyOverlay);
+            this.tweens.add({ targets: multiplyOverlay, alpha: 1.0, duration: 400 });
+        }
 
-        const msgBoxBg = this.add.rectangle(width / 2, msgBoxY, msgBoxW, msgBoxH, 0x0c0d14, 0.88)
-            .setStrokeStyle(2, 0xc8a46b, 0.8);
-        const nameText = this.add.text(width / 2 - msgBoxW / 2 + 24, msgBoxY - 42, nameA, {
-            fontFamily: 'sans-serif', fontSize: '18px', color: '#ffea9f', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
+        // 下部セリフ枠（マップ上の EventEngine と同じ下部全幅黒帯）
+        const BOX_TOP = height * 0.62;
+        const BOX_H = height * 0.38;
+
+        const msgBoxBg = this.add.rectangle(width / 2, BOX_TOP + BOX_H / 2, width, BOX_H, 0x000000)
+            .setAlpha(0.72);
+
+        const nameText = this.add.text(24, BOX_TOP + 10, nameA, {
+            fontFamily: FONT_MAIN,
+            fontSize: fontSize.small(width),
+            color: '#ffdd88',
+            fontStyle: 'bold'
         });
-        const bodyText = this.add.text(width / 2 - msgBoxW / 2 + 24, msgBoxY - 14, textA, {
-            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', wordWrap: { width: msgBoxW - 48 }, lineSpacing: 6
+
+        const bodyText = this.add.text(24, BOX_TOP + 44, textA, {
+            fontFamily: FONT_MAIN,
+            fontSize: fontSize.body(width),
+            color: '#ffffff',
+            wordWrap: { width: width - 48, useAdvancedWrap: true },
+            lineSpacing: 8
         });
 
-        // タップ送りガイドアイコン（▼）
-        const nextIcon = this.add.text(width / 2 + msgBoxW / 2 - 26, msgBoxY + 30, '▼', {
-            fontSize: '13px', color: '#ffea9f'
-        }).setOrigin(0.5);
-        this.tweens.add({ targets: nextIcon, y: msgBoxY + 34, duration: 450, yoyo: true, repeat: -1 });
+        // tap to continue ガイド
+        const tapLabel = this.add.text(width - 16, height - 16, 'tap to continue', {
+            fontFamily: FONT_MAIN,
+            fontSize: fontSize.small(width),
+            color: '#aaaaaa'
+        }).setOrigin(1, 1).setAlpha(1);
 
-        talkContainer.add([msgBoxBg, nameText, bodyText, nextIcon]);
+        this.tweens.add({
+            targets: tapLabel,
+            alpha: 0.25,
+            duration: 700,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        talkContainer.add([msgBoxBg, nameText, bodyText, tapLabel]);
 
         let step = 1;
         let isClosing = false;
@@ -248,7 +265,6 @@ export default class RestScene extends Phaser.Scene {
                         this.tweens.add({
                             targets: spriteB,
                             alpha: 1.0,
-                            x: width * 0.28,
                             duration: 350,
                             ease: 'Cubic.easeOut'
                         });
