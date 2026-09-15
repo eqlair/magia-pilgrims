@@ -637,7 +637,7 @@ export default class AdventureScene extends Phaser.Scene {
         // 🗼 タワー初期位置（1F街など）への初進入会話チェック
         if (this.isTowerMode) {
             const startHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
-            if (startHex && this._shouldTriggerTowerAreaReaction(startHex)) {
+            if (startHex && this._shouldTriggerTowerAreaReaction(startHex, true)) {
                 this.time.delayedCall(400, () => {
                     this._triggerTowerAreaReactionSolo(startHex);
                 });
@@ -2280,13 +2280,16 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.isTowerMode) {
             gs.towerPlayerCol = hex.col;
             gs.towerPlayerRow = hex.row;
-            if (prevTowerRow !== undefined && hex.row !== prevTowerRow) {
+            const isFloorChange = (prevTowerRow !== undefined && hex.row !== prevTowerRow);
+            this._isTowerFloorChange = isFloorChange;
+            if (isFloorChange) {
                 const newFloor = 59 - hex.row + 1;
                 const rawName = hex.cellData?.name || '';
                 const engName = TOWER_AREA_ENGLISH_NAMES[rawName] || '';
                 TimeReporter.showFloor(this, newFloor, engName);
             }
         } else {
+            this._isTowerFloorChange = false;
             gs.normalPlayerCol = hex.col;
             gs.normalPlayerRow = hex.row;
         }
@@ -2366,7 +2369,7 @@ export default class AdventureScene extends Phaser.Scene {
                     // タワー54F〜58Fは戦闘・探索なしで即座に移動完了
                     if (this.isTowerMode && (59 - hex.row >= 53 && 59 - hex.row <= 57)) {
                         this.isJumping = false;
-                        if (this._shouldTriggerTowerAreaReaction(hex)) {
+                        if (this._isTowerFloorChange && this._shouldTriggerTowerAreaReaction(hex, true)) {
                             this._triggerTowerAreaReactionSolo(hex);
                         } else {
                             SaveManager.saveGame(this);
@@ -2397,7 +2400,7 @@ export default class AdventureScene extends Phaser.Scene {
                     } else {
                         // 踏破済み＆敵なし → 何も起こさず即移動完了（時間も進まない）
                         this.isJumping = false;
-                        if (this.isTowerMode && this._shouldTriggerTowerAreaReaction(hex)) {
+                        if (this.isTowerMode && this._isTowerFloorChange && this._shouldTriggerTowerAreaReaction(hex, true)) {
                             this._triggerTowerAreaReactionSolo(hex);
                         } else {
                             SaveManager.saveGame(this);
@@ -2478,8 +2481,8 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.isTowerMode && currentFloor === 52) {
             // 53F専用掛け合い（①ヒント発見、2人以上なら②推理(とんちんかん)）
             this._build53FHintEvents(events);
-        } else if (this.isTowerMode && this._shouldTriggerTowerAreaReaction(hex)) {
-            // 🗼 タワー各エリアへの初進入掛け合い！
+        } else if (this.isTowerMode && this._isTowerFloorChange && this._shouldTriggerTowerAreaReaction(hex, true)) {
+            // 🗼 階段昇降時のエリア掛け合い！
             this._buildTowerAreaReactionEvents(events, hex);
         } else {
             events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
@@ -6907,17 +6910,18 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     /**
-     * 🗼 タワー各エリアへの初進入会話を発動すべきか判定
+     * 🗼 タワー階段昇降時（フロア移動時）のエリア会話を発動すべきか判定
+     * @param {Object} hex 
+     * @param {boolean} isFloorChange 階段昇降・フロア切り替え移動か
      */
-    _shouldTriggerTowerAreaReaction(hex) {
+    _shouldTriggerTowerAreaReaction(hex, isFloorChange = false) {
         if (!this.isTowerMode || !hex || !hex.cellData) return false;
+        // フロア内の左右移動時は通常の雑談にするため、階段昇降（フロア移動）時のみ発動！
+        if (!isFloorChange) return false;
+
         const rawName = hex.cellData.name || '';
         const validAreas = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '黒', '外', '赤', '紫', '緑', '黄', '青', '白'];
         if (!validAreas.includes(rawName)) return false;
-
-        const gs = GlobalState.getInstance();
-        if (!gs.towerSeenAreas) gs.towerSeenAreas = {};
-        if (gs.towerSeenAreas[rawName]) return false;
 
         return true;
     }
