@@ -634,6 +634,17 @@ export default class AdventureScene extends Phaser.Scene {
         // ── チュートリアル操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ）の再適用 ──
         this.applyTutorialRestrictions();
 
+        // 🗼 タワー初期位置（1F街など）への初進入会話チェック
+        if (this.isTowerMode) {
+            const startHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+            if (startHex && this._shouldTriggerTowerAreaReaction(startHex)) {
+                this.time.delayedCall(400, () => {
+                    this._triggerTowerAreaReactionSolo(startHex);
+                });
+            }
+        }
+
+
         // スマホ画面用リアルタイム・デバッグオーバーレイの配置 (非表示化)
         // this.setupDebugOverlay();
 
@@ -2355,7 +2366,11 @@ export default class AdventureScene extends Phaser.Scene {
                     // タワー54F〜58Fは戦闘・探索なしで即座に移動完了
                     if (this.isTowerMode && (59 - hex.row >= 53 && 59 - hex.row <= 57)) {
                         this.isJumping = false;
-                        SaveManager.saveGame(this);
+                        if (this._shouldTriggerTowerAreaReaction(hex)) {
+                            this._triggerTowerAreaReactionSolo(hex);
+                        } else {
+                            SaveManager.saveGame(this);
+                        }
                         return;
                     }
 
@@ -2382,7 +2397,11 @@ export default class AdventureScene extends Phaser.Scene {
                     } else {
                         // 踏破済み＆敵なし → 何も起こさず即移動完了（時間も進まない）
                         this.isJumping = false;
-                        SaveManager.saveGame(this);
+                        if (this.isTowerMode && this._shouldTriggerTowerAreaReaction(hex)) {
+                            this._triggerTowerAreaReactionSolo(hex);
+                        } else {
+                            SaveManager.saveGame(this);
+                        }
                     }
                 }
             });
@@ -2459,6 +2478,9 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.isTowerMode && currentFloor === 52) {
             // 53F専用掛け合い（①ヒント発見、2人以上なら②推理(とんちんかん)）
             this._build53FHintEvents(events);
+        } else if (this.isTowerMode && this._shouldTriggerTowerAreaReaction(hex)) {
+            // 🗼 タワー各エリアへの初進入掛け合い！
+            this._buildTowerAreaReactionEvents(events, hex);
         } else {
             events.push({ cmd: 'chara', key: `portrait_${char1}`, pos: 'right' });
             
@@ -6882,6 +6904,81 @@ export default class AdventureScene extends Phaser.Scene {
             { cmd: 'chara', key: `portrait_${charC}`, pos: 'right' },
             { cmd: 'text', name: nameC, body: textC }
         ];
+    }
+
+    /**
+     * 🗼 タワー各エリアへの初進入会話を発動すべきか判定
+     */
+    _shouldTriggerTowerAreaReaction(hex) {
+        if (!this.isTowerMode || !hex || !hex.cellData) return false;
+        const rawName = hex.cellData.name || '';
+        const validAreas = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '黒', '外', '赤', '紫', '緑', '黄', '青', '白'];
+        if (!validAreas.includes(rawName)) return false;
+
+        const gs = GlobalState.getInstance();
+        if (!gs.towerSeenAreas) gs.towerSeenAreas = {};
+        if (gs.towerSeenAreas[rawName]) return false;
+
+        return true;
+    }
+
+    /**
+     * 🗼 タワー各エリアへの初進入会話イベントを構築
+     */
+    _buildTowerAreaReactionEvents(events, hex) {
+        const gs = GlobalState.getInstance();
+        const rawName = hex.cellData.name;
+        if (!gs.towerSeenAreas) gs.towerSeenAreas = {};
+        gs.towerSeenAreas[rawName] = true;
+        SaveManager.saveGame(this);
+
+        const reactionsData = this.cache.json.get('tower_area_reactions');
+        if (!reactionsData || !this.party || this.party.length === 0) return;
+
+        const charA = this.party[Math.floor(Math.random() * this.party.length)];
+        const dataA = gs.characters[charA];
+        const nameA = dataA ? dataA.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '仲間';
+        const reactionA = reactionsData.characters[charA]?.[rawName];
+        const textA = reactionA?.step1 || '……。';
+
+        events.push({ cmd: 'chara', key: `portrait_${charA}`, pos: 'right' });
+        events.push({ cmd: 'text', name: nameA, body: textA });
+
+        if (this.party.length > 1) {
+            const others = this.party.filter(id => id !== charA);
+            const charB = others[Math.floor(Math.random() * others.length)];
+            const dataB = gs.characters[charB];
+            const nameB = dataB ? dataB.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '仲間';
+            const reactionB = reactionsData.characters[charB]?.[rawName];
+            const textB = reactionB?.step2 || '……。';
+
+            const bKey = `portrait_${charB}_b`;
+            const texB = this.textures.exists(bKey) ? bKey : `portrait_${charB}`;
+            events.push({ cmd: 'chara', key: texB, pos: 'left' });
+            events.push({ cmd: 'text', name: nameB, body: textB });
+        }
+    }
+
+    /**
+     * 🗼 敵がいないヘクスや初期進入時に単独でエリア会話を発動
+     */
+    _triggerTowerAreaReactionSolo(hex) {
+        const events = [];
+        const bgKey = this.findBgImageFile(hex.col, hex.row, hex.cellData);
+        events.push({ cmd: 'bg', key: bgKey });
+
+        const rawName = hex.cellData.name;
+        const displayName = TOWER_AREA_ENGLISH_NAMES[rawName] || rawName;
+        events.push({ cmd: 'location', name: displayName });
+
+        this._buildTowerAreaReactionEvents(events, hex);
+
+        this.scene.pause();
+        this.scene.launch('EventScene', {
+            events: events,
+            returnScene: 'AdventureScene',
+            isNotification: true
+        });
     }
 }
 

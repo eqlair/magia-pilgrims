@@ -43,7 +43,9 @@ export class GlobalState {
         this.towerStairsFound = {}; // { [floor]: true }
         this.towerSearchCount = {}; // { [floor]: Number }
         this.towerClearedHexes = {}; // { [`${col}_${row}`]: true }
+        this.towerSeenAreas = {}; // { [areaKey]: true } 既読タワーエリア反応フラグ
         this.tower21BossDefeated = false; // タワー21階ボス（プロセル氷像）撃破フラグ
+
         
         // 通常マップのプレイヤー座標保持用
         this.normalPlayerCol = 3;
@@ -1296,6 +1298,7 @@ export class GlobalState {
             event1217Played: this.event1217Played,
             event1221Played: this.event1221Played,
             hasEnteredTower: this.hasEnteredTower || false,
+            towerSeenAreas: JSON.parse(JSON.stringify(this.towerSeenAreas || {})),
 
             maxPastExp: this.maxPastExp || 0,
             currentRunTotalExp: this.currentRunTotalExp || 0,
