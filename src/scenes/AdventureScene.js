@@ -687,6 +687,21 @@ export default class AdventureScene extends Phaser.Scene {
                 this.inRestMode = false;
                 this.applyTutorialRestrictions();
                 SaveManager.saveGame(this);
+
+                // 🌅 休息後の朝のつぶやきイベントをエンキュー
+                if (data.campSituation) {
+                    const morningEvents = this._createMorningCampEvent(data.campSituation);
+                    if (morningEvents) {
+                        this.enqueueEvent({
+                            type: 'event',
+                            data: {
+                                events: morningEvents,
+                                returnScene: 'AdventureScene',
+                                isNotification: true
+                            }
+                        });
+                    }
+                }
             }
 
             // ── 撤退時: 紫苑のSPに関わらず普通に撤退完了（突入前状態に復旧） ──
@@ -1379,24 +1394,25 @@ export default class AdventureScene extends Phaser.Scene {
                     });
                 }
 
-                // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければ時報またはセーブ）
-                const hasNextEvent = this.processEventQueue();
-                if (!hasNextEvent) {
-                    if (this._pendingTimeSignal) {
-                        this._pendingTimeSignal = false;
-                        this.triggerNextTimePeriodSequence();
-                    } else {
-                        SaveManager.saveGame(this);
-                    }
-                }
-
-                // タロット/イベント/戦闘いずれも発動せず → 入力待ち状態なのでセーブ＆操作制限の維持
                 if (!advancedTimeThisResume) {
+                    // イベントキューに次のイベントが残っている場合は連鎖自動再生（何もなければ時報またはセーブ）
+                    const hasNextEvent = this.processEventQueue();
+                    if (!hasNextEvent) {
+                        if (this._pendingTimeSignal) {
+                            this._pendingTimeSignal = false;
+                            this.triggerNextTimePeriodSequence();
+                        } else {
+                            SaveManager.saveGame(this);
+                        }
+                    }
+
+                    // タロット/イベント/戦闘いずれも発動せず → 入力待ち状態なのでセーブ＆操作制限の維持
                     this.applyTutorialRestrictions();
                     SaveManager.saveGame(this);
                 }
                 // advanceTimeを経由した場合はshowTimeSignal内でセーブ済み
             }
+
 
         };
 
@@ -6796,6 +6812,76 @@ export default class AdventureScene extends Phaser.Scene {
                 SaveManager.saveGame(this);
             });
         });
+    }
+
+    /**
+     * 🌅 休息後の朝のつぶやきイベント生成
+     */
+    _createMorningCampEvent(situNo) {
+        const gs = GlobalState.getInstance();
+        const campData = this.cache.json.get('camp_situations');
+        if (!campData || !this.party || this.party.length === 0) return null;
+
+        // 1. 話者C選出: 精神力2/3未満の子がいれば、最も精神力割合が低いキャラを優先！
+        let charC = null;
+        let lowestRate = 1.0;
+        for (const id of this.party) {
+            const cd = gs.characters[id];
+            const stats = gs.calcStats(id, this.party);
+            const maxSp = stats ? stats.maxSp : 1000;
+            const curSp = cd?.currentSp !== undefined ? cd.currentSp : maxSp;
+            const rate = curSp / maxSp;
+            if (rate < 2 / 3) {
+                if (rate < lowestRate) {
+                    lowestRate = rate;
+                    charC = id;
+                }
+            }
+        }
+        if (!charC) {
+            charC = this.party[Math.floor(Math.random() * this.party.length)];
+        }
+
+        // 2. 分岐判定 (C目線)
+        // 食料0, 他メンバーからCへの友好度合計<5 (1人旅は不問), Cの精神力<2/3 のうち1つ以上あれば ③B (疲れ残り)
+        const charDataC = gs.characters[charC];
+        const statsC = gs.calcStats(charC, this.party);
+        const maxSpC = statsC ? statsC.maxSp : 1000;
+        const curSpC = charDataC?.currentSp !== undefined ? charDataC.currentSp : maxSpC;
+
+        let otherFriendshipSum = 0;
+        if (this.party.length > 1) {
+            for (const otherId of this.party) {
+                if (otherId === charC) continue;
+                const otherData = gs.characters[otherId];
+                otherFriendshipSum += (otherData?.friendships?.[charC] || 0);
+            }
+        }
+
+        let hasBad = false;
+        if (gs.food <= 0) hasBad = true;
+        if (this.party.length > 1 && otherFriendshipSum < 5) hasBad = true;
+        if (curSpC < (maxSpC * 2 / 3)) hasBad = true;
+
+        const branchC = hasBad ? 'B' : 'A';
+        const situC = campData.characters[charC]?.[situNo];
+        const textC = branchC === 'B' ? (situC?.step3B || situC?.step3A || '……。') : (situC?.step3A || '……。');
+        const nameC = charDataC ? charDataC.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '紫苑';
+
+        // 3. 背景画像キー取得 (滞在ヘクス)
+        const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+        let bgKey = 'bg_img_12_1';
+        if (currentHex) {
+            bgKey = this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData);
+        }
+
+        const isNight = (this.timeOfDay === '夜' || this.isNightExploration);
+
+        return [
+            { cmd: 'bg', key: bgKey, darkOverlay: isNight ? 0.6 : 0 },
+            { cmd: 'chara', key: `portrait_${charC}`, pos: 'right' },
+            { cmd: 'text', name: nameC, body: textC }
+        ];
     }
 }
 

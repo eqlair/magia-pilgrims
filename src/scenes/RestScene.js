@@ -74,13 +74,204 @@ export default class RestScene extends Phaser.Scene {
             }
         });
 
-        
-        this.drawMainView(width, height);
-        this.checkRestTutorial();
+        // 🏕️ 休息開始時の夜の掛け合い会話
+        const campData = this.cache.json.get('camp_situations');
+        if (campData && this.party && this.party.length > 0) {
+            this.showNightCampTalk(campData, width, height, () => {
+                this.drawMainView(width, height);
+                this.checkRestTutorial();
+            });
+        } else {
+            this.drawMainView(width, height);
+            this.checkRestTutorial();
+        }
     }
 
+    /**
+     * 🏕️ 休息開始時の夜の掛け合い会話演出
+     */
+    showNightCampTalk(campData, width, height, onComplete) {
+        // シチュエーション決定 (1〜20)
+        const situNo = Math.floor(Math.random() * 20) + 1;
+        this.currentCampSituation = situNo;
+        const situTitle = campData.situations?.[situNo] || '';
 
-    
+        // 話者A選出（パーティからランダム1人）
+        const charA = this.party[Math.floor(Math.random() * this.party.length)];
+        this.campCharA = charA;
+        const dataA = this.globalState.characters[charA];
+        const nameA = dataA ? dataA.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '紫苑';
+        const textA = campData.characters[charA]?.[situNo]?.step1 || '……。';
+
+        // 話者B選出（パーティが2人以上の場合）
+        let charB = null;
+        let nameB = '';
+        let textB = '';
+        let branchB = 'A';
+
+        if (this.party.length > 1) {
+            const others = this.party.filter(id => id !== charA);
+            charB = others[Math.floor(Math.random() * others.length)];
+            this.campCharB = charB;
+            const dataB = this.globalState.characters[charB];
+            nameB = dataB ? dataB.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '仲間';
+
+            // 分岐判定（話者B目線）
+            const statsB = this.globalState.calcStats(charB, this.party);
+            const maxSpB = statsB ? statsB.maxSp : 1000;
+            const curSpB = dataB?.currentSp !== undefined ? dataB.currentSp : maxSpB;
+            const friendshipBtoA = dataB?.friendships?.[charA] || 0;
+
+            if (friendshipBtoA < 0) {
+                branchB = 'C';
+            } else {
+                let badCount = 0;
+                if (this.globalState.food <= 0) badCount++;
+                if (friendshipBtoA < 5) badCount++;
+                if (curSpB < (maxSpB * 2 / 3)) badCount++;
+
+                if (badCount >= 2) {
+                    branchB = 'C';
+                } else if (badCount === 1) {
+                    branchB = 'B';
+                } else {
+                    branchB = 'A';
+                }
+            }
+
+            const situB = campData.characters[charB]?.[situNo];
+            if (branchB === 'C') textB = situB?.step2C || situB?.step2A || '……。';
+            else if (branchB === 'B') textB = situB?.step2B || situB?.step2A || '……。';
+            else textB = situB?.step2A || '……。';
+        }
+
+        // 会話コンテナ
+        const talkContainer = this.add.container(0, 0).setDepth(200);
+
+        // 全面タップ領域
+        const clickZone = this.add.zone(0, 0, width, height).setOrigin(0).setInteractive();
+        talkContainer.add(clickZone);
+
+        // 画面上部: シチュエーション名バナー
+        if (situTitle) {
+            const bannerBg = this.add.rectangle(width / 2, 28, 300, 32, 0x000000, 0.7)
+                .setStrokeStyle(1, 0xffcc66, 0.6);
+            const bannerText = this.add.text(width / 2, 28, `🏕️ ${situTitle}`, {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffdd88', fontStyle: 'bold'
+            }).setOrigin(0.5);
+            talkContainer.add([bannerBg, bannerText]);
+        }
+
+        // スキップボタン（右上）
+        const skipBtn = this.add.text(width - 20, 20, 'スキップ ⏩', {
+            fontFamily: 'sans-serif', fontSize: '14px', color: '#dddddd', backgroundColor: '#00000088',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        talkContainer.add(skipBtn);
+
+        // 立ち絵A（右側）
+        const texA = `portrait_${charA}`;
+        const spriteA = this.textures.exists(texA) ? this.add.image(width * 0.74, height * 0.50, texA) : null;
+        if (spriteA) {
+            const targetH = height * 0.70;
+            spriteA.setScale(targetH / spriteA.height);
+            spriteA.setAlpha(0);
+            talkContainer.add(spriteA);
+            this.tweens.add({ targets: spriteA, alpha: 1.0, x: width * 0.72, duration: 350, ease: 'Cubic.easeOut' });
+        }
+
+        // 立ち絵B（左側・2人以上の場合のみ）
+        let spriteB = null;
+        if (charB) {
+            const texB = this.textures.exists(`portrait_${charB}_b`) ? `portrait_${charB}_b` : `portrait_${charB}`;
+            if (this.textures.exists(texB)) {
+                spriteB = this.add.image(width * 0.28, height * 0.50, texB);
+                const targetH = height * 0.70;
+                spriteB.setScale(targetH / spriteB.height);
+                if (!this.textures.exists(`portrait_${charB}_b`)) {
+                    spriteB.setFlipX(true);
+                }
+                spriteB.setAlpha(0);
+                talkContainer.add(spriteB);
+            }
+        }
+
+        // 下部セリフ枠
+        const msgBoxW = width * 0.94;
+        const msgBoxH = 114;
+        const msgBoxY = height - 70;
+
+        const msgBoxBg = this.add.rectangle(width / 2, msgBoxY, msgBoxW, msgBoxH, 0x0c0d14, 0.88)
+            .setStrokeStyle(2, 0xc8a46b, 0.8);
+        const nameText = this.add.text(width / 2 - msgBoxW / 2 + 24, msgBoxY - 42, nameA, {
+            fontFamily: 'sans-serif', fontSize: '18px', color: '#ffea9f', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
+        });
+        const bodyText = this.add.text(width / 2 - msgBoxW / 2 + 24, msgBoxY - 14, textA, {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#ffffff', wordWrap: { width: msgBoxW - 48 }, lineSpacing: 6
+        });
+
+        // タップ送りガイドアイコン（▼）
+        const nextIcon = this.add.text(width / 2 + msgBoxW / 2 - 26, msgBoxY + 30, '▼', {
+            fontSize: '13px', color: '#ffea9f'
+        }).setOrigin(0.5);
+        this.tweens.add({ targets: nextIcon, y: msgBoxY + 34, duration: 450, yoyo: true, repeat: -1 });
+
+        talkContainer.add([msgBoxBg, nameText, bodyText, nextIcon]);
+
+        let step = 1;
+        let isClosing = false;
+
+        const closeTalk = () => {
+            if (isClosing) return;
+            isClosing = true;
+            this.tweens.add({
+                targets: talkContainer,
+                alpha: 0,
+                duration: 250,
+                onComplete: () => {
+                    talkContainer.destroy();
+                    if (onComplete) onComplete();
+                }
+            });
+        };
+
+        const advanceStep = () => {
+            if (isClosing) return;
+
+            if (step === 1) {
+                // 2人目がいるならステップ2へ
+                if (charB && textB) {
+                    step = 2;
+                    // Aを少し暗く、Bを明るく登場
+                    if (spriteA) this.tweens.add({ targets: spriteA, alpha: 0.5, duration: 200 });
+                    if (spriteB) {
+                        this.tweens.add({
+                            targets: spriteB,
+                            alpha: 1.0,
+                            x: width * 0.28,
+                            duration: 350,
+                            ease: 'Cubic.easeOut'
+                        });
+                    }
+                    nameText.setText(nameB);
+                    bodyText.setText(textB);
+                } else {
+                    // 1人のみなら会話終了
+                    closeTalk();
+                }
+            } else {
+                // ステップ2完了 -> 終了
+                closeTalk();
+            }
+        };
+
+        clickZone.on('pointerdown', advanceStep);
+        skipBtn.on('pointerdown', (pointer, localX, localY, event) => {
+            if (event && event.stopPropagation) event.stopPropagation();
+            closeTalk();
+        });
+    }
+
     getRankColor(rank) {
         switch (rank) {
             case 1: return '#aaaaff'; // N (水色)
@@ -502,6 +693,12 @@ export default class RestScene extends Phaser.Scene {
         SaveManager.saveGame();
 
         const proceedToAdventure = () => {
+            const restData = {
+                fromRest: true,
+                campSituation: this.currentCampSituation || 1,
+                campCharA: this.campCharA,
+                campCharB: this.campCharB
+            };
             if (this.bgm && this.bgm.isPlaying) {
                 this.tweens.add({
                     targets: this.bgm,
@@ -510,12 +707,12 @@ export default class RestScene extends Phaser.Scene {
                     onComplete: () => {
                         this.bgm.stop();
                         this.scene.stop('RestScene');
-                        this.scene.resume('AdventureScene', { fromRest: true });
+                        this.scene.resume('AdventureScene', restData);
                     }
                 });
             } else {
                 this.scene.stop('RestScene');
-                this.scene.resume('AdventureScene', { fromRest: true });
+                this.scene.resume('AdventureScene', restData);
             }
         };
 
