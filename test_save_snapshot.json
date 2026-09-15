@@ -1,0 +1,332 @@
+{
+  "timestamp": 1787562566550,
+  "saveDateTimeStr": "2026/12/20 22:00:00",
+  "globalState": {
+    "stockExp": 1250,
+    "stockSp": 1800,
+    "maxPastExp": 5000,
+    "currentRunTotalExp": 3400,
+    "food": 140,
+    "currentMonth": 12,
+    "currentDay": 20,
+    "timePeriodIndex": 2,
+    "activeTarots": [
+      4,
+      9,
+      12
+    ],
+    "drawnTarotCards": [
+      4,
+      9,
+      12
+    ],
+    "event1207Played": true,
+    "event1214Played": true,
+    "event1217Played": true,
+    "event1221Played": false,
+    "isBattleAutoEnabled": true,
+    "pvpDamageDenominator": 30,
+    "autoLanes": {
+      "0": false,
+      "1": false,
+      "2": false,
+      "-2": false,
+      "-1": false
+    },
+    "relicSortKeys": [
+      "lock",
+      "rank",
+      "max_val"
+    ],
+    "characters": {
+      "001": {
+        "isJoined": true,
+        "hasAccompanied": true,
+        "level": 3,
+        "currentHp": 990,
+        "currentSp": 1210,
+        "friendships": {
+          "002": 40,
+          "003": 35,
+          "004": 30,
+          "005": 20,
+          "010": 25
+        },
+        "metCharacters": [
+          "002",
+          "003",
+          "004",
+          "005",
+          "010"
+        ],
+        "equipRelics": [
+          {
+            "id": "relic_001",
+            "name": "神速の指輪",
+            "rank": 4,
+            "traits": [
+              {
+                "name": "全攻撃力UP",
+                "level": 3
+              },
+              {
+                "name": "リロード短縮",
+                "level": 2
+              }
+            ]
+          },
+          {
+            "id": "relic_002",
+            "name": "豪傑の首飾り",
+            "rank": 4,
+            "traits": [
+              {
+                "name": "近接攻撃力UP",
+                "level": 3
+              },
+              {
+                "name": "生命力UP",
+                "level": 2
+              }
+            ]
+          },
+          null,
+          null,
+          null
+        ],
+        "equipGem": {
+          "name": "紅蓮の宝珠",
+          "rank": 3,
+          "element": "fire"
+        }
+      },
+      "002": {
+        "isJoined": true,
+        "hasAccompanied": true,
+        "level": 2,
+        "currentHp": 850,
+        "currentSp": 900,
+        "friendships": {
+          "001": 40,
+          "003": 25
+        },
+        "metCharacters": [
+          "001",
+          "003"
+        ],
+        "equipRelics": [
+          {
+            "id": "relic_003",
+            "name": "守護の腕輪",
+            "rank": 3,
+            "traits": [
+              {
+                "name": "回避率UP",
+                "level": 2
+              },
+              {
+                "name": "生命力UP",
+                "level": 2
+              }
+            ]
+          },
+          null,
+          null,
+          null,
+          null
+        ],
+        "equipGem": null
+      },
+      "003": {
+        "isJoined": true,
+        "hasAccompanied": true,
+        "level": 2,
+        "currentHp": 880,
+        "currentSp": 950,
+        "friendships": {
+          "001": 35,
+          "002": 25
+        },
+        "metCharacters": [
+          "001",
+          "002"
+        ],
+        "equipRelics": [
+          {
+            "id": "relic_004",
+            "name": "鋭利な刃片",
+            "rank": 3,
+            "traits": [
+              {
+                "name": "CH率UP",
+                "level": 2
+              },
+              {
+                "name": "近接攻撃力UP",
+                "level": 2
+              }
+            ]
+          },
+          null,
+          null,
+          null,
+          null
+        ],
+        "equipGem": null
+      },
+      "004": {
+        "isJoined": true,
+        "hasAccompanied": true,
+        "level": 2,
+        "currentHp": 800,
+        "currentSp": 850,
+        "friendships": {
+          "001": 30
+        },
+        "metCharacters": [
+          "001"
+        ],
+        "equipRelics": [
+          {
+            "id": "relic_005",
+            "name": "射手の佩玉",
+            "rank": 3,
+            "traits": [
+              {
+                "name": "全攻撃力UP",
+                "level": 2
+              },
+              {
+                "name": "命中率UP",
+                "level": 2
+              }
+            ]
+          },
+          null,
+          null,
+          null,
+          null
+        ],
+        "equipGem": null
+      },
+      "005": {
+        "isJoined": true,
+        "hasAccompanied": true,
+        "level": 2,
+        "currentHp": 750,
+        "currentSp": 920,
+        "friendships": {
+          "001": 20
+        },
+        "metCharacters": [
+          "001"
+        ],
+        "equipRelics": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "equipGem": null
+      },
+      "010": {
+        "isJoined": true,
+        "hasAccompanied": true,
+        "level": 2,
+        "currentHp": 820,
+        "currentSp": 880,
+        "friendships": {
+          "001": 25
+        },
+        "metCharacters": [
+          "001"
+        ],
+        "equipRelics": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "equipGem": null
+      }
+    },
+    "savedFormation": {
+      "001": {
+        "lane": 0,
+        "isFront": true
+      },
+      "003": {
+        "lane": -1,
+        "isFront": true
+      },
+      "002": {
+        "lane": 1,
+        "isFront": true
+      },
+      "004": {
+        "lane": -2,
+        "isFront": false
+      },
+      "010": {
+        "lane": 2,
+        "isFront": false
+      }
+    },
+    "inventory": {
+      "relics": [
+        {
+          "id": "relic_stock_1",
+          "name": "古代の護符",
+          "rank": 4,
+          "traits": [
+            {
+              "name": "全攻撃力UP",
+              "level": 3
+            }
+          ]
+        },
+        {
+          "id": "relic_stock_2",
+          "name": "月影の魔石",
+          "rank": 3,
+          "traits": [
+            {
+              "name": "精神力UP",
+              "level": 2
+            }
+          ]
+        }
+      ],
+      "gems": [
+        {
+          "name": "蒼海の宝珠",
+          "rank": 3,
+          "element": "water"
+        },
+        {
+          "name": "疾風の宝珠",
+          "rank": 2,
+          "element": "wind"
+        }
+      ]
+    }
+  },
+  "adventureState": {
+    "playerCol": 3,
+    "playerRow": 3,
+    "currentMonth": 12,
+    "currentDay": 20,
+    "timeOfDay": "夜",
+    "timePeriodIndex": 2,
+    "party": [
+      "001",
+      "003",
+      "002",
+      "004",
+      "010"
+    ],
+    "food": 140
+  }
+}
