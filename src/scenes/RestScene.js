@@ -18,6 +18,8 @@ export default class RestScene extends Phaser.Scene {
     init(data) {
         this.party = data.party || ['001'];
         this.timeOfDay = data.timeOfDay || '昼';
+        this.isTower = data.isTower || false;
+        this.towerBgKey = data.bgKey || null;
     }
 
     create() {
@@ -26,13 +28,19 @@ export default class RestScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        const bgKey = (this.timeOfDay === '夜') ? 'ev_camp' : 'ev_daycamp';
+        let bgKey = (this.timeOfDay === '夜') ? 'ev_camp' : 'ev_daycamp';
+        if (this.isTower && this.towerBgKey && this.textures.exists(this.towerBgKey)) {
+            bgKey = this.towerBgKey;
+        } else if (this.isTower && this.textures.exists('bg_tower01')) {
+            bgKey = 'bg_tower01';
+        }
+
         // 背景レイヤー (depth 0)
         this.bgContainer = this.add.container(0, 0).setDepth(0);
         if (this.textures.exists(bgKey)) {
             const bg = this.add.image(width / 2, height / 2, bgKey);
-            const scaleY = height / bg.height;
-            bg.setScale(scaleY);
+            const scale = Math.max(width / bg.width, height / bg.height);
+            bg.setScale(scale);
             this.bgContainer.add(bg);
         } else {
             const defaultBg = this.add.rectangle(width / 2, height / 2, width, height, 0x111122);
@@ -676,7 +684,8 @@ export default class RestScene extends Phaser.Scene {
     }
 
     confirmFinishRest() {
-        this.showDialog('休息を終えると時間が進みます。\nよろしいですか？', () => this.finishRest());
+        const msg = this.isTower ? '休息を終えます。\nよろしいですか？' : '休息を終えると時間が進みます。\nよろしいですか？';
+        this.showDialog(msg, () => this.finishRest());
     }
 
     finishRest() {

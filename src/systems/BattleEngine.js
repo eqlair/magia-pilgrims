@@ -1,4 +1,5 @@
 import { PlayerCharacter, EnemyCharacter, BossCharacter, Bullet, EffectEntity, PvpEnemyCharacter } from './BattleEntities';
+import { SnakeBoss } from './SnakeBoss';
 import { GlobalState } from './GlobalState';
 import { PvpAiController } from './PvpAiController';
 
@@ -239,18 +240,14 @@ export class BattleEngine {
             let lane = laneOffsets[i];
             let isFront = false;
             if (this.isJikukan) {
-                const jState = gs.getJikukanState();
+                const jFormation = gs.getJikukanFormation ? gs.getJikukanFormation(this.config.jikukanType || 'wasp', this.config.jikukanMode || 'solo') : null;
                 if (this.config.jikukanMode === 'solo') {
-                    lane = jState.solo.lane !== undefined ? jState.solo.lane : 0;
-                    isFront = !!jState.solo.isFront;
-                } else if (this.config.jikukanMode === 'trio') {
-                    const slot = (jState.trio.formation || []).find(f => f.charId === charId);
-                    if (slot) {
-                        if (slot.lane !== undefined) lane = slot.lane;
-                        isFront = !!slot.isFront;
-                    }
+                    const soloData = jFormation || gs.getJikukanState().solo;
+                    lane = soloData.lane !== undefined ? soloData.lane : 0;
+                    isFront = !!soloData.isFront;
                 } else {
-                    const slot = (jState.quintuple.formation || []).find(f => f.charId === charId);
+                    const formList = Array.isArray(jFormation) ? jFormation : ((this.config.jikukanMode === 'trio') ? gs.getJikukanState().trio.formation : gs.getJikukanState().quintuple.formation);
+                    const slot = (formList || []).find(f => f.charId === charId);
                     if (slot) {
                         if (slot.lane !== undefined) lane = slot.lane;
                         isFront = !!slot.isFront;
@@ -407,6 +404,22 @@ export class BattleEngine {
         if (this.rule === 3 || this.config.isDpsTest) {
             this.spawnSandbags();
         }
+
+        // --- 🐍 蛇ボステストモード ---
+        if (this.config.isSnakeBossTest) {
+            this.waveState = 'boss';
+            this.spawnSnakeBoss();
+        }
+    }
+
+    spawnSnakeBoss() {
+        const snake = new SnakeBoss(0, 26.0, {
+            name: '海竜ウツボ魔女',
+            level: this.majoLevel || 15,
+            attribute: this.enemyAttribute || 'blue'
+        });
+        this.enemies.push(snake);
+        return snake;
     }
 
 
@@ -724,8 +737,8 @@ export class BattleEngine {
                 // 距離による低下: 1mあたり2%
                 let distDrop = distance * 0.02;
                 
-                // レベル差による命中率補正: レベル差 * 5%
-                levelHitBonus = levelDiff * 0.05;
+                // レベル差による命中率補正: レベル差 * 1% (旧5%)
+                levelHitBonus = levelDiff * 0.01;
                 levelDmgBonusAmount = (levelDiff * 0.05 * finalDamage);
                 
                 // タロット効果(戦闘時)
@@ -1502,8 +1515,8 @@ export class BattleEngine {
             let minDistCenter = 9999;
             const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
             for (const e of enemyList) {
-                // 死亡中、または実体化演出中（spawnDropTimer/spawnAnimTimer > 0）の敵はターゲットにしない
-                if (e.isDead || e.isDying || e.hp <= 0 || e.spawnDropTimer > 0 || e.spawnAnimTimer > 0) continue;
+                // 死亡中、または実体化演出中、または潜航中の蛇ボスはターゲットにしない
+                if (e.isDead || e.isDying || e.hp <= 0 || e.spawnDropTimer > 0 || e.spawnAnimTimer > 0 || (e.isSnakeBoss && e.state === 'submerged')) continue;
                 const dx = e.x - p.x;
                 const dz = e.z - p.z;
                 let surfaceDist;
@@ -2048,6 +2061,12 @@ export class BattleEngine {
         // 敵の更新
         for (const e of this.enemies) {
             if (e.isDead) continue;
+            if (e.isSnakeBoss) {
+                const gs = GlobalState.getInstance();
+                const enemySlowMult = gs.enemySlowActive ? 0.80 : 1.0;
+                e.update(dt * enemySlowMult, this);
+                continue;
+            }
 
             // 突破モード(rule=2)中、味方が前進している分の相対移動 (敵が手前Z方向へ流れる)
             if (this.rule === 2 && !e.isDying && this.waveState === 'playing') {

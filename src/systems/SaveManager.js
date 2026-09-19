@@ -53,6 +53,10 @@ export class SaveManager {
                 lastDailyRewardDate: gs.lastDailyRewardDate || '',
                 jikukanState: gs.jikukanState ? JSON.parse(JSON.stringify(gs.jikukanState)) : null,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
+                normalParty: gs.normalParty ? [...gs.normalParty] : ['001'],
+                normalFormation: gs.normalFormation ? JSON.parse(JSON.stringify(gs.normalFormation)) : {},
+                towerParty: gs.towerParty ? [...gs.towerParty] : ['001'],
+                towerFormation: gs.towerFormation ? JSON.parse(JSON.stringify(gs.towerFormation)) : {},
                 autoLanes: gs.autoLanes ? JSON.parse(JSON.stringify(gs.autoLanes)) : { '-2': false, '-1': false, '0': false, '1': false, '2': false },
                 isBattleAutoEnabled: gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true,
                 pvpDamageDenominator: gs.pvpDamageDenominator !== undefined ? gs.pvpDamageDenominator : 30,
@@ -135,6 +139,8 @@ export class SaveManager {
                     gs.towerPlayerCol = adventureScene.playerCol;
                     gs.towerPlayerRow = adventureScene.playerRow;
                     gs.towerHexStates = hexStates;
+                    gs.towerParty = adventureScene.party ? [...adventureScene.party] : (gs.towerParty || ['001']);
+                    gs.towerFormation = JSON.parse(JSON.stringify(gs.savedFormation || {}));
                     towerData = {
                         towerPlayerCol: adventureScene.playerCol !== undefined ? adventureScene.playerCol : 2,
                         towerPlayerRow: adventureScene.playerRow !== undefined ? adventureScene.playerRow : 59,
@@ -144,7 +150,9 @@ export class SaveManager {
                         towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
                         towerSeenAreas: gs.towerSeenAreas ? JSON.parse(JSON.stringify(gs.towerSeenAreas)) : {},
                         tower21BossDefeated: !!gs.tower21BossDefeated,
-                        towerHexStates: hexStates
+                        towerHexStates: hexStates,
+                        party: gs.towerParty,
+                        savedFormation: gs.towerFormation
                     };
                     if (existing && existing.adventureState) {
                         adventureData = existing.adventureState;
@@ -153,6 +161,8 @@ export class SaveManager {
                     // 通常マップ時のセーブ
                     gs.normalPlayerCol = adventureScene.playerCol;
                     gs.normalPlayerRow = adventureScene.playerRow;
+                    gs.normalParty = adventureScene.party ? [...adventureScene.party] : (gs.normalParty || ['001']);
+                    gs.normalFormation = JSON.parse(JSON.stringify(gs.savedFormation || {}));
                     adventureData = {
                         playerCol: adventureScene.playerCol !== undefined ? adventureScene.playerCol : 3,
                         playerRow: adventureScene.playerRow !== undefined ? adventureScene.playerRow : 6,
@@ -162,7 +172,8 @@ export class SaveManager {
                         timePeriodIndex: gs.timePeriodIndex || 0,
                         globalWaveCount: adventureScene.globalWaveCount || 2,
                         globalEnemyCount: adventureScene.globalEnemyCount !== undefined ? adventureScene.globalEnemyCount : 10,
-                        party: adventureScene.party || ['001'],
+                        party: gs.normalParty,
+                        savedFormation: gs.normalFormation,
                         previousPartySize: adventureScene.party ? adventureScene.party.length : 1,
                         inRestMode: adventureScene.inRestMode || false,
                         hexStates: hexStates
@@ -177,21 +188,19 @@ export class SaveManager {
                             towerSearchCount: gs.towerSearchCount ? JSON.parse(JSON.stringify(gs.towerSearchCount)) : {},
                             towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
                             towerSeenAreas: gs.towerSeenAreas ? JSON.parse(JSON.stringify(gs.towerSeenAreas)) : {},
-                            towerHexStates: gs.towerHexStates
+                            towerHexStates: gs.towerHexStates,
+                            party: gs.towerParty,
+                            savedFormation: gs.towerFormation
                         };
                     } else if (existing && existing.towerState) {
                         towerData = existing.towerState;
                     }
                 }
-            } else if (existing && existing.adventureState) {
-                adventureData = existing.adventureState;
-                if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
-                    const formationChars = Object.keys(gs.savedFormation);
-                    const currentPartySet = new Set(adventureData.party || []);
-                    for (const charId of formationChars) {
-                        currentPartySet.add(charId);
-                    }
-                    adventureData.party = Array.from(currentPartySet);
+            } else {
+                // AdventureScene 以外（時空館・道場等）からのセーブ時は既存の adventureState / towerState を安全に保持
+                if (existing) {
+                    if (existing.adventureState) adventureData = existing.adventureState;
+                    if (existing.towerState) towerData = existing.towerState;
                 }
             }
 
@@ -316,6 +325,10 @@ export class SaveManager {
             }
         }
         if (d.savedFormation) gs.savedFormation = d.savedFormation;
+        if (d.normalParty) gs.normalParty = d.normalParty;
+        if (d.normalFormation) gs.normalFormation = d.normalFormation;
+        if (d.towerParty) gs.towerParty = d.towerParty;
+        if (d.towerFormation) gs.towerFormation = d.towerFormation;
         if (d.autoLanes) gs.autoLanes = d.autoLanes;
         if (d.isBattleAutoEnabled !== undefined) gs.isBattleAutoEnabled = d.isBattleAutoEnabled;
         if (d.pvpDamageDenominator !== undefined) gs.pvpDamageDenominator = d.pvpDamageDenominator;
@@ -368,13 +381,17 @@ export class SaveManager {
             if (ts.towerClearedHexes) gs.towerClearedHexes = ts.towerClearedHexes;
             if (ts.towerSeenAreas) gs.towerSeenAreas = ts.towerSeenAreas;
             if (ts.tower21BossDefeated !== undefined) gs.tower21BossDefeated = ts.tower21BossDefeated;
+            if (ts.party && ts.party.length > 0) gs.towerParty = ts.party;
+            if (ts.savedFormation && Object.keys(ts.savedFormation).length > 0) gs.towerFormation = ts.savedFormation;
         }
 
-        // 通常マップ座標の復元
+        // 通常マップ座標および編成の復元
         if (saveData.adventureState) {
             const as = saveData.adventureState;
             if (as.playerCol !== undefined) gs.normalPlayerCol = as.playerCol;
             if (as.playerRow !== undefined) gs.normalPlayerRow = as.playerRow;
+            if (as.party && as.party.length > 0) gs.normalParty = as.party;
+            if (as.savedFormation && Object.keys(as.savedFormation).length > 0) gs.normalFormation = as.savedFormation;
         }
 
         console.log('[SaveManager] GlobalState restored!');

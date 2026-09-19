@@ -138,6 +138,16 @@ export class TimeReporter {
 
         const displayText = `第 ${floorNum} 階`;
 
+        // 既存のフロアテロップが残っていれば安全に破棄
+        if (scene._activeFloorTelop) {
+            try {
+                scene._activeFloorTelop.forEach(obj => {
+                    if (obj && obj.destroy) obj.destroy();
+                });
+            } catch (e) {}
+            scene._activeFloorTelop = null;
+        }
+
         const blocker = scene.add.rectangle(CX, CY, width, height, 0x000000)
             .setAlpha(0.001)
             .setDepth(DEPTH - 1)
@@ -173,6 +183,14 @@ export class TimeReporter {
             }).setOrigin(0.5, 0.5).setDepth(DEPTH + 1).setScrollFactor(0);
         }
 
+        // ★ カメラ2重描画防止：AdventureScene等のmainCameraから無視させ、UIカメラでのみ描画
+        const targetsToIgnore = [blocker, band, label];
+        if (subLabel) targetsToIgnore.push(subLabel);
+        if (scene.cameras && scene.cameras.main && scene.uiCamera) {
+            scene.cameras.main.ignore(targetsToIgnore);
+        }
+        scene._activeFloorTelop = targetsToIgnore;
+
         scene.tweens.add({
             targets: band,
             scaleY: 1,
@@ -205,6 +223,7 @@ export class TimeReporter {
                                             if (subLabel) subLabel.destroy();
                                             band.destroy();
                                             blocker.destroy();
+                                            scene._activeFloorTelop = null;
                                             if (typeof onComplete === 'function') onComplete();
                                         }
                                     });

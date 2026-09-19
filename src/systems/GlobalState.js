@@ -82,8 +82,12 @@ export class GlobalState {
             textWidth: 25
         };
         
-        // 保存された隊列編成データ
+        // 保存された隊列編成データ（通常マップ用 / 塔用を完全分離して保持）
         this.savedFormation = {};
+        this.normalParty = ['001'];
+        this.normalFormation = {};
+        this.towerParty = ['001'];
+        this.towerFormation = {};
 
         // 発動中のタロットカードリスト [{id: Number, isUpright: Boolean}]
         this.activeTarots = [];
@@ -246,7 +250,62 @@ export class GlobalState {
                 ]
             };
         }
+
+        // ⚔️ アタック各項目（Waspアタック / Witchアタック）ごとの個別編成管理
+        if (!this.jikukanState.formations) {
+            this.jikukanState.formations = {
+                wasp: {
+                    solo: { charId: this.jikukanState.solo?.charId || '001', lane: this.jikukanState.solo?.lane || 0, isFront: !!this.jikukanState.solo?.isFront },
+                    trio: JSON.parse(JSON.stringify(this.jikukanState.trio?.formation || [])),
+                    quintuple: JSON.parse(JSON.stringify(this.jikukanState.quintuple?.formation || []))
+                },
+                witch: {
+                    solo: { charId: this.jikukanState.solo?.charId || '001', lane: this.jikukanState.solo?.lane || 0, isFront: !!this.jikukanState.solo?.isFront },
+                    trio: JSON.parse(JSON.stringify(this.jikukanState.trio?.formation || [])),
+                    quintuple: JSON.parse(JSON.stringify(this.jikukanState.quintuple?.formation || []))
+                }
+            };
+        }
         return this.jikukanState;
+    }
+
+    /**
+     * 時空館の特定アタック種別・モードの編成を取得
+     */
+    getJikukanFormation(attackType = 'wasp', mode = 'solo') {
+        const jState = this.getJikukanState();
+        const attKey = attackType === 'witch' ? 'witch' : 'wasp';
+        if (!jState.formations) jState.formations = {};
+        if (!jState.formations[attKey]) {
+            jState.formations[attKey] = {
+                solo: { charId: jState.solo?.charId || '001', lane: jState.solo?.lane || 0, isFront: !!jState.solo?.isFront },
+                trio: JSON.parse(JSON.stringify(jState.trio?.formation || [])),
+                quintuple: JSON.parse(JSON.stringify(jState.quintuple?.formation || []))
+            };
+        }
+        return jState.formations[attKey][mode];
+    }
+
+    /**
+     * 時空館の特定アタック種別・モードの編成を保存
+     */
+    setJikukanFormation(attackType = 'wasp', mode = 'solo', formationData) {
+        const jState = this.getJikukanState();
+        const attKey = attackType === 'witch' ? 'witch' : 'wasp';
+        if (!jState.formations || !jState.formations[attKey]) {
+            this.getJikukanFormation(attKey, mode);
+        }
+        jState.formations[attKey][mode] = formationData;
+        // 既存プロパティとも互換同期
+        if (mode === 'solo') {
+            jState.solo.charId = formationData.charId;
+            jState.solo.lane = formationData.lane;
+            jState.solo.isFront = formationData.isFront;
+        } else if (mode === 'trio') {
+            jState.trio.formation = formationData;
+        } else if (mode === 'quintuple') {
+            jState.quintuple.formation = formationData;
+        }
     }
 
     /**
@@ -1506,10 +1565,28 @@ export class GlobalState {
         this.dec21MorningTalkSeen = false;
         this.dec21AfternoonTalkSeen = false;
 
-        // タワー編のモードフラグのみ通常マップへ戻す（タワーの踏破・敵レベル・魔女レベル・階段データは永久保持！）
+        // タワー編のモードフラグを通常マップへ戻し、再突入時は1F(col:2, row:59)からスタート
         this.isTowerMode = false;
         this.normalPlayerCol = 3;
         this.normalPlayerRow = 6;
+        this.towerPlayerCol = 2;
+        this.towerPlayerRow = 59; // 1F街
+
+        // タワー探索カウントと色試練フラグのリセット（階段発見 towerStairsFound と 21Fボス撃破 tower21BossDefeated は永久保持）
+        this.towerSearchCount = {};
+        this.towerColorStepCount = 0;
+        this.towerColorFailed = false;
+
+        // タワー内の雑魚敵・魔女を再生（踏破 visited / revealed は維持し、cleared を解除して復活）
+        if (this.towerHexStates && Array.isArray(this.towerHexStates)) {
+            for (const state of this.towerHexStates) {
+                state.cleared = false;
+                state.isCleared = false;
+                const floor = 59 - state.row;
+                state.enemyLevel = state.initialEnemyLevel || (10 + Math.floor(floor * 0.5));
+                state.witchLevel = state.hasWitch ? (state.initialWitchLevel || state.enemyLevel) : 0;
+            }
+        }
 
         // タロット関係のリセット
         this.activeTarots = [];

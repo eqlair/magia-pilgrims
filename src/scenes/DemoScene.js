@@ -105,19 +105,24 @@ export default class DemoScene extends Phaser.Scene {
                 action: () => {
                     TransitionManager.transitionTo(this, 'EventTestScene');
                 }
+            },
+            {
+                label: '⑬ 🐍 蛇ボステスト\n（海竜・ウツボ型魔女の挙動検証）',
+                color: 0x116666,
+                action: () => this._testSnakeBoss()
             }
         ];
 
-        const startY = 95;
-        const spacing = 50;
+        const startY = 88;
+        const spacing = 46;
         buttons.forEach((btn, i) => {
             const y = startY + i * spacing;
-            const bg = this.add.rectangle(width / 2, y, width * 0.82, 44, btn.color)
+            const bg = this.add.rectangle(width / 2, y, width * 0.82, 40, btn.color)
                 .setInteractive({ useHandCursor: true });
 
             this.add.text(width / 2, y, btn.label, {
                 fontFamily: FONT_MAIN,
-                fontSize: '13px', color: '#ffffff', align: 'center'
+                fontSize: '12px', color: '#ffffff', align: 'center'
             }).setOrigin(0.5);
 
             bg.on('pointerdown', () => {
@@ -345,4 +350,18 @@ export default class DemoScene extends Phaser.Scene {
         });
     }
 
+    _testSnakeBoss() {
+        const config = {
+            rule: 0,
+            attribute: 'blue',
+            enemyCount: 1,
+            waveCount: 1,
+            majoLevel: 15,
+            isSnakeBossTest: true,
+            party: ['001', '002', '003', '004', '005']
+        };
+        TransitionManager.transitionTo(this, 'BattleScene', config);
+    }
+
 }
+

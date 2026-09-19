@@ -39,13 +39,20 @@ export default class JikukanScene extends Phaser.Scene {
         super('JikukanScene');
         this.currentMode = 'solo';     // 'solo' | 'trio' | 'quintuple'
         this.currentTab = 'wasp';      // 'wasp' | 'witch' | 'formation'
+        this.targetAttackType = 'wasp'; // 'wasp' | 'witch' (編成タブで対象とするアタック種別)
         this.selectedSlotIndex = null;
         this.currentDetailCharId = null;
     }
 
     init(data) {
         if (data && data.mode) this.currentMode = data.mode;
-        if (data && data.tab) this.currentTab = data.tab;
+        if (data && data.tab) {
+            this.currentTab = data.tab;
+            if (data.tab === 'wasp' || data.tab === 'witch') {
+                this.targetAttackType = data.tab;
+            }
+        }
+        if (data && data.targetAttackType) this.targetAttackType = data.targetAttackType;
         this.battleResultData = data || null;
         const gs = GlobalState.getInstance();
         this.isTower = (data && data.isTower !== undefined) ? !!data.isTower : !!gs.isTowerMode;
@@ -121,7 +128,7 @@ export default class JikukanScene extends Phaser.Scene {
     startJikukanBattle(type, floor) {
         if (this.bgm) this.bgm.stop();
         this.gs.cleanupJikukanEquipsOnInventoryChange();
-        const party = this.getCurrentParty();
+        const party = this.getCurrentParty(type);
         const attrList = ['red', 'purple', 'green', 'yellow', 'blue'];
         const attrStr = attrList[floor % 5];
 
@@ -170,14 +177,12 @@ export default class JikukanScene extends Phaser.Scene {
         TransitionManager.transitionTo(this, 'BattleScene', config);
     }
 
-    getCurrentParty() {
+    getCurrentParty(attackType = this.targetAttackType) {
+        const form = this.gs.getJikukanFormation(attackType, this.currentMode);
         if (this.currentMode === 'solo') {
-            return [this.jState.solo.charId || '001'];
+            return [form?.charId || '001'];
         }
-        if (this.currentMode === 'trio') {
-            return (this.jState.trio.formation || []).map(f => f.charId);
-        }
-        return (this.jState.quintuple.formation || []).map(f => f.charId);
+        return (form || []).map(f => f.charId);
     }
 
     drawScene() {
@@ -216,8 +221,11 @@ export default class JikukanScene extends Phaser.Scene {
 
         backBtn.on('pointerdown', () => {
             if (this.bgm) this.bgm.stop();
+            SaveManager.saveGame(this);
+            const partyToReturn = this.isTower ? (gs.towerParty || ['001']) : (gs.normalParty || ['001']);
             TransitionManager.transitionTo(this, 'AdventureScene', {
-                isTower: this.isTower
+                isTower: this.isTower,
+                party: partyToReturn
             });
         });
         this.mainContainer.add(backBtn);
@@ -336,10 +344,11 @@ export default class JikukanScene extends Phaser.Scene {
 
         // ── 2. サブナビゲーション（Wasp / Witch / 参加キャラ選択） ──
         const subNavY = modeTabY + 44; // 約 402px
+        const currentAttLabel = this.targetAttackType === 'witch' ? 'Witch' : 'Wasp';
         const subTabs = [
             { id: 'wasp', label: '⚔️ Waspアタック' },
             { id: 'witch', label: '🧙‍♀️ Witchアタック' },
-            { id: 'formation', label: '👥 参加キャラ選択' }
+            { id: 'formation', label: `👥 参加キャラ選択(${currentAttLabel})` }
         ];
         const subTabW = (width - 24) / subTabs.length;
         const subTabH = 36;
@@ -362,6 +371,9 @@ export default class JikukanScene extends Phaser.Scene {
             bg.on('pointerdown', () => {
                 if (this.currentTab !== tab.id) {
                     this.currentTab = tab.id;
+                    if (tab.id === 'wasp' || tab.id === 'witch') {
+                        this.targetAttackType = tab.id;
+                    }
                     this.drawScene();
                 }
             });
@@ -860,29 +872,63 @@ export default class JikukanScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const gs = GlobalState.getInstance();
 
+        // ── 0. 対象アタック切替タブ（Wasp用編成 vs Witch用編成） ──
+        const attackTabW = (width - 48) / 2;
+        const attackTabH = 32;
+        const attackTabs = [
+            { id: 'wasp', label: '⚔️ Waspアタック用編成' },
+            { id: 'witch', label: '🧙‍♀️ Witchアタック用編成' }
+        ];
+
+        attackTabs.forEach((at, idx) => {
+            const tx = 24 + attackTabW * idx + attackTabW / 2;
+            const ty = topY + 12;
+            const isSel = this.targetAttackType === at.id;
+
+            const bg = this.add.rectangle(tx, ty, attackTabW - 6, attackTabH, isSel ? (at.id === 'wasp' ? 0x6e2444 : 0x5a205a) : 0x161224)
+                .setStrokeStyle(1.8, isSel ? 0xffcc44 : 0x483a60)
+                .setInteractive({ useHandCursor: true });
+
+            const txt = this.add.text(tx, ty, at.label, {
+                fontFamily: FONT_MAIN,
+                fontSize: '13px',
+                color: isSel ? '#ffffff' : '#aa99bb',
+                fontStyle: isSel ? 'bold' : 'normal'
+            }).setOrigin(0.5);
+
+            bg.on('pointerdown', () => {
+                if (this.targetAttackType !== at.id) {
+                    this.targetAttackType = at.id;
+                    this.drawScene();
+                }
+            });
+
+            this.mainContainer.add([bg, txt]);
+        });
+
         // 案内テキスト (操作説明)
-        const guideY = topY + 12;
-        const guideText = this.add.text(width / 2, guideY, `【${this.getModeLabel()}】 上下スワイプで位置移動 ／ タップで装備・ステータス`, {
-            fontFamily: FONT_MAIN, fontSize: '13px', color: '#ffddaa', fontStyle: 'bold'
+        const guideY = topY + 44;
+        const curLabel = this.targetAttackType === 'wasp' ? '⚔️ Wasp' : '🧙‍♀️ Witch';
+        const guideText = this.add.text(width / 2, guideY, `【${curLabel} / ${this.getModeLabel()}】 スワイプ or ボタンで前後移動 ／ タップで装備`, {
+            fontFamily: FONT_MAIN, fontSize: '12px', color: '#ffddaa', fontStyle: 'bold'
         }).setOrigin(0.5);
         this.mainContainer.add(guideText);
 
-        // スロット一覧の構築
+        // スロット一覧の構築 (targetAttackType 専用の編成を取得)
+        const form = gs.getJikukanFormation(this.targetAttackType, this.currentMode);
         let slots = [];
         if (this.currentMode === 'solo') {
-            slots = [{ charId: this.jState.solo.charId, lane: this.jState.solo.lane, isFront: this.jState.solo.isFront, index: 0 }];
-        } else if (this.currentMode === 'trio') {
-            slots = (this.jState.trio.formation || []).map((f, i) => ({ ...f, index: i }));
+            slots = [{ charId: form?.charId || '001', lane: form?.lane !== undefined ? form.lane : 0, isFront: !!form?.isFront, index: 0 }];
         } else {
-            slots = (this.jState.quintuple.formation || []).map((f, i) => ({ ...f, index: i }));
+            slots = (form || []).map((f, i) => ({ ...f, index: i }));
         }
 
         const slotCount = slots.length;
         const slotW = (width - 24) / Math.max(1, slotCount);
 
-        // 縦長コートエリア (y = 485 〜 870, 高さ約385px！)
-        const courtTop = guideY + 18;
-        const courtH = height - courtTop - 65; // 約 380px
+        // 縦長コートエリア (y ≈ 470 〜 865, 高さ約395px)
+        const courtTop = guideY + 16;
+        const courtH = height - courtTop - 65;
         const courtY = courtTop + courtH / 2;
 
         // コート背景（上部＝前衛ゾーン、下部＝後衛ゾーン）
@@ -907,6 +953,9 @@ export default class JikukanScene extends Phaser.Scene {
         // 各キャラのY座標ターゲット (前衛時 vs 後衛時)
         const frontY = courtTop + courtH * 0.24;
         const backY = midY + courtH * 0.24;
+
+        // スワイプ管理用変数
+        let activeDrag = null;
 
         slots.forEach((slot, i) => {
             const sx = 12 + slotW * i + slotW / 2;
@@ -956,7 +1005,7 @@ export default class JikukanScene extends Phaser.Scene {
             }
 
             // キャラ名
-            const nameText = this.add.text(0, cardH / 2 - 30, cData.name, {
+            const nameText = this.add.text(0, cardH / 2 - 32, cData.name, {
                 fontFamily: FONT_MAIN,
                 fontSize: slotCount === 5 ? '12px' : '14px',
                 color: '#ffffff',
@@ -964,46 +1013,39 @@ export default class JikukanScene extends Phaser.Scene {
             }).setOrigin(0.5);
             charCard.add(nameText);
 
-            // 操作ガイド (スワイプ方向 ＆ タップで装備変更)
-            const arrowText = this.add.text(0, cardH / 2 - 12, slot.isFront ? '▼後衛へ / 👆装備' : '▲前衛へ / 👆装備', {
+            // ── 前衛・後衛ダイレクト切替ボタン（ワンタップでも確実に入れ替え！） ──
+            const btnW = slotCount === 5 ? 60 : 74;
+            const btnH = 22;
+            const toggleBg = this.add.rectangle(0, cardH / 2 - 13, btnW, btnH, slot.isFront ? 0x1a2e48 : 0x481a2e, 0.95)
+                .setStrokeStyle(1.4, slot.isFront ? 0x5599ee : 0xee5588)
+                .setInteractive({ useHandCursor: true });
+
+            const toggleTxt = this.add.text(0, cardH / 2 - 13, slot.isFront ? '▼ 後衛へ' : '▲ 前衛へ', {
                 fontFamily: FONT_MAIN,
-                fontSize: slotCount === 5 ? '9px' : '11px',
-                color: '#ffea66',
+                fontSize: slotCount === 5 ? '10px' : '11px',
+                color: slot.isFront ? '#88ccff' : '#ff99aa',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
-            charCard.add(arrowText);
 
-            // ── 上下スワイプ＆タップ判定の実装 ──
-            let startY = 0;
-            let startTime = 0;
-
-            cardBg.on('pointerdown', (pointer) => {
-                startY = pointer.y;
-                startTime = Date.now();
-                cardBg.setAlpha(0.8);
+            toggleBg.on('pointerdown', (pointer, localX, localY, event) => {
+                if (event && event.stopPropagation) event.stopPropagation();
+                activeDrag = null;
+                this.setSlotPosition(slot, i, !slot.isFront);
             });
+            charCard.add([toggleBg, toggleTxt]);
 
-            cardBg.on('pointerup', (pointer) => {
-                cardBg.setAlpha(1.0);
-                const dy = pointer.y - startY;
-                const dt = Date.now() - startTime;
-
-                // 上スワイプ (前衛へ移動)
-                if (dy < -20 && dt < 800) {
-                    if (!slot.isFront) {
-                        this.setSlotPosition(slot, i, true);
-                    }
-                }
-                // 下スワイプ (後衛へ移動)
-                else if (dy > 20 && dt < 800) {
-                    if (slot.isFront) {
-                        this.setSlotPosition(slot, i, false);
-                    }
-                }
-                // タップ (短時間・低移動量ならステータス・装備変更画面を開く！)
-                else if (Math.abs(dy) < 15 && dt < 500) {
-                    this.showCharacterDetail(slot.charId);
-                }
+            // ── 上下スワイプ＆カードタップ判定の実装 ──
+            cardBg.on('pointerdown', (pointer) => {
+                activeDrag = {
+                    charCard: charCard,
+                    cardBg: cardBg,
+                    slot: slot,
+                    slotIndex: i,
+                    startY: pointer.y,
+                    originY: targetY,
+                    startTime: Date.now()
+                };
+                cardBg.setAlpha(0.8);
             });
 
             // ── 「🔄 変更」ボタン（コート下部に固定配置） ──
@@ -1017,6 +1059,7 @@ export default class JikukanScene extends Phaser.Scene {
             }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
             changeBtn.on('pointerdown', () => {
+                activeDrag = null;
                 this.openCharacterSelectModal(i);
             });
             changeBtn.on('pointerover', () => changeBtn.setAlpha(0.85));
@@ -1024,6 +1067,65 @@ export default class JikukanScene extends Phaser.Scene {
 
             this.mainContainer.add([charCard, changeBtn]);
         });
+
+        // シーン全体のポインター追従＆終了監視（画面外で離しても確実にスワイプ・ドラッグ判定）
+        if (this._formationPointerMoveHandler) {
+            this.input.off('pointermove', this._formationPointerMoveHandler);
+        }
+        if (this._formationPointerUpHandler) {
+            this.input.off('pointerup', this._formationPointerUpHandler);
+            this.input.off('pointerupoutside', this._formationPointerUpHandler);
+        }
+
+        this._formationPointerMoveHandler = (pointer) => {
+            if (!activeDrag) return;
+            const dy = pointer.y - activeDrag.startY;
+            // 指の動きに合わせてカードを上下に少し追従させて直感的な手応えを与える
+            activeDrag.charCard.y = activeDrag.originY + Phaser.Math.Clamp(dy, -45, 45);
+        };
+
+        this._formationPointerUpHandler = (pointer) => {
+            if (!activeDrag) return;
+            const drag = activeDrag;
+            activeDrag = null;
+            drag.cardBg.setAlpha(1.0);
+
+            const dy = pointer.y - drag.startY;
+            const dt = Date.now() - drag.startTime;
+
+            // 上スワイプ (前衛へ移動: -20px以上)
+            if (dy < -20 && dt < 1000) {
+                if (!drag.slot.isFront) {
+                    this.setSlotPosition(drag.slot, drag.slotIndex, true);
+                    return;
+                }
+            }
+            // 下スワイプ (後衛へ移動: +20px以上)
+            else if (dy > 20 && dt < 1000) {
+                if (drag.slot.isFront) {
+                    this.setSlotPosition(drag.slot, drag.slotIndex, false);
+                    return;
+                }
+            }
+            // 短時間タップ (低移動量ならステータス・装備変更画面を開く！)
+            else if (Math.abs(dy) <= 15 && dt < 450) {
+                drag.charCard.y = drag.originY;
+                this.showCharacterDetail(drag.slot.charId);
+                return;
+            }
+
+            // 移動しなかった場合は元の位置に戻すアニメーション
+            this.tweens.add({
+                targets: drag.charCard,
+                y: drag.originY,
+                duration: 120,
+                ease: 'Quad.easeOut'
+            });
+        };
+
+        this.input.on('pointermove', this._formationPointerMoveHandler);
+        this.input.on('pointerup', this._formationPointerUpHandler);
+        this.input.on('pointerupoutside', this._formationPointerUpHandler);
 
         // 画面最下部: 自動保存の案内
         const autoSaveNotice = this.add.text(width / 2, height - 20, '※配置やキャラ変更はリアルタイムに自動保存されます', {
@@ -1059,12 +1161,15 @@ export default class JikukanScene extends Phaser.Scene {
     /** スロットの前衛/後衛切り替え＆即時自動セーブ */
     setSlotPosition(slot, slotIndex, isFront) {
         slot.isFront = isFront;
+        const form = this.gs.getJikukanFormation(this.targetAttackType, this.currentMode);
         if (this.currentMode === 'solo') {
-            this.jState.solo.isFront = isFront;
-        } else if (this.currentMode === 'trio') {
-            this.jState.trio.formation[slotIndex].isFront = isFront;
+            form.isFront = isFront;
+            this.gs.setJikukanFormation(this.targetAttackType, 'solo', form);
         } else {
-            this.jState.quintuple.formation[slotIndex].isFront = isFront;
+            if (form && form[slotIndex]) {
+                form[slotIndex].isFront = isFront;
+                this.gs.setJikukanFormation(this.targetAttackType, this.currentMode, form);
+            }
         }
         SaveManager.saveGame(this);
         this.drawScene();
@@ -1072,15 +1177,7 @@ export default class JikukanScene extends Phaser.Scene {
     }
 
     createJumpingCharacters(centerX, baseY) {
-        const gs = GlobalState.getInstance();
-        let charIds = [];
-        if (this.currentMode === 'solo') {
-            charIds = [this.jState.solo.charId || '001'];
-        } else if (this.currentMode === 'trio') {
-            charIds = (this.jState.trio.formation || []).map(f => f.charId);
-        } else {
-            charIds = (this.jState.quintuple.formation || []).map(f => f.charId);
-        }
+        const charIds = this.getCurrentParty(this.targetAttackType);
 
         const count = charIds.length;
         const spacing = count === 5 ? 26 : 38;
@@ -1140,7 +1237,8 @@ export default class JikukanScene extends Phaser.Scene {
             .setStrokeStyle(2, 0xcc88ff);
         this.charModalContainer.add(modalBox);
 
-        const title = this.add.text(width / 2, height / 2 - modalH / 2 + 24, '参加キャラクターを選択', {
+        const attName = this.targetAttackType === 'wasp' ? 'Wasp' : 'Witch';
+        const title = this.add.text(width / 2, height / 2 - modalH / 2 + 24, `【${attName}】参加キャラクターを選択`, {
             fontFamily: FONT_MAIN, fontSize: '18px', color: '#ffccff', fontStyle: 'bold'
         }).setOrigin(0.5);
         this.charModalContainer.add(title);
@@ -1173,14 +1271,13 @@ export default class JikukanScene extends Phaser.Scene {
         const startX = width / 2 - modalW / 2 + 12 + cellW / 2;
         const startY = height / 2 - modalH / 2 + 70 + cellH / 2;
 
-        // 現在のモードの編成リストを取得
+        // 現在のモードの編成リストを取得 (targetAttackType 専用)
+        const curForm = gs.getJikukanFormation(this.targetAttackType, this.currentMode);
         let currentPartyIds = [];
         if (this.currentMode === 'solo') {
-            currentPartyIds = [this.jState.solo.charId];
-        } else if (this.currentMode === 'trio') {
-            currentPartyIds = (this.jState.trio.formation || []).map(f => f.charId);
+            currentPartyIds = [curForm?.charId || '001'];
         } else {
-            currentPartyIds = (this.jState.quintuple.formation || []).map(f => f.charId);
+            currentPartyIds = (curForm || []).map(f => f.charId);
         }
 
         availableChars.forEach((c, idx) => {
@@ -1222,31 +1319,23 @@ export default class JikukanScene extends Phaser.Scene {
             }
 
             cBg.on('pointerdown', () => {
+                const form = gs.getJikukanFormation(this.targetAttackType, this.currentMode);
                 if (this.currentMode === 'solo') {
-                    this.jState.solo.charId = c.id;
+                    form.charId = c.id;
+                    gs.setJikukanFormation(this.targetAttackType, 'solo', form);
                     this.showToast(`${c.name} に変更しました！`);
-                } else if (this.currentMode === 'trio') {
-                    const existingIdx = (this.jState.trio.formation || []).findIndex((f, idx) => idx !== slotIndex && f.charId === c.id);
-                    if (existingIdx !== -1) {
-                        const oldCharId = this.jState.trio.formation[slotIndex].charId;
-                        this.jState.trio.formation[existingIdx].charId = oldCharId;
-                        this.jState.trio.formation[slotIndex].charId = c.id;
-                        const oldChar = gs.characters[oldCharId] || { name: '仲間' };
-                        this.showToast(`${c.name} と ${oldChar.name} を入れ替えました！`);
-                    } else if (this.jState.trio.formation[slotIndex]) {
-                        this.jState.trio.formation[slotIndex].charId = c.id;
-                        this.showToast(`${c.name} に変更しました！`);
-                    }
                 } else {
-                    const existingIdx = (this.jState.quintuple.formation || []).findIndex((f, idx) => idx !== slotIndex && f.charId === c.id);
+                    const existingIdx = (form || []).findIndex((f, idx) => idx !== slotIndex && f.charId === c.id);
                     if (existingIdx !== -1) {
-                        const oldCharId = this.jState.quintuple.formation[slotIndex].charId;
-                        this.jState.quintuple.formation[existingIdx].charId = oldCharId;
-                        this.jState.quintuple.formation[slotIndex].charId = c.id;
+                        const oldCharId = form[slotIndex].charId;
+                        form[existingIdx].charId = oldCharId;
+                        form[slotIndex].charId = c.id;
+                        gs.setJikukanFormation(this.targetAttackType, this.currentMode, form);
                         const oldChar = gs.characters[oldCharId] || { name: '仲間' };
                         this.showToast(`${c.name} と ${oldChar.name} を入れ替えました！`);
-                    } else if (this.jState.quintuple.formation[slotIndex]) {
-                        this.jState.quintuple.formation[slotIndex].charId = c.id;
+                    } else if (form[slotIndex]) {
+                        form[slotIndex].charId = c.id;
+                        gs.setJikukanFormation(this.targetAttackType, this.currentMode, form);
                         this.showToast(`${c.name} に変更しました！`);
                     }
                 }

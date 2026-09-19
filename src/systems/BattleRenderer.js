@@ -118,6 +118,23 @@ export class BattleRenderer {
         // 敵の描画更新
         for (const e of this.engine.enemies) {
             if (e.isDead) continue;
+            if (e.isSnakeBoss) {
+                this._updateSnakeBoss(e);
+                if (e.state !== 'submerged') {
+                    this._updateUI(e);
+                } else if (this.uiMap.has(e)) {
+                    const ui = this.uiMap.get(e);
+                    if (ui) {
+                        if (ui.hpBg) ui.hpBg.setVisible(false);
+                        if (ui.hpBar) ui.hpBar.setVisible(false);
+                        if (ui.spBg) ui.spBg.setVisible(false);
+                        if (ui.spBar) ui.spBar.setVisible(false);
+                        if (ui.ultBg) ui.ultBg.setVisible(false);
+                        if (ui.ultBar) ui.ultBar.setVisible(false);
+                    }
+                }
+                continue;
+            }
             this._updateSprite(e, e.textureKey || 'enemy');
             this._updateUI(e);
         }
@@ -248,6 +265,114 @@ export class BattleRenderer {
 
         // 画面上部の戦闘情報UI
         this._updateBattleInfo();
+    }
+
+    _updateSnakeBoss(snake) {
+        if (!this.snakeRope) {
+            // SEGMENTS点を持つRopeを生成 (horizontal = false: 縦長画像用)
+            this.snakeRope = this.scene.add.rope(0, 0, 'boss_snake', null, snake.SEGMENTS, false);
+            this.snakeRope.setDepth(100);
+
+            // 透視投影（パースペクティブ）に連動したカスタム頂点計算
+            const rope = this.snakeRope;
+            rope.nodeHalfWidths = new Float32Array(snake.SEGMENTS);
+
+            rope.updateVertices = function() {
+                const points = this.points;
+                const vertices = this.vertices;
+                const perp = this._perp;
+                const total = points.length;
+                this.dirty = false;
+                if (total < 1) return;
+
+                let lastPoint = points[0];
+                let nextPoint;
+
+                for (let i = 0; i < total; i++) {
+                    const point = points[i];
+                    const index = i * 4;
+                    if (i < total - 1) {
+                        nextPoint = points[i + 1];
+                    } else {
+                        nextPoint = point;
+                    }
+
+                    perp.x = nextPoint.y - lastPoint.y;
+                    perp.y = -(nextPoint.x - lastPoint.x);
+                    const perpLength = Math.hypot(perp.x, perp.y);
+                    if (perpLength > 0.001) {
+                        perp.x /= perpLength;
+                        perp.y /= perpLength;
+                    } else {
+                        perp.x = 0;
+                        perp.y = 1;
+                    }
+
+                    const halfW = (this.nodeHalfWidths && this.nodeHalfWidths[i] !== undefined) ? this.nodeHalfWidths[i] : 40;
+
+                    vertices[index]     = point.x + perp.x * halfW;
+                    vertices[index + 1] = point.y + perp.y * halfW;
+                    vertices[index + 2] = point.x - perp.x * halfW;
+                    vertices[index + 3] = point.y - perp.y * halfW;
+
+                    lastPoint = point;
+                }
+            };
+        }
+
+        // 潜航中または死亡時は非表示
+        if (snake.state === 'submerged' || snake.isDead) {
+            this.snakeRope.setVisible(false);
+            return;
+        }
+
+        this.snakeRope.setVisible(true);
+
+        // 各ノードを疑似3D投影してRopeのポイントへ転送
+        let minDepth = 9999;
+        for (let i = 0; i < snake.SEGMENTS; i++) {
+            const node = snake.nodes[i];
+            const p = this.projector.project(node.x, node.z);
+            node.screenX = p.x;
+            node.screenY = p.y;
+            node.scale = p.scale;
+            node.visible = p.visible;
+
+            if (p.depth < minDepth) minDepth = p.depth;
+
+            // Ropeのpointsを更新
+            if (this.snakeRope.points[i]) {
+                this.snakeRope.points[i].x = p.x;
+                this.snakeRope.points[i].y = p.y;
+            }
+
+            // ノード i (0: 尾, SEGMENTS-1: 頭) のワールド半径 (メートル)
+            // 尾(0.35m) -> 胴体(0.85m) -> 首(1.05m) -> 頭(1.3m) を1.5倍に拡大
+            const t = i / (snake.SEGMENTS - 1);
+            const nodeRadiusMeters = (0.35 + Math.sin(t * Math.PI * 0.5) * 0.95) * 1.5;
+            this.snakeRope.nodeHalfWidths[i] = Math.max(12.0, nodeRadiusMeters * p.scale);
+        }
+
+        // 透視深度（手前ほど大きなDepthでプレイヤーより手前に表示）
+        const headZ = snake.head.z;
+        const depth = Math.floor(1000 - minDepth);
+        this.snakeRope.setDepth(depth);
+
+        // 死亡演出中の点滅・フェードアウト
+        if (snake.isDying) {
+            const alpha = Math.max(0, 1.0 - (snake.deathTimer / 4.0));
+            this.snakeRope.setAlpha(alpha);
+            if (Math.floor(this.scene.time.now / 100) % 2 === 0) {
+                if (this.snakeRope.setColors) this.snakeRope.setColors(0xff5555);
+            } else {
+                if (this.snakeRope.setColors) this.snakeRope.setColors(0xffffff);
+            }
+        } else {
+            this.snakeRope.setAlpha(1.0);
+            if (this.snakeRope.setColors) this.snakeRope.setColors(0xffffff);
+        }
+
+        this.snakeRope.setDirty();
     }
 
     _updateSprite(entity, textureKey) {

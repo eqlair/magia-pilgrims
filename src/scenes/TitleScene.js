@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { SaveManager } from '../systems/SaveManager';
 import { GlobalState } from '../systems/GlobalState';
+import { TelemetryService } from '../systems/TelemetryService';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 
 
@@ -163,6 +164,17 @@ export default class TitleScene extends Phaser.Scene {
 
         // リサイズ追従
         this.scale.on('resize', this._fitVideo, this);
+
+        // 起動時プレイレポートの送信（セーブデータがあればGlobalStateに反映した上で送信）
+        try {
+            if (SaveManager.hasSaveData()) {
+                const saveData = SaveManager.loadGameData();
+                if (saveData) SaveManager.restoreGlobalState(saveData);
+            }
+            TelemetryService.sendStartupReport();
+        } catch (e) {
+            console.warn('[TitleScene] Telemetry startup error:', e);
+        }
     }
 
     /**

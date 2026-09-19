@@ -10,6 +10,7 @@ import { BattleRenderer } from '../systems/BattleRenderer';
 
 import { FogEffect } from '../systems/FogEffect';
 import { GlobalState } from '../systems/GlobalState';
+import { TelemetryService } from '../systems/TelemetryService';
 
 export default class BattleScene extends Phaser.Scene {
     constructor() {
@@ -92,6 +93,8 @@ export default class BattleScene extends Phaser.Scene {
                 frameHeight: 1000
             });
         }
+        // 蛇型ボス（海竜・ウツボ魔女: 167x1024 縦長Rope用）
+        this.load.image('boss_snake', 'files/ENEMY/boss_snake.png');
 
 
         this.load.image('bullet', 'files/CHR/001004.png');
@@ -216,12 +219,20 @@ export default class BattleScene extends Phaser.Scene {
         // ワイルドハント（12/21夜突破戦）時は EventScene から流れている bgm_wildhunt をそのままシームレス継続！
         const isWildhunt = this.battleConfig.is1221NightBattle || (this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt'));
         // タワー魔女単体戦、タワーボスなど即時魔女戦フラグ
-        const isImmediateBoss = this.battleConfig.isTower21Boss || this.battleConfig.isProcellBoss || this.battleConfig.isWitchOnly || (this.battleConfig.isTowerBattle && (this.battleConfig.majoLevel > 0));
+        const isImmediateBoss = this.battleConfig.isTower21Boss || this.battleConfig.isProcellBoss || this.battleConfig.isWitchOnly || (this.battleConfig.isTowerBattle && (this.battleConfig.majoLevel > 0)) || this.battleConfig.isSnakeBossTest;
 
         if (isWildhunt) {
             const isWhPlaying = this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt');
             if (!isWhPlaying && this.cache.audio.exists('bgm_wildhunt')) {
                 this.sound.play('bgm_wildhunt', { loop: true, volume: 0.75 });
+            }
+        } else if (this.battleConfig.isSnakeBossTest) {
+            // 蛇ボステスト: ボスBGM (bgm_boss4) を即時再生
+            if (this.sound && this.sound.sounds) {
+                this.sound.sounds.forEach(s => { if (s && s.isPlaying) s.stop(); });
+            }
+            if (this.cache.audio.exists('bgm_boss4')) {
+                this.sound.play('bgm_boss4', { loop: true, volume: 0.6 });
             }
         } else if (isImmediateBoss) {
             // 直接魔女戦（タワー魔女マス、タワーボス等）の場合：
@@ -804,7 +815,8 @@ export default class BattleScene extends Phaser.Scene {
                         fromJikukanBattle: true,
                         mode: this.battleConfig.jikukanMode || 'solo',
                         tab: this.battleConfig.jikukanType || 'wasp',
-                        victoryResult: result
+                        victoryResult: result,
+                        isTower: !!this.battleConfig.isTower
                     });
                     return;
                 }
@@ -852,6 +864,11 @@ export default class BattleScene extends Phaser.Scene {
         if ((this.engine.waveState === 'gameover' || this.engine.waveState === 'retreated') && !this.isExiting) {
             this.isExiting = true;
 
+            // 📡 全滅時テレメトリ送信（ゲームオーバー時のみ、非同期・リトライなし）
+            if (this.engine.waveState === 'gameover') {
+                TelemetryService.sendWipeoutReport(this, this.engine);
+            }
+
             // 🏛️ 時空館バトルの敗北・撤退処理（ペナルティなしで帰還）
             if (this.battleConfig.isJikukan) {
                 this.time.delayedCall(this.engine.waveState === 'gameover' ? 2500 : 1000, () => {
@@ -861,7 +878,8 @@ export default class BattleScene extends Phaser.Scene {
                         mode: this.battleConfig.jikukanMode || 'solo',
                         tab: this.battleConfig.jikukanType || 'wasp',
                         isDefeated: this.engine.waveState === 'gameover',
-                        isRetreated: this.engine.waveState === 'retreated'
+                        isRetreated: this.engine.waveState === 'retreated',
+                        isTower: !!this.battleConfig.isTower
                     });
                 });
                 return;
