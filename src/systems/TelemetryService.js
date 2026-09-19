@@ -1,7 +1,7 @@
 import { GlobalState } from './GlobalState.js';
 
 const UUID_STORAGE_KEY = 'magia_telemetry_player_uuid';
-const DEFAULT_SERVER_URL = 'https://broad-johns-wool-forum.trycloudflare.com/api/report';
+const DEFAULT_SERVER_URL = 'https://volleyball-port-peace-industry.trycloudflare.com/api/report';
 
 export class TelemetryService {
     /**
