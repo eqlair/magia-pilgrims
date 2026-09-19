@@ -34,6 +34,10 @@ export class BattleEntity {
         // ノックバック変位量（秒速3mで定位置へ復帰）
         this.knockbackOffsetX = 0;
         this.knockbackOffsetZ = 0;
+
+        // 🌧️ 攻撃判定による回避率低下デバフ（1秒タイマー・スタック制）
+        this.evadeDecayTimer = 0;
+        this.evadeDecayCount = 0;
     }
 
     triggerAttackShake() {
@@ -47,6 +51,13 @@ export class BattleEntity {
     update(dt) {
         if (this.attackShakeTimer > 0) this.attackShakeTimer -= dt;
         if (this.damageTiltTimer > 0) this.damageTiltTimer -= dt;
+        if (this.evadeDecayTimer > 0) {
+            this.evadeDecayTimer -= dt;
+            if (this.evadeDecayTimer <= 0) {
+                this.evadeDecayTimer = 0;
+                this.evadeDecayCount = 0;
+            }
+        }
         if (this.kickTimer > 0) {
             this.kickTimer -= dt;
             if (this.kickTimer <= 0) {

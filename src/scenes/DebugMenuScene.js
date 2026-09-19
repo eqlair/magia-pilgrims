@@ -60,6 +60,8 @@ export class DebugMenuScene extends Phaser.Scene {
         towerBtn.on('pointerdown', () => {
             gs.isTowerMode = true;
             gs.towerFloor = 0;
+            gs.towerElapsedSeconds = 0;
+            gs.isTowerTimeUpGameOver = false;
             gs.food = 100;
             this.scene.stop('TitleScene');
             this.scene.stop('AdventureScene');

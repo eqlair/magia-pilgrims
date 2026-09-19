@@ -2,6 +2,7 @@ import { PlayerCharacter, EnemyCharacter, BossCharacter, Bullet, EffectEntity, P
 import { SnakeBoss } from './SnakeBoss';
 import { GlobalState } from './GlobalState';
 import { PvpAiController } from './PvpAiController';
+import { AchievementManager } from './AchievementManager';
 
 // 防御側から見た属性防御力（例: 赤(防御)は紫(攻撃)から75%ダメージを受ける）
 const ATTR_DEF = {
@@ -58,6 +59,7 @@ export class BattleEngine {
         this.damageHistory = [];    // DPS計算用：[{time, damage}] の履歴
         this.maxDps = 0;            // 瞬間DPS最大値
         this.max10sDps = 0;         // 10秒平均DPS最大値
+        this.charDamageStats = {};  // キャラクター別与ダメージ・DPS集計用
     }
 
     setup(config, chrData) {
@@ -715,6 +717,10 @@ export class BattleEngine {
                 return false;
             }
 
+            // 🌧️ 攻撃判定を受けるたび、1秒間回避率が1%低下（1秒タイマーリフレッシュ・累積スタック制）
+            defender.evadeDecayTimer = 1.0;
+            defender.evadeDecayCount = (defender.evadeDecayCount || 0) + 1;
+
             let finalDamage = (typeof amount === 'number' && !isNaN(amount)) ? amount : 1;
             let damageType = type;
 
@@ -863,10 +869,11 @@ export class BattleEngine {
             if (attacker.hitRateBonus) {
                 hitRate += attacker.hitRateBonus;
             }
-            if (defender.evadeRateBonus) {
-                hitRate -= defender.evadeRateBonus;
-            }
-            hitRate = Math.max(0.01, Math.min(1.0, hitRate)); // 1%〜100%
+            // 🌧️ 回避率計算（被攻撃判定による累積ペナルティ適用・マイナス突き抜け可）
+            const decayPenalty = (defender.evadeDecayCount || 0) * 0.01;
+            const effectiveEvade = (defender.evadeRateBonus || 0) - decayPenalty;
+            hitRate -= effectiveEvade;
+            hitRate = Math.max(0.01, hitRate); // 1%未満にはならない（上限1.0で打ち切らずマイナス回避による命中ボーナスも許容）
             
             // 回避判定（必中攻撃、またはさくらの近接衝撃波等は回避されない）
             if (!isSureHit && damageType !== 'sure_hit' && Math.random() > hitRate) {
@@ -985,6 +992,11 @@ export class BattleEngine {
             } else {
                 finalDamage = Math.max(0.01, finalDamage);
             }
+
+            // 🎯 実効ダメージの算出（HP1の相手に1000与えても実効は1、オーバーキルはノーカウント）
+            const targetHpBefore = Math.max(0, defender.hp);
+            const actualDamage = Math.max(0, Math.min(targetHpBefore, finalDamage));
+
             defender.hp -= finalDamage;
 
             // チュートリアル戦闘時: 紫苑(プレイヤー)のHPは1/8以下にならない保護
@@ -999,10 +1011,20 @@ export class BattleEngine {
             if (defender.triggerDamageTilt) defender.triggerDamageTilt();
 
             
-            // プレイヤーが与えたダメージをDPS用に蓄積
+            // プレイヤーが与えたダメージをDPS用に蓄積（オーバーキル除外の実効ダメージで計上）
             if (attacker && attacker.owner === 'player' && defender.owner === 'enemy') {
-                this.totalDamage += finalDamage;
-                this.damageHistory.push({ time: this.time, damage: finalDamage });
+                this.totalDamage += actualDamage;
+                this.damageHistory.push({ time: this.time, damage: actualDamage });
+
+                // キャラクター別集計
+                const charId = attacker.charId || (attacker.sourceEntity && attacker.sourceEntity.charId);
+                if (charId) {
+                    if (!this.charDamageStats[charId]) {
+                        this.charDamageStats[charId] = { totalDamage: 0, damageHistory: [] };
+                    }
+                    this.charDamageStats[charId].totalDamage += actualDamage;
+                    this.charDamageStats[charId].damageHistory.push({ time: this.time, damage: actualDamage });
+                }
             }
             
             // 被弾による必殺技リロード短縮（プレイヤー・敵共通: 1発につき1秒、1秒に1回制限）
@@ -4217,6 +4239,15 @@ export class BattleEngine {
         for (const item of standbyMembers) {
             queue.push(item.member);
         }
+
+        // プレイヤー連携必殺技の実績解除
+        if (!isEnemy && standbyMembers.length > 0) {
+            if (standbyMembers.length === 1) {
+                AchievementManager.unlock('combo_double', this.scene);
+            } else if (standbyMembers.length >= 2) {
+                AchievementManager.unlock('combo_triple', this.scene);
+            }
+        }
     }
 
     spawnNoahFlame(b, directHitTarget = null) {
@@ -4264,5 +4295,21 @@ export class BattleEngine {
         }
 
         this.bullets.push(flame);
+    }
+
+    /**
+     * 📊 各キャラクターごとの実効与ダメージおよびDPS集計データを取得
+     * @param {number|null} duration 戦闘時間（秒）。nullの場合はthis.timeを使用
+     */
+    getCharDamageStats(duration = null) {
+        const battleTime = Math.max(1, duration !== null ? duration : this.time);
+        const stats = {};
+        for (const [cid, data] of Object.entries(this.charDamageStats || {})) {
+            stats[cid] = {
+                totalDamage: Math.round(data.totalDamage || 0),
+                dps: Math.round((data.totalDamage || 0) / battleTime)
+            };
+        }
+        return stats;
     }
 }

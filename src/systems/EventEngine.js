@@ -101,7 +101,8 @@ export class EventEngine {
             case 'bg':        this._showBg(cmd.key, cmd.darkOverlay, () => this._processNext()); break;
             case 'image':
             case 'illust':    this._showIllust(cmd.key, () => this._processNext());       break;
-            case 'chara':     this._showChara(cmd.key, cmd.pos, () => this._processNext(), cmd.alpha !== undefined ? cmd.alpha : 1); break;
+            case 'chr':
+            case 'chara':     this._showChara(cmd.key, cmd.pos, () => this._processNext(), cmd.alpha !== undefined ? cmd.alpha : 1, cmd); break;
             case 'text':      this._showText(cmd.name, cmd.body || cmd.text);             break; // タップ待ち
             case 'clearText': this._clearText(() => this._processNext());                 break;
             case 'fadeWhite': this._fadeWhite(cmd.duration || 1000, () => this._processNext()); break;
@@ -439,7 +440,7 @@ export class EventEngine {
     // ─────────────────────────────────────────────────────
     // 立ち絵（高さ=画面3/5, right|left）
     // ─────────────────────────────────────────────────────
-    _showChara(key, pos, cb, targetAlpha = 1) {
+    _showChara(key, pos, cb, targetAlpha = 1, cmd = {}) {
         const isRight   = pos === 'right';
         const ref       = isRight ? 'charaRight' : 'charaLeft';
         const otherRef  = isRight ? 'charaLeft'  : 'charaRight';
@@ -461,9 +462,15 @@ export class EventEngine {
             }
         }
 
-        const chara = this.scene.add.image(startX, this.H / 2, textureKey)
+        // 🧚‍♀️ 妖精リフィエル（chr_fairy）またはカスタム指定の場合の身長60cm（ボークスDDサイズ）縮小＆浮遊処理
+        const isFairy = key === 'chr_fairy';
+        const scaleMult = (cmd && cmd.scaleMultiplier !== undefined) ? cmd.scaleMultiplier : (isFairy ? 0.38 : 1.0);
+        const yOffset = (cmd && cmd.yOffset !== undefined) ? cmd.yOffset : (isFairy ? -60 : 0);
+        const targetY = (this.H / 2) + yOffset;
+
+        const chara = this.scene.add.image(startX, targetY, textureKey)
             .setDepth(this.DEPTH + 2).setAlpha(0);
-        chara.setScale((this.H * 0.6) / chara.height);
+        chara.setScale(((this.H * 0.6) / chara.height) * scaleMult);
 
         // 立ち絵表示時: キャラクターの足元を自然に暗く溶け込ませる乗算グラデーション(multiply.png)を配置
         if (!this.multiplyOverlay && this.scene.textures.exists('ev_multiply')) {
@@ -484,7 +491,7 @@ export class EventEngine {
         }
 
         if (this.isFastForward) {
-            chara.setPosition(destX, this.H / 2);
+            chara.setPosition(destX, targetY);
             chara.setAlpha(targetAlpha);
             this[ref] = chara;
             if (cb) cb();
@@ -492,7 +499,7 @@ export class EventEngine {
         }
 
         this.scene.tweens.add({
-            targets: chara, x: destX, alpha: targetAlpha, duration: 400, ease: 'Back.easeOut',
+            targets: chara, x: destX, y: targetY, alpha: targetAlpha, duration: 400, ease: 'Back.easeOut',
             onComplete: () => { this[ref] = chara; cb(); }
         });
     }

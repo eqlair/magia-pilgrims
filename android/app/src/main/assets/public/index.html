@@ -112,21 +112,47 @@
         letter-spacing: 1px;
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-D_8NyllZ.js"></script>
+    <script type="module" crossorigin src="./assets/index-DvBou52x.js"></script>
   </head>
   <body>
     <div id="game-container">
-      <!-- 起動直後から最速で表示されるローディング画面 -->
-      <div id="loading-screen">
+      <!-- 起動直後から最速で表示されるローディング画面（タップで手動スキップも可能） -->
+      <div id="loading-screen" onclick="window.skipBootLoading && window.skipBootLoading()">
         <div class="loading-title">Magia Pilgrims</div>
         <div class="loading-bar-wrapper">
           <div id="loading-bar-fill" class="loading-bar-fill"></div>
         </div>
         <div id="loading-text" class="loading-text">Now Loading... 0%</div>
+        <div style="font-size: 11px; color: #8888aa; margin-top: 14px; opacity: 0.8; letter-spacing: 1px; cursor: pointer;">タップでスキップ</div>
       </div>
       <video id="title-video" muted loop playsinline preload="auto">
         <source src="./files/OP/OP001.mp4" type="video/mp4">
       </video>
     </div>
+    <script>
+      window.skipBootLoading = function() {
+        var ls = document.getElementById('loading-screen');
+        if (ls) {
+          ls.style.opacity = '0';
+          setTimeout(function() { try { ls.remove(); } catch(e){} }, 500);
+        }
+        try {
+          var boot = window.game && window.game.scene && window.game.scene.getScene('BootScene');
+          if (boot && boot.load && boot.load.isLoading()) {
+            console.log('[HTML] Forcing BootScene loadComplete');
+            boot.load.loadComplete();
+          } else if (boot && boot.scene && boot.scene.isActive()) {
+            boot.scene.start('TitleScene');
+          }
+        } catch(e) {
+          console.warn('[HTML] skipBootLoading error:', e);
+        }
+      };
+
+      // 🛡️ 最大安全タイマー: 4秒経過してもローディングが残っている場合は自動フェードアウト＆強制完了
+      setTimeout(function() {
+        if (window.skipBootLoading) window.skipBootLoading();
+      }, 4000);
+    </script>
   </body>
 </html>

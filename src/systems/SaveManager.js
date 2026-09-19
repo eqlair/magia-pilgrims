@@ -51,6 +51,12 @@ export class SaveManager {
                 dailyRewardMonth: gs.dailyRewardMonth || '',
                 dailyRewardCount: gs.dailyRewardCount || 0,
                 lastDailyRewardDate: gs.lastDailyRewardDate || '',
+                extraDailyGachaCount: gs.extraDailyGachaCount || 0,
+                loopCount: gs.loopCount || 1,
+                hasMetFairy: gs.hasMetFairy || false,
+                achievements: gs.achievements || {},
+                dailyQuests: gs.dailyQuests || null,
+                fairyDailyTrade: gs.fairyDailyTrade || null,
                 jikukanState: gs.jikukanState ? JSON.parse(JSON.stringify(gs.jikukanState)) : null,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
                 normalParty: gs.normalParty ? [...gs.normalParty] : ['001'],
@@ -268,6 +274,12 @@ export class SaveManager {
         if (d.dailyRewardMonth !== undefined) gs.dailyRewardMonth = d.dailyRewardMonth;
         if (d.dailyRewardCount !== undefined) gs.dailyRewardCount = d.dailyRewardCount;
         if (d.lastDailyRewardDate !== undefined) gs.lastDailyRewardDate = d.lastDailyRewardDate;
+        if (d.extraDailyGachaCount !== undefined) gs.extraDailyGachaCount = d.extraDailyGachaCount;
+        if (d.loopCount !== undefined) gs.loopCount = d.loopCount;
+        if (d.hasMetFairy !== undefined) gs.hasMetFairy = d.hasMetFairy;
+        if (d.achievements) gs.achievements = d.achievements;
+        if (d.dailyQuests) gs.dailyQuests = d.dailyQuests;
+        if (d.fairyDailyTrade) gs.fairyDailyTrade = d.fairyDailyTrade;
 
         if (d.characters) {
             gs.characters = d.characters;

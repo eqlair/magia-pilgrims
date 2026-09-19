@@ -3,6 +3,8 @@ import { TransitionManager } from '../systems/TransitionManager';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 import { GlobalState } from '../systems/GlobalState';
 import { CharacterLossManager } from '../systems/CharacterLossManager';
+import { RewardService } from '../systems/RewardService';
+import { SaveManager } from '../systems/SaveManager';
 
 export default class TarotScene extends Phaser.Scene {
     constructor() {
@@ -13,6 +15,7 @@ export default class TarotScene extends Phaser.Scene {
         this.returnScene = data.returnScene || 'AdventureScene';
         this.party = data.party || [];
         this.bgKey = data.bgKey || 'bg_map_base';
+        this._hasRerolledTarot = false;
     }
 
     create() {
@@ -21,6 +24,13 @@ export default class TarotScene extends Phaser.Scene {
 
         // 前のシーン（マップ等）のBGMを確実に停止
         this.sound.stopAll();
+
+        this.events.on('resume', (scene, data) => {
+            if (data && data.fromFairyJoinEvent) {
+                // リフィエル加入イベント終了後、タロットシーンを完了してAdventureSceneへ戻る
+                this.endScene(5, true);
+            }
+        });
 
         this.bgm = this.sound.add('bgm_tarot', { loop: true, volume: 0.5 });
         this.bgm.play();
@@ -225,6 +235,37 @@ export default class TarotScene extends Phaser.Scene {
         const selectedCard = this.cards[index];
         const cardId = this.drawnCardIds[index];
         const cardData = this.tarotData[cardId];
+        this._selectedCardObj = selectedCard;
+
+        // 選ばれなかった残りの2枚を保持（引き直し用）
+        this._otherCardIds = this.drawnCardIds.filter((_, i) => i !== index);
+
+        // 🧚‍♀️ 2周目以降＋カード5（法皇/教皇）選択時、リフィエル加入風イベント発生！
+        const isHierophant = (cardId === 5 || cardData?.name === '法皇' || cardData?.name === '教皇');
+        const isSecondLoop = (gs.loopCount >= 2 || GlobalState.IS_DEBUG_MODE);
+        if (isHierophant && isSecondLoop && !gs.hasMetFairy) {
+            gs.hasMetFairy = true;
+            SaveManager.saveGame();
+
+            if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
+            if (!gs.drawnTarotCards.includes(cardId)) {
+                gs.drawnTarotCards.push(cardId);
+            }
+
+            if (this.bgm) {
+                try { this.bgm.stop(); this.bgm.destroy(); } catch(e){}
+            }
+            const eventData = this.cache.json.get('event_fairy_join');
+            if (eventData) {
+                this.scene.launch('EventScene', {
+                    events: eventData,
+                    returnScene: 'TarotScene',
+                    fromFairyJoinEvent: true
+                });
+                this.scene.pause();
+                return;
+            }
+        }
 
         // 選択したカードを永久獲得リスト(drawnTarotCards)に保存して山札から除外
         if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
@@ -290,6 +331,7 @@ export default class TarotScene extends Phaser.Scene {
     }
 
     showCardEffect(cardData, isUpright) {
+        const gs = GlobalState.getInstance();
         const effectText = isUpright ? cardData.upright : cardData.reversed;
         const positionText = isUpright ? '正位置' : '逆位置';
 
@@ -310,8 +352,55 @@ export default class TarotScene extends Phaser.Scene {
             fontFamily: FONT_MAIN, fontSize: fontSize.body(this.width), color: '#888888'
         }).setOrigin(1).setAlpha(0);
 
+        let rerollBtn = null;
+        let isConfirmed = false;
+
+        // 🧚‍♀️ リフィエル解放済みの場合、残りの2枚を表にして選び直す取引ボタンを表示！
+        if (gs.hasMetFairy && !this._hasRerolledTarot && this._otherCardIds && this._otherCardIds.length === 2) {
+            rerollBtn = this.add.text(this.width / 2, this.height - 75, '🧚‍♀️ 妖精の取引：残りのカードを表にして選び直す (🎬広告)', {
+                fontFamily: FONT_MAIN,
+                fontSize: '14px',
+                fontStyle: 'bold',
+                color: '#ffea00',
+                backgroundColor: '#221144ee',
+                padding: { x: 12, y: 7 }
+            }).setOrigin(0.5).setAlpha(0).setDepth(500).setInteractive({ useHandCursor: true });
+
+            rerollBtn.on('pointerdown', (pointer) => {
+                if (isConfirmed) return;
+                isConfirmed = true;
+                RewardService.showRewardAd(this, {
+                    title: '運命の再選択',
+                    rewardDescription: '残り2枚のタロットを表にして引き直す',
+                    onReward: () => {
+                        this._hasRerolledTarot = true;
+                        // 現在のカードUIを破棄
+                        infoBox.destroy();
+                        titleText.destroy();
+                        descText.destroy();
+                        tapNextText.destroy();
+                        rerollBtn.destroy();
+                        if (this._selectedCardObj) this._selectedCardObj.destroy();
+
+                        // 選択済みリストから現在のカードを解除
+                        const idx = gs.drawnTarotCards.indexOf(cardData.id);
+                        if (idx !== -1) gs.drawnTarotCards.splice(idx, 1);
+
+                        // 残り2枚を表にして表示
+                        this.showRerollTwoCards(this._otherCardIds);
+                    },
+                    onClose: () => {
+                        isConfirmed = false;
+                    }
+                });
+            });
+        }
+
+        const uiElements = [infoBox, titleText, descText];
+        if (rerollBtn) uiElements.push(rerollBtn);
+
         this.tweens.add({
-            targets: [infoBox, titleText, descText],
+            targets: uiElements,
             alpha: 1,
             duration: 500,
             onComplete: () => {
@@ -325,11 +414,89 @@ export default class TarotScene extends Phaser.Scene {
 
                 // Wait for tap
                 this.time.delayedCall(500, () => {
-                    this.input.once('pointerdown', () => {
+                    this.input.once('pointerdown', (pointer) => {
+                        // リロールボタンのタップ時は次へ進まない
+                        if (rerollBtn && rerollBtn.getBounds().contains(pointer.x, pointer.y)) {
+                            return;
+                        }
+                        if (isConfirmed) return;
+                        isConfirmed = true;
                         this.endScene(cardData.id, isUpright);
                     });
                 });
             }
+        });
+    }
+
+    /**
+     * 🧚‍♀️ 引き直し時：残り2枚のカードを表向き（オープン）で提示して選択させる
+     */
+    showRerollTwoCards(otherCardIds) {
+        this.promptText.setText('残りのカードから一枚を選んでください').setAlpha(1);
+        const cardPositionsX = [this.width * 0.32, this.width * 0.68];
+        const targetW = this.width * 0.28;
+        const newCards = [];
+
+        otherCardIds.forEach((cId, i) => {
+            const cardObj = this.add.image(cardPositionsX[i], this.height / 2 - 40, `tarot_${cId}`)
+                .setOrigin(0.5)
+                .setInteractive({ useHandCursor: true });
+            cardObj.displayWidth = targetW;
+            cardObj.scaleY = cardObj.scaleX;
+            cardObj.setAlpha(0);
+
+            this.tweens.add({
+                targets: cardObj,
+                alpha: 1,
+                y: this.height / 2 - 50,
+                duration: 500,
+                ease: 'Back.easeOut'
+            });
+
+            cardObj.on('pointerdown', () => {
+                newCards.forEach(c => c.disableInteractive());
+                this.promptText.setAlpha(0);
+
+                const gs = GlobalState.getInstance();
+                if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
+                if (!gs.drawnTarotCards.includes(cId)) {
+                    gs.drawnTarotCards.push(cId);
+                }
+
+                // 選ばれなかったもう1枚はデッキへ
+                const unselectedId = otherCardIds.find(id => id !== cId);
+                if (unselectedId && !gs.drawnTarotCards.includes(unselectedId)) {
+                    this.tarotDeck.push(unselectedId);
+                    Phaser.Utils.Array.Shuffle(this.tarotDeck);
+                }
+
+                // フェードアウト他方
+                newCards.forEach(c => {
+                    if (c !== cardObj) {
+                        this.tweens.add({ targets: c, alpha: 0, scale: 0, duration: 300, onComplete: () => c.destroy() });
+                    }
+                });
+
+                this._selectedCardObj = cardObj;
+                const isUpright = Math.random() >= 0.5;
+                const newCardData = this.tarotData[cId];
+
+                this.tweens.add({
+                    targets: cardObj,
+                    x: this.width / 2,
+                    y: this.height / 2 - 50,
+                    scaleX: cardObj.scaleX * 1.3,
+                    scaleY: cardObj.scaleY * 1.3,
+                    rotation: isUpright ? 0 : Math.PI,
+                    duration: 400,
+                    ease: 'Back.easeOut',
+                    onComplete: () => {
+                        this.showCardEffect(newCardData, isUpright);
+                    }
+                });
+            });
+
+            newCards.push(cardObj);
         });
     }
 

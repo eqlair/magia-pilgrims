@@ -82,9 +82,9 @@ export default class RestScene extends Phaser.Scene {
             }
         });
 
-        // 🏕️ 休息開始時の夜の掛け合い会話
+        // 🏕️ 休息開始時の夜の会話（追悼または掛け合い）
         const campData = this.cache.json.get('camp_situations');
-        if (campData && this.party && this.party.length > 0) {
+        if (this.party && this.party.length > 0) {
             this.showNightCampTalk(campData, width, height, () => {
                 this.drawMainView(width, height);
                 this.checkRestTutorial();
@@ -96,9 +96,87 @@ export default class RestScene extends Phaser.Scene {
     }
 
     /**
+     * 🕊️ 仲間をロストした記憶がある場合の追悼会話判定（1/4の確率）
+     * 発生した場合は true を返して会話を表示、発生しなかった場合は false を返す
+     */
+    checkMourningCampTalk(width, height, onComplete) {
+        if (!this.party || this.party.length === 0) return false;
+
+        const mourningData = this.cache.json.get('low_morale_and_mourning');
+        if (!mourningData) return false;
+
+        // パーティ内で「最後にロストした仲間」を覚えているキャラを抽出
+        const mournerIds = this.party.filter(id => {
+            const cd = this.globalState.characters[id];
+            return cd && cd.lastSeenLostCharacterName;
+        });
+
+        if (mournerIds.length === 0) return false;
+
+        // 1/4（25%）の確率判定
+        if (Math.random() >= 0.25) return false;
+
+        // 話者A選出: ロストを記憶しているキャラの中からランダム1人
+        const charA = mournerIds[Math.floor(Math.random() * mournerIds.length)];
+        this.campCharA = charA;
+        const dataA = this.globalState.characters[charA];
+        const lostName = dataA.lastSeenLostCharacterName;
+        const nameA = dataA ? dataA.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '仲間';
+
+        // セリフ選出＆XXを死者名に置換
+        const linesA = mourningData[charA]?.mourning || [`${lostName}……。`];
+        const rawTextA = linesA[Math.floor(Math.random() * linesA.length)];
+        const textA = rawTextA.replace(/XX/g, lostName);
+
+        // 話者B選出: パーティが2人以上の場合、A以外の仲間が「……」と静かに反応
+        let charB = null;
+        let nameB = '';
+        let textB = '';
+
+        if (this.party.length > 1) {
+            const others = this.party.filter(id => id !== charA);
+            charB = others[Math.floor(Math.random() * others.length)];
+            this.campCharB = charB;
+            const dataB = this.globalState.characters[charB];
+            nameB = dataB ? dataB.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '仲間';
+            textB = '……。';
+        }
+
+        console.log(`🕊️ [RestScene] 追悼会話発生: ${nameA} -> "${textA}" (死者: ${lostName})`);
+
+        this._renderCampDialogue({
+            charA, nameA, textA,
+            charB, nameB, textB,
+            width, height,
+            onDone: () => {
+                // 🕊️ 追悼を口にしたので、パーティ全員のロスト記憶を消去
+                for (const pid of this.party) {
+                    if (this.globalState.characters[pid]) {
+                        delete this.globalState.characters[pid].lastSeenLostCharacterName;
+                    }
+                }
+                SaveManager.saveGame(this);
+                if (onComplete) onComplete();
+            }
+        });
+
+        return true;
+    }
+
+    /**
      * 🏕️ 休息開始時の夜の掛け合い会話演出
      */
     showNightCampTalk(campData, width, height, onComplete) {
+        // 🕊️ ロスト追悼会話チェック（該当者がいて1/4で発生）
+        if (this.checkMourningCampTalk(width, height, onComplete)) {
+            return;
+        }
+
+        if (!campData) {
+            if (onComplete) onComplete();
+            return;
+        }
+
         // シチュエーション決定 (1〜20)
         const situNo = Math.floor(Math.random() * 20) + 1;
         this.currentCampSituation = situNo;
@@ -153,6 +231,18 @@ export default class RestScene extends Phaser.Scene {
             else textB = situB?.step2A || '……。';
         }
 
+        this._renderCampDialogue({
+            charA, nameA, textA,
+            charB, nameB, textB,
+            width, height,
+            onDone: onComplete
+        });
+    }
+
+    /**
+     * 💬 キャンプ会話共通レンダリング演出（立ち絵＋メッセージ枠＋タップ進行）
+     */
+    _renderCampDialogue({ charA, nameA, textA, charB, nameB, textB, width, height, onDone }) {
         // 会話コンテナ
         const talkContainer = this.add.container(0, 0).setDepth(200);
 
@@ -255,7 +345,7 @@ export default class RestScene extends Phaser.Scene {
                 duration: 250,
                 onComplete: () => {
                     talkContainer.destroy();
-                    if (onComplete) onComplete();
+                    if (onDone) onDone();
                 }
             });
         };

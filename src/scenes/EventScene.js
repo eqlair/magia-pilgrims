@@ -42,6 +42,8 @@ export default class EventScene extends Phaser.Scene {
         this.from2R1201Event = data.from2R1201Event || false;
         this.from2RDevilEvent = data.from2RDevilEvent || false;
         this.fromTowerRespEvent = data.fromTowerRespEvent || false;
+        this.fromTowerExplosion = data.fromTowerExplosion || false;
+        this.fromFairyJoinEvent = data.fromFairyJoinEvent || false;
         this.fromDojoEvent = data.fromDojoEvent || false;
         this.fromJikuEvent = data.fromJikuEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
@@ -82,6 +84,8 @@ export default class EventScene extends Phaser.Scene {
                 this.eventId = 'event_2r_devil';
             } else if (this.fromTowerRespEvent) {
                 this.eventId = 'event_tow_res';
+            } else if (this.fromTowerExplosion) {
+                this.eventId = 'event_tower_explosion';
             } else if (data.fromIkebukuro01Event) {
                 this.eventId = 'event_ikebukuro01';
             } else if (data.fromIkebukuro02Event) {
@@ -609,7 +613,7 @@ export default class EventScene extends Phaser.Scene {
             } else {
                 this.scene.stop();
                 this.scene.resume(this.returnScene, { 
-                    fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.from1221WildhuntEvent && !this.fromIkebukuro01Event && !this.fromIkebukuro02Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromOpTutorial && !this.fromDojoEvent && !this.fromJikuEvent,
+                    fromEvent: !this.fromTarot && !this.fromExploration && !this.fromNightExploration && !this.from1207Event && !this.from1214Event && !this.from1217Event && !this.from1221Event && !this.from1221WildhuntEvent && !this.fromIkebukuro01Event && !this.fromIkebukuro02Event && !this.fromRespEvent && !this.from2R1201Event && !this.from2RDevilEvent && !this.fromTowerRespEvent && !this.fromTowerExplosion && !this.fromFairyJoinEvent && !this.fromOpTutorial && !this.fromDojoEvent && !this.fromJikuEvent,
                     fromExploration: this.fromExploration,
                     fromNightExploration: this.fromNightExploration, // 夜探索専用フラグを引き継ぎ
                     isNotification: this.isNotification,
@@ -626,6 +630,8 @@ export default class EventScene extends Phaser.Scene {
                     fromDojoEvent: this.fromDojoEvent,
                     fromJikuEvent: this.fromJikuEvent,
                     fromTowerRespEvent: this.fromTowerRespEvent,
+                    fromTowerExplosion: this.fromTowerExplosion,
+                    fromFairyJoinEvent: this.fromFairyJoinEvent,
                     fromTarot: this.fromTarot,
                     joinCharacterId: this.joinCharacterId 
                 });

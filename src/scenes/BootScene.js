@@ -44,7 +44,34 @@ export default class BootScene extends Phaser.Scene {
             if (htmlText) htmlText.innerText = `Now Loading... ${percent}%`;
         });
 
+        // 🛡️ ロードエラー発生時もクラッシュ・停止させずに安全にスキップ
+        this.load.on('loaderror', (file) => {
+            console.warn('[BootScene] Asset load failed/skipped:', file.key, file.url);
+        });
+
+        // 🛡️ 最大安全タイムアウト（万が一の回線詰まり・ファイルロックによる永久停止を完全防止）
+        let maxLoadTimer = setTimeout(() => {
+            console.warn('[BootScene] Loader safety timeout reached (3.5s). Forcing completion.');
+            try {
+                if (this.load.inflight) {
+                    this.load.inflight.forEach(f => console.warn(' -> Inflight:', f.key, f.src || f.url));
+                }
+            } catch (e) {}
+            if (htmlBar) htmlBar.style.width = '100%';
+            if (htmlText) htmlText.innerText = 'Now Loading... 100%';
+            try {
+                this.load.loadComplete();
+            } catch (e) {
+                console.error('[BootScene] Error forcing load complete:', e);
+                this.scene.start('TitleScene');
+            }
+        }, 3500);
+
         this.load.on('complete', () => {
+            if (maxLoadTimer) {
+                clearTimeout(maxLoadTimer);
+                maxLoadTimer = null;
+            }
             progressText.setText('Now Loading... 100%');
             if (htmlBar) htmlBar.style.width = '100%';
             if (htmlText) htmlText.innerText = 'Now Loading... 100%';
@@ -200,6 +227,7 @@ export default class BootScene extends Phaser.Scene {
         // キャンプ会話シチュエーションデータ
         this.load.json('camp_situations', 'files/DATA/camp_situations.json');
         this.load.json('tower_area_reactions', 'files/DATA/tower_area_reactions.json');
+        this.load.json('low_morale_and_mourning', 'files/DATA/low_morale_and_mourning.json');
 
         
         // タロットデータとイベントとキャラデータ
@@ -280,6 +308,10 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
         this.load.image('bg_tow_spo01', 'files/event/tou_spo01.jpg');
         this.load.json('event_tow_res', 'files/DATA/event_tow_res.json');
+        this.load.json('event_tower_explosion', 'files/DATA/event_tower_explosion.json');
+        this.load.json('event_fairy_join', 'files/DATA/event_fairy_join.json');
+        this.load.image('chr_fairy', 'files/CHR/fairy.png');
+        this.load.image('chr_fairy_s', 'files/CHR/fairyS.png');
 
         // 池袋イベントアセット
         this.load.json('event_ikebukuro01', 'files/DATA/event_ikebukuro01.json');
@@ -288,65 +320,37 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('ikebukuro02', 'files/event/ikebukuro02.jpg');
         this.load.audio('unknoun_terror', 'files/BGM/unknoun_terror.mp3');
 
-        // タワー21階ボス（プロセル氷像）イベント＆敵アセット
-        this.load.json('event_tow21', 'files/DATA/event_tow21.json');
-        this.load.json('event_tow21b', 'files/DATA/event_tow21b.json');
-        this.load.image('event_tow_21', 'files/event/tow_21.jpg');
-        this.load.image('event_tow_21b', 'files/event/tow_21b.jpg');
-        this.load.audio('tow_frozen_silence', 'files/BGM/tow_Frozen Silence.mp3');
-        this.load.audio('tow_magma_core', 'files/BGM/tow_Magma Core.mp3');
-        this.load.audio('tow_black_onyx', 'files/BGM/tow_Black Onyx area.mp3');
-        this.load.audio('tow_sakura', 'files/BGM/tow_sakura.mp3');
-        this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.png');
-        this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.png');
-
-        // タワー編アセット
+        // タワー編アセット（軽量データ・マップ構造）
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.json('hint_53f', 'files/DATA/53Fhint.json');
         this.load.image('bg_tower01', 'files/MAP/tower01.jpg');
-        this.load.image('bg_tow1', 'files/MAP/tow1.jpg');
-        this.load.image('bg_tow2', 'files/MAP/tow2.jpg');
-        this.load.image('bg_tow3', 'files/MAP/tow3.jpg');
-        this.load.image('bg_tow4', 'files/MAP/tow4.jpg');
-        this.load.image('tow1', 'files/MAP/tow1.jpg');
-        this.load.image('tow2', 'files/MAP/tow2.jpg');
-        this.load.image('tow3', 'files/MAP/tow3.jpg');
-        this.load.image('tow4', 'files/MAP/tow4.jpg');
 
-        // タワー用エリア画像 (ヘクス用 200x200六角形PNG & 画面背景用JPG)
-        const towerAreaAssets = {
-            '街': { hex: 'files/MAP/hex_01city.png', bg: 'files/MAP/01city.jpg' },
-            '石': { hex: 'files/MAP/hex_02boulder.png', bg: 'files/MAP/02boulder.jpg' },
-            '樹': { hex: 'files/MAP/hex_03tree.png', bg: 'files/MAP/03tree.jpg' },
-            '骨': { hex: 'files/MAP/hex_06skal.png', bg: 'files/MAP/06skal.jpg' },
-            '氷': { hex: 'files/MAP/hex_04ice.png', bg: 'files/MAP/04ice.jpg' },
-            '顔': { hex: 'files/MAP/hex_07face.png', bg: 'files/MAP/07face.jpg' },
-            '炎': { hex: 'files/MAP/hex_05fire.png', bg: 'files/MAP/05fire.jpg' },
-            '金': { hex: 'files/MAP/hex_08gold.png', bg: 'files/MAP/08gold.jpg' },
-            '異': { hex: 'files/MAP/hex_09al.png', bg: 'files/MAP/09al.jpg' },
-            '外': { hex: 'files/MAP/hex_10out.png', bg: 'files/MAP/10out.jpg' },
-            '黒': { hex: 'files/MAP/hex_11black.png', bg: 'files/MAP/11black.jpg' },
-            '赤': { hex: 'files/MAP/hex_12red.png', bg: 'files/MAP/12red.jpg' },
-            '青': { hex: 'files/MAP/hex_16blue.png', bg: 'files/MAP/16blue.jpg' },
-            '黄': { hex: 'files/MAP/hex_15yerrow.png', bg: 'files/MAP/15yerrow.jpg' },
-            '緑': { hex: 'files/MAP/hex_14green.png', bg: 'files/MAP/14green.jpg' },
-            '紫': { hex: 'files/MAP/hex_13purple.png', bg: 'files/MAP/13purple.jpg' },
-            '白': { hex: 'files/MAP/hex_17white.png', bg: 'files/MAP/17white.jpg' },
-            'top of tower': { hex: 'files/MAP/hex_top_of_tower.png', bg: 'files/MAP/17white.jpg' }
+        // タワー用エリアヘクス画像（軽量六角形PNGのみ先行ロード）
+        const towerHexAssets = {
+            '街': 'files/MAP/hex_01city.png',
+            '石': 'files/MAP/hex_02boulder.png',
+            '樹': 'files/MAP/hex_03tree.png',
+            '骨': 'files/MAP/hex_06skal.png',
+            '氷': 'files/MAP/hex_04ice.png',
+            '顔': 'files/MAP/hex_07face.png',
+            '炎': 'files/MAP/hex_05fire.png',
+            '金': 'files/MAP/hex_08gold.png',
+            '異': 'files/MAP/hex_09al.png',
+            '外': 'files/MAP/hex_10out.png',
+            '黒': 'files/MAP/hex_11black.png',
+            '赤': 'files/MAP/hex_12red.png',
+            '青': 'files/MAP/hex_16blue.png',
+            '黄': 'files/MAP/hex_15yerrow.png',
+            '緑': 'files/MAP/hex_14green.png',
+            '紫': 'files/MAP/hex_13purple.png',
+            '白': 'files/MAP/hex_17white.png',
+            'top of tower': 'files/MAP/hex_top_of_tower.png'
         };
-        for (const [key, paths] of Object.entries(towerAreaAssets)) {
-            this.load.image(`hex_map_${key}`, paths.hex);
-            this.load.image(`tower_bg_${key}`, paths.bg);
-            this.load.image(`tower_map_${key}`, paths.hex); // 互換用
+        for (const [key, path] of Object.entries(towerHexAssets)) {
+            this.load.image(`hex_map_${key}`, path);
+            this.load.image(`tower_map_${key}`, path);
         }
-
-        // タワー戦闘背景用画像 (files/BG_battle/)
-        const towerBattleBgs = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '外', '黒', '赤', '青', '黄', '緑', '紫', '白'];
-        for (const key of towerBattleBgs) {
-            this.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.jpg`);
-        }
-        this.load.image('battle_bg_top of tower', 'files/BG_battle/白.jpg');
 
         this.load.image('bg_resp', 'files/event/resp.jpg');
         this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
@@ -450,5 +454,111 @@ export default class BootScene extends Phaser.Scene {
 
         // フォールバック（フォントイベントが来ない場合でも最大2秒で遷移）
         this.time.delayedCall(2000, goToTitle);
+    }
+
+    /**
+     * 🗼 タワー進入時に必要な高解像度背景画像とBGMを動的にロード
+     */
+    static loadTowerAssets(scene, onComplete) {
+        if (!scene || !scene.load) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        const towerAreaAssets = {
+            '街': 'files/MAP/01city.jpg',
+            '石': 'files/MAP/02boulder.jpg',
+            '樹': 'files/MAP/03tree.jpg',
+            '骨': 'files/MAP/06skal.jpg',
+            '氷': 'files/MAP/04ice.jpg',
+            '顔': 'files/MAP/07face.jpg',
+            '炎': 'files/MAP/05fire.jpg',
+            '金': 'files/MAP/08gold.jpg',
+            '異': 'files/MAP/09al.jpg',
+            '外': 'files/MAP/10out.jpg',
+            '黒': 'files/MAP/11black.jpg',
+            '赤': 'files/MAP/12red.jpg',
+            '青': 'files/MAP/16blue.jpg',
+            '黄': 'files/MAP/15yerrow.jpg',
+            '緑': 'files/MAP/14green.jpg',
+            '紫': 'files/MAP/13purple.jpg',
+            '白': 'files/MAP/17white.jpg',
+            'top of tower': 'files/MAP/17white.jpg'
+        };
+
+        const towerBattleBgs = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '外', '黒', '赤', '青', '黄', '緑', '紫', '白'];
+
+        let needsLoad = false;
+        for (const [key, path] of Object.entries(towerAreaAssets)) {
+            if (!scene.textures.exists(`tower_bg_${key}`)) {
+                scene.load.image(`tower_bg_${key}`, path);
+                needsLoad = true;
+            }
+        }
+        for (const key of towerBattleBgs) {
+            if (!scene.textures.exists(`battle_bg_${key}`)) {
+                scene.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.jpg`);
+                needsLoad = true;
+            }
+        }
+        if (!scene.textures.exists('battle_bg_top of tower')) {
+            scene.load.image('battle_bg_top of tower', 'files/BG_battle/白.jpg');
+            needsLoad = true;
+        }
+
+        // タワー外観・遠景画像
+        for (let i = 1; i <= 4; i++) {
+            if (!scene.textures.exists(`bg_tow${i}`)) {
+                scene.load.image(`bg_tow${i}`, `files/MAP/tow${i}.jpg`);
+                scene.load.image(`tow${i}`, `files/MAP/tow${i}.jpg`);
+                needsLoad = true;
+            }
+        }
+
+        // タワー21階ボス（プロセル氷像）イベント＆敵アセット
+        if (!scene.cache.json.exists('event_tow21')) {
+            scene.load.json('event_tow21', 'files/DATA/event_tow21.json');
+            scene.load.json('event_tow21b', 'files/DATA/event_tow21b.json');
+            needsLoad = true;
+        }
+        if (!scene.textures.exists('event_tow_21')) {
+            scene.load.image('event_tow_21', 'files/event/tow_21.jpg');
+            scene.load.image('event_tow_21b', 'files/event/tow_21b.jpg');
+            needsLoad = true;
+        }
+        if (!scene.textures.exists('enemy_prc_a')) {
+            scene.load.image('enemy_prc_a', 'files/ENEMY/prc_a.png');
+            scene.load.image('enemy_prc_b', 'files/ENEMY/prc_b.png');
+            needsLoad = true;
+        }
+
+        const handleComplete = () => {
+            // プロセル巨大ボス用テクスチャ結合
+            if (scene.textures && scene.textures.exists('enemy_prc_a') && scene.textures.exists('enemy_prc_b')) {
+                if (!scene.textures.exists('enemy_prc_full')) {
+                    const canvas = scene.textures.createCanvas('enemy_prc_full', 342, 584);
+                    if (canvas) {
+                        const ctx = canvas.getContext();
+                        const imgA = scene.textures.get('enemy_prc_a').getSourceImage();
+                        const imgB = scene.textures.get('enemy_prc_b').getSourceImage();
+                        if (imgA && imgB) {
+                            ctx.drawImage(imgA, 0, 0);
+                            ctx.globalAlpha = 0.60;
+                            ctx.drawImage(imgB, 0, 292);
+                            ctx.globalAlpha = 1.0;
+                            canvas.refresh();
+                        }
+                    }
+                }
+            }
+            if (onComplete) onComplete();
+        };
+
+        if (needsLoad) {
+            scene.load.once('complete', handleComplete);
+            scene.load.start();
+        } else {
+            handleComplete();
+        }
     }
 }

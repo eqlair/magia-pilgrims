@@ -1,6 +1,7 @@
 import { GlobalState } from './GlobalState';
 import { EventEngine } from './EventEngine';
 import { SaveManager } from './SaveManager';
+import { AchievementManager } from './AchievementManager';
 
 /**
  * 仲間キャラクター喪失（死亡・離脱）マネージャー
@@ -79,6 +80,8 @@ export class CharacterLossManager {
         const imgKey = CharacterLossManager.LOSS_IMAGE_MAP[charId] || 'evx_002';
 
         console.log(`🥀 [CharacterLossManager] 喪失イベント開始: ${charName} (${charId})`);
+        const normId = gs.normalizeCharId ? gs.normalizeCharId(charId) : charId;
+        AchievementManager.unlock(`lost_char_${normId}`, scene);
 
         // イベントデータ構築
         const eventData = [
@@ -133,6 +136,14 @@ export class CharacterLossManager {
             const advScene = scene.scene ? scene.scene.get('AdventureScene') : null;
             if (advScene && advScene.party) {
                 advScene.party = advScene.party.filter(id => id !== charId);
+            }
+
+            // 🕊️ 喪失を目撃した生存パーティメンバー全員に、最後にロストしたキャラ名を記憶
+            const remainingParty = (scene.party || gs.party || []).filter(id => id !== charId);
+            for (const rid of remainingParty) {
+                if (gs.characters[rid]) {
+                    gs.characters[rid].lastSeenLostCharacterName = charName;
+                }
             }
 
             // 5. 即時自動セーブ

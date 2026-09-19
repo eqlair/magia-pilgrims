@@ -92,6 +92,10 @@ export class GlobalState {
         // 発動中のタロットカードリスト [{id: Number, isUpright: Boolean}]
         this.activeTarots = [];
         this.drawnTarotCards = []; // すでに引いて獲得したタロットカードIDのリスト（二度と出ない）
+
+        // 🗼 タワー内時間経過（12/21 18:00開始、43200秒=12時間経過で12/22 06:00焦土爆破）
+        this.towerElapsedSeconds = 0;
+        this.isTowerTimeUpGameOver = false;
         
         // デバッグ機能: 戦闘後に宝石確定ドロップ
         this.debugForceGemDrop = false;
@@ -167,6 +171,14 @@ export class GlobalState {
         // ── 🏛️ 時空館コンテンツ・ステート ──
         this.jikukanState = null;
         this.lastDailyRewardDate = '';   // 最後に取得した日付 (YYYY-MM-DD)
+        this.extraDailyGachaCount = 0;   // 追加デイリーガチャ回数
+
+        // ── 🧚‍♀️ 妖精リフィエル・周回・デイリー・実績 ──
+        this.loopCount = 1;              // 周回数（初期1）
+        this.hasMetFairy = false;        // 妖精リフィエル遭遇フラグ
+        this.achievements = {};          // 実績解除データ
+        this.dailyQuests = null;         // 当日デイリークエストデータ
+        this.fairyDailyTrade = null;     // 妖精日次取引データ
 
         // ── 好感度イベント既読フラグ (charId -> { stage1: bool, stage2: bool }) ──
         this.seenLoveEvents = {};
@@ -1358,9 +1370,18 @@ export class GlobalState {
             event1221Played: this.event1221Played,
             hasEnteredTower: this.hasEnteredTower || false,
             towerSeenAreas: JSON.parse(JSON.stringify(this.towerSeenAreas || {})),
+            towerElapsedSeconds: this.towerElapsedSeconds || 0,
+            isTowerTimeUpGameOver: this.isTowerTimeUpGameOver || false,
 
             maxPastExp: this.maxPastExp || 0,
             currentRunTotalExp: this.currentRunTotalExp || 0,
+
+            loopCount: this.loopCount || 1,
+            hasMetFairy: this.hasMetFairy || false,
+            achievements: JSON.parse(JSON.stringify(this.achievements || {})),
+            dailyQuests: this.dailyQuests ? JSON.parse(JSON.stringify(this.dailyQuests)) : null,
+            extraDailyGachaCount: this.extraDailyGachaCount || 0,
+            fairyDailyTrade: this.fairyDailyTrade ? JSON.parse(JSON.stringify(this.fairyDailyTrade)) : null,
 
             characters: JSON.parse(JSON.stringify(this.characters))
         };
@@ -1492,8 +1513,17 @@ export class GlobalState {
         return this.seenEventHistory.includes(eventId);
     }
 
+    /** タワー内の現在時刻文字列（18:00〜06:00）を取得 */
+    getTowerTimeString() {
+        const totalSec = (18 * 3600) + Math.min(43200, (this.towerElapsedSeconds || 0));
+        const hours = Math.floor(totalSec / 3600) % 24;
+        const mins = Math.floor((totalSec % 3600) / 60);
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+
     /** 周回（ループ）用リセット処理 */
     resetForNewLoop() {
+        this.loopCount = (this.loopCount || 1) + 1;
         // ① 今回の周回で獲得した経験値を集計して過去最高獲得経験値(maxPastExp)を記録・保存
         this.maxPastExp = Math.max(this.maxPastExp || 0, this.currentRunTotalExp || 0);
         this.currentRunTotalExp = 0;
@@ -1576,6 +1606,8 @@ export class GlobalState {
         this.towerSearchCount = {};
         this.towerColorStepCount = 0;
         this.towerColorFailed = false;
+        this.towerElapsedSeconds = 0;
+        this.isTowerTimeUpGameOver = false;
 
         // タワー内の雑魚敵・魔女を再生（踏破 visited / revealed は維持し、cleared を解除して復活）
         if (this.towerHexStates && Array.isArray(this.towerHexStates)) {
@@ -1932,6 +1964,10 @@ export class GlobalState {
     /** デイリー報酬が本日受取可能か確認 */
     canClaimDailyReward() {
         this._checkDailyRewardMonthReset();
+        // 追加デイリーガチャ権がある場合は無条件で受取可能！
+        if ((this.extraDailyGachaCount || 0) > 0) {
+            return true;
+        }
         const today = this.getTodayDateStr();
         if (this.lastDailyRewardDate === today) {
             return false; // 今日はすでに受取済み
@@ -1958,7 +1994,12 @@ export class GlobalState {
         const rewardDef = this.getNextDailyReward();
         const today = this.getTodayDateStr();
 
-        this.lastDailyRewardDate = today;
+        // 追加ガチャ権がある場合はそれを優先消費し、通常の日次枠を保持
+        if ((this.extraDailyGachaCount || 0) > 0) {
+            this.extraDailyGachaCount--;
+        } else {
+            this.lastDailyRewardDate = today;
+        }
         this.dailyRewardCount++;
 
         let itemResult = null;

@@ -4,6 +4,7 @@ import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
 import { RelicGenerator } from '../systems/RelicGenerator';
 import { CharacterLossManager } from '../systems/CharacterLossManager';
+import { AchievementManager } from '../systems/AchievementManager';
 
 
 export default class ResultScene extends Phaser.Scene {
@@ -26,6 +27,8 @@ export default class ResultScene extends Phaser.Scene {
         this.isRelicScreen = false;
 
         this.relicAnimationPlaying = false;
+        this.charDamageStats = data.charDamageStats || {};
+        this.battleDuration = data.battleDuration || 1;
     }
 
     create() {
@@ -61,22 +64,23 @@ export default class ResultScene extends Phaser.Scene {
         const stockExp = this.globalState.stockExp;
 
         // 上部テキスト
-        this.add.text(width / 2, 80, 'BATTLE RESULT', {
-            fontFamily: 'sans-serif', fontSize: '48px', color: '#ffcc00', fontStyle: 'bold'
+        this.add.text(width / 2, 65, 'BATTLE RESULT', {
+            fontFamily: 'sans-serif', fontSize: '40px', color: '#ffcc00', fontStyle: 'bold'
         }).setOrigin(0.5);
 
         const boostText = this.isExpBoosted ? ' 🔥[2倍ボーナス発動中!]' : '';
-        this.add.text(width / 2, 150, `獲得経験値：${this.earnedExp}${boostText}　獲得SP：${this.earnedSp}`, {
-            fontFamily: 'sans-serif', fontSize: '18px', color: this.isExpBoosted ? '#ffdd00' : '#ffffff', fontStyle: this.isExpBoosted ? 'bold' : 'normal'
+        this.add.text(width / 2, 118, `獲得経験値：${this.earnedExp}${boostText}　獲得SP：${this.earnedSp}`, {
+            fontFamily: 'sans-serif', fontSize: '17px', color: this.isExpBoosted ? '#ffdd00' : '#ffffff', fontStyle: this.isExpBoosted ? 'bold' : 'normal'
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, 190, `取得ストック経験値：${stockExpAdd}`, {
-            fontFamily: 'sans-serif', fontSize: '18px', color: '#aaaaff'
+        this.add.text(width / 2, 150, `取得ストック経験値：${stockExpAdd}`, {
+            fontFamily: 'sans-serif', fontSize: '17px', color: '#aaaaff'
         }).setOrigin(0.5);
 
-
-        const startY = 320;
-        const spacingY = 120;
+        const startY = 225;
+        const spacingY = 126;
+        this.barWidth = 340;
+        const barHeight = 24;
 
         this.memberUIs = [];
 
@@ -105,48 +109,76 @@ export default class ResultScene extends Phaser.Scene {
             const charName = cData.name || stat.name || `Char ${charId}`;
             
             const y = startY + i * spacingY;
-            const x = width / 2 - 200;
+            const faceX = 35;
+            const contentX = 148;
 
-            // 顔画像
-            const face = this.add.image(x, y, `face_${charId}`);
-            face.setDisplaySize(80, 80);
-
-            // キャラクター名
-            const nameText = this.add.text(x + 60, y - 45, charName, {
-                fontFamily: 'sans-serif', fontSize: '24px', color: '#ffccaa', fontStyle: 'bold'
-            });
+            // 顔画像（大きめ 100x100）
+            const face = this.add.image(faceX, y, `face_${charId}`).setOrigin(0, 0.5);
+            face.setDisplaySize(100, 100);
 
             // ガチャのレベルアップログの表示
             if (this.globalState.levelUpLogs) {
                 const logs = this.globalState.levelUpLogs.filter(log => log.charId === charId);
                 if (logs.length > 0) {
                     const logText = logs.map(l => l.text).join(' / ');
-                    this.add.text(x + 60, y - 75, logText, {
-                        fontFamily: 'sans-serif', fontSize: '20px', color: '#ffaa00', fontStyle: 'bold'
-                    });
+                    this.add.text(contentX, y - 52, logText, {
+                        fontFamily: 'sans-serif', fontSize: '16px', color: '#ffaa00', fontStyle: 'bold'
+                    }).setOrigin(0, 0.5);
                 }
             }
 
-            // 現在のレベル
-            const lvText = this.add.text(x + 200, y - 45, `Lv.${stat.level}`, {
+            // キャラクター名（白・太字）
+            const nameText = this.add.text(contentX, y - 32, charName, {
                 fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
-            });
+            }).setOrigin(0, 0.5);
 
-            // 経験値バーの背景
-            const barBg = this.add.rectangle(x + 60, y, 300, 20, 0x333333).setOrigin(0, 0.5);
-            // 経験値バーの中身
-            const barFill = this.add.rectangle(x + 60, y, 0, 20, 0x00ff00).setOrigin(0, 0.5);
+            // 現在のレベル（白・太字、バー右端揃え）
+            const lvText = this.add.text(contentX + this.barWidth, y - 32, `Lv.${stat.level}`, {
+                fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
+            }).setOrigin(1, 0.5);
 
-            // 経験値テキスト
+            // 経験値バーの背景（濃いグレー）
+            const barBg = this.add.rectangle(contentX, y - 2, this.barWidth, barHeight, 0x333333).setOrigin(0, 0.5);
+            // 経験値バーの中身（緑）
+            const barFill = this.add.rectangle(contentX, y - 2, 0, barHeight, 0x00ff00).setOrigin(0, 0.5);
+
+            // 経験値テキスト（EXPゲージの上に重なる影付き文字）
             const reqExp = this.globalState.getRequiredExp(stat.level);
-            const expText = this.add.text(x + 60, y + 20, `EXP: ${Math.floor(stat.exp)} / ${reqExp}`, {
-                fontFamily: 'sans-serif', fontSize: '20px', color: '#cccccc'
-            });
+            const expText = this.add.text(contentX + 8, y - 2, `EXP:${Math.floor(stat.exp)} / ${reqExp}`, {
+                fontFamily: 'sans-serif',
+                fontSize: '16px',
+                fontStyle: 'bold',
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3,
+                shadow: {
+                    offsetX: 1,
+                    offsetY: 2,
+                    color: '#000000',
+                    blur: 2,
+                    stroke: true,
+                    fill: true
+                }
+            }).setOrigin(0, 0.5).setDepth(10);
 
-            // レベルアップテキスト (経験値バーの上に配置)
-            const levelUpText = this.add.text(x + 210, y - 30, 'LEVEL UP!', {
-                fontFamily: 'sans-serif', fontSize: '32px', color: '#ff0000', fontStyle: 'bold'
-            }).setOrigin(0.5, 0.5).setAlpha(0);
+            // 🎯 HIT（実効与ダメージ量）と MAX DPS 表示
+            const dmgStat = this.charDamageStats[charId];
+            const actualDmg = dmgStat ? dmgStat.totalDamage : 0;
+            const dpsVal = dmgStat ? dmgStat.dps : 0;
+            this.add.text(contentX, y + 28, `HIT:${actualDmg.toLocaleString()} MAX DPS:${dpsVal.toLocaleString()}`, {
+                fontFamily: 'sans-serif',
+                fontSize: '17px',
+                color: '#ffea00',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0, 0.5);
+
+            // レベルアップテキスト (バーの上にポップアップ)
+            const levelUpText = this.add.text(contentX + this.barWidth / 2, y - 2, 'LEVEL UP!', {
+                fontFamily: 'sans-serif', fontSize: '28px', color: '#ff2222', fontStyle: 'bold',
+                stroke: '#ffffff', strokeThickness: 4
+            }).setOrigin(0.5, 0.5).setAlpha(0).setDepth(20);
 
             this.memberUIs.push({
                 charId,
@@ -159,6 +191,29 @@ export default class ResultScene extends Phaser.Scene {
                 targetExp: stat.exp + expPerMember
             });
         }
+
+        // ── 🏆 実績解除判定（DPS・獲得経験値・キャラステータス） ──
+        let totalTeamDps = 0;
+        let maxSoloDps = 0;
+        for (const cid in this.charDamageStats) {
+            const dmgInfo = this.charDamageStats[cid];
+            const dps = dmgInfo ? (dmgInfo.dps || 0) : 0;
+            totalTeamDps += dps;
+            if (dps > maxSoloDps) maxSoloDps = dps;
+        }
+
+        // 個人最高DPS判定
+        if (maxSoloDps >= 5000) AchievementManager.unlock('solo_dps_5k', this);
+        if (maxSoloDps >= 15000) AchievementManager.unlock('solo_dps_15k', this);
+        if (maxSoloDps >= 35000) AchievementManager.unlock('solo_dps_35k', this);
+
+        // パーティ最高DPS判定
+        if (totalTeamDps >= 10000) AchievementManager.unlock('team_dps_10k', this);
+        if (totalTeamDps >= 30000) AchievementManager.unlock('team_dps_30k', this);
+        if (totalTeamDps >= 100000) AchievementManager.unlock('team_dps_100k', this);
+
+        // キャラクターステータス（Lv13, WLV7/7, 好感度10/20, 累計100万EXP）
+        AchievementManager.checkCharacterAchievements(this);
 
         // Tap to continue
         this.continueText = this.add.text(width / 2, height - 100, 'tap to continue', {
@@ -341,10 +396,10 @@ export default class ResultScene extends Phaser.Scene {
             let reqExp = this.globalState.getRequiredExp(currentDisplayLevel);
 
             ui.lvText.setText(`Lv.${currentDisplayLevel}`);
-            ui.expText.setText(`EXP: ${Math.floor(currentDisplayExp)} / ${reqExp}`);
+            ui.expText.setText(`EXP:${Math.floor(currentDisplayExp)} / ${reqExp}`);
             
             const fillRatio = Math.min(1, currentDisplayExp / reqExp);
-            ui.barFill.width = 300 * fillRatio;
+            ui.barFill.width = (this.barWidth || 340) * fillRatio;
 
             if (currentDisplayLevel > ui.baseLevel && ui.levelUpText.alpha === 0) {
                 ui.levelUpText.setAlpha(1);
@@ -379,6 +434,7 @@ export default class ResultScene extends Phaser.Scene {
             ui.stat.exp = ui.finalExp;
         }
         SaveManager.saveGame();
+        AchievementManager.checkCharacterAchievements(this);
     }
 
     proceedToReturnScene(retParamsOverride = null) {
@@ -396,7 +452,8 @@ export default class ResultScene extends Phaser.Scene {
                     party: this.party, 
                     isTutorialStart: this.isTutorial,
                     isNightExploration: this.isNightExploration,
-                    fromTower21Boss: this.isTower21Boss
+                    fromTower21Boss: this.isTower21Boss,
+                    battleDuration: this.battleDuration
                 };
                 if (this.scene.isPaused(this.returnScene)) {
                     this.scene.stop();
@@ -547,6 +604,7 @@ export default class ResultScene extends Phaser.Scene {
 
                 if (isShion) {
                     // 紫苑（001）がSP0で諦めた場合 ➔ リスポーンイベント（event_resp / event_tow_res）へ直行
+                    AchievementManager.unlock('lost_sion', this);
                     errorText.setColor('#ff4444').setText('紫苑は力尽きてしまった……');
                     this.time.delayedCall(1800, () => {
                         container.destroy();
@@ -559,7 +617,8 @@ export default class ResultScene extends Phaser.Scene {
                             isSionMentalBreak: true,
                             party: this.party,
                             isNightExploration: this.isNightExploration,
-                            fromTower21Boss: this.isTower21Boss
+                            fromTower21Boss: this.isTower21Boss,
+                            battleDuration: this.battleDuration
                         };
                         if (this.scene.isPaused(this.returnScene)) {
                             this.scene.stop();

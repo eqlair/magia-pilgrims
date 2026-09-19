@@ -173,6 +173,7 @@ export default class BattleScene extends Phaser.Scene {
         
         // 2. 戦闘ロジックエンジンの初期化
         this.engine = new BattleEngine();
+        this.engine.scene = this;
         const chrData = this.cache.json.get('chr_data');
         this.engine.setup(this.battleConfig, chrData); // 受け取った設定とキャラデータを渡す
 
@@ -759,7 +760,8 @@ export default class BattleScene extends Phaser.Scene {
                     if (this.sound) this.sound.stopAll();
                     const stateObj = {
                         isRetreated: true,
-                        fromBattle: true
+                        fromBattle: true,
+                        battleDuration: this.engine ? this.engine.time : 0
                     };
 
                     if (this.scene.isPaused(targetScene)) {
@@ -854,7 +856,9 @@ export default class BattleScene extends Phaser.Scene {
                     majoLevel: this.battleConfig.majoLevel || 0,
                     isNightExploration: this.battleConfig.isNightExploration || false,
                     isTower21Boss: !!this.battleConfig.isTower21Boss,
-                    returnScene: this.battleConfig.returnScene || 'AdventureScene'
+                    returnScene: this.battleConfig.returnScene || 'AdventureScene',
+                    charDamageStats: this.engine.getCharDamageStats(),
+                    battleDuration: this.engine.time
                 });
 
             });
@@ -892,7 +896,8 @@ export default class BattleScene extends Phaser.Scene {
                 isNightExploration: this.battleConfig.isNightExploration,
                 is1221NightBattle: this.battleConfig.is1221NightBattle || false,
                 sionFinalSp: sionPlayer ? Math.floor(sionPlayer.sp) : null,
-                fromBattle: true
+                fromBattle: true,
+                battleDuration: this.engine ? this.engine.time : 0
             };
 
             const targetScene = this.battleConfig.returnScene || 'AdventureScene';

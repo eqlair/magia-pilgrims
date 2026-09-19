@@ -14,6 +14,9 @@ import { EventEngine } from '../systems/EventEngine';
 import { Dec21Effect } from '../systems/Dec21Effect';
 import { CharacterLossManager } from '../systems/CharacterLossManager';
 import { PvpEnemyGenerator } from '../systems/PvpEnemyGenerator';
+import { DailyQuestManager } from '../systems/DailyQuestManager';
+import { AchievementManager, ACHIEVEMENTS } from '../systems/AchievementManager';
+import { FairyTradeManager } from '../systems/FairyTradeManager';
 
 
 
@@ -815,6 +818,22 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
+            // ── タワー爆破イベント終了時のハンドリング（リスポーンへ直行） ──
+            if (this.isTowerMode && data && data.fromTowerExplosion) {
+                const towerRespData = this.cache.json.get('event_tow_res');
+                if (towerRespData) {
+                    GlobalState.getInstance().addLog('💥 [TowerExplosion] Tower destroyed by dawn plasma attack. Launching event_tow_res!');
+                    if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: towerRespData,
+                        returnScene: 'AdventureScene',
+                        fromTowerRespEvent: true
+                    });
+                    return;
+                }
+            }
+
             // ── タワー内でのリスポーン分岐（全滅または紫苑SP1/10以下） ──
             if (this.isTowerMode && data && data.fromBattle && (data.isGameOver || isSionMentalBreak) && !data.fromTowerRespEvent) {
                 const towerRespData = this.cache.json.get('event_tow_res');
@@ -977,14 +996,26 @@ export default class AdventureScene extends Phaser.Scene {
             } else if (this.isTowerMode && data && data.fromRest) {
                 // タワー内での休息による食料減少 (5〜40)
                 this._drainFoodInTower();
+                // 休息1回で60分（3600秒）経過
+                gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 3600;
+                this._updateDateTimeDisplay();
+                if (this._checkTowerTimeUp()) return;
             }
 
-
+            if (data && data.fromRest) {
+                DailyQuestManager.addProgress('rest', 1, this);
+            }
 
             if (data && data.fromBattle) {
                 console.log(`[AdventureScene] fromBattle returned. globalWaveCount=${this.globalWaveCount}`);
+                if (!data.isGameOver && !data.isRetreated) {
+                    DailyQuestManager.addProgress('battle', 1, this);
+                }
 
                 if (this.isTowerMode) {
+                    if (data.battleDuration) {
+                        gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + Math.round(data.battleDuration);
+                    }
                     const hexKey = `${this.playerCol}_${this.playerRow}`;
                     gs.towerClearedHexes[hexKey] = true;
                     // 塔での戦闘勝利時、食料を+40（上限140でカット）
@@ -993,6 +1024,7 @@ export default class AdventureScene extends Phaser.Scene {
                         this._updateFoodDisplay();
                     }
                     this._updateDateTimeDisplay();
+                    if (this._checkTowerTimeUp()) return;
                     const currentFloor = 59 - this.playerRow;
                     const curHex = this.grid[this.playerRow]?.[this.playerCol];
                     const engName = TOWER_AREA_ENGLISH_NAMES[curHex?.cellData?.name] || '';
@@ -1159,6 +1191,10 @@ export default class AdventureScene extends Phaser.Scene {
                 CharacterLossManager.checkAndTriggerLoss(this, this.party, () => {
                     this._updateDateTimeDisplay();
                     SaveManager.saveGame(this);
+
+                    // 🌧️ 戦闘後に精神力50%以下の仲間がいれば弱音イベント
+                    this.checkLowMoraleEvent();
+                    this.processEventQueue();
                 });
 
                 // マップBGMを再開
@@ -1260,6 +1296,8 @@ export default class AdventureScene extends Phaser.Scene {
                     const gs = GlobalState.getInstance();
                     gs.isTowerMode = true;
                     gs.hasEnteredTower = true;
+                    gs.towerElapsedSeconds = 0;
+                    gs.isTowerTimeUpGameOver = false;
                     gs.currentMonth = 12;
                     gs.currentDay = 22;
                     gs.timePeriodIndex = 0;
@@ -1500,7 +1538,15 @@ export default class AdventureScene extends Phaser.Scene {
                 // advanceTimeを経由した場合はshowTimeSignal内でセーブ済み
             }
 
+            // 各種UIボタンの状態更新
+            if (this.dailyRewardBtn && this.dailyRewardBtn.updateStatus) this.dailyRewardBtn.updateStatus();
+            if (this.questAchBtn && this.questAchBtn.updateStatus) this.questAchBtn.updateStatus();
+            if (this.dojoBtn && this.dojoBtn.updateStatus) this.dojoBtn.updateStatus();
+            if (this.jikukanBtn && this.jikukanBtn.updateStatus) this.jikukanBtn.updateStatus();
+            if (this.fairyBtn && this.fairyBtn.updateStatus) this.fairyBtn.updateStatus();
 
+            // 復帰時のキャラ実績一括チェック
+            AchievementManager.checkCharacterAchievements(this);
         };
 
         this.events.on('resume', this._resumeHandler, this);
@@ -1513,7 +1559,7 @@ export default class AdventureScene extends Phaser.Scene {
             .setDepth(500)
             .setScrollFactor(0);
 
-        const initialDateStr = this.isTowerMode ? `${59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1}階` : `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`;
+        const initialDateStr = this.isTowerMode ? `${59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1}階 ${gs.getTowerTimeString()}` : `${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`;
         this.dateTimeText = this.add.text(width / 2, height - 180, initialDateStr, {
             fontFamily: 'sans-serif',
             fontSize: '22px',
@@ -1794,17 +1840,25 @@ export default class AdventureScene extends Phaser.Scene {
         // ── 🎁 UI: デイリー報酬ボタン（画面左上少し下） ──
         this.dailyRewardBtn = this._createDailyRewardButton(20, 65);
 
+        // ── 📋 UI: デイリーミッション＆実績ボタン（デイリーボタンの右横） ──
+        this.questAchBtn = this._createQuestAchievementButton(120, 65);
+
         // ── 🥋 UI: 道場ボタン（デイリーの下、シナリオ解放またはデバッグ時に表示） ──
         this.dojoBtn = this._createDojoButton(20, 105);
 
         // ── 🏛️ UI: 時空館ボタン（道場の下、デバッグ時は常時表示） ──
         this.jikukanBtn = this._createJikukanButton(20, 145);
 
+        // ── 🧚‍♀️ UI: 妖精リフィエル取引ボタン（時空館の下、リフィエル解放時またはデバッグ時に表示） ──
+        this.fairyBtn = this._createFairyButton(20, 190);
+
         const uiElements = [
             wideBtn,
             this.dailyRewardBtn,
+            this.questAchBtn,
             this.dojoBtn,
             this.jikukanBtn,
+            this.fairyBtn,
             this.dateBg,
             this.dateTimeText,
             this.exploreBtn,
@@ -1883,6 +1937,8 @@ export default class AdventureScene extends Phaser.Scene {
                     // 通常マップからタワーへ突入
                     SaveManager.saveGame(this);
                     gs.isTowerMode = true;
+                    gs.towerElapsedSeconds = 0;
+                    gs.isTowerTimeUpGameOver = false;
                     TransitionManager.transitionTo(this, 'AdventureScene', {
                         isTower: true,
                         party: this.party && this.party.length > 0 ? this.party : ['001']
@@ -2923,7 +2979,11 @@ export default class AdventureScene extends Phaser.Scene {
 
     _advanceTimeDebug() {
         if (this.isTowerMode) {
-            this.showToast('[DEBUG] 塔モードでは時間経過は無効です');
+            const gs = GlobalState.getInstance();
+            gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 3600;
+            this._updateDateTimeDisplay();
+            this.showToast(`[DEBUG] タワー時間 +1時間 (${gs.getTowerTimeString()})`);
+            this._checkTowerTimeUp();
             return;
         }
 
@@ -3057,7 +3117,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.floorJumpBtn.setVisible(isDebug && notWide && this.isTowerMode);
         }
 
-        // 道場・時空館ボタンの更新（解放済みなら表示、未解放ならデバッグOFFで非表示）
+        // 道場・時空館・妖精・ミッションボタンの更新（解放済みなら表示、未解放ならデバッグOFFで非表示）
         if (this.dojoBtn && this.dojoBtn.updateStatus) {
             this.dojoBtn.updateStatus();
             if (this.isWideMap) this.dojoBtn.setVisible(false);
@@ -3065,6 +3125,14 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.jikukanBtn && this.jikukanBtn.updateStatus) {
             this.jikukanBtn.updateStatus();
             if (this.isWideMap) this.jikukanBtn.setVisible(false);
+        }
+        if (this.fairyBtn && this.fairyBtn.updateStatus) {
+            this.fairyBtn.updateStatus();
+            if (this.isWideMap) this.fairyBtn.setVisible(false);
+        }
+        if (this.questAchBtn && this.questAchBtn.updateStatus) {
+            this.questAchBtn.updateStatus();
+            if (this.isWideMap) this.questAchBtn.setVisible(false);
         }
 
         // トースト通知を表示
@@ -3211,7 +3279,8 @@ export default class AdventureScene extends Phaser.Scene {
                 const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
                 const isNight = (this.timeOfDay === '夜' || this.isNightExploration);
 
-                const charId1 = this.party[0];
+                // 指摘役（話者1）: パーティからランダム選出
+                const charId1 = this.party[Math.floor(Math.random() * this.party.length)];
                 const charName1 = gs.characters[charId1]?.name || charId1;
                 const talkData1 = this.cache.json.get(`talk_${charId1}`);
                 const lines1 = talkData1 ? talkData1['食料ゼロ'] : null;
@@ -3224,7 +3293,9 @@ export default class AdventureScene extends Phaser.Scene {
                 ];
 
                 if (this.party.length > 1) {
-                    const charId2 = this.party[1];
+                    // 相づち役（話者2）: 話者1以外のメンバーからランダム選出
+                    const others = this.party.filter(id => id !== charId1);
+                    const charId2 = others[Math.floor(Math.random() * others.length)];
                     const charName2 = gs.characters[charId2]?.name || charId2;
                     const talkData2 = this.cache.json.get(`talk_${charId2}`);
                     const lines2 = talkData2 ? talkData2['食料ゼロ反応'] : null;
@@ -3438,6 +3509,9 @@ export default class AdventureScene extends Phaser.Scene {
             // 💖 好感度イベントチェック（日中限定・他にイベントがない場合）
             this.checkLoveEvent();
 
+            // 🌧️ 精神力50%以下の仲間による弱音つぶやきチェック
+            this.checkLowMoraleEvent();
+
             // キューにイベントがあれば消化、無ければセーブして【３.行動可能】へ
             const hasNext = this.processEventQueue();
             if (!hasNext) {
@@ -3464,7 +3538,8 @@ export default class AdventureScene extends Phaser.Scene {
         try {
             if (this.isTowerMode) {
                 const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59);
-                this.dateTimeText.setText(`${currentFloor + 1}階`);
+                const timeStr = GlobalState.getInstance().getTowerTimeString();
+                this.dateTimeText.setText(`${currentFloor + 1}階 ${timeStr}`);
             } else {
                 this.dateTimeText.setText(`${this.currentMonth}月${this.currentDay}日 ${this.timeOfDay}`);
             }
@@ -3472,6 +3547,47 @@ export default class AdventureScene extends Phaser.Scene {
             this._updateTowerAreaPlate();
         } catch (e) {
             console.warn('[AdventureScene] _updateDateTimeDisplay error:', e);
+        }
+    }
+
+    /**
+     * タワー時間制限チェック（12/22 06:00 到達でタイムアップ）
+     * 18:00開始から12時間（43,200秒＝720分）経過で焦土作戦によるタワー爆破
+     */
+    _checkTowerTimeUp() {
+        if (!this.isTowerMode) return false;
+        const gs = GlobalState.getInstance();
+        if ((gs.towerElapsedSeconds || 0) >= 43200) {
+            gs.towerElapsedSeconds = 43200;
+            this.startTowerExplosionSequence();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * タワー爆破シーケンス開始
+     * 真っ暗な画面でテキストイベント（event_tower_explosion）を再生し、
+     * 終了後にタワーリスポーン（event_tow_res）へ直行
+     */
+    startTowerExplosionSequence() {
+        const gs = GlobalState.getInstance();
+        gs.isTowerTimeUpGameOver = true;
+        SaveManager.saveGame(this);
+
+        if (this.sound) {
+            this.sound.stopAll();
+        }
+
+        const explosionEventData = this.cache.json.get('event_tower_explosion');
+        if (explosionEventData) {
+            if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
+            this.scene.pause();
+            this.scene.launch('EventScene', {
+                events: explosionEventData,
+                returnScene: 'AdventureScene',
+                fromTowerExplosion: true
+            });
         }
     }
 
@@ -4077,8 +4193,15 @@ export default class AdventureScene extends Phaser.Scene {
     // _resumeHandlerではなくここで advanceTime() を呼ぶことで、
     // 探索途中のfromExploration resumeが誤って時間を進めるのを防ぐ
     _advanceTimeAfterExploration() {
+        DailyQuestManager.addProgress('explore', 1, this);
         CharacterLossManager.checkAndTriggerLoss(this, this.party, () => {
-            if (this.isTowerMode) return;
+            if (this.isTowerMode) {
+                const gs = GlobalState.getInstance();
+                gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 600;
+                this._updateDateTimeDisplay();
+                this._checkTowerTimeUp();
+                return;
+            }
             this.advanceTime();
         });
     }
@@ -4711,6 +4834,75 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
         return false;
+    }
+
+    /** 🌧️ 精神力50%以下の仲間による弱音つぶやきイベントチェック */
+    checkLowMoraleEvent() {
+        if (!this.party || this.party.length === 0) return false;
+
+        // イベントシーンやモーダル表示中は発火しない
+        if (this.scene.isActive('EventScene') || this.scene.isActive('BattleScene') ||
+            this.scene.isActive('TarotScene') || this.scene.isActive('RestScene')) {
+            return false;
+        }
+        if (this._pvpModalContainer || this._modalContainer) return false;
+
+        const data = this.cache.json.get('low_morale_and_mourning');
+        if (!data) return false;
+
+        const gs = GlobalState.getInstance();
+
+        // 精神力50%以下のキャラを抽出（一番精神力割合が低いキャラを選出）
+        let lowestRate = 1.0;
+        let candidateCharId = null;
+
+        for (const charId of this.party) {
+            const charData = gs.characters[charId];
+            if (!charData) continue;
+
+            const stats = gs.calcStats(charId, this.party);
+            const maxSp = stats ? stats.maxSp : (charData.baseSp || 500);
+            const curSp = charData.currentSp !== undefined ? charData.currentSp : maxSp;
+
+            const spRate = curSp / maxSp;
+            if (spRate <= 0.50) {
+                if (spRate < lowestRate) {
+                    lowestRate = spRate;
+                    candidateCharId = charId;
+                }
+            }
+        }
+
+        if (!candidateCharId) return false;
+
+        const charData = gs.characters[candidateCharId];
+        const lines = data[candidateCharId]?.low_morale;
+        if (!lines || lines.length === 0) return false;
+
+        const body = lines[Math.floor(Math.random() * lines.length)];
+        const charName = charData ? charData.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '仲間';
+
+        const currentHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+        const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_12_1';
+        const isNight = (this.timeOfDay === '夜' || this.isNightExploration);
+
+        const events = [
+            { cmd: 'bg', key: bgKey, darkOverlay: isNight ? 0.7 : 0 },
+            { cmd: 'chara', key: `portrait_${candidateCharId}`, pos: 'right' },
+            { cmd: 'text', name: charName, body: body }
+        ];
+
+        this.enqueueEvent({
+            type: 'event',
+            data: {
+                events: events,
+                returnScene: 'AdventureScene',
+                isNotification: true
+            }
+        });
+
+        console.log(`🌧️ [checkLowMoraleEvent] 弱音イベント発生: ${charName} (SP比率: ${(lowestRate * 100).toFixed(1)}%) -> "${body}"`);
+        return true;
     }
 
     /** 道場解放後にシルバードーム(k,11)到達で時空館解放イベント発生 */
@@ -6246,6 +6438,345 @@ export default class AdventureScene extends Phaser.Scene {
         return container;
     }
 
+    /**
+     * 🧚‍♀️ 妖精リフィエル取引ボタン（fairyS.png）の生成
+     */
+    _createFairyButton(x, y) {
+        const gs = GlobalState.getInstance();
+        const isVisible = gs.hasMetFairy || GlobalState.IS_DEBUG_MODE;
+
+        const container = this.add.container(x, y);
+        container.setVisible(isVisible);
+
+        // アイコン画像（幅約54px）
+        const btnImg = this.add.image(0, 0, 'chr_fairy_s').setOrigin(0, 0);
+        const targetW = 54;
+        const scale = targetW / btnImg.width;
+        btnImg.setScale(scale);
+
+        // ふわふわ浮遊アニメーション
+        this.tweens.add({
+            targets: btnImg,
+            y: -5,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // 取引バッジ
+        const badge = this.add.text(targetW / 2, btnImg.displayHeight + 4, '🧚‍♀️ 取引', {
+            fontFamily: 'sans-serif',
+            fontSize: '11px',
+            fontStyle: 'bold',
+            color: '#ffffaa',
+            backgroundColor: '#331144dd',
+            padding: { x: 4, y: 2 }
+        }).setOrigin(0.5, 0);
+
+        // タップ領域
+        const hitArea = this.add.rectangle(0, 0, targetW, btnImg.displayHeight + 20, 0x000000, 0)
+            .setOrigin(0, 0)
+            .setInteractive({ useHandCursor: true });
+
+        hitArea.on('pointerdown', () => {
+            container.setScale(0.92);
+            FairyTradeManager.showTradeModal(this);
+        });
+        hitArea.on('pointerup', () => container.setScale(1.0));
+        hitArea.on('pointerout', () => container.setScale(1.0));
+
+        container.add([btnImg, badge, hitArea]);
+
+        container.updateStatus = () => {
+            const visible = gs.hasMetFairy || GlobalState.IS_DEBUG_MODE;
+            container.setVisible(visible);
+        };
+
+        return container;
+    }
+
+    /**
+     * 📋 デイリーミッション＆実績ボタンの生成
+     */
+    _createQuestAchievementButton(x, y) {
+        const hasClaimable = DailyQuestManager.hasClaimable() || AchievementManager.hasNewUnlocks();
+
+        const btn = this.add.text(x, y, hasClaimable ? '📋 任務/実績 ❗️' : '📋 任務/実績', {
+            fontFamily: 'sans-serif',
+            fontSize: '15px',
+            fontStyle: 'bold',
+            color: hasClaimable ? '#ffdd44' : '#cccccc',
+            backgroundColor: hasClaimable ? '#664400dd' : '#222233cc',
+            padding: { x: 10, y: 7 }
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+        btn.on('pointerdown', () => {
+            btn.setScale(0.92);
+            this._showQuestAchievementModal();
+        });
+        btn.on('pointerup', () => btn.setScale(1.0));
+        btn.on('pointerout', () => btn.setScale(1.0));
+
+        btn.updateStatus = () => {
+            const claimable = DailyQuestManager.hasClaimable() || AchievementManager.hasNewUnlocks();
+            btn.setText(claimable ? '📋 任務/実績 ❗️' : '📋 任務/実績');
+            btn.setColor(claimable ? '#ffdd44' : '#cccccc');
+            btn.setBackgroundColor(claimable ? '#664400dd' : '#222233cc');
+        };
+
+        return btn;
+    }
+
+    /**
+     * 📋 デイリークエスト＆実績一覧モーダル
+     */
+    _showQuestAchievementModal() {
+        if (this._questAchModalContainer) {
+            this._questAchModalContainer.destroy();
+            this._questAchModalContainer = null;
+        }
+
+        const { width, height } = this.scale;
+        const container = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
+        this._questAchModalContainer = container;
+
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.ignore(container);
+        }
+
+        // 背景マスク
+        const mask = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85).setInteractive();
+        container.add(mask);
+
+        const modalW = Math.min(width * 0.94, 520);
+        const modalH = Math.min(height * 0.92, 740);
+        const modalX = width / 2;
+        const modalY = height / 2;
+
+        const modalBg = this.add.rectangle(modalX, modalY, modalW, modalH, 0x141624, 0.98)
+            .setStrokeStyle(3, 0x5588cc);
+        container.add(modalBg);
+
+        let currentTab = 'quest'; // 'quest' or 'achieve'
+        const contentContainer = this.add.container(0, 0);
+        container.add(contentContainer);
+
+        // タブボタン描画関数
+        const renderTabs = () => {
+            tabContainer.removeAll(true);
+
+            // クエストタブ
+            const questActive = currentTab === 'quest';
+            const questTabBg = this.add.rectangle(modalX - 110, modalY - modalH / 2 + 50, 190, 40, questActive ? 0x225588 : 0x181a28, 1)
+                .setStrokeStyle(2, questActive ? 0x66bbff : 0x444466)
+                .setInteractive({ useHandCursor: true });
+            const questTabTxt = this.add.text(modalX - 110, modalY - modalH / 2 + 50, '📅 デイリークエスト', {
+                fontFamily: 'sans-serif', fontSize: '15px', fontStyle: 'bold', color: questActive ? '#ffffff' : '#8888aa'
+            }).setOrigin(0.5);
+
+            questTabBg.on('pointerdown', () => {
+                if (currentTab !== 'quest') {
+                    currentTab = 'quest';
+                    renderTabs();
+                    renderContent();
+                }
+            });
+
+            // 実績タブ
+            const achActive = currentTab === 'achieve';
+            const achTabBg = this.add.rectangle(modalX + 110, modalY - modalH / 2 + 50, 190, 40, achActive ? 0x885522 : 0x181a28, 1)
+                .setStrokeStyle(2, achActive ? 0xffbb66 : 0x444466)
+                .setInteractive({ useHandCursor: true });
+            const achTabTxt = this.add.text(modalX + 110, modalY - modalH / 2 + 50, '🏆 実績（アチーブ）', {
+                fontFamily: 'sans-serif', fontSize: '15px', fontStyle: 'bold', color: achActive ? '#ffffff' : '#8888aa'
+            }).setOrigin(0.5);
+
+            achTabBg.on('pointerdown', () => {
+                if (currentTab !== 'achieve') {
+                    currentTab = 'achieve';
+                    renderTabs();
+                    renderContent();
+                }
+            });
+
+            tabContainer.add([questTabBg, questTabTxt, achTabBg, achTabTxt]);
+        };
+
+        const tabContainer = this.add.container(0, 0);
+        container.add(tabContainer);
+
+        // コンテンツ描画関数
+        const renderContent = () => {
+            contentContainer.removeAll(true);
+
+            if (currentTab === 'quest') {
+                renderQuestTab();
+            } else {
+                renderAchieveTab();
+            }
+        };
+
+        // ── 📅 デイリークエストタブ描画 ──
+        const renderQuestTab = () => {
+            const quests = DailyQuestManager.getQuests();
+            const startY = modalY - modalH / 2 + 100;
+
+            const headerTxt = this.add.text(modalX, startY, `📅 本日のデイリー任務（毎日0:00更新）`, {
+                fontFamily: 'sans-serif', fontSize: '14px', color: '#88aacc'
+            }).setOrigin(0.5);
+            contentContainer.add(headerTxt);
+
+            // 全達成ボーナス状況
+            const allCompleted = quests.allCompleted;
+            const totalDoneCount = quests.list.reduce((acc, q) => acc + (q.count || 0), 0);
+            const totalRequired = 10;
+
+            const bonusBox = this.add.rectangle(modalX, startY + 45, modalW - 40, 56, allCompleted ? 0x224422 : 0x24263a, 0.95)
+                .setStrokeStyle(1.5, allCompleted ? 0x44ff88 : 0x556688);
+            const bonusTitle = this.add.text(modalX, startY + 33, allCompleted ? '🎉 デイリー全達成！ボーナス獲得済み！' : `🌟 全任務達成ボーナス: デイリーガチャ+1回！`, {
+                fontFamily: 'sans-serif', fontSize: '15px', fontStyle: 'bold', color: allCompleted ? '#88ffaa' : '#ffffaa'
+            }).setOrigin(0.5);
+            const bonusSub = this.add.text(modalX, startY + 55, `全体進捗: ${totalDoneCount} / ${totalRequired} 完了`, {
+                fontFamily: 'sans-serif', fontSize: '13px', color: '#ccccdd'
+            }).setOrigin(0.5);
+            contentContainer.add([bonusBox, bonusTitle, bonusSub]);
+
+            // 各クエスト行
+            let curY = startY + 95;
+            quests.list.forEach((q, index) => {
+                const isComplete = (q.count || 0) >= (q.target || 2);
+                const rowBg = this.add.rectangle(modalX, curY + 28, modalW - 40, 52, isComplete ? 0x1b2820 : 0x1a1c2e, 0.9)
+                    .setStrokeStyle(1, isComplete ? 0x33aa66 : 0x3a3f5a);
+
+                const icon = isComplete ? '✅' : '⏳';
+                const nameTxt = this.add.text(modalX - (modalW - 60) / 2, curY + 16, `${icon} ${q.name}`, {
+                    fontFamily: 'sans-serif', fontSize: '15px', fontStyle: 'bold', color: isComplete ? '#aaffcc' : '#ffffff'
+                }).setOrigin(0, 0);
+
+                const countTxt = this.add.text(modalX + (modalW - 60) / 2, curY + 16, `${q.count} / ${q.target}`, {
+                    fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', color: isComplete ? '#ffff44' : '#aaaaaa'
+                }).setOrigin(1, 0);
+
+                // ミニ進捗バー
+                const barW = modalW - 60;
+                const barH = 6;
+                const barBg = this.add.rectangle(modalX, curY + 44, barW, barH, 0x111122, 1).setOrigin(0.5, 0.5);
+                const progressRatio = Math.min(1.0, (q.count || 0) / (q.target || 2));
+                const barFillW = Math.max(0, barW * progressRatio);
+                const barFill = this.add.rectangle(modalX - barW / 2 + barFillW / 2, curY + 44, barFillW, barH, isComplete ? 0x44ff88 : 0x3388ff, 1);
+
+                contentContainer.add([rowBg, nameTxt, countTxt, barBg, barFill]);
+                curY += 60;
+            });
+        };
+
+        // ── 🏆 実績タブ描画 ──
+        let achievePageIndex = 0;
+        const ACHIEVE_PER_PAGE = 7;
+
+        const renderAchieveTab = () => {
+            const statusList = AchievementManager.getStatusList();
+            const totalCount = statusList.length;
+            const unlockedCount = statusList.filter(s => s.unlocked).length;
+
+            const startY = modalY - modalH / 2 + 95;
+
+            // 達成率サマリー
+            const summaryTxt = this.add.text(modalX, startY, `🏆 実績解除状況: ${unlockedCount} / ${totalCount} (${Math.floor(unlockedCount / totalCount * 100)}%)`, {
+                fontFamily: 'sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#ffcc44'
+            }).setOrigin(0.5);
+            contentContainer.add(summaryTxt);
+
+            const totalPages = Math.ceil(totalCount / ACHIEVE_PER_PAGE);
+            const pagedList = statusList.slice(achievePageIndex * ACHIEVE_PER_PAGE, (achievePageIndex + 1) * ACHIEVE_PER_PAGE);
+
+            let curY = startY + 25;
+            pagedList.forEach(ach => {
+                const cardBg = this.add.rectangle(modalX, curY + 28, modalW - 40, 52, ach.unlocked ? 0x242010 : 0x151722, 0.9)
+                    .setStrokeStyle(1.5, ach.unlocked ? 0xccaa33 : 0x333344);
+
+                const icon = ach.unlocked ? '🏆' : '🔒';
+                const titleStr = ach.unlocked ? ach.title : (ach.hidden ? '？？？' : ach.title);
+                const descStr = ach.unlocked ? ach.description : (ach.hidden ? '条件は秘密です' : ach.description);
+
+                const titleTxt = this.add.text(modalX - (modalW - 60) / 2, curY + 12, `${icon} ${titleStr}`, {
+                    fontFamily: 'sans-serif', fontSize: '14px', fontStyle: 'bold', color: ach.unlocked ? '#ffe066' : '#888899'
+                }).setOrigin(0, 0);
+
+                const descTxt = this.add.text(modalX - (modalW - 60) / 2, curY + 32, descStr, {
+                    fontFamily: 'sans-serif', fontSize: '12px', color: ach.unlocked ? '#eeddaa' : '#666677'
+                }).setOrigin(0, 0);
+
+                contentContainer.add([cardBg, titleTxt, descTxt]);
+
+                if (ach.unlocked) {
+                    const checkMark = this.add.text(modalX + (modalW - 60) / 2, curY + 28, '解除済', {
+                        fontFamily: 'sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffdd44'
+                    }).setOrigin(1, 0.5);
+                    contentContainer.add(checkMark);
+                }
+                curY += 58;
+            });
+
+            // ページ送りボタン
+            if (totalPages > 1) {
+                const pageNavY = modalY + modalH / 2 - 80;
+                const pageTxt = this.add.text(modalX, pageNavY, `ページ ${achievePageIndex + 1} / ${totalPages}`, {
+                    fontFamily: 'sans-serif', fontSize: '13px', color: '#aaaaaa'
+                }).setOrigin(0.5);
+
+                const prevBtn = this.add.text(modalX - 80, pageNavY, '◀ 前へ', {
+                    fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold',
+                    color: achievePageIndex > 0 ? '#66bbff' : '#444455',
+                    backgroundColor: '#1b2233', padding: { x: 8, y: 4 }
+                }).setOrigin(0.5).setInteractive({ useHandCursor: achievePageIndex > 0 });
+
+                prevBtn.on('pointerdown', () => {
+                    if (achievePageIndex > 0) {
+                        achievePageIndex--;
+                        renderContent();
+                    }
+                });
+
+                const nextBtn = this.add.text(modalX + 80, pageNavY, '次へ ▶', {
+                    fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold',
+                    color: achievePageIndex < totalPages - 1 ? '#66bbff' : '#444455',
+                    backgroundColor: '#1b2233', padding: { x: 8, y: 4 }
+                }).setOrigin(0.5).setInteractive({ useHandCursor: achievePageIndex < totalPages - 1 });
+
+                nextBtn.on('pointerdown', () => {
+                    if (achievePageIndex < totalPages - 1) {
+                        achievePageIndex++;
+                        renderContent();
+                    }
+                });
+
+                contentContainer.add([pageTxt, prevBtn, nextBtn]);
+            }
+        };
+
+        // 閉じるボタン
+        const closeBtn = this.add.text(modalX, modalY + modalH / 2 - 35, '✖ 閉じる', {
+            fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#ffffff',
+            backgroundColor: '#334466', padding: { x: 30, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        container.add(closeBtn);
+
+        closeBtn.on('pointerdown', () => {
+            if (this._questAchModalContainer) {
+                this._questAchModalContainer.destroy();
+                this._questAchModalContainer = null;
+            }
+            if (this.questAchBtn && this.questAchBtn.updateStatus) {
+                this.questAchBtn.updateStatus();
+            }
+        });
+
+        renderTabs();
+        renderContent();
+    }
+
     _showDailyRouletteModal() {
         if (this._dailySpinTween) {
             this._dailySpinTween.stop();
@@ -6289,8 +6820,10 @@ export default class AdventureScene extends Phaser.Scene {
         container.add(title);
 
         const curCount = gs.dailyRewardCount || 0;
-        const subTitle = this.add.text(width / 2, height / 2 - 280, `📅 今月の獲得回数: ${curCount} / 30日（毎日0:00更新）`, {
-            fontFamily: 'sans-serif', fontSize: '14px', color: '#ccccff'
+        const extraGacha = gs.extraDailyGachaCount || 0;
+        const extraText = extraGacha > 0 ? ` ｜ 🎰 追加ガチャ: 残り${extraGacha}回` : '';
+        const subTitle = this.add.text(width / 2, height / 2 - 280, `📅 今月の獲得回数: ${curCount} / 30日${extraText}`, {
+            fontFamily: 'sans-serif', fontSize: '14px', color: extraGacha > 0 ? '#ffdd66' : '#ccccff'
         }).setOrigin(0.5);
         container.add(subTitle);
 
@@ -6520,12 +7053,22 @@ export default class AdventureScene extends Phaser.Scene {
                         }
 
                         // ボタン表示更新（安全に更新）
-                        safeSetText(spinBtnText, '獲得完了！');
-                        safeSetText(subTitle, `📅 今月の獲得回数: ${gs.dailyRewardCount} / 30日（毎日0:00更新）`);
+                        const extraRemains = gs.extraDailyGachaCount || 0;
+                        const extraStr = extraRemains > 0 ? ` ｜ 🎰 追加ガチャ: 残り${extraRemains}回` : '';
+                        safeSetText(subTitle, `📅 今月の獲得回数: ${gs.dailyRewardCount} / 30日${extraStr}`);
                         
                         const dayNum = (claimResult && claimResult.reward) ? claimResult.reward.day : (gs.dailyRewardCount || 1);
                         const labelStr = (claimResult && claimResult.reward) ? claimResult.reward.label : (nextReward?.label || 'デイリー報酬');
                         safeSetText(previewText, `✨ 【${dayNum}日目】${labelStr} を獲得！ ✨`, '#ffff00');
+
+                        if (gs.canClaimDailyReward()) {
+                            safeSetText(spinBtnText, `🎰 もう一度回す！(残${extraRemains}回)`);
+                            spinBtn.setInteractive({ useHandCursor: true });
+                            spinBtn.setFillStyle(0xcc3366);
+                            isSpinning = false;
+                        } else {
+                            safeSetText(spinBtnText, '獲得完了！');
+                        }
 
                         if (this.dailyRewardBtn && this.dailyRewardBtn.updateStatus) {
                             try {

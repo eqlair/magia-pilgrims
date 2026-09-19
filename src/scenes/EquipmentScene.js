@@ -3,6 +3,8 @@ import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
 
 import { RelicGenerator } from '../systems/RelicGenerator';
+import { DailyQuestManager } from '../systems/DailyQuestManager';
+import { AchievementManager } from '../systems/AchievementManager';
 import relicWords from '../data/relic_words.json';
 import gemEffects from '../data/gem_effects.json';
 
@@ -855,6 +857,16 @@ export default class EquipmentScene extends Phaser.Scene {
             this.enhanceBaseItem.name = `${newPrefix}${baseName}`;
         }
 
+        const newRank = this.enhanceBaseItem.rank;
+        // デイリークエスト: 強化進捗
+        DailyQuestManager.addProgress('enhance', 1, this);
+
+        // 実績チェック: UR/MR作成
+        if (newRank === 5) {
+            AchievementManager.unlock('craft_ur', this);
+        } else if (newRank === 6) {
+            AchievementManager.unlock('craft_mr', this);
+        }
 
         this.enhanceMode = false;
         this.enhanceMaterials = [];
@@ -952,6 +964,17 @@ export default class EquipmentScene extends Phaser.Scene {
             const newGem = RelicGenerator.generateGem(targetRank + 1);
             this.globalState.inventory.gems.push(newGem);
             this.showToast(`『${newGem.name}』の宝石を合成した (-${spCost.toLocaleString()} SP)`);
+        }
+
+        const generatedRank = targetRank + 1;
+        // デイリークエスト: 合成進捗
+        DailyQuestManager.addProgress('synth', 1, this);
+
+        // 実績チェック: UR/MR作成
+        if (generatedRank === 5) {
+            AchievementManager.unlock('craft_ur', this);
+        } else if (generatedRank === 6) {
+            AchievementManager.unlock('craft_mr', this);
         }
 
         // 地上で消費されたアイテムを時空館の装備枠からも自動解除＆連鎖解除
