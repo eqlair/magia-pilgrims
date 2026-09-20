@@ -148,10 +148,10 @@
         }
       };
 
-      // 🛡️ 最大安全タイマー: 4秒経過してもローディングが残っている場合は自動フェードアウト＆強制完了
+      // 🛡️ 最大安全タイマー: 45秒経過してもローディングが残っている場合は自動フェードアウト＆強制完了（タップでも即座にスキップ可能）
       setTimeout(function() {
         if (window.skipBootLoading) window.skipBootLoading();
-      }, 4000);
+      }, 45000);
     </script>
     <script type="module" src="/src/main.js"></script>
   </body>
