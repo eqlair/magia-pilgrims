@@ -1770,7 +1770,7 @@ export class BattleEngine {
                     let minKickDist = 999;
                     const kickEnemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
                     for (const e of kickEnemyList) {
-                        if (!e.isDead && !e.isDying && e.hp > 0) {
+                        if (!e.isDead && !e.isDying && e.hp > 0 && (e.spawnDropTimer || 0) <= 0 && (e.spawnAnimTimer || 0) <= 0) {
                             const edx = e.x - p.x;
                             const edz = e.z - p.z;
                             let surfDist;
@@ -3346,7 +3346,7 @@ export class BattleEngine {
                 const targetPool = b.owner === 'enemy'
                     ? (this.players || [])
                     : (this.isPvpBattle ? (this.pvpEnemies || []) : (this.enemies || []));
-                const targets = targetPool.filter(e => !e.isDead && !e.isDying);
+                const targets = targetPool.filter(e => !e.isDead && !e.isDying && (e.spawnDropTimer || 0) <= 0 && (e.spawnAnimTimer || 0) <= 0);
                 const baseVal = b.baseDebuff || 50;
                 for (const t of targets) {
                     const dx = t.x - b.x;
@@ -3412,7 +3412,7 @@ export class BattleEngine {
                     b.isDead = true;
                     // 半径1.5mの範囲爆発
                     this.effects.push(new EffectEntity(b.x, b.z, { type: 'fire_pillar', radius: 1.5, lifeTime: 0.4 }));
-                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying && (e.spawnDropTimer || 0) <= 0 && (e.spawnAnimTimer || 0) <= 0);
                     for (const t of targets) {
                         const dx = t.x - b.x;
                         const dz = t.z - b.z;
@@ -3435,7 +3435,7 @@ export class BattleEngine {
                     
                     const enemyList = this.isPvpBattle ? (b.owner === 'player' ? this.pvpEnemies : this.players) : (b.owner === 'player' ? this.enemies : this.players);
                     for (const t of enemyList) {
-                        if (t.isDead || t.isDying) continue;
+                        if (t.isDead || t.isDying || (t.spawnDropTimer || 0) > 0 || (t.spawnAnimTimer || 0) > 0) continue;
                         const dx = t.x - b.x;
                         const dz = t.z - b.z;
                         if (dx * dx + dz * dz <= 16.0) { // 半径4m (直径8m)
@@ -3506,7 +3506,7 @@ export class BattleEngine {
                 const targetPool = b.owner === 'enemy'
                     ? (this.players || [])
                     : (this.isPvpBattle ? (this.pvpEnemies || []) : (this.enemies || []));
-                const targets = targetPool.filter(e => !e.isDead && !e.isDying);
+                const targets = targetPool.filter(e => !e.isDead && !e.isDying && (e.spawnDropTimer || 0) <= 0 && (e.spawnAnimTimer || 0) <= 0);
                 for (const t of targets) {
                     const dx = t.x - b.x;
                     const dz = t.z - b.z;
@@ -3559,7 +3559,7 @@ export class BattleEngine {
                 if (b.damageTimer >= 0.2) {
                     b.damageTimer -= 0.2;
                     const tickDmg = Math.max(1, Math.floor(((b.sourceEntity.atk || 100) * 0.10) * 0.2));
-                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying);
+                    const targets = this.enemies.filter(e => !e.isDead && !e.isDying && (e.spawnDropTimer || 0) <= 0 && (e.spawnAnimTimer || 0) <= 0);
                     for (const t of targets) {
                         const dx = t.x - b.x;
                         const dz = t.z - b.z;
@@ -3663,6 +3663,7 @@ export class BattleEngine {
                     const aoeTargets = b.owner === 'player' ? enemyList : this.players;
                     for (const aoeTarget of aoeTargets) {
                         if (aoeTarget.isDead || aoeTarget.isDying || aoeTarget.hp <= 0) continue;
+                        if ((aoeTarget.spawnDropTimer || 0) > 0 || (aoeTarget.spawnAnimTimer || 0) > 0) continue;
                         const adx = b.x - aoeTarget.x;
                         const adz = b.z - aoeTarget.z;
                         if (adx*adx + adz*adz <= 4.0) {
@@ -3682,6 +3683,8 @@ export class BattleEngine {
             const targets = b.owner === 'player' ? enemyList : this.players;
             for (const t of targets) {
                 if (t.isDead || t.isDying || t.hp <= 0) continue;
+                // 🛡️ 実体化前・降下演出中は当たり判定OFF（弾をブロック・消滅させず完全に透過）
+                if ((t.spawnDropTimer || 0) > 0 || (t.spawnAnimTimer || 0) > 0) continue;
                 if (b.excludedTarget && t === b.excludedTarget) continue; // 本命の対象を除外（さくらの中間衝撃波など）
 
                 if (!b.hitTimes) b.hitTimes = new Map();
@@ -3772,6 +3775,7 @@ export class BattleEngine {
 
                         for (const aoeTarget of targets) {
                             if (aoeTarget.isDead || aoeTarget.isDying) continue;
+                            if ((aoeTarget.spawnDropTimer || 0) > 0 || (aoeTarget.spawnAnimTimer || 0) > 0) continue;
                             const adx = b.x - aoeTarget.x;
                             const adz = b.z - aoeTarget.z;
                             if (adx*adx + adz*adz <= 4.0) {

@@ -112,7 +112,7 @@
         letter-spacing: 1px;
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-CaOiKU-0.js"></script>
+    <script type="module" crossorigin src="./assets/index-CMRchEom.js"></script>
   </head>
   <body>
     <div id="game-container">
@@ -149,10 +149,10 @@
         }
       };
 
-      // 🛡️ 最大安全タイマー: 4秒経過してもローディングが残っている場合は自動フェードアウト＆強制完了
+      // 🛡️ 最大安全タイマー: 45秒経過してもローディングが残っている場合は自動フェードアウト＆強制完了（タップでも即座にスキップ可能）
       setTimeout(function() {
         if (window.skipBootLoading) window.skipBootLoading();
-      }, 4000);
+      }, 45000);
     </script>
   </body>
 </html>

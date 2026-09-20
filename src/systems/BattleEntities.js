@@ -949,7 +949,7 @@ export class PlayerCharacter extends BattleEntity {
         if (!isFirstShot) {
             // 2射目: 現在狙っている敵の方向
             const target = this.targetEnemy;
-            if (target && !target.isDead && !target.isDying && target.hp > 0) {
+            if (target && !target.isDead && !target.isDying && target.hp > 0 && (target.spawnDropTimer || 0) <= 0 && (target.spawnAnimTimer || 0) <= 0) {
                 const dx = target.x - this.x;
                 const dz = target.z - this.z;
                 const dist = Math.hypot(dx, dz) || 1.0;
@@ -1346,7 +1346,7 @@ export class PlayerCharacter extends BattleEntity {
                 this.hitCount = 0; // 突進一閃ごとに貫通減衰カウントをリセット（一閃ごとの貫通減衰）
                 if (this.hitTimes) this.hitTimes.clear(); // 次の文字の一閃として新たにヒット判定を可能にする
                 const opponentList = self.isEnemy ? (self.engine ? self.engine.players : players) : (self.engine ? (self.engine.isPvpBattle ? self.engine.pvpEnemies : self.engine.enemies) : enemies);
-                const aliveEnemies = (opponentList || []).filter(e => !e.isDead && e.hp > 0);
+                const aliveEnemies = (opponentList || []).filter(e => !e.isDead && e.hp > 0 && (e.spawnDropTimer || 0) <= 0 && (e.spawnAnimTimer || 0) <= 0);
                 if (aliveEnemies.length > 0) {
                     aliveEnemies.sort((a, b) => b.hp - a.hp);
                     const target = aliveEnemies[0];
@@ -1892,7 +1892,7 @@ export class PlayerCharacter extends BattleEntity {
             const enemyList = this.isEnemy 
                 ? this.engine.players 
                 : (this.engine.isPvpBattle ? this.engine.pvpEnemies : this.engine.enemies);
-            const aliveEnemies = (enemyList || []).filter(e => !e.isDead && !e.isDying && e.hp > 0 && typeof e.x === 'number');
+            const aliveEnemies = (enemyList || []).filter(e => !e.isDead && !e.isDying && e.hp > 0 && typeof e.x === 'number' && (e.spawnDropTimer || 0) <= 0 && (e.spawnAnimTimer || 0) <= 0);
 
             // ノア本体に最も近い敵（ノアへの直接の脅威）を検索
             let threatEnemy = null;
