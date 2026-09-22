@@ -10,20 +10,20 @@ export default class OpScene extends Phaser.Scene {
 
     preload() {
         // OP用のアセットをロード
-        this.load.image('ev001', 'files/OP/ev001.jpg');
-        this.load.image('ev002', 'files/OP/ev002.jpg');
-        this.load.image('ev003', 'files/OP/ev003.jpg');
-        this.load.image('evp001', 'files/OP/evp001.jpg');
-        this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
-        this.load.image('portrait_001', 'files/CHR/001001.png');
-        this.load.image('ev_multiply', 'files/event/multiply.png');
+        this.load.image('ev001', 'files/OP/ev001.webp');
+        this.load.image('ev002', 'files/OP/ev002.webp');
+        this.load.image('ev003', 'files/OP/ev003.webp');
+        this.load.image('evp001', 'files/OP/evp001.webp');
+        this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).webp');
+        this.load.image('portrait_001', 'files/CHR/001001.webp');
+        this.load.image('ev_multiply', 'files/event/multiply.webp');
         
         this.load.audio('bgm_hoshi', 'files/BGM/003_hoshihuru.mp3');
         this.load.audio('bgm_mad', 'files/BGM/007_stage_mad.mp3');
         this.load.audio('bgm_battle4', 'files/BGM/battole_004.mp3');
         this.load.audio('se_bomb', 'files/OP/bomb.mp3');
 
-        this.load.image('op_title', 'files/OP/title.png');
+        this.load.image('op_title', 'files/OP/title.webp');
         this.load.audio('op_start', 'files/OP/start.mp3');
 
         // シナリオデータをロード

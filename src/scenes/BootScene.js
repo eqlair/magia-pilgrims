@@ -97,139 +97,139 @@ export default class BootScene extends Phaser.Scene {
         });
 
         // キャラクター立ち絵画像（portrait_XXX: アドベンチャー/UI用）
-        this.load.image('map_witch', 'files/MAP/map_witch.png');
-        this.load.image('daily_roulette', 'files/OP/rour.png');
-        this.load.image('dojo_banner', 'files/MAP/dojo.jpg');
-        this.load.image('dojo_icon', 'files/MAP/dojo2.jpg');
-        this.load.image('jikukan_icon', 'files/MAP/jiku2.jpg');   // 時空館マップボタン
-        this.load.image('jikukan_banner', 'files/MAP/jiku.jpg');  // 時空館内部バナー
+        this.load.image('map_witch', 'files/MAP/map_witch.webp');
+        this.load.image('daily_roulette', 'files/OP/rour.webp');
+        this.load.image('dojo_banner', 'files/MAP/dojo.webp');
+        this.load.image('dojo_icon', 'files/MAP/dojo2.webp');
+        this.load.image('jikukan_icon', 'files/MAP/jiku2.webp');   // 時空館マップボタン
+        this.load.image('jikukan_banner', 'files/MAP/jiku.webp');  // 時空館内部バナー
         
         // マップエフェクト
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`map_eff${i}`, `files/MAP/map_eff${i}.jpg`);
+            this.load.image(`map_eff${i}`, `files/MAP/map_eff${i}.webp`);
         }
-        this.load.image('bg_dec21_effect', 'files/BG_battle/BG_06.png');
+        this.load.image('bg_dec21_effect', 'files/BG_battle/BG_06.webp');
 
         // 文字・数字スプライトフォント (13列x3行, 30x60px)
-        this.load.spritesheet('letterS', 'files/CHR/letterS.png', { frameWidth: 30, frameHeight: 60 });
+        this.load.spritesheet('letterS', 'files/CHR/letterS.webp', { frameWidth: 30, frameHeight: 60 });
 
-        this.load.image('warn001', 'files/EFFECT/warn001.png');
-        this.load.image('slash', 'files/EFFECT/slash.png');
+        this.load.image('warn001', 'files/EFFECT/warn001.webp');
+        this.load.image('slash', 'files/EFFECT/slash.webp');
 
 
-        this.load.image('portrait_001', 'files/CHR/001001.png');
-        this.load.image('portrait_002', 'files/CHR/002001.png');
-        this.load.image('portrait_003', 'files/CHR/003001.png');
-        this.load.image('portrait_004', 'files/CHR/004001.png');
-        this.load.image('portrait_005', 'files/CHR/005001.png');
-        this.load.image('portrait_006', 'files/CHR/006001.png');
-        this.load.image('portrait_007', 'files/CHR/007001.png');
-        this.load.image('portrait_008', 'files/CHR/008001.png');
-        this.load.image('portrait_009', 'files/CHR/009001.png');
-        this.load.image('portrait_010', 'files/CHR/010001.png');
-        this.load.image('portrait_011', 'files/CHR/011001.png');
+        this.load.image('portrait_001', 'files/CHR/001001.webp');
+        this.load.image('portrait_002', 'files/CHR/002001.webp');
+        this.load.image('portrait_003', 'files/CHR/003001.webp');
+        this.load.image('portrait_004', 'files/CHR/004001.webp');
+        this.load.image('portrait_005', 'files/CHR/005001.webp');
+        this.load.image('portrait_006', 'files/CHR/006001.webp');
+        this.load.image('portrait_007', 'files/CHR/007001.webp');
+        this.load.image('portrait_008', 'files/CHR/008001.webp');
+        this.load.image('portrait_009', 'files/CHR/009001.webp');
+        this.load.image('portrait_010', 'files/CHR/010001.webp');
+        this.load.image('portrait_011', 'files/CHR/011001.webp');
 
         // 2人目用立ち絵 (001001b.png ~ 005001b.png, 007001b.png, 011001b.png)
-        this.load.image('portrait_001_b', 'files/CHR/001001b.png');
-        this.load.image('portrait_002_b', 'files/CHR/002001b.png');
-        this.load.image('portrait_003_b', 'files/CHR/003001b.png');
-        this.load.image('portrait_004_b', 'files/CHR/004001b.png');
-        this.load.image('portrait_005_b', 'files/CHR/005001b.png');
-        this.load.image('portrait_006_b', 'files/CHR/006001b.png');
-        this.load.image('portrait_007_b', 'files/CHR/007001.png');
-        this.load.image('portrait_008_b', 'files/CHR/008001.png');
-        this.load.image('portrait_009_b', 'files/CHR/009001.png');
-        this.load.image('portrait_010_b', 'files/CHR/010001b.png');
-        this.load.image('portrait_011_b', 'files/CHR/011001b.png');
-        this.load.spritesheet('mini_006', 'files/CHR/006002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_006_b', 'files/CHR/006002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_006_c', 'files/CHR/006002c.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('shockwave_006', 'files/CHR/006003.png');
-        this.load.image('weapon_006_bunker', 'files/CHR/006003b.png');
-        this.load.spritesheet('mini_007', 'files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_008', 'files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_009', 'files/CHR/009002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_010', 'files/CHR/010002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_010_b', 'files/CHR/010002b.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_011', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_007', 'files/CHR/007003.png');
-        this.load.image('weapon_008_orb', 'files/CHR/008003.png');
-        this.load.image('weapon_008_bullet', 'files/CHR/008004.png');
-        this.load.image('weapon_008_ult_a', 'files/CHR/008004a.png');
-        this.load.image('weapon_009', 'files/CHR/090003.png');
-        this.load.image('weapon_009_spear', 'files/CHR/090003.png');
-        this.load.image('weapon_009_pollen', 'files/CHR/090004.png');
-        this.load.image('weapon_010_icicle', 'files/CHR/010003.png');
-        this.load.image('weapon_010_iceblock', 'files/CHR/010004.png');
-        this.load.image('weapon_011', 'files/CHR/011003.png');
-        this.load.image('weapon_011b', 'files/CHR/011003b.png');
+        this.load.image('portrait_001_b', 'files/CHR/001001b.webp');
+        this.load.image('portrait_002_b', 'files/CHR/002001b.webp');
+        this.load.image('portrait_003_b', 'files/CHR/003001b.webp');
+        this.load.image('portrait_004_b', 'files/CHR/004001b.webp');
+        this.load.image('portrait_005_b', 'files/CHR/005001b.webp');
+        this.load.image('portrait_006_b', 'files/CHR/006001b.webp');
+        this.load.image('portrait_007_b', 'files/CHR/007001.webp');
+        this.load.image('portrait_008_b', 'files/CHR/008001.webp');
+        this.load.image('portrait_009_b', 'files/CHR/009001.webp');
+        this.load.image('portrait_010_b', 'files/CHR/010001b.webp');
+        this.load.image('portrait_011_b', 'files/CHR/011001b.webp');
+        this.load.spritesheet('mini_006', 'files/CHR/006002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_006_b', 'files/CHR/006002b.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_006_c', 'files/CHR/006002c.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('shockwave_006', 'files/CHR/006003.webp');
+        this.load.image('weapon_006_bunker', 'files/CHR/006003b.webp');
+        this.load.spritesheet('mini_007', 'files/CHR/007002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_008', 'files/CHR/008002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_009', 'files/CHR/009002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_009_adult', 'files/CHR/009002c.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_010', 'files/CHR/010002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_010_b', 'files/CHR/010002b.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_011', 'files/CHR/011002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_007', 'files/CHR/007003.webp');
+        this.load.image('weapon_008_orb', 'files/CHR/008003.webp');
+        this.load.image('weapon_008_bullet', 'files/CHR/008004.webp');
+        this.load.image('weapon_008_ult_a', 'files/CHR/008004a.webp');
+        this.load.image('weapon_009', 'files/CHR/090003.webp');
+        this.load.image('weapon_009_spear', 'files/CHR/090003.webp');
+        this.load.image('weapon_009_pollen', 'files/CHR/090004.webp');
+        this.load.image('weapon_010_icicle', 'files/CHR/010003.webp');
+        this.load.image('weapon_010_iceblock', 'files/CHR/010004.webp');
+        this.load.image('weapon_011', 'files/CHR/011003.webp');
+        this.load.image('weapon_011b', 'files/CHR/011003b.webp');
 
         // 戦闘用ミニキャラ・モーション・武器の事前ロード（初回バトル突入時の通信遅延を防止）
         const battleCharIds = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'];
         for (const cid of battleCharIds) {
-            this.load.spritesheet(`battle_${cid}`, `files/CHR/${cid}002.png`, { frameWidth: 150, frameHeight: 150 });
-            this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid}002b.png`, { frameWidth: 150, frameHeight: 150 });
+            this.load.spritesheet(`battle_${cid}`, `files/CHR/${cid}002.webp`, { frameWidth: 150, frameHeight: 150 });
+            this.load.spritesheet(`battle_${cid}_b`, `files/CHR/${cid}002b.webp`, { frameWidth: 150, frameHeight: 150 });
         }
-        this.load.spritesheet('battle_009_adult', 'files/CHR/009002c.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('battle_009_adult_b', 'files/CHR/009002d.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.image('weapon_002', 'files/CHR/002003.png');
-        this.load.image('weapon_003', 'files/CHR/003003.png');
-        this.load.image('weapon_004', 'files/CHR/004003.png');
-        this.load.image('weapon_004_ribbon', 'files/CHR/004003b.png');
-        this.load.image('weapon_005', 'files/CHR/005003.png');
-        this.load.image('weapon_008_ult_b', 'files/CHR/008004b.png');
-        this.load.image('nrg', 'files/EFFECT/nrg.png');
-        this.load.image('bullet', 'files/CHR/001004.png');
-        this.load.image('enemy_bullet', 'files/EFFECT/ball.png');
-        this.load.image('bomb', 'files/EFFECT/bomb.png');
-        this.load.image('grenade', 'files/CHR/001003.png');
-        this.load.image('grenade_explosion', 'files/EFFECT/grenade.png');
+        this.load.spritesheet('battle_009_adult', 'files/CHR/009002c.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('battle_009_adult_b', 'files/CHR/009002d.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.image('weapon_002', 'files/CHR/002003.webp');
+        this.load.image('weapon_003', 'files/CHR/003003.webp');
+        this.load.image('weapon_004', 'files/CHR/004003.webp');
+        this.load.image('weapon_004_ribbon', 'files/CHR/004003b.webp');
+        this.load.image('weapon_005', 'files/CHR/005003.webp');
+        this.load.image('weapon_008_ult_b', 'files/CHR/008004b.webp');
+        this.load.image('nrg', 'files/EFFECT/nrg.webp');
+        this.load.image('bullet', 'files/CHR/001004.webp');
+        this.load.image('enemy_bullet', 'files/EFFECT/ball.webp');
+        this.load.image('bomb', 'files/EFFECT/bomb.webp');
+        this.load.image('grenade', 'files/CHR/001003.webp');
+        this.load.image('grenade_explosion', 'files/EFFECT/grenade.webp');
         for (let i = 1; i <= 6; i++) {
-            this.load.image(`hit_effect${i}`, `files/EFFECT/hit_effect${i}.png`);
+            this.load.image(`hit_effect${i}`, `files/EFFECT/hit_effect${i}.webp`);
         }
         for (let i = 1; i <= 3; i++) {
-            this.load.spritesheet(`en00${i}`, `files/ENEMY/en00${i}.png`, { frameWidth: 300, frameHeight: 300 });
-            this.load.image(`bg00${i}`, `files/BG_battle/bg00${i}.png`);
+            this.load.spritesheet(`en00${i}`, `files/ENEMY/en00${i}.webp`, { frameWidth: 300, frameHeight: 300 });
+            this.load.image(`bg00${i}`, `files/BG_battle/bg00${i}.webp`);
         }
         for (let i = 1; i <= 4; i++) {
-            this.load.spritesheet(`boss00${i}`, `files/ENEMY/boss00${i}.png`, { frameWidth: 1000, frameHeight: 1000 });
+            this.load.spritesheet(`boss00${i}`, `files/ENEMY/boss00${i}.webp`, { frameWidth: 1000, frameHeight: 1000 });
         }
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`BG_0${i}`, `files/BG_battle/BG_0${i}.png`);
+            this.load.image(`BG_0${i}`, `files/BG_battle/BG_0${i}.webp`);
         }
-        this.load.image('floor_a', 'files/BG_battle/floor_a.jpg');
-        this.load.image('yuka_enkin01', 'files/BG_battle/yuka_enkin01.jpg');
-        this.load.image('yuka_enkin02', 'files/BG_battle/yuka_enkin02.jpg');
-        this.load.image('yukamas', 'files/BG_battle/yukamas.jpg');
-        this.load.image('toppa_bg_1', 'files/BG_battle/yuka_enkin02.jpg');
-        this.load.image('toppa_bg_2', 'files/BG_battle/road_enkin02.jpg');
-        this.load.image('toppa_bg_3', 'files/BG_battle/grat_bg01.png');
+        this.load.image('floor_a', 'files/BG_battle/floor_a.webp');
+        this.load.image('yuka_enkin01', 'files/BG_battle/yuka_enkin01.webp');
+        this.load.image('yuka_enkin02', 'files/BG_battle/yuka_enkin02.webp');
+        this.load.image('yukamas', 'files/BG_battle/yukamas.webp');
+        this.load.image('toppa_bg_1', 'files/BG_battle/yuka_enkin02.webp');
+        this.load.image('toppa_bg_2', 'files/BG_battle/road_enkin02.webp');
+        this.load.image('toppa_bg_3', 'files/BG_battle/grat_bg01.webp');
 
 
 
         // 属性アイコン
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`em_${i}`, `files/CHR/em_${i}.png`);
+            this.load.image(`em_${i}`, `files/CHR/em_${i}.webp`);
         }
-        this.load.image('emb_0', 'files/CHR/emb_0.png');
+        this.load.image('emb_0', 'files/CHR/emb_0.webp');
 
         // 顔画像 (Result / Status画面用)
         for (let i = 1; i <= 5; i++) {
-            this.load.image(`face_00${i}`, `files/CHR/00${i}p.jpg`);
+            this.load.image(`face_00${i}`, `files/CHR/00${i}p.webp`);
             
             // 編成画面やマップ画面用のミニキャラ（600x300, 4列×2行 = 150x150/フレーム）
             const filePrefix = `00${i}002`;
-            this.load.spritesheet(`mini_00${i}`, `files/CHR/${filePrefix}.png`, { frameWidth: 150, frameHeight: 150 });
+            this.load.spritesheet(`mini_00${i}`, `files/CHR/${filePrefix}.webp`, { frameWidth: 150, frameHeight: 150 });
 
 
         }
-        this.load.image('face_006', 'files/CHR/006p.jpg');
-        this.load.image('face_007', 'files/CHR/007p.jpg');
-        this.load.image('face_008', 'files/CHR/008p.jpg');
-        this.load.image('face_009', 'files/CHR/009p.jpg');
-        this.load.image('face_010', 'files/CHR/010p.jpg');
-        this.load.image('face_011', 'files/CHR/011p.jpg');
+        this.load.image('face_006', 'files/CHR/006p.webp');
+        this.load.image('face_007', 'files/CHR/007p.webp');
+        this.load.image('face_008', 'files/CHR/008p.webp');
+        this.load.image('face_009', 'files/CHR/009p.webp');
+        this.load.image('face_010', 'files/CHR/010p.webp');
+        this.load.image('face_011', 'files/CHR/011p.webp');
         
         // キャラクター固有トークデータ(JSON)
         this.load.json('talk_001', 'files/CHR/talk_紫苑.json');
@@ -269,122 +269,122 @@ export default class BootScene extends Phaser.Scene {
 
 
         for (let i = 0; i <= 22; i++) {
-            this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).jpg`);
+            this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).webp`);
         }
         
         // イベント一枚絵 (実在するevp002 ~ 008, 011をロード)
         const validEvpNums = [2, 3, 4, 5, 6, 7, 8, 11];
         for (const i of validEvpNums) {
             const numStr = i.toString().padStart(3, '0');
-            this.load.image(`evp${numStr}`, `files/event/evp${numStr}.jpg`);
+            this.load.image(`evp${numStr}`, `files/event/evp${numStr}.webp`);
         }
 
         // 好感度イベント一枚絵 (evl001 ~ evl011) & イベントデータ
         for (let i = 1; i <= 11; i++) {
             const numStr = i.toString().padStart(3, '0');
-            this.load.image(`evl${numStr}`, `files/event/evl${numStr}.jpg`);
+            this.load.image(`evl${numStr}`, `files/event/evl${numStr}.webp`);
         }
         this.load.json('love_events', 'files/DATA/love_events.json');
 
         // 探索・休息イベント画像
-        this.load.image('ev_expr', 'files/event/ev_expr.jpg');
-        this.load.image('ev_exprX', 'files/event/ev_exprX.jpg');
-        this.load.image('ev_daycamp', 'files/event/ev_daycamp.jpg');
-        this.load.image('ev_camp', 'files/event/ev_camp.jpg');
-        this.load.image('ev_multiply', 'files/event/multiply.png');
+        this.load.image('ev_expr', 'files/event/ev_expr.webp');
+        this.load.image('ev_exprX', 'files/event/ev_exprX.webp');
+        this.load.image('ev_daycamp', 'files/event/ev_daycamp.webp');
+        this.load.image('ev_camp', 'files/event/ev_camp.webp');
+        this.load.image('ev_multiply', 'files/event/multiply.webp');
 
         // 仲間喪失（死亡・離脱）一枚絵
-        this.load.image('evx_002', 'files/event/evx002.jpg');
-        this.load.image('evx_003', 'files/event/evx003.jpg');
-        this.load.image('evx_004', 'files/event/evx005.jpg');
-        this.load.image('evx_005', 'files/event/evx006.jpg');
-        this.load.image('evx_009', 'files/event/evx009.jpg');
-        this.load.image('evx_010', 'files/event/evx011.jpg');
+        this.load.image('evx_002', 'files/event/evx002.webp');
+        this.load.image('evx_003', 'files/event/evx003.webp');
+        this.load.image('evx_004', 'files/event/evx005.webp');
+        this.load.image('evx_005', 'files/event/evx006.webp');
+        this.load.image('evx_009', 'files/event/evx009.webp');
+        this.load.image('evx_010', 'files/event/evx011.webp');
         
         // 12/7, 12/14, 12/21, 周回イベント画像とBGM
         this.load.json('event_1207', 'files/DATA/event_1207.json');
-        this.load.image('bg_1207a', 'files/event/1207a.jpg');
-        this.load.image('bg_1207b', 'files/event/1207b.jpg');
+        this.load.image('bg_1207a', 'files/event/1207a.webp');
+        this.load.image('bg_1207b', 'files/event/1207b.webp');
         this.load.json('event_1214', 'files/DATA/event_1214.json');
-        this.load.image('bg_1214a', 'files/event/1214a.jpg');
-        this.load.image('bg_1214b', 'files/event/1214b.jpg');
+        this.load.image('bg_1214a', 'files/event/1214a.webp');
+        this.load.image('bg_1214b', 'files/event/1214b.webp');
         this.load.json('event_1217', 'files/DATA/event_1217.json');
-        this.load.image('bg_1217a', 'files/event/1217a.jpg');
-        this.load.image('bg_1217b', 'files/event/1217b.jpg');
+        this.load.image('bg_1217a', 'files/event/1217a.webp');
+        this.load.image('bg_1217b', 'files/event/1217b.webp');
         this.load.json('event_1221', 'files/DATA/event_1221.json');
         this.load.json('event_1221wildhunt', 'files/DATA/event_1221wildhunt.json');
-        this.load.image('bg_1221a', 'files/event/1221a.jpg');
-        this.load.image('bg_1221b', 'files/event/1221b.jpg');
-        this.load.image('bg_1221c', 'files/event/1221c.jpg');
-        this.load.image('bg_wildhunt', 'files/event/wildhunt.jpg');
+        this.load.image('bg_1221a', 'files/event/1221a.webp');
+        this.load.image('bg_1221b', 'files/event/1221b.webp');
+        this.load.image('bg_1221c', 'files/event/1221c.webp');
+        this.load.image('bg_wildhunt', 'files/event/wildhunt.webp');
         this.load.json('event_resp', 'files/DATA/event_resp.json');
         this.load.json('event_2r1201', 'files/DATA/event_2r1201.json');
         this.load.json('event_2rdevil', 'files/DATA/event_2rdevil.json');
         this.load.json('event_dojo', 'files/DATA/event_dojo.json');
         this.load.json('event_jiku', 'files/DATA/event_jiku.json');
-        this.load.image('jiku_cg', 'files/MAP/jiku-.jpg');
-        this.load.image('bg_img_m(k,11)r.jpg', 'files/MAP/m(k,11)r.jpg');
-        this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).jpg');
-        this.load.image('bg_tow_spo01', 'files/event/tou_spo01.jpg');
+        this.load.image('jiku_cg', 'files/MAP/jiku-.webp');
+        this.load.image('bg_img_m(k,11)r.jpg', 'files/MAP/m(k,11)r.webp');
+        this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).webp');
+        this.load.image('bg_tow_spo01', 'files/event/tou_spo01.webp');
         this.load.json('event_tow_res', 'files/DATA/event_tow_res.json');
         this.load.json('event_tower_explosion', 'files/DATA/event_tower_explosion.json');
         this.load.json('event_fairy_join', 'files/DATA/event_fairy_join.json');
-        this.load.image('chr_fairy', 'files/CHR/fairy.png');
-        this.load.image('chr_fairy_s', 'files/CHR/fairyS.png');
+        this.load.image('chr_fairy', 'files/CHR/fairy.webp');
+        this.load.image('chr_fairy_s', 'files/CHR/fairyS.webp');
 
         // 池袋イベントアセット
         this.load.json('event_ikebukuro01', 'files/DATA/event_ikebukuro01.json');
         this.load.json('event_ikebukuro02', 'files/DATA/event_ikebukuro02.json');
-        this.load.image('ikebukuro01', 'files/event/ikebukuro01.jpg');
-        this.load.image('ikebukuro02', 'files/event/ikebukuro02.jpg');
+        this.load.image('ikebukuro01', 'files/event/ikebukuro01.webp');
+        this.load.image('ikebukuro02', 'files/event/ikebukuro02.webp');
         this.load.audio('unknoun_terror', 'files/BGM/unknoun_terror.mp3');
 
         // タワー21階ボス（プロセル氷像）イベント＆敵アセット
         this.load.json('event_tow21', 'files/DATA/event_tow21.json');
         this.load.json('event_tow21b', 'files/DATA/event_tow21b.json');
-        this.load.image('event_tow_21', 'files/event/tow_21.jpg');
-        this.load.image('event_tow_21b', 'files/event/tow_21b.jpg');
+        this.load.image('event_tow_21', 'files/event/tow_21.webp');
+        this.load.image('event_tow_21b', 'files/event/tow_21b.webp');
         this.load.audio('tow_frozen_silence', 'files/BGM/tow_Frozen Silence.mp3');
         this.load.audio('tow_magma_core', 'files/BGM/tow_Magma Core.mp3');
         this.load.audio('tow_black_onyx', 'files/BGM/tow_Black Onyx area.mp3');
         this.load.audio('tow_sakura', 'files/BGM/tow_sakura.mp3');
-        this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.png');
-        this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.png');
+        this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
+        this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.webp');
 
         // タワー編アセット
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.json('hint_53f', 'files/DATA/53Fhint.json');
-        this.load.image('bg_tower01', 'files/MAP/tower01.jpg');
-        this.load.image('bg_tow1', 'files/MAP/tow1.jpg');
-        this.load.image('bg_tow2', 'files/MAP/tow2.jpg');
-        this.load.image('bg_tow3', 'files/MAP/tow3.jpg');
-        this.load.image('bg_tow4', 'files/MAP/tow4.jpg');
-        this.load.image('tow1', 'files/MAP/tow1.jpg');
-        this.load.image('tow2', 'files/MAP/tow2.jpg');
-        this.load.image('tow3', 'files/MAP/tow3.jpg');
-        this.load.image('tow4', 'files/MAP/tow4.jpg');
+        this.load.image('bg_tower01', 'files/MAP/tower01.webp');
+        this.load.image('bg_tow1', 'files/MAP/tow1.webp');
+        this.load.image('bg_tow2', 'files/MAP/tow2.webp');
+        this.load.image('bg_tow3', 'files/MAP/tow3.webp');
+        this.load.image('bg_tow4', 'files/MAP/tow4.webp');
+        this.load.image('tow1', 'files/MAP/tow1.webp');
+        this.load.image('tow2', 'files/MAP/tow2.webp');
+        this.load.image('tow3', 'files/MAP/tow3.webp');
+        this.load.image('tow4', 'files/MAP/tow4.webp');
 
         // タワー用エリア画像 (ヘクス用 200x200六角形PNG & 画面背景用JPG)
         const towerAreaAssets = {
-            '街': { hex: 'files/MAP/hex_01city.png', bg: 'files/MAP/01city.jpg' },
-            '石': { hex: 'files/MAP/hex_02boulder.png', bg: 'files/MAP/02boulder.jpg' },
-            '樹': { hex: 'files/MAP/hex_03tree.png', bg: 'files/MAP/03tree.jpg' },
-            '骨': { hex: 'files/MAP/hex_06skal.png', bg: 'files/MAP/06skal.jpg' },
-            '氷': { hex: 'files/MAP/hex_04ice.png', bg: 'files/MAP/04ice.jpg' },
-            '顔': { hex: 'files/MAP/hex_07face.png', bg: 'files/MAP/07face.jpg' },
-            '炎': { hex: 'files/MAP/hex_05fire.png', bg: 'files/MAP/05fire.jpg' },
-            '金': { hex: 'files/MAP/hex_08gold.png', bg: 'files/MAP/08gold.jpg' },
-            '異': { hex: 'files/MAP/hex_09al.png', bg: 'files/MAP/09al.jpg' },
-            '外': { hex: 'files/MAP/hex_10out.png', bg: 'files/MAP/10out.jpg' },
-            '黒': { hex: 'files/MAP/hex_11black.png', bg: 'files/MAP/11black.jpg' },
-            '赤': { hex: 'files/MAP/hex_12red.png', bg: 'files/MAP/12red.jpg' },
-            '青': { hex: 'files/MAP/hex_16blue.png', bg: 'files/MAP/16blue.jpg' },
-            '黄': { hex: 'files/MAP/hex_15yerrow.png', bg: 'files/MAP/15yerrow.jpg' },
-            '緑': { hex: 'files/MAP/hex_14green.png', bg: 'files/MAP/14green.jpg' },
-            '紫': { hex: 'files/MAP/hex_13purple.png', bg: 'files/MAP/13purple.jpg' },
-            '白': { hex: 'files/MAP/hex_17white.png', bg: 'files/MAP/17white.jpg' },
-            'top of tower': { hex: 'files/MAP/hex_top_of_tower.png', bg: 'files/MAP/17white.jpg' }
+            '街': { hex: 'files/MAP/hex_01city.webp', bg: 'files/MAP/01city.webp' },
+            '石': { hex: 'files/MAP/hex_02boulder.webp', bg: 'files/MAP/02boulder.webp' },
+            '樹': { hex: 'files/MAP/hex_03tree.webp', bg: 'files/MAP/03tree.webp' },
+            '骨': { hex: 'files/MAP/hex_06skal.webp', bg: 'files/MAP/06skal.webp' },
+            '氷': { hex: 'files/MAP/hex_04ice.webp', bg: 'files/MAP/04ice.webp' },
+            '顔': { hex: 'files/MAP/hex_07face.webp', bg: 'files/MAP/07face.webp' },
+            '炎': { hex: 'files/MAP/hex_05fire.webp', bg: 'files/MAP/05fire.webp' },
+            '金': { hex: 'files/MAP/hex_08gold.webp', bg: 'files/MAP/08gold.webp' },
+            '異': { hex: 'files/MAP/hex_09al.webp', bg: 'files/MAP/09al.webp' },
+            '外': { hex: 'files/MAP/hex_10out.webp', bg: 'files/MAP/10out.webp' },
+            '黒': { hex: 'files/MAP/hex_11black.webp', bg: 'files/MAP/11black.webp' },
+            '赤': { hex: 'files/MAP/hex_12red.webp', bg: 'files/MAP/12red.webp' },
+            '青': { hex: 'files/MAP/hex_16blue.webp', bg: 'files/MAP/16blue.webp' },
+            '黄': { hex: 'files/MAP/hex_15yerrow.webp', bg: 'files/MAP/15yerrow.webp' },
+            '緑': { hex: 'files/MAP/hex_14green.webp', bg: 'files/MAP/14green.webp' },
+            '紫': { hex: 'files/MAP/hex_13purple.webp', bg: 'files/MAP/13purple.webp' },
+            '白': { hex: 'files/MAP/hex_17white.webp', bg: 'files/MAP/17white.webp' },
+            'top of tower': { hex: 'files/MAP/hex_top_of_tower.webp', bg: 'files/MAP/17white.webp' }
         };
         for (const [key, paths] of Object.entries(towerAreaAssets)) {
             this.load.image(`hex_map_${key}`, paths.hex);
@@ -395,16 +395,16 @@ export default class BootScene extends Phaser.Scene {
         // タワー戦闘背景用画像 (files/BG_battle/)
         const towerBattleBgs = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '外', '黒', '赤', '青', '黄', '緑', '紫', '白'];
         for (const key of towerBattleBgs) {
-            this.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.jpg`);
+            this.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.webp`);
         }
-        this.load.image('battle_bg_top of tower', 'files/BG_battle/白.jpg');
+        this.load.image('battle_bg_top of tower', 'files/BG_battle/白.webp');
 
-        this.load.image('bg_resp', 'files/event/resp.jpg');
+        this.load.image('bg_resp', 'files/event/resp.webp');
         this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
         this.load.audio('bgm_star', 'files/BGM/star.mp3');
         this.load.audio('bgm_bad', 'files/BGM/bad.mp3');
         this.load.audio('bgm_op', 'files/BGM/001_OP001.mp3');
-        this.load.image('op_title', 'files/OP/title.png');
+        this.load.image('op_title', 'files/OP/title.webp');
         this.load.audio('op_start', 'files/OP/start.mp3');
 
 
@@ -513,24 +513,24 @@ export default class BootScene extends Phaser.Scene {
         }
 
         const towerAreaAssets = {
-            '街': 'files/MAP/01city.jpg',
-            '石': 'files/MAP/02boulder.jpg',
-            '樹': 'files/MAP/03tree.jpg',
-            '骨': 'files/MAP/06skal.jpg',
-            '氷': 'files/MAP/04ice.jpg',
-            '顔': 'files/MAP/07face.jpg',
-            '炎': 'files/MAP/05fire.jpg',
-            '金': 'files/MAP/08gold.jpg',
-            '異': 'files/MAP/09al.jpg',
-            '外': 'files/MAP/10out.jpg',
-            '黒': 'files/MAP/11black.jpg',
-            '赤': 'files/MAP/12red.jpg',
-            '青': 'files/MAP/16blue.jpg',
-            '黄': 'files/MAP/15yerrow.jpg',
-            '緑': 'files/MAP/14green.jpg',
-            '紫': 'files/MAP/13purple.jpg',
-            '白': 'files/MAP/17white.jpg',
-            'top of tower': 'files/MAP/17white.jpg'
+            '街': 'files/MAP/01city.webp',
+            '石': 'files/MAP/02boulder.webp',
+            '樹': 'files/MAP/03tree.webp',
+            '骨': 'files/MAP/06skal.webp',
+            '氷': 'files/MAP/04ice.webp',
+            '顔': 'files/MAP/07face.webp',
+            '炎': 'files/MAP/05fire.webp',
+            '金': 'files/MAP/08gold.webp',
+            '異': 'files/MAP/09al.webp',
+            '外': 'files/MAP/10out.webp',
+            '黒': 'files/MAP/11black.webp',
+            '赤': 'files/MAP/12red.webp',
+            '青': 'files/MAP/16blue.webp',
+            '黄': 'files/MAP/15yerrow.webp',
+            '緑': 'files/MAP/14green.webp',
+            '紫': 'files/MAP/13purple.webp',
+            '白': 'files/MAP/17white.webp',
+            'top of tower': 'files/MAP/17white.webp'
         };
 
         const towerBattleBgs = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '外', '黒', '赤', '青', '黄', '緑', '紫', '白'];
@@ -544,20 +544,20 @@ export default class BootScene extends Phaser.Scene {
         }
         for (const key of towerBattleBgs) {
             if (!scene.textures.exists(`battle_bg_${key}`)) {
-                scene.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.jpg`);
+                scene.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.webp`);
                 needsLoad = true;
             }
         }
         if (!scene.textures.exists('battle_bg_top of tower')) {
-            scene.load.image('battle_bg_top of tower', 'files/BG_battle/白.jpg');
+            scene.load.image('battle_bg_top of tower', 'files/BG_battle/白.webp');
             needsLoad = true;
         }
 
         // タワー外観・遠景画像
         for (let i = 1; i <= 4; i++) {
             if (!scene.textures.exists(`bg_tow${i}`)) {
-                scene.load.image(`bg_tow${i}`, `files/MAP/tow${i}.jpg`);
-                scene.load.image(`tow${i}`, `files/MAP/tow${i}.jpg`);
+                scene.load.image(`bg_tow${i}`, `files/MAP/tow${i}.webp`);
+                scene.load.image(`tow${i}`, `files/MAP/tow${i}.webp`);
                 needsLoad = true;
             }
         }
@@ -569,13 +569,13 @@ export default class BootScene extends Phaser.Scene {
             needsLoad = true;
         }
         if (!scene.textures.exists('event_tow_21')) {
-            scene.load.image('event_tow_21', 'files/event/tow_21.jpg');
-            scene.load.image('event_tow_21b', 'files/event/tow_21b.jpg');
+            scene.load.image('event_tow_21', 'files/event/tow_21.webp');
+            scene.load.image('event_tow_21b', 'files/event/tow_21b.webp');
             needsLoad = true;
         }
         if (!scene.textures.exists('enemy_prc_a')) {
-            scene.load.image('enemy_prc_a', 'files/ENEMY/prc_a.png');
-            scene.load.image('enemy_prc_b', 'files/ENEMY/prc_b.png');
+            scene.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
+            scene.load.image('enemy_prc_b', 'files/ENEMY/prc_b.webp');
             needsLoad = true;
         }
 

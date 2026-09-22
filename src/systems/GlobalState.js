@@ -1690,6 +1690,7 @@ export class GlobalState {
     /** ニューゲーム完全初期化処理 */
     resetAll() {
         this.resetForNewLoop();
+        this.loopCount = 1; // 1周目にリセット
         this.isOpCompleted = false;
         this.stockExp = 0;
         this.stockSp = 0;
@@ -1699,6 +1700,36 @@ export class GlobalState {
         this.currentDay = 1;
         this.timePeriodIndex = 0;
         this.savedFormation = { '001': { lane: 0, isFront: false } };
+
+        // 🧚‍♀️ 妖精・道場・時空館・タワー進行の完全初期化
+        this.hasMetFairy = false;
+        this.fairyDailyTrade = null;
+        this.fairyTradeTimes = {};
+        this.isDojoUnlocked = false;
+        this.dojoEventSeen = false;
+        this.isJikukanUnlocked = false;
+        this.jikuEventSeen = false;
+        this.hasEnteredTower = false;
+        this.towerElapsedSeconds = 0;
+        this.isTowerTimeUpGameOver = false;
+        this.towerHexStates = [];
+        this.towerStairsFound = {};
+        this.towerSearchCount = {};
+        this.towerClearedHexes = {};
+        this.towerSeenAreas = {};
+        this.tower21BossDefeated = false;
+
+        // キャラクター同行・加入フラグ初期化（紫苑のみ同行）
+        for (const cid in this.characters) {
+            const c = this.characters[cid];
+            if (c) {
+                c.hasAccompanied = (cid === '001');
+                c.isJoined = (cid === '001');
+                c.metCharacters = [];
+                c.friendships = {};
+                c.friendshipPoints = 0;
+            }
+        }
 
         // チュートリアルフラグの完全初期化
         this.isTutorialMode = true;

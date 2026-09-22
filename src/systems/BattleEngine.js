@@ -224,7 +224,12 @@ export class BattleEngine {
 
         // AUTO設定
         this.autoLanes = gs.autoLanes || { '-2': false, '-1': false, '0': false, '1': false, '2': false };
-        this.isBattleAutoEnabled = gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true;
+        const hasAnyAutoLane = Object.values(this.autoLanes).some(v => !!v);
+        if (!hasAnyAutoLane) {
+            this.isBattleAutoEnabled = false;
+        } else {
+            this.isBattleAutoEnabled = gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true;
+        }
 
         // パーティ情報を取得
         this.players = [];

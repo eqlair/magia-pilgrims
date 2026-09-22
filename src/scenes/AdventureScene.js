@@ -90,43 +90,44 @@ export default class AdventureScene extends Phaser.Scene {
         for (const file of MapFileList) {
             if (file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.JPG') || file.endsWith('.PNG')) {
                 const baseName = file.replace(/\.[^/.]+$/, "");
-                this.load.image(`map_img_${file}`, `files/MAP_HEX/${baseName}.png`);
+                this.load.image(`map_img_${file}`, `files/MAP_HEX/${baseName}.webp`);
             }
         }
         // MAP元画像（背景用、カット前）
         for (const file of MapFileList) {
             if (file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.JPG') || file.endsWith('.PNG')) {
-                this.load.image(`bg_img_${file}`, `files/MAP/${file}`);
+                const mapBase = file.replace(/\.[^/.]+$/, "");
+                this.load.image(`bg_img_${file}`, `files/MAP/${mapBase}.webp`);
             }
         }
         
         // 画面下半分の最背面背景
-        this.load.image('bg_map_base', 'files/MAP/BG_map.jpg');
+        this.load.image('bg_map_base', 'files/MAP/BG_map.webp');
 
         // MAP画面UIボタン画像
-        this.load.image('btn_tans', 'files/MAP/Btans.png'); // 探索ボタン
-        this.load.image('btn_kyuu', 'files/MAP/Bkyuu.png'); // 休息ボタン
-        this.load.image('btn_stat', 'files/MAP/Bstat.png'); // ステータスボタン
-        this.load.image('bg_date',   'files/MAP/date.png');  // 日付枠画像
-        this.load.image('bg_food',   'files/MAP/food.png');  // 食料枠画像
-        this.load.image('bg_soul',   'files/MAP/soul.png');  // SP枠画像
+        this.load.image('btn_tans', 'files/MAP/Btans.webp'); // 探索ボタン
+        this.load.image('btn_kyuu', 'files/MAP/Bkyuu.webp'); // 休息ボタン
+        this.load.image('btn_stat', 'files/MAP/Bstat.webp'); // ステータスボタン
+        this.load.image('bg_date',   'files/MAP/date.webp');  // 日付枠画像
+        this.load.image('bg_food',   'files/MAP/food.webp');  // 食料枠画像
+        this.load.image('bg_soul',   'files/MAP/soul.webp');  // SP枠画像
 
 
 
         
         // ミニキャラ（全キャラ分, 600x300 = 4列×2行 = 150x150/フレーム）
-        this.load.spritesheet('mini_001', 'files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_002', 'files/CHR/002002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_003', 'files/CHR/003002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_004', 'files/CHR/004002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_005', 'files/CHR/005002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_006', 'files/CHR/006002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_007', 'files/CHR/007002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_008', 'files/CHR/008002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_009', 'files/CHR/009002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_010', 'files/CHR/010002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('mini_011', 'files/CHR/011002.png', { frameWidth: 150, frameHeight: 150 });
-        this.load.spritesheet('sion', 'files/CHR/001002.png', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_001', 'files/CHR/001002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_002', 'files/CHR/002002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_003', 'files/CHR/003002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_004', 'files/CHR/004002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_005', 'files/CHR/005002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_006', 'files/CHR/006002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_007', 'files/CHR/007002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_008', 'files/CHR/008002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_009', 'files/CHR/009002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_010', 'files/CHR/010002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('mini_011', 'files/CHR/011002.webp', { frameWidth: 150, frameHeight: 150 });
+        this.load.spritesheet('sion', 'files/CHR/001002.webp', { frameWidth: 150, frameHeight: 150 });
 
 
 
@@ -6443,7 +6444,7 @@ export default class AdventureScene extends Phaser.Scene {
      */
     _createFairyButton(x, y) {
         const gs = GlobalState.getInstance();
-        const isVisible = gs.hasMetFairy || GlobalState.IS_DEBUG_MODE;
+        const isVisible = !!gs.hasMetFairy;
 
         const container = this.add.container(x, y);
         container.setVisible(isVisible);
@@ -6489,7 +6490,7 @@ export default class AdventureScene extends Phaser.Scene {
         container.add([btnImg, badge, hitArea]);
 
         container.updateStatus = () => {
-            const visible = gs.hasMetFairy || GlobalState.IS_DEBUG_MODE;
+            const visible = !!gs.hasMetFairy;
             container.setVisible(visible);
         };
 

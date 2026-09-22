@@ -11,7 +11,9 @@
     "open:android": "cap open android",
     "deploy": "vite build && gh-pages -d dist",
     "sync": "cap sync android",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:assets": "node scripts/optimize-assets.mjs --check",
+    "optimize:assets": "node scripts/optimize-assets.mjs --optimize"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.0",

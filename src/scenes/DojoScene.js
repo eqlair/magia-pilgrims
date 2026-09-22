@@ -206,7 +206,7 @@ export default class DojoScene extends Phaser.Scene {
                 gs.characters[cid] = gs.createInitialCharData(cid, fallbackNames[cid] || cid, 1);
             }
             const c = gs.characters[cid];
-            if (c && (c.hasAccompanied || c.isJoined || (c.metCharacters && c.metCharacters.length > 0) || cid === '001' || cid === '006' || GlobalState.IS_DEBUG_MODE)) {
+            if (c && (c.hasAccompanied || c.isJoined || (c.metCharacters && c.metCharacters.length > 0) || cid === '001' || GlobalState.IS_DEBUG_MODE)) {
                 availableChars.push(c);
             }
         }

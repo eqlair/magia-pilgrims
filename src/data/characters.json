@@ -3421,10 +3421,10 @@
       "baseSp": 1250,
       "baseAtk": 100,
       "weight": 28,
-      "illust": "009001.png",
-      "mini": "009002.png",
-      "weapon": "009003.png",
-      "icon": "009p.jpg",
+      "illust": "009001.webp",
+      "mini": "009002.webp",
+      "weapon": "009003.webp",
+      "icon": "009p.webp",
       "elementalResist": {
         "red": {
           "def": 100,

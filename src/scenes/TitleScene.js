@@ -24,7 +24,7 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('title_logo', 'files/OP/title.png');
+        this.load.image('title_logo', 'files/OP/title.webp');
         this.load.audio('bgm_op',   'files/BGM/001_OP001.mp3');
         this.load.audio('bgm_menu', 'files/BGM/002_menu.mp3');
         this.load.json('test_save_snapshot', 'test_save_snapshot.json');
@@ -59,7 +59,7 @@ export default class TitleScene extends Phaser.Scene {
         });
 
         // ── TAP TO START 点滅テキスト ─────────────────────
-        const tapText = this.add.text(width / 2, height * 0.78, '- TAP TO START -', {
+        const tapText = this.add.text(width / 2, height * 0.72, '- TAP TO START -', {
             fontFamily: FONT_MAIN,
             fontSize: '24px',
             color: '#ffffff',
@@ -77,6 +77,25 @@ export default class TitleScene extends Phaser.Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+
+        // ── 画面表示確認 ＆ PWA/ホーム画面追加推奨案内 ──
+        const noticeTextContent = [
+            '画面右下にバージョン表記が見えれば表示は正常です。',
+            '表示されない場合ブラウザの「ホーム画面に追加」をお試しください。',
+            'ブラウザ版では戻るボタンで終了する事故があるので',
+            '「ホーム画面に追加」を行ってからのプレイを推奨いたします。'
+        ].join('\n');
+
+        this.add.text(width / 2, height * 0.845, noticeTextContent, {
+            fontFamily: FONT_MAIN,
+            fontSize: '13px',
+            color: '#fffaee',
+            align: 'center',
+            lineSpacing: 6,
+            stroke: '#111111',
+            strokeThickness: 3.5,
+            wordWrap: { width: width * 0.94, useAdvancedWrap: true }
+        }).setOrigin(0.5, 0.5);
 
         // ── バージョン ─────────────────────────
         const buildVer = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : (() => {

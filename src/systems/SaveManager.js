@@ -80,6 +80,8 @@ export class SaveManager {
                 seenLoveEvents: gs.seenLoveEvents ? JSON.parse(JSON.stringify(gs.seenLoveEvents)) : {},
                 isTowerMode: gs.isTowerMode || false,
                 hasEnteredTower: gs.hasEnteredTower || false,
+                towerElapsedSeconds: gs.towerElapsedSeconds || 0,
+                isTowerTimeUpGameOver: gs.isTowerTimeUpGameOver || false,
 
                 extraEnemyLevel: gs.extraEnemyLevel,
                 extraWitchLevel: gs.extraWitchLevel,
@@ -151,6 +153,8 @@ export class SaveManager {
                         towerPlayerCol: adventureScene.playerCol !== undefined ? adventureScene.playerCol : 2,
                         towerPlayerRow: adventureScene.playerRow !== undefined ? adventureScene.playerRow : 59,
                         towerFloor: 59 - (adventureScene.playerRow !== undefined ? adventureScene.playerRow : 59),
+                        towerElapsedSeconds: gs.towerElapsedSeconds || 0,
+                        isTowerTimeUpGameOver: gs.isTowerTimeUpGameOver || false,
                         towerStairsFound: gs.towerStairsFound ? JSON.parse(JSON.stringify(gs.towerStairsFound)) : {},
                         towerSearchCount: gs.towerSearchCount ? JSON.parse(JSON.stringify(gs.towerSearchCount)) : {},
                         towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
@@ -190,6 +194,8 @@ export class SaveManager {
                             towerPlayerCol: gs.towerPlayerCol !== undefined ? gs.towerPlayerCol : 2,
                             towerPlayerRow: gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59,
                             towerFloor: 59 - (gs.towerPlayerRow !== undefined ? gs.towerPlayerRow : 59),
+                            towerElapsedSeconds: gs.towerElapsedSeconds || 0,
+                            isTowerTimeUpGameOver: gs.isTowerTimeUpGameOver || false,
                             towerStairsFound: gs.towerStairsFound ? JSON.parse(JSON.stringify(gs.towerStairsFound)) : {},
                             towerSearchCount: gs.towerSearchCount ? JSON.parse(JSON.stringify(gs.towerSearchCount)) : {},
                             towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
@@ -358,6 +364,8 @@ export class SaveManager {
         if (d.seenLoveEvents !== undefined) gs.seenLoveEvents = d.seenLoveEvents || {};
         if (d.isTowerMode !== undefined) gs.isTowerMode = d.isTowerMode;
         if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
+        if (d.towerElapsedSeconds !== undefined) gs.towerElapsedSeconds = d.towerElapsedSeconds;
+        if (d.isTowerTimeUpGameOver !== undefined) gs.isTowerTimeUpGameOver = d.isTowerTimeUpGameOver;
         if (d.seenEventHistory !== undefined) gs.seenEventHistory = d.seenEventHistory || [];
 
         if (d.extraEnemyLevel !== undefined) gs.extraEnemyLevel = d.extraEnemyLevel;
@@ -387,6 +395,8 @@ export class SaveManager {
             const ts = saveData.towerState;
             if (ts.towerPlayerCol !== undefined) gs.towerPlayerCol = ts.towerPlayerCol;
             if (ts.towerPlayerRow !== undefined) gs.towerPlayerRow = ts.towerPlayerRow;
+            if (ts.towerElapsedSeconds !== undefined) gs.towerElapsedSeconds = ts.towerElapsedSeconds;
+            if (ts.isTowerTimeUpGameOver !== undefined) gs.isTowerTimeUpGameOver = ts.isTowerTimeUpGameOver;
             if (ts.towerHexStates) gs.towerHexStates = ts.towerHexStates;
             if (ts.towerStairsFound) gs.towerStairsFound = ts.towerStairsFound;
             if (ts.towerSearchCount) gs.towerSearchCount = ts.towerSearchCount;

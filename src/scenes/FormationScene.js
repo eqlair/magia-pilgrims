@@ -117,6 +117,12 @@ export default class FormationScene extends Phaser.Scene {
                 };
             }
             this.globalState.autoLanes = JSON.parse(JSON.stringify(this.autoLanes));
+            const hasAnyAutoLane = Object.values(this.autoLanes).some(v => !!v);
+            if (!hasAnyAutoLane) {
+                this.globalState.isBattleAutoEnabled = false;
+            } else if (this.globalState.isBattleAutoEnabled === false) {
+                this.globalState.isBattleAutoEnabled = true;
+            }
             SaveManager.saveGame();
 
             // 終了処理
