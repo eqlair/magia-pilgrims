@@ -1402,6 +1402,7 @@ export class GlobalState {
         const finalExp = isBoostActive ? (rawAmount * 2) : rawAmount;
 
         this.currentRunTotalExp = (this.currentRunTotalExp || 0) + finalExp;
+        this.maxPastExp = Math.max(this.maxPastExp || 0, this.currentRunTotalExp);
         return finalExp;
     }
 
@@ -1411,6 +1412,7 @@ export class GlobalState {
         if (rawAmount <= 0) return 0;
         this.stockExp = (this.stockExp || 0) + rawAmount;
         this.currentRunTotalExp = (this.currentRunTotalExp || 0) + rawAmount;
+        this.maxPastExp = Math.max(this.maxPastExp || 0, this.currentRunTotalExp);
         return rawAmount;
     }
 

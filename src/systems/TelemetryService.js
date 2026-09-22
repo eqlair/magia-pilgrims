@@ -187,6 +187,7 @@ export class TelemetryService {
                 tower_progress: mapAndTower.tower,
                 jikukan_progress: this.extractJikukanProgress(),
                 max_past_exp: gs.maxPastExp || 0,
+                current_run_total_exp: gs.currentRunTotalExp || 0,
                 stock_exp: gs.stockExp || 0,
                 stock_sp: gs.stockSp || 0
             };
@@ -204,6 +205,7 @@ export class TelemetryService {
      */
     static sendWipeoutReport(battleScene, engine) {
         try {
+            const gs = GlobalState.getInstance();
             const bConfig = battleScene?.battleConfig || {};
             const isJikukan = !!bConfig.isJikukan;
             const party = battleScene?.party || [];
@@ -241,11 +243,19 @@ export class TelemetryService {
                 } : null
             };
 
+            const mapAndTower = this.extractMapAndTowerProgress();
+
             const payload = {
                 battle_party: party,
                 characters: this.extractAllCharactersStats(isJikukan, party.length > 0 ? party : null),
                 enemy_info: enemyInfo,
-                jikukan_progress: this.extractJikukanProgress()
+                map_progress: mapAndTower.map,
+                tower_progress: mapAndTower.tower,
+                jikukan_progress: this.extractJikukanProgress(),
+                max_past_exp: gs.maxPastExp || 0,
+                current_run_total_exp: gs.currentRunTotalExp || 0,
+                stock_exp: gs.stockExp || 0,
+                stock_sp: gs.stockSp || 0
             };
 
             this.postReport('wipeout', payload);
