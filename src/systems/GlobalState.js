@@ -1697,6 +1697,8 @@ export class GlobalState {
         this.stockExp = 0;
         this.stockSp = 0;
         this.devilStockSp = 0;
+        this.currentRunTotalExp = 0;
+        this.maxPastExp = 0;
         this.food = 100;
         this.currentMonth = 12;
         this.currentDay = 1;

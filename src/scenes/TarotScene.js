@@ -137,7 +137,7 @@ export default class TarotScene extends Phaser.Scene {
         }
 
         // 1周目かつ12/3以降に 蒼樹(002)・紅華(003)・黄蘭(004) が誰もいない場合の救済判定（12/1〜12/2は完全ランダム自引き）
-        const isFirstLoop = (gs.maxPastExp || 0) === 0;
+        const isFirstLoop = (gs.loopCount || 1) <= 1;
         const isTargetDay = (gs.currentDay || 1) >= 3;
         const hasSpecificMember = (this.party || []).includes('002') || (this.party || []).includes('003') || (this.party || []).includes('004') ||
                                   !!(gs.characters?.['002']?.hasAccompanied) ||
@@ -556,14 +556,14 @@ export default class TarotScene extends Phaser.Scene {
                 // 秋葉原で探索して出会った後(hasAccompanied)か、1度以上リスポーンした後に解放
                 if (joinCharId === '011') {
                     const hasMetInAkiba = !!(gs.characters?.['011']?.hasAccompanied);
-                    const hasRespawned = (gs.maxPastExp || 0) > 0;
+                    const hasRespawned = (gs.loopCount || 1) >= 2;
                     if (!hasMetInAkiba && !hasRespawned) {
                         isUnlockedForTarot = false;
                     }
                 }
                 
                 // ★ 悪魔カード（ID: 16）引き時: 2周目以降かつ道場未解放の場合、2RDEVILイベントを発火！
-                const isSecondLoopOrLater = (gs.maxPastExp || 0) > 0 || (gs.devilStockSp || 0) > 0 || GlobalState.IS_DEBUG_MODE;
+                const isSecondLoopOrLater = (gs.loopCount || 1) >= 2 || (gs.devilStockSp || 0) > 0 || GlobalState.IS_DEBUG_MODE;
                 if (drawnCardId === 16 && isSecondLoopOrLater && !gs.isDojoUnlocked) {
                     const devilEventRaw = this.cache.json.get('event_2rdevil');
                     if (devilEventRaw) {
