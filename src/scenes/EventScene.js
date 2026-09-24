@@ -186,6 +186,7 @@ export default class EventScene extends Phaser.Scene {
             stroke: '#ffcc00',
             strokeThickness: 2
         }).setOrigin(1, 0).setDepth(20000).setInteractive({ useHandCursor: true });
+        this._skipBtn = skipBtn;
 
         skipBtn.on('pointerover', () => skipBtn.setStyle({ color: '#ffcc00', backgroundColor: '#333300cc' }));
         skipBtn.on('pointerout', () => skipBtn.setStyle({ color: '#ffffff', backgroundColor: '#000000aa' }));

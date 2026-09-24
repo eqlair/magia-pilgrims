@@ -559,6 +559,14 @@ export class EventEngine {
 
         this._waitingForTap = true;
 
+        const currentCmd = this.events && this.index > 0 ? this.events[this.index - 1] : null;
+        if (this.isFastForward && currentCmd && currentCmd.waitOnSkip) {
+            this.isFastForward = false;
+            if (this.scene && this.scene._skipBtn) {
+                this.scene._skipBtn.setVisible(false);
+            }
+        }
+
         if (this.isFastForward) {
             if (this.scene && this.scene.time) {
                 this.scene.time.delayedCall(20, () => {
