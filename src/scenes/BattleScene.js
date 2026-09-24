@@ -247,8 +247,15 @@ export default class BattleScene extends Phaser.Scene {
             }
         } else {
             // 通常突破戦または通常戦闘BGM
-            const defaultBKey = (this.battleConfig.rule === 2) ? 'bgm_toppa' : `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
-            const bKey = this.battleConfig.bgmKey || defaultBKey;
+            let defaultBKey = (this.battleConfig.rule === 2) ? 'bgm_toppa' : `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
+            if (this.cache && this.cache.audio && !this.cache.audio.exists(defaultBKey)) {
+                const available = [1, 2, 3, 4].map(i => `bgm_battle${i}`).filter(k => this.cache.audio.exists(k));
+                defaultBKey = available.length > 0 ? available[0] : (this.cache.audio.exists('bgm_toppa') ? 'bgm_toppa' : 'bgm_hexen');
+            }
+            let bKey = this.battleConfig.bgmKey || defaultBKey;
+            if (bKey && this.cache && this.cache.audio && !this.cache.audio.exists(bKey)) {
+                bKey = defaultBKey;
+            }
             
             const playingBgm = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying && s.key === bKey) : null;
 

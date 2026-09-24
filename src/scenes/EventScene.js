@@ -216,25 +216,49 @@ export default class EventScene extends Phaser.Scene {
         if (this.sound && this.sound.sounds) {
             this.sound.sounds.forEach(s => {
                 if (s && s.isPlaying) {
-                    this.tweens.add({
-                        targets: s, volume: 0, duration: 1000,
-                        onUpdate: (t, target) => {
-                            if (!target || !target.manager || target.pendingRemove) {
-                                try { t.stop(); } catch(e){}
-                            }
-                        },
-                        onComplete: () => { try { s.stop(); } catch(e){} }
-                    });
+                    try {
+                        this.tweens.add({
+                            targets: s, volume: 0, duration: 1000,
+                            onUpdate: (t, target) => {
+                                if (!target || !target.manager || target.pendingRemove) {
+                                    try { t.stop(); } catch(e){}
+                                }
+                            },
+                            onComplete: () => { try { s.stop(); } catch(e){} }
+                        });
+                    } catch(e) {}
                 }
             });
         }
 
-        // ランダムな戦闘BGMを選ぶ (1~4) し、キーを記憶してBattleSceneへ引き継げるようにする
-        const bgmIndex = Math.floor(Math.random() * 4) + 1;
-        this.selectedBgmKey = `bgm_battle${bgmIndex}`;
-        const battleBgm = this.sound.add(this.selectedBgmKey, { loop: true, volume: 0 });
-        battleBgm.play();
-        this.tweens.add({ targets: battleBgm, volume: 0.5, duration: 1000 });
+        // キャッシュに実在する戦闘BGM候補を探す
+        const availableBgms = [];
+        for (let i = 1; i <= 4; i++) {
+            if (this.cache && this.cache.audio && this.cache.audio.exists(`bgm_battle${i}`)) {
+                availableBgms.push(`bgm_battle${i}`);
+            }
+        }
+        if (availableBgms.length === 0 && this.cache.audio.exists('bgm_toppa')) {
+            availableBgms.push('bgm_toppa');
+        }
+        if (availableBgms.length === 0 && this.cache.audio.exists('bgm_hexen')) {
+            availableBgms.push('bgm_hexen');
+        }
+
+        if (availableBgms.length > 0) {
+            this.selectedBgmKey = availableBgms[Math.floor(Math.random() * availableBgms.length)];
+            try {
+                const battleBgm = this.sound.add(this.selectedBgmKey, { loop: true, volume: 0 });
+                battleBgm.play();
+                this.tweens.add({ targets: battleBgm, volume: 0.5, duration: 1000 });
+            } catch (err) {
+                console.warn('[EventScene] 戦闘BGMの再生に失敗しました（スキップ）:', err);
+                this.selectedBgmKey = null;
+            }
+        } else {
+            console.warn('[EventScene] 再生可能な戦闘BGMがキャッシュに見つかりません。');
+            this.selectedBgmKey = null;
+        }
 
         if (cb) cb();
     }
