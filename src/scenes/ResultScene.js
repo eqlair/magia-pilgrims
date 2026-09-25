@@ -24,6 +24,7 @@ export default class ResultScene extends Phaser.Scene {
         this.majoLevel = data.majoLevel || 0;
         this.isNightExploration = data.isNightExploration || false;
         this.isTower21Boss = data.isTower21Boss || false;
+        this.fromIkebukuro02Event = data.fromIkebukuro02Event || false;
         this.isRelicScreen = false;
 
         this.relicAnimationPlaying = false;
@@ -453,6 +454,7 @@ export default class ResultScene extends Phaser.Scene {
                     isTutorialStart: this.isTutorial,
                     isNightExploration: this.isNightExploration,
                     fromTower21Boss: this.isTower21Boss,
+                    fromIkebukuro02Event: this.fromIkebukuro02Event,
                     battleDuration: this.battleDuration
                 };
                 if (this.scene.isPaused(this.returnScene)) {

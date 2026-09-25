@@ -337,7 +337,13 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('event_ikebukuro02', 'files/DATA/event_ikebukuro02.json');
         this.load.image('ikebukuro01', 'files/event/ikebukuro01.webp');
         this.load.image('ikebukuro02', 'files/event/ikebukuro02.webp');
+        this.load.image('Kraken_ev', 'files/event/Kraken_ev.jpg');
         this.load.audio('unknoun_terror', 'files/BGM/unknoun_terror.mp3');
+        this.load.audio('tow_Kraken', 'files/BGM/tow_Kraken.mp3');
+        this.load.image('KrakenBG', 'files/BG_battle/KrakenBG.jpg');
+        this.load.image('KrakenA', 'files/ENEMY/KrakenA.png');
+        this.load.image('KrakenB', 'files/ENEMY/KrakenB.png');
+        this.load.image('KrakenC', 'files/ENEMY/KrakenC.png');
 
         // タワー21階ボス（プロセル氷像）イベント＆敵アセット
         this.load.json('event_tow21', 'files/DATA/event_tow21.json');

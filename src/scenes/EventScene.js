@@ -293,13 +293,41 @@ export default class EventScene extends Phaser.Scene {
         gs.addLog(`🏁 [EventScene] _onEventComplete (eventId=${this.eventId}, from1207=${this.from1207Event}, from1214=${this.from1214Event})`);
         
         // 既読フラグを記録（周回しても永久保持）
-        if (this.eventId) {
+        // ※池袋02イベントはクラーケン撃破後に既読フラグを立てる（戦闘中リセット・敗北・撤退で既読扱いにならないように）
+        if (this.eventId && !this.fromIkebukuro02Event) {
             gs.markEventSeen(this.eventId);
         }
 
-        // 12/21 池袋02イベント完了時: タワー全景スクロールカットシーンを再生！
+        // 12/21 池袋02イベント完了時: タワー突入直前のクラーケンボス戦へ突入！
         if (this.fromIkebukuro02Event) {
-            this._playTowerScrollCutscene();
+            const advScene = this.scene.get('AdventureScene');
+            let party = ['001'];
+            if (advScene && advScene.party) party = advScene.party;
+
+            const config = {
+                rule: 0,
+                bgKey: 'KrakenBG',
+                attribute: 'purple',
+                isKrakenBossBattle: true, // 🐙 クラーケンボス戦
+                bgmKey: 'tow_Kraken',
+                enemyCount: 1,
+                enemyLevel: 13,
+                majoLevel: 13,
+                isOverlay: false,
+                returnScene: 'AdventureScene',
+                party: party,
+                canRetreat: true,
+                fromIkebukuro02Event: true
+            };
+
+            // BGMを止めずにBattleSceneへ引き継ぐ（keepBgm=true）
+            if (this.engine) this.engine.cleanup(true);
+            if (this.returnScene) {
+                const retScene = this.scene.get(this.returnScene);
+                if (retScene && retScene.hideMapVisuals) retScene.hideMapVisuals();
+            }
+            this.scene.sleep();
+            this.scene.launch('BattleScene', config);
             return;
         }
 
@@ -574,6 +602,34 @@ export default class EventScene extends Phaser.Scene {
                     party: party,
                     canRetreat: false,
                     is1221NightBattle: true
+                };
+
+                // BGMを止めずにBattleSceneへ引き継ぐ（keepBgm=true）
+                if (this.engine) this.engine.cleanup(true);
+                if (this.returnScene) {
+                    const retScene = this.scene.get(this.returnScene);
+                    if (retScene && retScene.hideMapVisuals) retScene.hideMapVisuals();
+                }
+                this.scene.sleep();
+                this.scene.launch('BattleScene', config);
+                return;
+            }
+
+            if (this.fromIkebukuro02Event) {
+                const config = {
+                    rule: 0, // 通常ボス戦
+                    bgKey: 'KrakenBG',
+                    attribute: 'purple',
+                    isKrakenBossBattle: true, // 🐙 クラーケンボス戦
+                    bgmKey: 'tow_Kraken',
+                    enemyCount: 1,
+                    enemyLevel: 13,
+                    majoLevel: 13,
+                    isOverlay: false,
+                    returnScene: 'AdventureScene',
+                    party: party,
+                    canRetreat: true,
+                    fromIkebukuro02Event: true
                 };
 
                 // BGMを止めずにBattleSceneへ引き継ぐ（keepBgm=true）

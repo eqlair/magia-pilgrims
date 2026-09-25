@@ -1,5 +1,6 @@
 import { PlayerCharacter, EnemyCharacter, BossCharacter, Bullet, EffectEntity, PvpEnemyCharacter } from './BattleEntities';
 import { SnakeBoss } from './SnakeBoss';
+import { KrakenBoss } from './KrakenBoss';
 import { GlobalState } from './GlobalState';
 import { PvpAiController } from './PvpAiController';
 import { AchievementManager } from './AchievementManager';
@@ -417,6 +418,12 @@ export class BattleEngine {
             this.waveState = 'boss';
             this.spawnSnakeBoss();
         }
+
+        // --- 🐙 クラーケンボスモード ---
+        if (this.config.isKrakenBossTest || this.config.isKrakenBossBattle) {
+            this.waveState = 'boss';
+            this.spawnKrakenBoss();
+        }
     }
 
     spawnSnakeBoss() {
@@ -429,6 +436,82 @@ export class BattleEngine {
         return snake;
     }
 
+    spawnKrakenBoss() {
+        // 開幕はNPC対戦のように奥のZ=25からスタートし、手前へ前進してくる
+        const kraken = new KrakenBoss(0, 25.0, {
+            name: '巨大タコ魔女クラーケン',
+            level: this.majoLevel || 20,
+            attribute: this.enemyAttribute || 'purple',
+            hp: 222222,
+            bulletDamage: 10
+        });
+        this.krakenBoss = kraken;
+        this.enemies.push(kraken);
+        return kraken;
+    }
+
+    spawnKrakenBullet(startX, startY, startZ, target, speed, damage = 10) {
+        if (!target) return null;
+        const targetX = target.x;
+        const targetY = 0.8; // 味方キャラの胸・腰の高さ
+        const targetZ = target.z;
+
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+        const dz = targetZ - startZ;
+        const dist = Math.hypot(dx, dy, dz) || 1.0;
+
+        const vx = (dx / dist) * speed;
+        const vy = (dy / dist) * speed;
+        const vz = (dz / dist) * speed;
+
+        const bullet = new Bullet(startX, startZ, {
+            y: startY,
+            vx,
+            vy,
+            vz,
+            owner: 'enemy',
+            damage,
+            knockback: 0.5,
+            size: 0.40,
+            type: 'enemy_bullet',
+            textureKey: 'enemy_bullet',
+            attribute: 'purple',
+            color: 0xd033ff,
+            lifeTime: 8.0,
+            targetDist: 35.0
+        });
+        bullet.sourceEntity = this.krakenBoss;
+        this.bullets.push(bullet);
+        return bullet;
+    }
+
+    spawnKrakenDirectionBullet(startX, startY, startZ, dirX, dirY, dirZ, speed, damage = 5) {
+        const len = Math.hypot(dirX, dirY, dirZ) || 1.0;
+        const vx = (dirX / len) * speed;
+        const vy = (dirY / len) * speed;
+        const vz = (dirZ / len) * speed;
+
+        const bullet = new Bullet(startX, startZ, {
+            y: startY,
+            vx,
+            vy,
+            vz,
+            owner: 'enemy',
+            damage,
+            knockback: 0.5,
+            size: 0.35,
+            type: 'enemy_bullet',
+            textureKey: 'enemy_bullet',
+            attribute: 'purple',
+            color: 0xd033ff,
+            lifeTime: 8.0,
+            targetDist: 35.0
+        });
+        bullet.sourceEntity = this.krakenBoss;
+        this.bullets.push(bullet);
+        return bullet;
+    }
 
     spawnSandbags() {
         const sandbagData = ENEMY_TYPES.find(t => t.id === 10) || ENEMY_TYPES[9];
@@ -1541,9 +1624,22 @@ export class BattleEngine {
             let minDist = 9999;
             let minDistCenter = 9999;
             const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;
-            for (const e of enemyList) {
+
+            // 🐙 クラーケン戦でのターゲット候補決定:
+            // プレイヤーメンバーの遠隔攻撃は本体を狙うが、近接攻撃は脚もターゲットにする
+            let targetCandidates = [...enemyList];
+            if (this.krakenBoss && !this.krakenBoss.isDead) {
+                const isExecutingFar = (p.combatState && p.combatState.comboType === 'far');
+                if (!isExecutingFar) {
+                    // 近接コンボ中、または待機・判断中で近接可能対象を探すときは生きている脚も候補に追加！
+                    const aliveTentacles = this.krakenBoss.tentacles.filter(t => !t.isBroken);
+                    targetCandidates = targetCandidates.concat(aliveTentacles);
+                }
+            }
+
+            for (const e of targetCandidates) {
                 // 死亡中、または実体化演出中、または潜航中の蛇ボスはターゲットにしない
-                if (e.isDead || e.isDying || e.hp <= 0 || e.spawnDropTimer > 0 || e.spawnAnimTimer > 0 || (e.isSnakeBoss && e.state === 'submerged')) continue;
+                if (e.isDead || e.isDying || e.hp <= 0 || (e.spawnDropTimer || 0) > 0 || (e.spawnAnimTimer || 0) > 0 || (e.isSnakeBoss && e.state === 'submerged')) continue;
                 const dx = e.x - p.x;
                 const dz = e.z - p.z;
                 let surfaceDist;
@@ -1625,6 +1721,11 @@ export class BattleEngine {
                     cs.comboType = 'near'; cs.stepIdx = 0; cs.countIdx = 0; cs.phase = 'acting';
                 } else if (minDist <= p.farThreshold) {
                     cs.comboType = 'far';  cs.stepIdx = 0; cs.countIdx = 0; cs.phase = 'acting';
+                    // 🐙 遠隔攻撃は脚ではなく本体を狙う！
+                    if (target && target.isKrakenTentacle && this.krakenBoss && !this.krakenBoss.isDead) {
+                        target = this.krakenBoss;
+                        p.targetEnemy = target;
+                    }
                 } else {
                     cs.phase = 'idle';
                 }
@@ -1633,6 +1734,12 @@ export class BattleEngine {
 
             // ── ACTING: 現在のステップを実行 ──
             if (cs.phase === 'acting') {
+                // 🐙 遠隔攻撃実行中は確実に本体を狙う
+                if (cs.comboType === 'far' && target && target.isKrakenTentacle && this.krakenBoss && !this.krakenBoss.isDead) {
+                    target = this.krakenBoss;
+                    p.targetEnemy = target;
+                }
+
                 const action = p.patterns[cs.comboType][cs.stepIdx];
 
                 // 🌸 さくら(006) 遠距離: ミラージュシフト (目標に向かって最大10mスライド残像移動、無敵、秒速3m)
@@ -2089,6 +2196,12 @@ export class BattleEngine {
         for (const e of this.enemies) {
             if (e.isDead) continue;
             if (e.isSnakeBoss) {
+                const gs = GlobalState.getInstance();
+                const enemySlowMult = gs.enemySlowActive ? 0.80 : 1.0;
+                e.update(dt * enemySlowMult, this);
+                continue;
+            }
+            if (e.isKrakenBoss) {
                 const gs = GlobalState.getInstance();
                 const enemySlowMult = gs.enemySlowActive ? 0.80 : 1.0;
                 e.update(dt * enemySlowMult, this);
@@ -3682,6 +3795,140 @@ export class BattleEngine {
                 }
                 b.isDead = true;
                 continue;
+            }
+
+            // 🐙 クラーケンの脚（触手）との3D節（ノード）遮蔽・衝突判定
+            if (b.owner === 'player' && !b.isDead && this.krakenBoss && !this.krakenBoss.isDead) {
+                const kraken = this.krakenBoss;
+                const aliveTentacles = kraken.tentacles.filter(t => !t.isBroken);
+                const bY = b.y !== undefined ? b.y : 0.8;
+                const bulletRadius = b.hitRange !== undefined ? b.hitRange : ((b.size || 0.5) / 2);
+                const isSwing = b.type && b.type.startsWith('swing_');
+
+                for (const t of aliveTentacles) {
+                    if (b.isDead) break;
+                    if (!b.hitTimes) b.hitTimes = new Map();
+                    const lastHitTime = b.hitTimes.get(t) || -999;
+                    if (this.time - lastHitTime < 0.15) continue; // 同じ脚への重複ヒット防止
+
+                    // 脚の根元との大まかな距離チェック（AABB早抜け: 触手長さ4.5m + 半径）
+                    const distToRoot = Math.hypot(b.x - t.currentRootX, b.z - t.currentRootZ);
+                    if (distToRoot > (kraken.tentacleLength + bulletRadius + 1.2)) continue;
+
+                    let hitNode = null;
+
+                    // 🐙 触手のどの節（ノード）に命中したかを正確に判定
+                    // プレイヤーが見ている画面上で弾丸の中心に最も重なっている節（minDist）を選定！
+                    if (this.projector) {
+                        const pB = this.projector.project(b.x, b.z, bY);
+                        if (pB && pB.visible) {
+                            let minDistPx = 999999;
+                            const bRPx = Math.max(10, bulletRadius * (pB.scale || 30));
+
+                            for (let s = 0; s < kraken.SEGMENTS; s++) {
+                                const node = t.nodes[s];
+                                let sx = node.screenX;
+                                let sy = node.screenY;
+                                if (!sx && !sy) {
+                                    const np = this.projector.project(node.x, node.z, node.y || 0);
+                                    sx = np.x;
+                                    sy = np.y;
+                                }
+                                const nodeRPx = node.hitRadiusPx || Math.max(14, 25 * kraken.scaleRatio);
+                                const totalRPx = nodeRPx + bRPx;
+                                const distPx = Math.hypot(pB.x - sx, pB.y - sy);
+
+                                // 画面上で重なっており、より中心に近い節を採用
+                                if (distPx <= totalRPx && distPx < minDistPx) {
+                                    minDistPx = distPx;
+                                    hitNode = node;
+                                }
+                            }
+                        }
+                    }
+
+                    // スクリーン判定で見つからなかった場合（または近接スイング時）の3Dフォールバック
+                    if (!hitNode) {
+                        let minDist3D = 999999;
+                        for (let s = 0; s < kraken.SEGMENTS; s++) {
+                            const node = t.nodes[s];
+                            const sRatio = 1.0 - (s / (kraken.SEGMENTS - 1));
+                            const nodeRadius = (0.18 + 0.37 * sRatio) * kraken.scaleRatio;
+                            const totalR = nodeRadius + bulletRadius;
+
+                            const ndx = b.x - node.x;
+                            const ndy = bY - (node.y || 0);
+                            const ndz = b.z - node.z;
+                            const d3 = ndx * ndx + ndy * ndy + ndz * ndz;
+
+                            if (d3 <= totalR * totalR && d3 < minDist3D) {
+                                minDist3D = d3;
+                                hitNode = node;
+                            }
+                        }
+                    }
+
+                    if (hitNode) {
+                        b.hitTimes.set(t, this.time);
+
+                        // 🐙 触手の節（0〜15）のどこかにランダムにヒットマークを発生させる！
+                        const randomSegIdx = Math.floor(Math.random() * kraken.SEGMENTS);
+                        const fxNode = t.nodes[randomSegIdx] || hitNode;
+
+                        // 🐙 通常の戦闘と同じ属性ヒットエフェクト (element_hit_1〜5)
+                        const attrMap = { 'red': 1, 'purple': 2, 'green': 3, 'yellow': 4, 'blue': 5 };
+                        const atkAttr = (b.sourceEntity && b.sourceEntity.attribute) ? b.sourceEntity.attribute : 'purple';
+                        const effId = attrMap[atkAttr] || (Math.floor(Math.random() * 5) + 1);
+
+                        const spawnHitEffect = (nx, ny, nz) => {
+                            const eff = new EffectEntity(nx, nz, {
+                                type: `element_hit_${effId}`,
+                                radius: 0.1,
+                                lifeTime: 0.6,
+                                customData: {
+                                    isFatal: false,
+                                    targetSize: 1.0,
+                                    pattern: Math.floor(Math.random() * 8)
+                                }
+                            });
+                            eff.y = ny;
+                            this.effects.push(eff);
+                        };
+
+                        // ① 手榴弾の場合: 接触時に即爆発！
+                        if (b.type === 'grenade') {
+                            const gEff = new EffectEntity(fxNode.x, fxNode.z, { type: 'grenade_explosion', radius: 2.0, lifeTime: 0.5 });
+                            gEff.y = fxNode.y;
+                            this.effects.push(gEff);
+                            kraken.damageTentacle(t.id, b.damage, 'normal', hitNode);
+                            b.isDead = true;
+                            break;
+                        }
+
+                        // ② 貫通弾の場合: 減衰して奥へ進み続ける
+                        const isPiercing = b.isPiercing || b.type === 'weapon_003' || b.type === 'weapon_009';
+                        if (isPiercing && !isSwing) {
+                            b.hitCount = (b.hitCount || 0) + 1;
+                            const decayedDamage = b.damage * Math.pow(2/3, b.hitCount);
+                            kraken.damageTentacle(t.id, decayedDamage, 'normal', hitNode);
+                            spawnHitEffect(fxNode.x, fxNode.y, fxNode.z);
+                        }
+                        // ③ 近接スイングの場合: スイング攻撃
+                        else if (isSwing) {
+                            kraken.damageTentacle(t.id, b.damage, 'normal', hitNode);
+                            spawnHitEffect(fxNode.x, fxNode.y, fxNode.z);
+                        }
+                        // ④ 通常の遠隔弾（非貫通）: 肉壁に当たってダメージを与え、弾丸は消滅（遮蔽成功）！
+                        else {
+                            kraken.damageTentacle(t.id, b.damage, 'normal', hitNode);
+                            spawnHitEffect(fxNode.x, fxNode.y, fxNode.z);
+                            b.isDead = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (b.isDead) continue; // 脚に当たって消滅した弾は奥の本体には当たらない！
             }
 
             const enemyList = this.isPvpBattle ? this.pvpEnemies : this.enemies;

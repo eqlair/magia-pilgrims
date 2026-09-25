@@ -110,6 +110,11 @@ export default class DemoScene extends Phaser.Scene {
                 label: '⑬ 🐍 蛇ボステスト\n（海竜・ウツボ型魔女の挙動検証）',
                 color: 0x116666,
                 action: () => this._testSnakeBoss()
+            },
+            {
+                label: '⑭ 🐙 クラーケンテスト\n（巨大タコ魔女・実戦サイズ検証）',
+                color: 0x4a1166,
+                action: () => this._testKrakenBoss()
             }
         ];
 
@@ -358,6 +363,19 @@ export default class DemoScene extends Phaser.Scene {
             waveCount: 1,
             majoLevel: 15,
             isSnakeBossTest: true,
+            party: ['001', '002', '003', '004', '005']
+        };
+        TransitionManager.transitionTo(this, 'BattleScene', config);
+    }
+
+    _testKrakenBoss() {
+        const config = {
+            rule: 0,
+            attribute: 'purple',
+            enemyCount: 1,
+            waveCount: 1,
+            majoLevel: 20,
+            isKrakenBossTest: true,
             party: ['001', '002', '003', '004', '005']
         };
         TransitionManager.transitionTo(this, 'BattleScene', config);

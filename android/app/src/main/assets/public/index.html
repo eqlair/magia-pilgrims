@@ -116,14 +116,13 @@
   </head>
   <body>
     <div id="game-container">
-      <!-- 起動直後から最速で表示されるローディング画面（タップで手動スキップも可能） -->
-      <div id="loading-screen" onclick="window.skipBootLoading && window.skipBootLoading()">
+      <!-- 起動直後から最速で表示されるローディング画面（ロード完了までスキップ不可） -->
+      <div id="loading-screen">
         <div class="loading-title">Magia Pilgrims</div>
         <div class="loading-bar-wrapper">
           <div id="loading-bar-fill" class="loading-bar-fill"></div>
         </div>
         <div id="loading-text" class="loading-text">Now Loading... 0%</div>
-        <div style="font-size: 11px; color: #8888aa; margin-top: 14px; opacity: 0.8; letter-spacing: 1px; cursor: pointer;">タップでスキップ</div>
       </div>
       <video id="title-video" muted loop playsinline preload="none">
         <source src="./files/OP/OP001.mp4" type="video/mp4">

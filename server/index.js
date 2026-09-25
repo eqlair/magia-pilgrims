@@ -118,6 +118,45 @@ app.post('/api/report', (req, res) => {
     }
 });
 
+// 日時フォーマットヘルパー (見やすい表記に変換)
+function formatJst(dateStr, includeSeconds = true) {
+    if (!dateStr) return '-';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        const s = String(d.getSeconds()).padStart(2, '0');
+        if (!includeSeconds) {
+            return `${m}/${day} ${h}:${min}`;
+        }
+        return `${y}/${m}/${day} ${h}:${min}:${s}`;
+    } catch {
+        return dateStr;
+    }
+}
+
+// レポート全件削除API
+app.post('/api/reports/clear', (req, res) => {
+    try {
+        if (db) {
+            db.exec('DELETE FROM reports');
+            try { db.exec('VACUUM'); } catch {}
+        }
+        if (fs.existsSync(JSONL_PATH)) {
+            fs.writeFileSync(JSONL_PATH, '', 'utf-8');
+        }
+        console.log('🗑️ [Reports Cleared] All telemetry reports have been cleared.');
+        res.json({ success: true, message: 'All reports cleared' });
+    } catch (err) {
+        console.error('[Clear Error]', err);
+        res.status(500).json({ error: 'Failed to clear reports', message: err.message });
+    }
+});
+
 // JSONでの直近レポート取得
 app.get('/api/reports/raw', (req, res) => {
     try {
@@ -322,6 +361,7 @@ app.get('/api/reports/recent', (req, res) => {
             const latest = p.latestReport;
             const badgeColor = latest.event_type === 'wipeout' ? '#e74c3c' : (latest.event_type === 'startup' ? '#3498db' : '#2ecc71');
             const shortUuid = p.uuid.slice(0, 8);
+            const isPlayerDebug = p.reports.some(r => r.data?.is_debug || r.data?.environment === 'development');
 
             // 履歴タイムラインのHTML
             const timelineHtml = p.reports.map((r, rIdx) => {
@@ -330,18 +370,24 @@ app.get('/api/reports/recent', (req, res) => {
                 const rMap = r.data?.map_progress;
                 const rTower = r.data?.tower_progress;
                 const rLocation = rTower?.floor > 0 ? `塔 ${rTower.floor}F` : (rMap?.currentMonth ? `${rMap.currentMonth}/${rMap.currentDay || 1} (${rMap.timeOfDay || '午前'})` : '-');
+                const isItemDebug = !!(r.data?.is_debug || r.data?.environment === 'development');
                 
                 const enemyHtml = r.event_type === 'wipeout' ? renderEnemyCard(r.data?.enemy_info) : '';
                 const charCardsHtml = renderCharacterCards(r.data?.characters, r.data?.battle_party || []);
                 const jsonStr = JSON.stringify(r.data, null, 2);
 
+                const debugBadge = isItemDebug 
+                    ? '<span style="background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">DEBUG</span>' 
+                    : '';
+
                 return `
-                    <div style="border-left: 3px solid ${rBadgeColor}; background: #181b20; border-radius: 0 8px 8px 0; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                    <div class="report-entry ${isItemDebug ? 'is-debug-entry' : ''}" style="border-left: 3px solid ${rBadgeColor}; background: #181b20; border-radius: 0 8px 8px 0; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #2a2e35; padding-bottom: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="background: ${rBadgeColor}; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">${r.event_type.toUpperCase()}</span>
-                                <span style="font-size: 12px; color: #bbb; font-family: monospace;">${r.created_at}</span>
-                                <span style="font-size: 12px; color: #888;">(ID: #${r.id || '-'})</span>
+                                ${debugBadge}
+                                <span style="font-size: 13px; color: #eee; font-weight: 500;">📅 ${formatJst(r.created_at)}</span>
+                                <span style="font-size: 11px; color: #888;">(#${r.id || '-'})</span>
                             </div>
                             <div style="font-size: 12px; display: flex; gap: 12px;">
                                 <span>場所: <b style="color: #4aa3df;">${rLocation}</b></span>
@@ -366,23 +412,28 @@ app.get('/api/reports/recent', (req, res) => {
                 `;
             }).join('');
 
+            const playerDebugBadge = isPlayerDebug 
+                ? '<span style="background: #e67e22; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">DEBUG</span>' 
+                : '';
+
             return `
-                <div style="background: #1f232a; border: 1px solid #333a44; border-radius: 8px; margin-bottom: 14px; overflow: hidden;">
+                <div class="player-card ${isPlayerDebug ? 'is-debug-player' : ''}" style="background: #1f232a; border: 1px solid #333a44; border-radius: 8px; margin-bottom: 14px; overflow: hidden;">
                     <!-- プレイヤーヘッダー行（クリックで開閉） -->
                     <div onclick="togglePlayer('player-${pIdx}')" style="cursor: pointer; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #242932; border-bottom: 1px solid #2e3440; transition: background 0.2s;" onmouseover="this.style.background='#2d3440'" onmouseout="this.style.background='#242932'">
-                        <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
                             <span id="icon-player-${pIdx}" style="font-size: 14px; color: #4aa3df; transition: transform 0.2s;">▶</span>
                             <div>
                                 <span style="font-weight: bold; font-size: 15px; color: #fff;">個体: <code style="color: #58a6ff;">${shortUuid}</code></span>
                                 <span style="font-size: 11px; color: #777; margin-left: 6px;">(${p.uuid})</span>
                             </div>
+                            ${playerDebugBadge}
                             <span style="background: #3a4250; color: #ddd; font-size: 11px; padding: 2px 7px; border-radius: 12px; font-weight: bold;">
                                 記録: ${p.reportCount}件
                             </span>
                         </div>
 
                         <div style="display: flex; align-items: center; gap: 16px; font-size: 13px;">
-                            <div>最終活動: <span style="font-family: monospace; color: #ccc;">${latest.created_at.slice(5, 16)}</span></div>
+                            <div>最終活動: <b style="color: #eee;">${formatJst(latest.created_at, false)}</b></div>
                             <span style="background: ${badgeColor}; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">${latest.event_type}</span>
                             <div>場所: <b style="color: #4aa3df;">${p.locationStr}</b></div>
                             <div>累計EXP: <b style="color: #f1c40f;">${Number(p.currentExp).toLocaleString()}</b></div>
@@ -391,9 +442,9 @@ app.get('/api/reports/recent', (req, res) => {
 
                     <!-- プレイヤー履歴タイムライン（折りたたみ部分） -->
                     <div id="player-${pIdx}" style="display: none; padding: 16px; background: #16181d;">
-                        <div style="margin-bottom: 12px; font-size: 13px; color: #888; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="margin-bottom: 12px; font-size: 13px; color: #888; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
                             <span>📜 この個体の成長履歴タイムライン（新しい順）</span>
-                            <span style="font-size: 11px;">初回記録: ${p.oldestReport.created_at} ➔ 最終記録: ${p.latestReport.created_at}</span>
+                            <span style="font-size: 11px;">初回: <b>${formatJst(p.oldestReport.created_at)}</b> ➔ 最終: <b>${formatJst(p.latestReport.created_at)}</b></span>
                         </div>
                         ${timelineHtml}
                     </div>
@@ -404,15 +455,19 @@ app.get('/api/reports/recent', (req, res) => {
         // 全件フラットログ行
         const allRowsHtml = records.map(r => {
             const badgeColor = r.event_type === 'wipeout' ? '#e74c3c' : (r.event_type === 'startup' ? '#3498db' : '#2ecc71');
+            const isItemDebug = !!(r.data?.is_debug || r.data?.environment === 'development');
             const dataStr = JSON.stringify(r.data, null, 2);
             return `
-                <tr style="border-bottom: 1px solid #2a2e35;">
-                    <td style="padding: 8px;">${r.id || '-'}</td>
-                    <td style="padding: 8px; font-size: 11px; font-family: monospace;">${r.created_at}</td>
-                    <td style="padding: 8px;"><span style="background: ${badgeColor}; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">${r.event_type}</span></td>
-                    <td style="padding: 8px; font-size: 12px;">${r.summary}</td>
-                    <td style="padding: 8px; font-family: monospace; font-size: 11px;"><code style="color: #58a6ff;">${r.player_uuid.slice(0, 8)}</code></td>
-                    <td style="padding: 8px;">
+                <tr class="log-row ${isItemDebug ? 'is-debug-entry' : ''}" style="border-bottom: 1px solid #2a2e35;">
+                    <td style="padding: 10px 8px;">${r.id || '-'}</td>
+                    <td style="padding: 10px 8px; font-size: 13px; font-weight: 500; color: #eee; white-space: nowrap;">${formatJst(r.created_at)}</td>
+                    <td style="padding: 10px 8px;">
+                        <span style="background: ${badgeColor}; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">${r.event_type}</span>
+                        ${isItemDebug ? '<span style="background: #e67e22; color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 9px; font-weight: bold; margin-left: 4px;">DEBUG</span>' : ''}
+                    </td>
+                    <td style="padding: 10px 8px; font-size: 12px;">${r.summary}</td>
+                    <td style="padding: 10px 8px; font-family: monospace; font-size: 11px;"><code style="color: #58a6ff;">${r.player_uuid.slice(0, 8)}</code></td>
+                    <td style="padding: 10px 8px;">
                         <details>
                             <summary style="cursor: pointer; color: #4aa3df; font-size: 11px;">JSON</summary>
                             <pre style="background: #101215; color: #eee; padding: 8px; border-radius: 4px; font-size: 10px; max-height: 200px; overflow: auto;">${dataStr}</pre>
@@ -434,18 +489,21 @@ app.get('/api/reports/recent', (req, res) => {
                     body { background: #0f1115; color: #d1d5db; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; padding: 20px; margin: 0; line-height: 1.5; }
                     h1 { color: #fff; margin: 0 0 10px 0; font-size: 22px; display: flex; align-items: center; gap: 10px; }
                     .header-box { background: #1a1e24; border: 1px solid #2a303a; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-                    .stats-badges { display: flex; gap: 12px; }
+                    .stats-badges { display: flex; gap: 12px; align-items: center; }
                     .stat-item { background: #222832; border: 1px solid #323a48; border-radius: 6px; padding: 6px 14px; text-align: center; }
                     .stat-label { font-size: 11px; color: #888; }
                     .stat-val { font-size: 18px; font-weight: bold; color: #4aa3df; }
-                    .tab-btn { background: #222832; border: 1px solid #333d4b; color: #aaa; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+                    .tab-btn { background: #222832; border: 1px solid #333d4b; color: #aaa; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.2s; }
                     .tab-btn.active { background: #4aa3df; color: #fff; border-color: #4aa3df; }
+                    .danger-btn { background: #5c1d1d; border: 1px solid #8e2a2a; color: #ff9999; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.2s; }
+                    .danger-btn:hover { background: #8e2a2a; color: #fff; }
                     table { width: 100%; border-collapse: collapse; background: #181b20; border-radius: 6px; overflow: hidden; }
                     th { background: #222832; padding: 10px; text-align: left; font-size: 12px; color: #aaa; border-bottom: 1px solid #323a48; }
                     code { background: #222630; padding: 2px 5px; border-radius: 3px; }
+                    .hide-debug .is-debug-player, .hide-debug .is-debug-entry { display: none !important; }
                 </style>
             </head>
-            <body>
+            <body class="hide-debug">
                 <div class="header-box">
                     <div>
                         <h1>📊 Magia Pilgrims プレイレポート分析</h1>
@@ -454,18 +512,27 @@ app.get('/api/reports/recent', (req, res) => {
                     <div class="stats-badges">
                         <div class="stat-item">
                             <div class="stat-label">総プレイヤー(個体)数</div>
-                            <div class="stat-val" style="color: #2ecc71;">${playersList.length}</div>
+                            <div class="stat-val" id="stat-player-count" style="color: #2ecc71;">${playersList.length}</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">受信レポート総数</div>
-                            <div class="stat-val">${records.length}</div>
+                            <div class="stat-val" id="stat-report-count">${records.length}</div>
                         </div>
+                        <button class="danger-btn" onclick="clearAllReports()">🗑️ 全データ消去</button>
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                    <button id="btn-group" class="tab-btn active" onclick="switchTab('group')">👥 個体別集約ビュー (${playersList.length}人)</button>
-                    <button id="btn-all" class="tab-btn" onclick="switchTab('all')">📜 全件ログ (${records.length}件)</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-group" class="tab-btn active" onclick="switchTab('group')">👥 個体別集約ビュー</button>
+                        <button id="btn-all" class="tab-btn" onclick="switchTab('all')">📜 全件ログ</button>
+                    </div>
+                    <div style="background: #1a1e24; border: 1px solid #2e3440; border-radius: 6px; padding: 6px 14px; font-size: 13px;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;">
+                            <input type="checkbox" id="chk-hide-debug" checked onchange="toggleDebugFilter()">
+                            <span>🧪 デバッグ・開発環境のテストデータを除外する</span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- プレイヤー別集約ビュー -->
@@ -480,7 +547,7 @@ app.get('/api/reports/recent', (req, res) => {
                             <tr>
                                 <th style="width: 50px;">ID</th>
                                 <th style="width: 170px;">受信日時 (JST)</th>
-                                <th style="width: 90px;">種別</th>
+                                <th style="width: 100px;">種別</th>
                                 <th>サマリー</th>
                                 <th style="width: 110px;">個体UUID</th>
                                 <th style="width: 80px;">詳細</th>
@@ -528,6 +595,33 @@ app.get('/api/reports/recent', (req, res) => {
                                 icon.innerText = '▶';
                                 icon.style.color = '#4aa3df';
                             }
+                        }
+                    }
+
+                    function toggleDebugFilter() {
+                        const chk = document.getElementById('chk-hide-debug');
+                        if (chk.checked) {
+                            document.body.classList.add('hide-debug');
+                        } else {
+                            document.body.classList.remove('hide-debug');
+                        }
+                    }
+
+                    async function clearAllReports() {
+                        if (!window.confirm("⚠️ 本当にすべてのプレイレポートデータを消去しますか？\\n\\n※ SQLiteデータベースおよびJSONLログの両方が初期化されます。この操作は取り消せません。")) {
+                            return;
+                        }
+                        try {
+                            const res = await fetch('/api/reports/clear', { method: 'POST' });
+                            const data = await res.json();
+                            if (data.success) {
+                                alert("✅ すべてのプレイレポートデータを消去しました！");
+                                window.location.reload();
+                            } else {
+                                alert("消去に失敗しました: " + (data.error || '不明なエラー'));
+                            }
+                        } catch (err) {
+                            alert("通信エラーが発生しました: " + err.message);
                         }
                     }
                 </script>

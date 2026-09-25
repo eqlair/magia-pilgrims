@@ -96,6 +96,13 @@ export default class BattleScene extends Phaser.Scene {
         // 蛇型ボス（海竜・ウツボ魔女: 167x1024 縦長Rope用）
         this.load.image('boss_snake', 'files/ENEMY/boss_snake.webp');
 
+        // 巨大タコ魔女（クラーケン）用アセット
+        this.load.image('kraken_a', 'files/ENEMY/KrakenA.png');
+        this.load.image('kraken_b', 'files/ENEMY/KrakenB.png');
+        this.load.image('kraken_c', 'files/ENEMY/KrakenC.png');
+        this.load.image('kraken_bg', 'files/BG_battle/KrakenBG.jpg');
+        this.load.audio('bgm_boss_kraken', 'files/BGM/BOSS002.mp3');
+
 
         this.load.image('bullet', 'files/CHR/001004.webp');
         this.load.image('enemy_bullet', 'files/EFFECT/ball.webp');
@@ -207,7 +214,34 @@ export default class BattleScene extends Phaser.Scene {
             const bg = this.add.image(width / 2, height / 2, bgKey);
             bg.setOrigin(0.5, 0.5);
             bg.setScale(Math.max(width / bg.width, height / bg.height));
+        } else if (this.battleConfig.isKrakenBossTest) {
+            const bgCenterX = width / 2;
+            const bgCenterY = height / 2;
+            const baseScale = 0.62;
+            const bg = this.add.image(bgCenterX, bgCenterY, 'kraken_bg');
+            bg.setOrigin(0.5, 0.5);
+            bg.setScale(baseScale * 1.10, baseScale);
             bg.setDepth(-100);
+
+            // 左右往復移動: 5秒かけて±50px
+            this.tweens.add({
+                targets: bg,
+                x: { from: bgCenterX - 50, to: bgCenterX + 50 },
+                duration: 5000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            // 水平拡縮: 3秒かけて 110%〜130%
+            this.tweens.add({
+                targets: bg,
+                scaleX: { from: baseScale * 1.10, to: baseScale * 1.30 },
+                duration: 3000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            this.krakenBg = bg;
         } else {
             const bgIndex = Math.floor(Math.random() * 3) + 1;
             const bg = this.add.image(width / 2, height / 2, `bg00${bgIndex}`);
@@ -220,12 +254,36 @@ export default class BattleScene extends Phaser.Scene {
         // ワイルドハント（12/21夜突破戦）時は EventScene から流れている bgm_wildhunt をそのままシームレス継続！
         const isWildhunt = this.battleConfig.is1221NightBattle || (this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt'));
         // タワー魔女単体戦、タワーボスなど即時魔女戦フラグ
-        const isImmediateBoss = this.battleConfig.isTower21Boss || this.battleConfig.isProcellBoss || this.battleConfig.isWitchOnly || (this.battleConfig.isTowerBattle && (this.battleConfig.majoLevel > 0)) || this.battleConfig.isSnakeBossTest;
+        const isImmediateBoss = this.battleConfig.isTower21Boss || this.battleConfig.isProcellBoss || this.battleConfig.isWitchOnly || (this.battleConfig.isTowerBattle && (this.battleConfig.majoLevel > 0)) || this.battleConfig.isSnakeBossTest || this.battleConfig.isKrakenBossTest;
+
+        const isKrakenBattle = this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event;
 
         if (isWildhunt) {
             const isWhPlaying = this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt');
             if (!isWhPlaying && this.cache.audio.exists('bgm_wildhunt')) {
                 this.sound.play('bgm_wildhunt', { loop: true, volume: 0.75 });
+            }
+        } else if (isKrakenBattle) {
+            // 🐙 クラーケン戦: 先にBGMが鳴っていたら別に再生せずそのまま継続！
+            this.isBossBgmStarted = true; // 後からのボスBGM割り込みも完全防止
+            const playingBgm = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying) : null;
+            if (playingBgm) {
+                this.tweens.killTweensOf(playingBgm);
+                try { playingBgm.setVolume(0.5); } catch (e) {}
+                // 重複している他の再生中サウンドがあれば停止
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying && s !== playingBgm) {
+                            try { s.stop(); } catch (e) {}
+                        }
+                    });
+                }
+            } else {
+                // 先に鳴っているBGMが何もない場合のみ tow_Kraken を再生
+                const kKey = (this.cache.audio.exists('tow_Kraken')) ? 'tow_Kraken' : (this.cache.audio.exists('bgm_boss_kraken') ? 'bgm_boss_kraken' : 'bgm_hexen');
+                if (this.cache.audio.exists(kKey)) {
+                    this.sound.play(kKey, { loop: true, volume: 0.5 });
+                }
             }
         } else if (this.battleConfig.isSnakeBossTest) {
             // 蛇ボステスト: ボスBGM (bgm_boss4) を即時再生
@@ -234,6 +292,14 @@ export default class BattleScene extends Phaser.Scene {
             }
             if (this.cache.audio.exists('bgm_boss4')) {
                 this.sound.play('bgm_boss4', { loop: true, volume: 0.6 });
+            }
+        } else if (this.battleConfig.isKrakenBossTest) {
+            // クラーケンボステスト: ボスBGM (bgm_boss_kraken) を即時再生
+            if (this.sound && this.sound.sounds) {
+                this.sound.sounds.forEach(s => { if (s && s.isPlaying) s.stop(); });
+            }
+            if (this.cache.audio.exists('bgm_boss_kraken')) {
+                this.sound.play('bgm_boss_kraken', { loop: true, volume: 0.65 });
             }
         } else if (isImmediateBoss) {
             // 直接魔女戦（タワー魔女マス、タワーボス等）の場合：
@@ -313,6 +379,7 @@ export default class BattleScene extends Phaser.Scene {
 
         // 3. 描画レンダラーの初期化
         this.renderer = new BattleRenderer(this, this.engine, this.projector);
+        this.engine.projector = this.projector;
 
 
         // スワイプ操作の実装
@@ -700,6 +767,11 @@ export default class BattleScene extends Phaser.Scene {
         // 魔女戦闘開始時のBGM
         if (this.engine.waveState === 'boss' && !this.isBossBgmStarted) {
             this.isBossBgmStarted = true;
+
+            // 🐙 クラーケン戦はBGMを上書き再生しない（既存BGMをそのまま継続）
+            if (this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event) {
+                return;
+            }
             
             // 残存している遅延フェードアウトタイマーを確実に破棄（ボスBGMの巻き込み停止を完全防止）
             if (this.bossFadeTimer) {
@@ -870,6 +942,7 @@ export default class BattleScene extends Phaser.Scene {
                     majoLevel: this.battleConfig.majoLevel || 0,
                     isNightExploration: this.battleConfig.isNightExploration || false,
                     isTower21Boss: !!this.battleConfig.isTower21Boss,
+                    fromIkebukuro02Event: !!this.battleConfig.fromIkebukuro02Event,
                     returnScene: this.battleConfig.returnScene || 'AdventureScene',
                     charDamageStats: this.engine.getCharDamageStats(),
                     battleDuration: this.engine.time
@@ -909,6 +982,7 @@ export default class BattleScene extends Phaser.Scene {
                 isRetreated: this.engine.waveState === 'retreated',
                 isNightExploration: this.battleConfig.isNightExploration,
                 is1221NightBattle: this.battleConfig.is1221NightBattle || false,
+                fromIkebukuro02Event: this.battleConfig.fromIkebukuro02Event || false,
                 sionFinalSp: sionPlayer ? Math.floor(sionPlayer.sp) : null,
                 fromBattle: true,
                 battleDuration: this.engine ? this.engine.time : 0

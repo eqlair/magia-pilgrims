@@ -16,15 +16,16 @@ export class MapProjector {
     }
 
     /**
-     * ワールド座標 (wx, wz) をスクリーン座標に変換する
+     * ワールド座標 (wx, wz, wy) をスクリーン座標に変換する
      * @param {number} wx 横方向の座標 (m) 中心が0
      * @param {number} wz 奥方向の座標 (m) 手前が0
+     * @param {number} wy 上方向の高さ座標 (m) 水面/盤面が0、上空が正
      * @returns {object} { x: px, y: px, scale: number, depth: number, visible: boolean }
      */
-    project(wx, wz) {
+    project(wx, wz, wy = 0) {
         // カメラからの相対座標
         const cx = wx;
-        const cy = -this.cameraHeight; // 盤面は Y=0
+        const cy = wy - this.cameraHeight; // 盤面は Y=0、上空は wy
         const cz = wz - this.cameraZ;
 
         // X軸周りにピッチ角で回転 (見下ろし)

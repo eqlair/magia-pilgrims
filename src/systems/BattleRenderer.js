@@ -135,6 +135,11 @@ export class BattleRenderer {
                 }
                 continue;
             }
+            if (e.isKrakenBoss) {
+                this._updateKrakenBoss(e);
+                this._updateUI(e);
+                continue;
+            }
             this._updateSprite(e, e.textureKey || 'enemy');
             this._updateUI(e);
         }
@@ -375,6 +380,176 @@ export class BattleRenderer {
         this.snakeRope.setDirty();
     }
 
+    _updateKrakenBoss(kraken) {
+        if (!this.krakenSpriteA) {
+            // A（顔・目、下層）
+            this.krakenSpriteA = this.scene.add.image(0, 0, 'kraken_a');
+            this.krakenSpriteA.setOrigin(0.5, 0.5);
+
+            // B（頭部マントル、上層）
+            this.krakenSpriteB = this.scene.add.image(0, 0, 'kraken_b');
+            this.krakenSpriteB.setOrigin(0.5, 0.5);
+
+            this.krakenBodyBX = 0;
+            this.krakenBodyBY = 0;
+
+            // 8本の触手Ropeを生成
+            this.krakenRopes = [];
+            kraken.tentacles.forEach(t => {
+                const rope = this.scene.add.rope(0, 0, 'kraken_c', null, kraken.SEGMENTS, false);
+                rope.nodeHalfWidths = new Float32Array(kraken.SEGMENTS);
+
+                rope.updateVertices = function() {
+                    const points = this.points;
+                    const vertices = this.vertices;
+                    const perp = this._perp;
+                    const total = points.length;
+                    this.dirty = false;
+                    if (total < 1) return;
+
+                    let lastPoint = points[0];
+                    let nextPoint;
+
+                    for (let i = 0; i < total; i++) {
+                        const point = points[i];
+                        const index = i * 4;
+                        if (i < total - 1) {
+                            nextPoint = points[i + 1];
+                        } else {
+                            nextPoint = point;
+                        }
+
+                        perp.x = nextPoint.y - lastPoint.y;
+                        perp.y = -(nextPoint.x - lastPoint.x);
+                        const perpLength = Math.hypot(perp.x, perp.y);
+                        if (perpLength > 0.001) {
+                            perp.x /= perpLength;
+                            perp.y /= perpLength;
+                        } else {
+                            perp.x = 0;
+                            perp.y = 1;
+                        }
+
+                        const halfW = (this.nodeHalfWidths && this.nodeHalfWidths[i] !== undefined) 
+                            ? this.nodeHalfWidths[i] 
+                            : 20;
+
+                        vertices[index]     = point.x + perp.x * halfW;
+                        vertices[index + 1] = point.y + perp.y * halfW;
+                        vertices[index + 2] = point.x - perp.x * halfW;
+                        vertices[index + 3] = point.y - perp.y * halfW;
+
+                        lastPoint = point;
+                    }
+                };
+
+                if (t.def.isBack) {
+                    if (rope.setColors) rope.setColors(0x656578);
+                } else {
+                    if (rope.setColors) rope.setColors(0xffffff);
+                }
+
+                this.krakenRopes.push(rope);
+            });
+        }
+
+        // 死亡演出
+        if (kraken.isDead) {
+            this.krakenSpriteA.setVisible(false);
+            this.krakenSpriteB.setVisible(false);
+            this.krakenRopes.forEach(r => r.setVisible(false));
+            return;
+        }
+
+        this.krakenSpriteA.setVisible(true);
+        this.krakenSpriteB.setVisible(true);
+        this.krakenRopes.forEach(r => r.setVisible(true));
+
+        // ── 1. 本体A+Bの透視投影 ──
+        const p = this.projector.project(kraken.x, kraken.z);
+        // タコ本体のワールド幅（デフォルト3.0m、さらに大きいタコにも比例スケール）
+        const bodySize = kraken.bodySize || 3.0;
+        const scaleRatio = kraken.scaleRatio || (bodySize / 3.0);
+        const imgWidth = (this.krakenSpriteA && this.krakenSpriteA.width) ? this.krakenSpriteA.width : 360;
+        const baseScale = (bodySize * p.scale) / imgWidth;
+        const flipSign = kraken.facingRight ? -1 : 1;
+
+        // 水面の微細な浮力揺れ
+        const floatY = Math.sin(this.scene.time.now * 0.0015) * Math.max(2, p.scale * 0.06);
+        const curAX = p.x;
+        const curAY = p.y + floatY;
+
+        this.krakenSpriteA.setPosition(curAX, curAY);
+        this.krakenSpriteA.setScale(baseScale * flipSign, baseScale);
+        this.krakenSpriteA.setDepth(p.depth);
+
+        // Bの脈動（±2%拡縮）とAへの遅延追随
+        const pulse = 1.0 + Math.sin(this.scene.time.now * 0.0028) * 0.022;
+        if (this.krakenBodyBX === 0) {
+            this.krakenBodyBX = curAX;
+            this.krakenBodyBY = curAY;
+        }
+        this.krakenBodyBX += (curAX - this.krakenBodyBX) * 0.15;
+        this.krakenBodyBY += (curAY - this.krakenBodyBY) * 0.15;
+
+        this.krakenSpriteB.setPosition(this.krakenBodyBX, this.krakenBodyBY);
+        this.krakenSpriteB.setScale(baseScale * flipSign * (1.0 / pulse), baseScale * pulse);
+        this.krakenSpriteB.setDepth(p.depth + 1);
+
+        // ── 2. 8本の触手の透視投影 ──
+        kraken.tentacles.forEach((t, tIdx) => {
+            const rope = this.krakenRopes[tIdx];
+            if (!rope) return;
+
+            if (t.isBroken) {
+                rope.setVisible(false);
+                return;
+            } else {
+                rope.setVisible(true);
+            }
+
+            const SEGMENTS = kraken.SEGMENTS;
+            let minNodeDepth = 9999;
+
+            for (let i = 0; i < SEGMENTS; i++) {
+                // t.nodes[i]: 0が根元、SEGMENTS-1が先端
+                // Ropeテクスチャ: 0が先端、SEGMENTS-1が根元
+                const ropeIdx = SEGMENTS - 1 - i;
+                const node = t.nodes[i];
+                const np = this.projector.project(node.x, node.z, node.y || 0);
+
+                if (np.depth < minNodeDepth) minNodeDepth = np.depth;
+
+                if (rope.points[ropeIdx]) {
+                    rope.points[ropeIdx].x = np.x;
+                    rope.points[ropeIdx].y = np.y;
+                }
+
+                // s: 先端0.0、根元1.0
+                const s = 1.0 - (i / (SEGMENTS - 1));
+                // 触手のワールド幅: 長さ4.5m・KrakenC.png(50x400, 比率1:8)の自然なプロポーション（根元約0.58m、先端約0.10m）
+                const widthMeters = (0.10 + 0.48 * Math.pow(s, 1.1)) * scaleRatio;
+                const halfW = Math.max(1.8, (widthMeters * np.scale) * 0.5);
+                rope.nodeHalfWidths[ropeIdx] = halfW;
+
+                // 当たり判定・エフェクト用にスクリーン座標と判定半径を記録
+                node.screenX = np.x;
+                node.screenY = np.y;
+                node.hitRadiusPx = Math.max(12, halfW * 1.5);
+            }
+
+            // 奥レイヤーと手前レイヤーの深度設定
+            if (t.def.isBack) {
+                rope.setDepth(p.depth - 4);
+            } else {
+                rope.setDepth(p.depth + 4);
+            }
+
+            rope.updateVertices();
+            rope.setDirty();
+        });
+    }
+
     _updateSprite(entity, textureKey) {
         let sprite = this.spriteMap.get(entity);
         if (!sprite) {
@@ -397,14 +572,15 @@ export class BattleRenderer {
             this.spriteMap.set(entity, sprite);
         }
 
-        const p = this.projector.project(entity.x, entity.z);
+        const hasCustomY = (entity.y !== undefined && entity.y !== 0);
+        const p = this.projector.project(entity.x, entity.z, entity.y || 0);
         if (p.visible) {
             sprite.setVisible(true);
             
-            // 弾丸や手りゅう弾はキャラの足元(Y)ではなく、腰の高さ（おおよそ1.0mの高さ）に表示する
+            // 弾丸や手りゅう弾はキャラの足元(Y)ではなく、腰の高さ（おおよそ1.0mの高さ）に表示する（3D高さyを持つ弾は除く）
             const isBarrier = (entity.type && (entity.type.includes('barrier') || entity.type.includes('010')));
             const isProjectile = textureKey === 'bullet' || textureKey === 'enemy_bullet' || textureKey === 'grenade' || textureKey === 'hit_effect6' || textureKey === 'nrg' || textureKey.startsWith('weapon_') || isBarrier || textureKey === 'shockwave_006';
-            let heightOffset = isProjectile ? p.scale * 1.0 : 0;
+            let heightOffset = isProjectile ? (hasCustomY ? 0 : p.scale * 1.0) : 0;
             if (textureKey === 'shockwave_006') {
                 heightOffset = p.scale * 0.5; // さくらの中心座標（腰・中心あたり）
             }
@@ -1270,7 +1446,7 @@ export class BattleRenderer {
                 textObj.setText(ft.amount.toString());
             }
 
-            const p = this.projector.project(ft.x, ft.z);
+            const p = this.projector.project(ft.x, ft.z, ft.y || 0);
 
             // 画面サイズ取得
             const screenW = this.projector.screenWidth || (this.scene.scale ? this.scene.scale.width : 540);
@@ -1283,9 +1459,10 @@ export class BattleRenderer {
                 : ((projScale / 70.0) * 0.8);
             scale = Math.max(0.65, Math.min(1.8, scale));
 
-            // ワールド投射位置（頭上オフセット）
+            // ワールド投射位置（通常キャラは足元から頭上2mだが、触手ノードなどft.y指定時はその節の真上）
+            const baseOffsetY = (ft.y !== undefined && ft.y > 0) ? (projScale * 0.4) : (projScale * 2.0 + (ft.yOffset || 0) * projScale);
             let rawX = p.visible ? p.x : (ft.x < 0 ? -100 : screenW + 100);
-            let rawY = p.visible ? (p.y - projScale * 2.0 - (ft.yOffset || 0) * projScale) : (ft.z > 20 ? -100 : screenH + 100);
+            let rawY = p.visible ? (p.y - baseOffsetY) : (ft.z > 20 ? -100 : screenH + 100);
 
             // 画面内に収まらない文字を画面スミギリギリにクランプ表示（左右マージン35px, 上45px, 下60px）
             const marginX = 35;
@@ -1367,7 +1544,7 @@ export class BattleRenderer {
             this.effectMap.set(eff, obj);
         }
         
-        const p = this.projector.project(eff.x, eff.z);
+        const p = this.projector.project(eff.x, eff.z, eff.y || 0);
         if (p.visible) {
             let progress = 1.0 - (eff.lifeTime / eff.maxLife);
 
@@ -1548,8 +1725,8 @@ export class BattleRenderer {
 
             
             if ((eff.type && (eff.type.startsWith('element_hit_') || eff.type.startsWith('enemy_death_'))) || eff.type === 'kick_hit') {
-                const effHeight = eff.customData?.isProcellBoss ? 1.4 : 1.0;
-                obj.setPosition(p.x, p.y - p.scale * effHeight); // 衝突点(腰の高さ、プロセルは胸の高さ)
+                const effHeight = eff.y !== undefined ? 0 : (eff.customData?.isProcellBoss ? 1.4 : 1.0);
+                obj.setPosition(p.x, p.y - p.scale * effHeight); // 衝突点(腰の高さ、プロセルは胸の高さ、eff.y指定時はその3D位置)
                 
                 let sizeM = 0;
                 let alpha = 0.8;

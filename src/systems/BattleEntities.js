@@ -116,6 +116,9 @@ export class BattleEntity {
         } else {
             this.x += this.vx * dt;
             this.z += this.vz * dt;
+            if (this.vy !== undefined) {
+                this.y = (this.y || 0) + this.vy * dt;
+            }
         }
 
         if (this.sp > 0) {
@@ -525,10 +528,10 @@ export class PlayerCharacter extends BattleEntity {
                 // 蒼樹 (特技: 10秒に1回、単体回復)
                 // 前列配置時: 自身HP < 90%なら自身、90%以上なら自身を含めもっとも生命力の少ないメンバー
                 // 後衛配置時: 自身
-                // 回復量: 蒼樹の生命力の (WL/3 + 6)%
-                // 消費精神力: 最大精神力の 0.4%
-                let healAmount = this.maxHp * ((this.wlv / 3.0 + 6.0) / 100.0);
-                let spCost = this.maxSp * 0.004;
+                // 回復量: 蒼樹の生命力の (WL/5 + 3)%
+                // 消費精神力: 最大精神力の 0.2%
+                let healAmount = this.maxHp * ((this.wlv / 5.0 + 3.0) / 100.0);
+                let spCost = this.maxSp * 0.002;
 
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
                 if (isPvp) {
@@ -610,10 +613,10 @@ export class PlayerCharacter extends BattleEntity {
                 }
             } else if (this.charId === '005') {
                 // 李乃果: 5秒に1回、2人回復
-                // 回復量: 李乃果の生命力の (WLV / 2 + 10)%
-                // 消費精神力: 回復させた人数 * 0.3% (最大SPの0.3%)
-                let healAmount = this.maxHp * ((this.wlv / 2.0 + 10.0) / 100.0);
-                let spCostPerPerson = this.maxSp * 0.003;
+                // 回復量: 李乃果の生命力の (WLV / 4 + 5)%
+                // 消費精神力: 回復させた人数 * 0.15% (最大SPの0.15%)
+                let healAmount = this.maxHp * ((this.wlv / 4.0 + 5.0) / 100.0);
+                let spCostPerPerson = this.maxSp * 0.0015;
 
                 // PvP対戦時は回復量および消費精神力もPvPスケールで圧縮
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
@@ -826,10 +829,10 @@ export class PlayerCharacter extends BattleEntity {
                 // リフィエル: 5秒に1回、2人回復
                 // 前列: 自身HP < 90%なら自身＋もう一人、90%以上なら自身含め最もHP割合の低い2人
                 // 後衛: 最もHP割合の低い2人
-                // 回復量: リフィエルの生命力の (WLV / 2 + 14)%
-                // 消費精神力: 回復させた人数 * 0.4% (最大SPの0.4%)
-                let healAmount = this.maxHp * ((this.wlv / 2.0 + 14.0) / 100.0);
-                let spCostPerPerson = this.maxSp * 0.004;
+                // 回復量: リフィエルの生命力の (WLV / 3 + 6)%
+                // 消費精神力: 回復させた人数 * 0.2% (最大SPの0.2%)
+                let healAmount = this.maxHp * ((this.wlv / 3.0 + 6.0) / 100.0);
+                let spCostPerPerson = this.maxSp * 0.002;
 
                 // PvP対戦時は回復量および消費精神力もPvPスケールで圧縮
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
@@ -2328,7 +2331,9 @@ export class BossCharacter extends BattleEntity {
 export class Bullet extends BattleEntity {
     constructor(x, z, data) {
         super(x, z);
+        this.y = data.y !== undefined ? data.y : 0;
         this.vx = data.vx || 0;
+        this.vy = data.vy || 0;
         this.vz = data.vz || 0;
         this.damage = data.damage || 1;
         this.knockback = data.knockback || 0;
@@ -2417,6 +2422,7 @@ export class Bullet extends BattleEntity {
 export class EffectEntity extends BattleEntity {
     constructor(x, z, data) {
         super(x, z);
+        this.y = data.y !== undefined ? data.y : (data.customData?.y !== undefined ? data.customData.y : undefined);
         this.type = data.type || 'explosion';
         this.radius = data.radius || 1.0;
         this.lifeTime = data.lifeTime || 0.5;

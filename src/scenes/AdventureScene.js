@@ -852,7 +852,7 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
             // ── 地上での周回リセット(event_resp)分岐（紫苑SP1/10以下 または 12/21魔女襲来全滅） ──
-            const isDec21Defeat = data && data.isGameOver && (data.is1221NightBattle || this.currentDay >= 21 || (this.currentMonth === 12 && this.currentDay >= 21));
+            const isDec21Defeat = data && data.isGameOver && !data.fromIkebukuro02Event && (data.is1221NightBattle || this.currentDay >= 21 || (this.currentMonth === 12 && this.currentDay >= 21));
             if (!this.isTowerMode && data && data.fromBattle && (isSionMentalBreak || isDec21Defeat) && !data.fromRespEvent) {
                 const respData = this.cache.json.get('event_resp');
                 if (respData) {
@@ -1292,9 +1292,60 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
-                // 池袋02イベント完了時 (12/21夜) -> タワー編突入
+                // 池袋02イベント完了時 (12/21夜) -> クラーケン戦からの復帰
                 if (data && data.fromIkebukuro02Event) {
                     const gs = GlobalState.getInstance();
+                    this._isStartingIkebukuro02 = false;
+
+                    // 🐙 クラーケン戦で撤退または全滅（敗北）した場合: タワー突入せず、通常戦闘同様に突入前スナップショットへ完全巻き戻し！
+                    if (data.isGameOver || data.isRetreated) {
+                        console.log('[AdventureScene] クラーケン戦で撤退/全滅 ➔ 突入前スナップショットへ完全巻き戻し');
+                        if (this.scene.isActive('EventScene')) {
+                            this.scene.stop('EventScene');
+                        }
+                        if (this._preBattleSnapshot) {
+                            this.restoreSnapshot(this._preBattleSnapshot);
+                            this._preBattleSnapshot = null;
+                        }
+                        gs.ikebukuro02Played = false;
+                        gs.hasEnteredTower = false;
+                        gs.isTowerMode = false;
+                        this._justReturnedFromGameOverOrRetreat = true;
+
+                        if (this._retreatMsgText) {
+                            this._retreatMsgText.destroy();
+                            this._retreatMsgText = null;
+                        }
+                        const msg = data.isRetreated ? '戦闘から撤退した。' : '部隊は全滅した…';
+                        this._retreatMsgText = this.add.text(this.scale.width / 2, this.scale.height / 2, msg, {
+                            fontFamily: 'sans-serif',
+                            fontSize: '28px',
+                            color: '#ff6666',
+                            backgroundColor: '#000000aa',
+                            padding: { x: 20, y: 10 }
+                        }).setOrigin(0.5).setDepth(9999).setScrollFactor(0);
+
+                        if (this.cameras && this.cameras.main) {
+                            this.cameras.main.ignore(this._retreatMsgText);
+                        }
+
+                        this.time.delayedCall(2000, () => {
+                            if (this._retreatMsgText) {
+                                this._retreatMsgText.destroy();
+                                this._retreatMsgText = null;
+                            }
+                        });
+
+                        SaveManager.saveGame(this);
+                        TransitionManager.fadeIn(this);
+                        this._playMapBgm(true);
+                        return;
+                    }
+
+                    // 🐙 クラーケン撃破勝利時: 初めて池袋02既読＆タワー突入フラグを立ててタワー1Fへ進軍！
+                    console.log('[AdventureScene] クラーケン撃破勝利！池袋02既読＆タワー突入フラグを建立してタワー1Fへ進軍');
+                    gs.ikebukuro02Played = true;
+                    gs.markEventSeen('event_ikebukuro02');
                     gs.isTowerMode = true;
                     gs.hasEnteredTower = true;
                     gs.towerElapsedSeconds = 0;
@@ -3410,8 +3461,11 @@ export default class AdventureScene extends Phaser.Scene {
 
         console.log(`[DEBUG Tarot AutoDraw] No.${cardId} ${cardName} (${posStr}) を自動獲得しました`);
 
-        // 仲間加入対象のカードかチェック (1:007, 4:004, 5:008, 9:003, 10:011, 12:002, 15:005)
+        // 仲間加入対象のカードかチェック (1:007, 4:004, 5:008, 9:003, 10:011, 12:002, 15:005, 16:010)
         const charMap = { 1: '007', 4: '004', 5: '008', 9: '003', 10: '011', 12: '002', 15: '005' };
+        if (cardId === 16 && (gs.tower21BossDefeated || GlobalState.IS_DEBUG_MODE)) {
+            charMap[16] = '010';
+        }
         const rawJoinId = charMap[cardId];
         let joinNotice = '';
         if (rawJoinId) {
@@ -3420,7 +3474,34 @@ export default class AdventureScene extends Phaser.Scene {
             const isPartyFull = currentNorm.length >= 5;
             const alreadyInParty = currentNorm.includes(normJoinId);
 
-            if (!alreadyInParty && !isPartyFull) {
+            // 🔮 TarotScene と完全一致する仲間加入解放条件チェック
+            let isUnlockedForTarot = true;
+
+            // ① ノア(008)・ななよ(007): 一度でも塔に突入したことがある実績(hasEnteredTower)が必要
+            if (normJoinId === '007' || normJoinId === '008') {
+                if (!gs.hasEnteredTower) {
+                    isUnlockedForTarot = false;
+                }
+            }
+
+            // ② 白蓮(011): 1周目(リスポーン未経験)はタロット遭遇不可。
+            // 秋葉原で探索して出会った後(hasAccompanied)か、1度以上リスポーンした後に解放
+            if (normJoinId === '011') {
+                const hasMetInAkiba = !!(gs.characters?.['011']?.hasAccompanied);
+                const hasRespawned = (gs.loopCount || 1) >= 2;
+                if (!hasMetInAkiba && !hasRespawned) {
+                    isUnlockedForTarot = false;
+                }
+            }
+
+            // ③ プロセル(010): 塔21階のボス撃破実績が必要
+            if (normJoinId === '010') {
+                if (!gs.tower21BossDefeated) {
+                    isUnlockedForTarot = false;
+                }
+            }
+
+            if (!alreadyInParty && !isPartyFull && isUnlockedForTarot) {
                 this.party.push(normJoinId);
                 gs.assignFormationForNewMember(normJoinId);
 
@@ -3443,6 +3524,8 @@ export default class AdventureScene extends Phaser.Scene {
                 joinNotice = ` ＆ ${charName}が加入！`;
                 SaveManager.saveGame(this);
                 console.log('[DEBUG Tarot AutoDraw] Joined party & saved formation:', normJoinId, this.party);
+            } else if (!isUnlockedForTarot) {
+                console.log(`[DEBUG Tarot AutoDraw] No.${cardId} の加入対象(${normJoinId})は解放条件未達成のため加入スキップ`);
             }
         }
 
@@ -4977,7 +5060,9 @@ export default class AdventureScene extends Phaser.Scene {
             const rawName = (targetHexData && targetHexData.name) ? targetHexData.name.replace(/\n/g, '').trim() : '';
 
             if (rawName === '池袋') {
-                gs.ikebukuro02Played = true;
+                if (this._isStartingIkebukuro02) return false;
+                this._isStartingIkebukuro02 = true;
+                this._preBattleSnapshot = this.createSnapshot();
                 const evData = this.cache.json.get('event_ikebukuro02');
                 if (evData) {
                     this.enqueueEvent({

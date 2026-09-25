@@ -268,13 +268,32 @@ export class TelemetryService {
      * レポート送信コア（Fire-and-Forget / リトライなし / ゲームを止めない）
      */
     static postReport(eventType, data) {
+        // ── 🛡️ 1. 自動テスト（Playwright / Puppeteer / ヘッドレスブラウザ等）は送信完全スキップ ──
+        const isAutomatedTest = (typeof navigator !== 'undefined' && navigator.webdriver) ||
+                                (typeof window !== 'undefined' && (window.__IS_TEST__ || window.__IS_PLAYWRIGHT_TEST__)) ||
+                                (typeof localStorage !== 'undefined' && localStorage.getItem('magia_telemetry_disabled') === 'true');
+        if (isAutomatedTest) {
+            console.log(`[Telemetry] Automated test detected (navigator.webdriver). Skipped ${eventType} report.`);
+            return;
+        }
+
+        // ── 🏷️ 2. デバッグ環境判定（ローカルホスト・デバッグモード等） ──
+        const isLocalhost = typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+        const isDebugMode = GlobalState.IS_DEBUG_MODE || false;
+        const isDebug = isLocalhost || isDebugMode;
+
         const url = this.getServerUrl();
         const playerUuid = this.getPlayerUuid();
 
         const body = {
             player_uuid: playerUuid,
             event_type: eventType,
-            data
+            is_debug: isDebug,
+            data: {
+                ...data,
+                is_debug: isDebug,
+                environment: isLocalhost ? 'development' : 'production'
+            }
         };
 
         // バックグラウンドで非同期送信（失敗しても一切何もしない）

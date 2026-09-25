@@ -23,6 +23,7 @@ import { DebugMenuScene } from './scenes/DebugMenuScene';
 import MapEventAdjustScene from './scenes/MapEventAdjustScene';
 import EventTestScene from './scenes/EventTestScene';
 import EndingScene from './scenes/EndingScene';
+import KrakenTestScene from './scenes/KrakenTestScene';
 import { AudioOptimizer } from './systems/AudioOptimizer';
 import { GlobalState } from './systems/GlobalState';
 
@@ -134,7 +135,7 @@ const config = {
     pixelArt: false,
     // canvasは透明にして背面の動画が見えるようにする
     transparent: true,
-    scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DojoScene, JikukanScene, DebugMenuScene, MapEventAdjustScene, EventTestScene, EndingScene]
+    scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DojoScene, JikukanScene, DebugMenuScene, MapEventAdjustScene, EventTestScene, EndingScene, KrakenTestScene]
 };
 
 
