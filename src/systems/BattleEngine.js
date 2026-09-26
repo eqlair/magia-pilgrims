@@ -208,13 +208,15 @@ export class BattleEngine {
         this.isPvpBattle = (this.config.isPvpBattle === true);
         this.pvpEnemies = [];
         if (this.isPvpBattle) {
-            this.totalWaves = 1;
+            this.pvpWaves = this.config.pvpWaves || null;
+            this.totalWaves = this.pvpWaves ? this.pvpWaves.length : 1;
+            this.currentWave = 1;
             this.enemyCountPerWave = 0;
             this.majoLevel = 0;
             this.waveState = 'playing';
             this.waveTimer = 0;
 
-            const pvpDataList = this.config.pvpEnemies || [];
+            const pvpDataList = this.pvpWaves ? (this.pvpWaves[0] || []) : (this.config.pvpEnemies || []);
             for (const eData of pvpDataList) {
                 const ep = new PvpEnemyCharacter(eData.lane * 1.8, eData.isFront ? 9.0 : 14.0, eData);
                 ep.engine = this;
@@ -1427,10 +1429,15 @@ export class BattleEngine {
                 // ── PvP対人戦モード ──
                 const alivePvpEnemies = this.pvpEnemies.filter(e => !e.isDead && e.hp > 0);
                 if (this.pvpEnemies.length > 0 && alivePvpEnemies.length === 0) {
-                    console.log('[BattleEngine] All PvP enemies defeated!');
-                    this.waveState = 'cleared';
-                    this.isCompleted = true;
-                    this.isVictory = true;
+                    if (this.pvpWaves && this.currentWave < this.totalWaves) {
+                        this.currentWave++;
+                        this.spawnNextPvpWave();
+                    } else {
+                        console.log('[BattleEngine] All PvP enemies defeated!');
+                        this.waveState = 'cleared';
+                        this.isCompleted = true;
+                        this.isVictory = true;
+                    }
                 }
             } else if (this.rule === 3) {
                 // ── DPS計測モード (rule=3) ──
@@ -4638,6 +4645,35 @@ export class BattleEngine {
         attacker.sakuraAttackDirX = newDx / newDist;
 
         return true;
+    }
+
+    /**
+     * ⚔️ PvP複数ウェーブ時の次ウェーブスポーン処理
+     */
+    spawnNextPvpWave() {
+        if (!this.pvpWaves || this.currentWave > this.pvpWaves.length) return;
+        const waveIdx = this.currentWave - 1;
+        const pvpDataList = this.pvpWaves[waveIdx] || [];
+
+        // 既存の死んだ敵をクリアし、新ウェーブの敵をセット
+        this.pvpEnemies = [];
+        for (const eData of pvpDataList) {
+            const ep = new PvpEnemyCharacter(eData.lane * 1.8, eData.isFront ? 9.0 : 14.0, eData);
+            ep.engine = this;
+            this.pvpEnemies.push(ep);
+        }
+
+        // 味方のターゲットをクリア（新しい敵を索敵させる）
+        for (const p of this.players) {
+            p.targetEnemy = null;
+        }
+
+        this.eventQueue.push(`WAVE ${this.currentWave} START`);
+        this.floatingTexts.push({
+            id: ++this.floatingTextIdCounter,
+            x: 0, yOffset: 1.0, z: 10.0,
+            amount: `WAVE ${this.currentWave}`, type: "critical", lifeTime: 2.0, maxLife: 2.0
+        });
     }
 
     /**

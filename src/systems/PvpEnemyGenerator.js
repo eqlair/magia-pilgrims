@@ -33,7 +33,7 @@ export class PvpEnemyGenerator {
         6: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]
     };
 
-    /** 指定されたキャラクターIDリストから敵パーティを生成（最大10人対応、友好度対応） */
+    /** 指定されたキャラクターIDリストから敵パーティを生成（最大10人対応、友好度対応、混在レベル対応） */
     static generateEnemyPartyFromIds(partyIds = ['001'], level = 10, friendshipsMap = {}) {
         if (!partyIds || partyIds.length === 0) partyIds = ['001'];
 
@@ -41,13 +41,16 @@ export class PvpEnemyGenerator {
         const frontCandidates = [];
         const rearCandidates = [];
 
-        for (const charId of partyIds) {
+        for (const item of partyIds) {
+            const charId = typeof item === 'object' && item.id ? item.id : item;
+            const charLevel = typeof item === 'object' && item.level !== undefined ? item.level : level;
             const charMeta = this.CHAR_LIST.find(c => c.id === charId);
             const isFront = charMeta ? charMeta.isDefaultFront : true;
+            const candidate = { id: charId, level: charLevel };
             if (isFront) {
-                frontCandidates.push(charId);
+                frontCandidates.push(candidate);
             } else {
-                rearCandidates.push(charId);
+                rearCandidates.push(candidate);
             }
         }
 
@@ -111,18 +114,18 @@ export class PvpEnemyGenerator {
 
         // 前衛の生成
         for (let i = 0; i < frontCandidates.length; i++) {
-            const charId = frontCandidates[i];
+            const cand = frontCandidates[i];
             const lane = frontLanes[i] !== undefined ? frontLanes[i] : 0;
-            const charFriendships = friendshipsMap[charId] || {};
-            enemies.push(this._createEnemyData(charId, level, lane, true, charFriendships));
+            const charFriendships = friendshipsMap[cand.id] || {};
+            enemies.push(this._createEnemyData(cand.id, cand.level, lane, true, charFriendships));
         }
 
         // 後衛の生成
         for (let i = 0; i < rearCandidates.length; i++) {
-            const charId = rearCandidates[i];
+            const cand = rearCandidates[i];
             const lane = rearLanes[i] !== undefined ? rearLanes[i] : 0;
-            const charFriendships = friendshipsMap[charId] || {};
-            enemies.push(this._createEnemyData(charId, level, lane, false, charFriendships));
+            const charFriendships = friendshipsMap[cand.id] || {};
+            enemies.push(this._createEnemyData(cand.id, cand.level, lane, false, charFriendships));
         }
 
         // 4. 友好度による能力強化ボーナス（HP/SP/ATK最大+50%）の適用

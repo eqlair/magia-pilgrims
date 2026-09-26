@@ -719,7 +719,13 @@ export default class BattleScene extends Phaser.Scene {
             const fadeDelay = Math.max(0, (presTimer - 2.5) * 1000); // 演出終了の2.5秒前、または即時
 
             // ★重要: ボスBGM(bgm_boss1~3, bossBgmKey等)は絶対にフェードアウト対象に含めない！
-            const nonBossKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx'];
+            const targetBossKey = this.battleConfig.bossBgmKey;
+            const nonBossKeys = [
+                'bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 
+                'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 
+                'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx',
+                'tow_frozen_silence_b', 'tow_magma_core_b', 'tow_black_onyx_b', 'bgm_inferno_shredder_x'
+            ].filter(k => !targetBossKey || k !== targetBossKey);
             
             if (this.bossFadeTimer) {
                 try { this.bossFadeTimer.remove(); } catch (e) {}
@@ -781,7 +787,13 @@ export default class BattleScene extends Phaser.Scene {
             }
 
             // 確実に前の通常BGMを全て止める（ボスBGMは除外）
-            const nonBossKeys = ['bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx'];
+            const targetBossKey = this.battleConfig.bossBgmKey;
+            const nonBossKeys = [
+                'bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 
+                'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 
+                'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx',
+                'tow_frozen_silence_b', 'tow_magma_core_b', 'tow_black_onyx_b', 'bgm_inferno_shredder_x'
+            ].filter(k => !targetBossKey || k !== targetBossKey);
             nonBossKeys.forEach(key => {
                 if (this.sound.stopByKey) {
                     this.sound.stopByKey(key);

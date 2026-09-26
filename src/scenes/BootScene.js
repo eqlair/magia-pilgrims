@@ -351,9 +351,13 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('event_tow_21', 'files/event/tow_21.webp');
         this.load.image('event_tow_21b', 'files/event/tow_21b.webp');
         this.load.audio('tow_frozen_silence', 'files/BGM/tow_Frozen Silence.mp3');
+        this.load.audio('tow_frozen_silence_b', 'files/BGM/tow_Frozen SilenceB.mp3');
         this.load.audio('tow_magma_core', 'files/BGM/tow_Magma Core.mp3');
+        this.load.audio('tow_magma_core_b', 'files/BGM/tow_Magma CoreB.mp3');
         this.load.audio('tow_black_onyx', 'files/BGM/tow_Black Onyx area.mp3');
+        this.load.audio('tow_black_onyx_b', 'files/BGM/tow_Black Onyx areaB.mp3');
         this.load.audio('tow_sakura', 'files/BGM/tow_sakura.mp3');
+        this.load.audio('bgm_inferno_shredder_x', 'files/BGM/Inferno Shredder X.mp3');
         this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
         this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.webp');
 

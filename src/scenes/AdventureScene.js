@@ -2564,15 +2564,18 @@ export default class AdventureScene extends Phaser.Scene {
                         return;
                     }
 
-                    // タワー54F〜58Fは戦闘・探索なしで即座に移動完了
+                    // タワー54F〜58F（色試練フロア）：制圧済みなら即座に移動完了、未制圧なら戦闘シーケンスへ進む
                     if (this.isTowerMode && (59 - hex.row >= 53 && 59 - hex.row <= 57)) {
-                        this.isJumping = false;
-                        if (this._isTowerFloorChange && this._shouldTriggerTowerAreaReaction(hex, true, false)) {
-                            this._triggerTowerAreaReactionSolo(hex);
-                        } else {
-                            SaveManager.saveGame(this);
+                        const hexKey = `${hex.col}_${hex.row}`;
+                        if (gs.towerClearedHexes && gs.towerClearedHexes[hexKey]) {
+                            this.isJumping = false;
+                            if (this._isTowerFloorChange && this._shouldTriggerTowerAreaReaction(hex, true, false)) {
+                                this._triggerTowerAreaReactionSolo(hex);
+                            } else {
+                                SaveManager.saveGame(this);
+                            }
+                            return;
                         }
-                        return;
                     }
 
                     // ★ 60階（top of tower: hex.row === 0）到達時：エンディング演出へ突入！
@@ -2824,7 +2827,7 @@ export default class AdventureScene extends Phaser.Scene {
                             enemyLevel: 20,
                             enemyAttribute: 'blue',
                             towerAreaName: hex.cellData?.name || '氷',
-                            bossBgmKey: 'bgm_boss1',
+                            bossBgmKey: 'tow_frozen_silence_b',
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
                             returnScene: 'AdventureScene'
                         }
@@ -2834,12 +2837,73 @@ export default class AdventureScene extends Phaser.Scene {
                 return;
             }
 
-            // ★ 59階（targetFloor === 58）はPvP形式：天王寺さくら単騎 LV50（ダークフィルター）
+            // ★ 54F〜58F（targetFloor >= 53 && targetFloor <= 57）：各色PvP敵ペア（LV20）
+            // 赤: 紅華(003), ノア(008) LV20
+            // 青: 蒼樹(002), 白蓮(011) LV20
+            // 緑: ななよ(007), 李乃果(005) LV20
+            // 黄: 黄蘭(004), ノア(008) LV20
+            // 紫: 紫苑(001), ななよ(007) LV20
+            if (targetFloor >= 53 && targetFloor <= 57) {
+                const colorEnemyMap = {
+                    '赤': ['003', '008'], // 紅華, ノア
+                    '青': ['002', '011'], // 蒼樹, 白蓮
+                    '緑': ['007', '005'], // ななよ, 李乃果
+                    '黄': ['004', '008'], // 黄蘭, ノア
+                    '紫': ['001', '007']  // 紫苑, ななよ
+                };
+                const colorName = hex.cellData?.name || '赤';
+                const enemyIds = colorEnemyMap[colorName] || ['003', '008'];
+                const enemyParty = PvpEnemyGenerator.generateEnemyPartyFromIds(enemyIds, 20);
+                this.cameras.main.flash(1000, 255, 255, 255);
+                this.time.delayedCall(1000, () => {
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: events,
+                        returnScene: 'AdventureScene',
+                        isTowerBattle: true,
+                        towerAreaName: colorName,
+                        battleConfig: {
+                            rule: 0,
+                            isPvpBattle: true,
+                            isTowerPvP: true,
+                            isTowerBattle: true,
+                            towerAreaName: colorName,
+                            pvpEnemies: enemyParty,
+                            party: this.party && this.party.length > 0 ? this.party : ['001'],
+                            enemyLevel: 20,
+                            bgmKey: 'tow_black_onyx_b',
+                            bossBgmKey: 'tow_black_onyx_b',
+                            returnScene: 'AdventureScene'
+                        }
+                    });
+                    this.isJumping = false;
+                });
+                return;
+            }
+
+            // ★ 59階（targetFloor === 58）はPvP 4ウェーブ制（Inferno Shredder X）
+            // 1: 紫苑コピー3人 LV20
+            // 2: 紫苑、蒼樹、黄蘭、紅華、李乃果 LV20
+            // 3: 紫苑コピー7人 LV15
+            // 4: 紫苑コピー5人LV15 + さくらLV40
             if (targetFloor === 58) {
-                const enemyParty = PvpEnemyGenerator.generateEnemyPartyFromIds(['006'], 50);
-                for (const ep of enemyParty) {
-                    ep.isShadowEnemy = true; // 50%黒フィルターフラグ
-                }
+                const wave1 = PvpEnemyGenerator.generateEnemyPartyFromIds(['001', '001', '001'], 20);
+                const wave2 = PvpEnemyGenerator.generateEnemyPartyFromIds(['001', '002', '004', '003', '005'], 20);
+                const wave3 = PvpEnemyGenerator.generateEnemyPartyFromIds(['001', '001', '001', '001', '001', '001', '001'], 15);
+                const wave4 = PvpEnemyGenerator.generateEnemyPartyFromIds([
+                    { id: '001', level: 15 },
+                    { id: '001', level: 15 },
+                    { id: '001', level: 15 },
+                    { id: '001', level: 15 },
+                    { id: '001', level: 15 },
+                    { id: '006', level: 40 }
+                ]);
+
+                // 影・コピー敵演出としてダークフィルターフラグを付与
+                [wave1, wave2, wave3, wave4].forEach(wave => {
+                    wave.forEach(ep => { ep.isShadowEnemy = true; });
+                });
+
                 this.cameras.main.flash(1000, 255, 255, 255);
                 this.time.delayedCall(1000, () => {
                     this.scene.pause();
@@ -2854,11 +2918,13 @@ export default class AdventureScene extends Phaser.Scene {
                             isTowerPvP: true,
                             isTowerBattle: true,
                             towerAreaName: hex.cellData?.name || '白',
-                            pvpEnemies: enemyParty,
+                            pvpEnemies: wave1,
+                            pvpWaves: [wave1, wave2, wave3, wave4],
+                            totalWaves: 4,
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
-                            enemyLevel: 50,
-                            bgmKey: 'tow_sakura',
-                            bossBgmKey: 'tow_sakura',
+                            enemyLevel: 20,
+                            bgmKey: 'bgm_inferno_shredder_x',
+                            bossBgmKey: 'bgm_inferno_shredder_x',
                             returnScene: 'AdventureScene'
                         }
                     });

@@ -650,6 +650,24 @@ export default class EventScene extends Phaser.Scene {
                 const baseCount = baseEnemyTable[partySize] || (80 + (partySize - 5) * 25);
                 const calcEnemyCount = baseCount + (this.enemyLevel || 1) * 3;
 
+                let battleBgmKey = this.selectedBgmKey;
+                let bossBgmKey = null;
+
+                if (this.isTowerBattle) {
+                    const area = this.towerAreaName || '';
+                    if (['黒', '赤', '青', '緑', '黄', '紫'].includes(area)) {
+                        battleBgmKey = 'tow_black_onyx_b';
+                        bossBgmKey = 'tow_black_onyx_b';
+                    } else if (area === '炎') {
+                        bossBgmKey = 'tow_magma_core_b';
+                    } else if (area === '氷') {
+                        bossBgmKey = 'tow_frozen_silence_b';
+                    } else if (area === '白' || area === 'top of tower') {
+                        battleBgmKey = 'bgm_inferno_shredder_x';
+                        bossBgmKey = 'bgm_inferno_shredder_x';
+                    }
+                }
+
                 const config = {
                     rule: this.isTowerBattle ? 1 : 0,
                     attribute: this.enemyAttr || 1,
@@ -661,7 +679,8 @@ export default class EventScene extends Phaser.Scene {
                     majoLevel: this.majoLevel || 0,
                     witchPattern: this.witchPattern || 1,
                     isWitchOnly: this.isWitchOnly || false,
-                    bgmKey: (this.isTowerBattle && (this.towerAreaName === '白' || this.towerAreaName === 'top of tower')) ? 'tow_sakura' : this.selectedBgmKey,
+                    bgmKey: battleBgmKey,
+                    bossBgmKey: bossBgmKey,
                     isOverlay: true,
                     returnScene: 'AdventureScene',
                     party: party,
@@ -682,7 +701,7 @@ export default class EventScene extends Phaser.Scene {
                 }
                 if (this.sound && this.sound.sounds) {
                     this.sound.sounds.forEach(s => {
-                        if (s && s.isPlaying && (s.key.startsWith('bgm_battle') || s.key === this.selectedBgmKey || s.key === 'tow_sakura' || s.key === config.bgmKey)) {
+                        if (s && s.isPlaying && (s.key.startsWith('bgm_battle') || s.key === this.selectedBgmKey || s.key === 'tow_sakura' || s.key === config.bgmKey || s.key === 'bgm_inferno_shredder_x')) {
                             this.tweens.killTweensOf(s);
                             try { s.setVolume(0.5); } catch(e){}
                         }
