@@ -483,7 +483,7 @@ export default class TarotScene extends Phaser.Scene {
 
                 // 発動中のタロット効果として登録
                 GlobalState.getInstance().activeTarots.push({ id: drawnCardId, isUpright: isUpright });
-                GlobalState.getInstance().applyImmediateTarotEffect(drawnCardId, isUpright);
+                GlobalState.getInstance().applyImmediateTarotEffect(drawnCardId, isUpright, this);
                 
                 if (this.bgm) {
                     this.bgm.stop();

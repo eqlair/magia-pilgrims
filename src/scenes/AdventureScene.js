@@ -951,15 +951,19 @@ export default class AdventureScene extends Phaser.Scene {
                 if (gs.lastTowerRemovedCharId) {
                     const removedId = gs.normalizeCharId(gs.lastTowerRemovedCharId);
                     gs.lastTowerRemovedCharId = null;
-                    if (gs.savedFormation) {
-                        delete gs.savedFormation[removedId];
-                    }
-                    this.party = this.party.filter(id => gs.normalizeCharId(id) !== removedId);
+                    gs.removeCharacterCompletely(removedId, this);
                     console.log('[AdventureScene] Tower removed char processed:', removedId);
                 }
                 const updatedFormKeys = Object.keys(gs.savedFormation || {});
                 if (updatedFormKeys.length > 0) {
                     this.party = updatedFormKeys;
+                }
+                if (this.isTowerMode) {
+                    gs.towerParty = [...this.party];
+                    gs.towerFormation = JSON.parse(JSON.stringify(gs.savedFormation || {}));
+                } else {
+                    gs.normalParty = [...this.party];
+                    gs.normalFormation = JSON.parse(JSON.stringify(gs.savedFormation || {}));
                 }
             }
 
@@ -3534,7 +3538,7 @@ export default class AdventureScene extends Phaser.Scene {
         gs.drawnTarotCards.push(cardId);
         if (!gs.activeTarots) gs.activeTarots = [];
         gs.activeTarots.push({ id: cardId, isUpright: isUpright });
-        gs.applyImmediateTarotEffect(cardId, isUpright);
+        gs.applyImmediateTarotEffect(cardId, isUpright, this);
 
         // タロットデータの名称を取得
         const tarotData = this.cache.json.get('tarot_data');
@@ -3610,6 +3614,14 @@ export default class AdventureScene extends Phaser.Scene {
             } else if (!isUnlockedForTarot) {
                 console.log(`[DEBUG Tarot AutoDraw] No.${cardId} の加入対象(${normJoinId})は解放条件未達成のため加入スキップ`);
             }
+        }
+
+        // 塔（正位置）で仲間が犠牲になった場合の通知と同期
+        if (gs.lastTowerRemovedCharId) {
+            const removedCharName = gs.characters[gs.lastTowerRemovedCharId]?.name || gs.lastTowerRemovedCharId;
+            joinNotice = ` ＆ ${removedCharName}が犠牲になり離脱...`;
+            gs.lastTowerRemovedCharId = null;
+            SaveManager.saveGame(this);
         }
 
         // トースト通知

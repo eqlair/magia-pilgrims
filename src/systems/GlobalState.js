@@ -1069,7 +1069,7 @@ export class GlobalState {
 
     // タロットカード取得時の即時効果適用
 
-    applyImmediateTarotEffect(tarotId, isUpright) {
+    applyImmediateTarotEffect(tarotId, isUpright, scene = null) {
         const party = Object.keys(this.savedFormation).length > 0 ? Object.keys(this.savedFormation) : ['001'];
         
         switch(tarotId) {
@@ -1182,10 +1182,7 @@ export class GlobalState {
                                     targetChar.exp = 0;
                                 }
                             }
-                            delete this.savedFormation[targetId];
-                            if (Array.isArray(this.party)) {
-                                this.party = this.party.filter(id => id !== targetId);
-                            }
+                            this.removeCharacterCompletely(targetId, scene);
                             this.lastTowerRemovedCharId = targetId;
                             console.log(`[Tarot 17 Tower] Removed lowest SP ratio member: ${targetId} (ratio: ${(minSpRatio * 100).toFixed(1)}%)`);
                         }
@@ -1818,6 +1815,70 @@ export class GlobalState {
         return fallback;
     }
 
+    /**
+     * キャラクターをパーティ・編成隊列・各シーンの保持リストから完全に除外する
+     * （タロット塔の正位置、精神崩壊ロスト、離脱時用）
+     * @param {string} charId 除外するキャラクターID
+     * @param {Phaser.Scene} [activeScene] 現在実行中のシーン（オプション）
+     */
+    removeCharacterCompletely(charId, activeScene = null) {
+        if (!charId) return;
+        const normId = this.normalizeCharId ? this.normalizeCharId(charId) : String(charId).padStart(3, '0');
+
+        // 1. 各種パーティ配列から完全除外
+        if (Array.isArray(this.normalParty)) {
+            this.normalParty = this.normalParty.filter(id => (this.normalizeCharId ? this.normalizeCharId(id) : id) !== normId);
+            if (this.normalParty.length === 0) this.normalParty = ['001'];
+        }
+        if (Array.isArray(this.towerParty)) {
+            this.towerParty = this.towerParty.filter(id => (this.normalizeCharId ? this.normalizeCharId(id) : id) !== normId);
+            if (this.towerParty.length === 0) this.towerParty = ['001'];
+        }
+        if (Array.isArray(this.party)) {
+            this.party = this.party.filter(id => (this.normalizeCharId ? this.normalizeCharId(id) : id) !== normId);
+            if (this.party.length === 0) this.party = ['001'];
+        }
+
+        // 2. 各種フォーメーション配置から完全削除
+        if (this.savedFormation) {
+            delete this.savedFormation[normId];
+            delete this.savedFormation[charId];
+        }
+        if (this.normalFormation) {
+            delete this.normalFormation[normId];
+            delete this.normalFormation[charId];
+        }
+        if (this.towerFormation) {
+            delete this.towerFormation[normId];
+            delete this.towerFormation[charId];
+        }
+
+        // 3. アクティブシーンおよびAdventureSceneのparty配列からも確実に除外
+        let advScene = null;
+        if (activeScene) {
+            if (Array.isArray(activeScene.party)) {
+                activeScene.party = activeScene.party.filter(id => (this.normalizeCharId ? this.normalizeCharId(id) : id) !== normId);
+                if (activeScene.party.length === 0) activeScene.party = ['001'];
+            }
+            if (activeScene.scene && typeof activeScene.scene.get === 'function') {
+                advScene = activeScene.scene.get('AdventureScene');
+            }
+        }
+        if (!advScene && typeof window !== 'undefined' && window.game && window.game.scene) {
+            try {
+                advScene = window.game.scene.getScene('AdventureScene');
+            } catch (e) {}
+        }
+        if (advScene && advScene !== activeScene && Array.isArray(advScene.party)) {
+            advScene.party = advScene.party.filter(id => (this.normalizeCharId ? this.normalizeCharId(id) : id) !== normId);
+            if (advScene.party.length === 0) advScene.party = ['001'];
+        }
+
+        // 4. 時空館の装備枠クリーンアップ
+        this.cleanupJikukanEquipsOnInventoryChange();
+
+        console.log(`[GlobalState] removeCharacterCompletely: ${normId} (${charId}) successfully removed from all parties and formations.`);
+    }
 
     boostRandomEnemyCells(count = 3) {
         if (this.adventureScene && this.adventureScene.mapGrid) {

@@ -123,20 +123,8 @@ export class CharacterLossManager {
             }
             gs.cleanupJikukanEquipsOnInventoryChange();
 
-            // 4. パーティ・隊列（同行メンバー）から除外（※キャラデータ・友好度は大切に保持！）
-            if (gs.party) {
-                gs.party = gs.party.filter(id => id !== charId);
-            }
-            if (scene.party) {
-                scene.party = scene.party.filter(id => id !== charId);
-            }
-            delete gs.savedFormation[charId];
-            
-            // AdventureSceneが起動中・バックグラウンドに存在する場合はそちらのpartyからも同期除外
-            const advScene = scene.scene ? scene.scene.get('AdventureScene') : null;
-            if (advScene && advScene.party) {
-                advScene.party = advScene.party.filter(id => id !== charId);
-            }
+            // 4. パーティ・隊列（同行メンバー）から完全除外（※キャラデータ・友好度は保持）
+            gs.removeCharacterCompletely(charId, scene);
 
             // 🕊️ 喪失を目撃した生存パーティメンバー全員に、最後にロストしたキャラ名を記憶
             const remainingParty = (scene.party || gs.party || []).filter(id => id !== charId);
