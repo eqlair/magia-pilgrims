@@ -525,15 +525,15 @@ export default class DojoScene extends Phaser.Scene {
             .setOrigin(0, 0).setInteractive();
         dialogContainer.add(curtain);
 
-        // パネル
+        // パネル（縦並びボタンに対応して少し縦長に）
         const panelW = Math.min(width * 0.88, 460);
-        const panelH = 220;
+        const panelH = 265;
         const panel = this.add.rectangle(width / 2, height / 2, panelW, panelH, 0x1b1424, 0.98)
             .setStrokeStyle(2, 0xaa4466);
         dialogContainer.add(panel);
 
         // メッセージ
-        const msg = this.add.text(width / 2, height / 2 - 35,
+        const msg = this.add.text(width / 2, height / 2 - 60,
             `${deptDef.name}を訓練するのか？\n(消費SP: ${cost})`, {
             fontFamily: FONT_MAIN,
             fontSize: '19px',
@@ -546,27 +546,14 @@ export default class DojoScene extends Phaser.Scene {
         }).setOrigin(0.5, 0.5);
         dialogContainer.add(msg);
 
-        // ボタンY
-        const bY = height / 2 + 45;
-
-        // 「いいえ」ボタン
-        const noBtn = this.add.text(width / 2 + 75, bY, 'いいえ', {
+        // 「はい」ボタン（完了ポップアップの「閉じる」と完全同一座標）
+        const yesBtn = this.add.text(width / 2, height / 2 + 35, '　はい　', {
             fontFamily: FONT_MAIN,
-            fontSize: '18px',
+            fontSize: '19px',
             color: '#ffffff',
-            backgroundColor: '#444455',
-            padding: { x: 24, y: 8 }
-        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-        noBtn.on('pointerdown', () => dialogContainer.destroy());
-        dialogContainer.add(noBtn);
-
-        // 「はい」ボタン
-        const yesBtn = this.add.text(width / 2 - 75, bY, 'はい', {
-            fontFamily: FONT_MAIN,
-            fontSize: '18px',
-            color: '#ffffff',
+            fontStyle: 'bold',
             backgroundColor: '#882233',
-            padding: { x: 24, y: 8 }
+            padding: { x: 36, y: 8 }
         }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
 
         yesBtn.on('pointerdown', () => {
@@ -574,6 +561,17 @@ export default class DojoScene extends Phaser.Scene {
             this.executeTraining(charData, deptDef.id, cost);
         });
         dialogContainer.add(yesBtn);
+
+        // 「いいえ」ボタン（「はい」の真下に配置）
+        const noBtn = this.add.text(width / 2, height / 2 + 92, 'いいえ', {
+            fontFamily: FONT_MAIN,
+            fontSize: '17px',
+            color: '#cccccc',
+            backgroundColor: '#444455',
+            padding: { x: 30, y: 7 }
+        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+        noBtn.on('pointerdown', () => dialogContainer.destroy());
+        dialogContainer.add(noBtn);
     }
 
     /**
@@ -630,11 +628,11 @@ export default class DojoScene extends Phaser.Scene {
             .setOrigin(0, 0).setInteractive();
         popupContainer.add(curtain);
 
-        const panel = this.add.rectangle(width / 2, height / 2, Math.min(width * 0.85, 420), 240, 0x1f1226, 0.98)
+        const panel = this.add.rectangle(width / 2, height / 2, Math.min(width * 0.85, 420), 250, 0x1f1226, 0.98)
             .setStrokeStyle(2, 0xffcc00);
         popupContainer.add(panel);
 
-        const header = this.add.text(width / 2, height / 2 - 65, '✨ 訓練完了！ ✨', {
+        const header = this.add.text(width / 2, height / 2 - 80, '✨ 訓練完了！ ✨', {
             fontFamily: FONT_MAIN,
             fontSize: '20px',
             color: '#ffcc00',
@@ -643,7 +641,7 @@ export default class DojoScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5, 0.5);
 
-        const name = this.add.text(width / 2, height / 2 - 18, `『${subject.name}』を履修！`, {
+        const name = this.add.text(width / 2, height / 2 - 45, `『${subject.name}』を履修！`, {
             fontFamily: FONT_MAIN,
             fontSize: '20px',
             color: '#ffffff',
@@ -652,7 +650,7 @@ export default class DojoScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5, 0.5);
 
-        const desc = this.add.text(width / 2, height / 2 + 20, subject.desc, {
+        const desc = this.add.text(width / 2, height / 2 - 12, subject.desc, {
             fontFamily: FONT_MAIN,
             fontSize: '15px',
             color: '#00ffff',
@@ -661,12 +659,14 @@ export default class DojoScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5, 0.5);
 
-        const closeBtn = this.add.text(width / 2, height / 2 + 72, '閉じる', {
+        // 「閉じる」ボタン（確認ダイアログの「はい」と完全同一座標）
+        const closeBtn = this.add.text(width / 2, height / 2 + 35, '　閉じる　', {
             fontFamily: FONT_MAIN,
-            fontSize: '16px',
+            fontSize: '18px',
             color: '#ffffff',
+            fontStyle: 'bold',
             backgroundColor: '#553366',
-            padding: { x: 26, y: 8 }
+            padding: { x: 32, y: 8 }
         }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
 
         closeBtn.on('pointerdown', () => {
