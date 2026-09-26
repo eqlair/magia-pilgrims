@@ -183,6 +183,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bullet', 'files/CHR/001004.webp');
         this.load.image('enemy_bullet', 'files/EFFECT/ball.webp');
         this.load.image('bomb', 'files/EFFECT/bomb.webp');
+        this.load.image('bombK', 'files/EFFECT/bombK.png');
         this.load.image('grenade', 'files/CHR/001003.webp');
         this.load.image('grenade_explosion', 'files/EFFECT/grenade.webp');
         for (let i = 1; i <= 6; i++) {

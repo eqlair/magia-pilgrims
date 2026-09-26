@@ -1377,9 +1377,11 @@ export default class AdventureScene extends Phaser.Scene {
                     }
 
                     SaveManager.saveGame(this);
-                    TransitionManager.transitionTo(this, 'AdventureScene', {
-                        isTower: true,
-                        party: this.party && this.party.length > 0 ? this.party : ['001']
+                    if (this.hideMapVisuals) this.hideMapVisuals();
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        playTowerScrollOnly: true,
+                        returnScene: 'AdventureScene'
                     });
                     return;
                 }

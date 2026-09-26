@@ -465,14 +465,40 @@ export class BattleRenderer {
         this.krakenSpriteB.setVisible(true);
         this.krakenRopes.forEach(r => r.setVisible(true));
 
+        // 死亡フェードアウト透過計算（3.5s〜4.5sでフェード消滅）
+        let krakenAlpha = 1.0;
+        if (kraken.isDying) {
+            if (kraken.deathTimer < 3.5) {
+                krakenAlpha = 1.0;
+            } else {
+                const fadeProgress = Math.min(1.0, (kraken.deathTimer - 3.5) / 1.0);
+                krakenAlpha = Math.max(0, 1.0 - fadeProgress);
+            }
+        }
+        this.krakenSpriteA.setAlpha(krakenAlpha);
+        this.krakenSpriteB.setAlpha(krakenAlpha);
+
         // ── 1. 本体A+Bの透視投影 ──
         const p = this.projector.project(kraken.x, kraken.z);
         // タコ本体のワールド幅（デフォルト3.0m、さらに大きいタコにも比例スケール）
         const bodySize = kraken.bodySize || 3.0;
         const scaleRatio = kraken.scaleRatio || (bodySize / 3.0);
         const imgWidth = (this.krakenSpriteA && this.krakenSpriteA.width) ? this.krakenSpriteA.width : 360;
-        const baseScale = (bodySize * p.scale) / imgWidth;
+        let baseScale = (bodySize * p.scale) / imgWidth;
         const flipSign = kraken.facingRight ? -1 : 1;
+
+        // 撃破時の小爆発振動（シェイク＆拡縮＆回転）
+        let shakeAngle = 0;
+        if (kraken.isDying && kraken.bossShakeTimer > 0) {
+            if (kraken.bossShakeScale !== undefined) {
+                baseScale *= kraken.bossShakeScale;
+            }
+            if (kraken.bossShakeAngle !== undefined) {
+                shakeAngle = kraken.bossShakeAngle;
+            }
+        }
+        this.krakenSpriteA.setAngle(shakeAngle);
+        this.krakenSpriteB.setAngle(shakeAngle);
 
         // 水面の微細な浮力揺れ
         const floatY = Math.sin(this.scene.time.now * 0.0015) * Math.max(2, p.scale * 0.06);
@@ -543,6 +569,10 @@ export class BattleRenderer {
                 rope.setDepth(p.depth - 4);
             } else {
                 rope.setDepth(p.depth + 4);
+            }
+
+            if (rope.setAlpha) {
+                rope.setAlpha(krakenAlpha);
             }
 
             rope.updateVertices();
@@ -1525,8 +1555,9 @@ export class BattleRenderer {
                 obj.setAngle([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
                 obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成（重なるほど明るく発光）
                 obj.setDepth(1800);
-            } else if (eff.type === 'explosion' || eff.type === 'noah_bullet_explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && eff.type.startsWith('majo_death'))) {
-                obj = this.scene.add.sprite(0, 0, 'bomb');
+            } else if (eff.type === 'explosion' || eff.type === 'noah_bullet_explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || (eff.type && (eff.type.startsWith('majo_death') || eff.type.startsWith('kraken_death')))) {
+                const bombTex = (eff.type && eff.type.startsWith('kraken_death')) ? 'bombK' : 'bomb';
+                obj = this.scene.add.sprite(0, 0, bombTex);
                 // 毎回「通常」「左右反転」「上下反転」「上下左右反転」の4パターン全種＋90度刻みの角度バリエーションをランダム付与
                 const fx = Math.random() < 0.5;
                 const fy = Math.random() < 0.5;
@@ -1689,25 +1720,25 @@ export class BattleRenderer {
                 return;
             }
 
-            if (eff.type === 'explosion' || eff.type === 'noah_bullet_explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && eff.type.startsWith('majo_death'))) {
+            if (eff.type === 'explosion' || eff.type === 'noah_bullet_explosion' || eff.type === 'bomb' || eff.type === 'witch_bomb' || eff.type === 'enemy_death' || (eff.type && (eff.type.startsWith('majo_death') || eff.type.startsWith('kraken_death')))) {
 
-                // 爆発エフェクト (魔女死亡・雑魚死亡・ノア弾丸爆発時含む): bomb.png (300x300) を使用。加算合成で急拡大＆発光フェード
+                // 爆発エフェクト (魔女死亡・クラーケン死亡・雑魚死亡・ノア弾丸爆発時含む): bomb.png / bombK.png (300x300) を使用。加算合成で急拡大＆発光フェード
                 obj.setPosition(p.x, p.y - p.scale * 0.5);
                 const radiusPx = (eff.radius || 1.5) * p.scale;
                 const baseWidth = obj.width || 300;
                 
-                // 魔女死亡時の小爆発(majo_death_2)はサイズ5倍、最終大爆発(majo_death_3)は超巨大に拡大
+                // 魔女・クラーケン死亡時の小爆発はサイズ5倍、最終大爆発は超巨大(8.5倍)に拡大
                 let sizeMult = 2.5;
                 if (eff.type === 'noah_bullet_explosion') sizeMult = 2.0;
                 if (eff.type === 'enemy_death') sizeMult = 1.5;
-                if (eff.type === 'majo_death_2') sizeMult = 5.0;
-                if (eff.type === 'majo_death_3') sizeMult = 8.5;
+                if (eff.type === 'majo_death_2' || eff.type === 'kraken_death_2') sizeMult = 5.0;
+                if (eff.type === 'majo_death_3' || eff.type === 'kraken_death_3') sizeMult = 8.5;
 
                 const scaleFactor = 0.4 + progress * 1.3;
                 obj.setScale((radiusPx * sizeMult * scaleFactor) / baseWidth);
                 
                 // 加算合成（ADD）では序盤に高輝度発光し、終盤にかけて自然に光が収束フェードアウト
-                const isWitchFinal = eff.type === 'majo_death_3';
+                const isWitchFinal = eff.type === 'majo_death_3' || eff.type === 'kraken_death_3';
                 let alpha = 1.0;
                 if (progress < 0.15) {
                     alpha = 1.0; // 瞬間最大発光（白熱）

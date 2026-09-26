@@ -47,6 +47,7 @@ export default class EventScene extends Phaser.Scene {
         this.fromDojoEvent = data.fromDojoEvent || false;
         this.fromJikuEvent = data.fromJikuEvent || false;
         this.fromOpTutorial = data.fromOpTutorial || false;
+        this.playTowerScrollOnly = data.playTowerScrollOnly || false;
         this.battleConfig = data.battleConfig || null;
         this.isTowerBattle = data.isTowerBattle || false;
         this.towerAreaName = data.towerAreaName || (this.battleConfig?.towerAreaName || '');
@@ -119,6 +120,11 @@ export default class EventScene extends Phaser.Scene {
     }
 
     create() {
+        if (this.playTowerScrollOnly) {
+            this._playTowerScrollCutscene();
+            return;
+        }
+
         TransitionManager.fadeIn(this);
         // this.setupDebugOverlay();
         const gs = GlobalState.getInstance();
@@ -405,7 +411,7 @@ export default class EventScene extends Phaser.Scene {
                     if (cutsceneFinished) return;
                     cutsceneFinished = true;
 
-                    // 暗転して AdventureScene に復帰 (fromIkebukuro02Event で _resumeHandler がタワーへ遷移)
+                    // 暗転してタワー内マップ（AdventureScene / isTower: true）へ進軍！
                     this.tweens.add({
                         targets: blackScreen,
                         alpha: 1,
@@ -415,21 +421,16 @@ export default class EventScene extends Phaser.Scene {
                             gs.isTowerMode = true;
                             gs.hasEnteredTower = true;
 
-                            // AdventureScene は pause 状態なので resume で復帰させる
-                            // _resumeHandler が fromIkebukuro02Event を検出してタワーへ遷移する
                             this.scene.stop('EventScene');
                             const advScene = this.scene.get('AdventureScene');
-                            if (advScene) {
-                                advScene.scene.resume('AdventureScene', {
-                                    fromIkebukuro02Event: true
-                                });
-                            } else {
-                                // フォールバック: AdventureScene が見つからない場合は直接起動
-                                this.scene.start('AdventureScene', {
-                                    isTower: true,
-                                    party: ['001']
-                                });
+                            let party = ['001'];
+                            if (advScene && advScene.party && advScene.party.length > 0) {
+                                party = advScene.party;
                             }
+                            TransitionManager.transitionTo(this, 'AdventureScene', {
+                                isTower: true,
+                                party: party
+                            });
                         }
                     });
                 };

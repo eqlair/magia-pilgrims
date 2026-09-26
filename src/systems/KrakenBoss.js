@@ -84,6 +84,10 @@ export class KrakenBoss extends BattleEntity {
         // 死亡演出用
         this.isDying = false;
         this.deathTimer = 0;
+        this.deathPhase = 0;
+        this.bossShakeTimer = 0;
+        this.bossShakeScale = 1.0;
+        this.bossShakeAngle = 0;
         this.isDead = false;
 
         this.animTime = 0;
@@ -183,10 +187,44 @@ export class KrakenBoss extends BattleEntity {
         this.animTime += dt;
         const time = this.animTime;
 
-        // 死亡演出
+        // 死亡演出（魔女と同じ3段階の多段階爆発消滅パターン）
         if (this.isDying) {
             this.deathTimer += dt;
-            if (this.deathTimer >= 3.0) {
+            if (this.bossShakeTimer > 0) {
+                this.bossShakeTimer -= dt;
+            }
+
+            // 第1〜2段階: 0.5秒後から本体を中心に24発の小爆発が連続発生＆激しく振動！
+            if (this.deathPhase === 0 && this.deathTimer >= 0.5) {
+                this.deathPhase = 1;
+                for (let i = 0; i < 24; i++) {
+                    setTimeout(() => {
+                        if (this.isDead || !engine) return;
+                        const rx = this.x + (Math.random() - 0.5) * this.bodySize * 1.32;
+                        const rz = this.z + (Math.random() - 0.5) * this.bodySize * 1.32;
+                        engine.effects.push(new EffectEntity(rx, rz, {
+                            type: 'kraken_death_2',
+                            radius: this.bodySize * 1.0,
+                            lifeTime: 0.5
+                        }));
+
+                        // 小爆発が起きるたびに震え、大きさをランダムに-10〜+10%、角度を-5〜5°回転
+                        this.bossShakeTimer = 0.12;
+                        this.bossShakeScale = 0.9 + Math.random() * 0.2;
+                        this.bossShakeAngle = (Math.random() * 10 - 5);
+                    }, 500 + (3000 / 24) * i);
+                }
+            } else if (this.deathPhase === 1 && this.deathTimer >= 3.5) {
+                // 第3段階: 3.5秒で巨大爆発が発生！本体と触手をフェードアウト消滅へ
+                this.deathPhase = 2;
+                if (engine) {
+                    engine.effects.push(new EffectEntity(this.x, this.z, {
+                        type: 'kraken_death_3',
+                        radius: 20.0,
+                        lifeTime: 1.0
+                    }));
+                }
+            } else if (this.deathPhase === 2 && this.deathTimer >= 4.5) {
                 this.isDead = true;
             }
             return;
