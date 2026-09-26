@@ -1706,11 +1706,22 @@ export class GlobalState {
         this.devilStockSp = 0;
         this.currentRunTotalExp = 0;
         this.maxPastExp = 0;
+        this.totalGachaRolls = 0;
         this.food = 100;
         this.currentMonth = 12;
         this.currentDay = 1;
         this.timePeriodIndex = 0;
-        this.savedFormation = { '001': { lane: 0, isFront: false } };
+        this.savedFormation = { '001': { lane: 0, isFront: true } };
+        this.normalParty = ['001'];
+        this.normalFormation = { '001': { lane: 0, isFront: true } };
+        this.towerParty = ['001'];
+        this.towerFormation = { '001': { lane: 0, isFront: true } };
+
+        // 🎒 インベントリの完全初期化（所持レリクス・宝石を完全消去）
+        this.inventory = {
+            relics: [],
+            gems: []
+        };
 
         // 🧚‍♀️ 妖精・道場・時空館・タワー進行の完全初期化
         this.hasMetFairy = false;
@@ -1720,6 +1731,7 @@ export class GlobalState {
         this.dojoEventSeen = false;
         this.isJikukanUnlocked = false;
         this.jikuEventSeen = false;
+        this.jikukanState = null;
         this.hasEnteredTower = false;
         this.towerElapsedSeconds = 0;
         this.isTowerTimeUpGameOver = false;
@@ -1730,16 +1742,39 @@ export class GlobalState {
         this.towerSeenAreas = {};
         this.tower21BossDefeated = false;
 
-        // キャラクター同行・加入フラグ初期化（紫苑のみ同行）
-        for (const cid in this.characters) {
-            const c = this.characters[cid];
-            if (c) {
-                c.hasAccompanied = (cid === '001');
-                c.isJoined = (cid === '001');
-                c.metCharacters = [];
-                c.friendships = {};
-                c.friendshipPoints = 0;
-            }
+        // 🛗 タワーエレベーター＆到達フロアの初期化（新規時のみリセット）
+        this.isTowerElevatorUnlocked = false;
+        this.towerMaxFloorReached = 1;
+        this.towerColorStepCount = 0;
+        this.towerColorFailed = false;
+
+        // 🏆 実績・デイリー・好感度・イベント履歴の初期化
+        this.achievements = {};
+        this.dailyQuests = null;
+        this.dailyRewardCount = 0;
+        this.lastDailyRewardDate = '';
+        this.extraDailyGachaCount = 0;
+        this.seenLoveEvents = {};
+        this.seenEventHistory = [];
+
+        // 👥 全キャラクターを完全初期データに再生成（ステータス・装備枠・同行フラグをまっさらに）
+        this.characters = {
+            '001': this.createInitialCharData('001', '紫苑', 1),
+            '002': this.createInitialCharData('002', '蒼樹', 1),
+            '003': this.createInitialCharData('003', '紅華', 1),
+            '004': this.createInitialCharData('004', '黄蘭', 1),
+            '005': this.createInitialCharData('005', '李乃果', 1),
+            '006': this.createInitialCharData('006', 'さくら', 1),
+            '007': this.createInitialCharData('007', 'ななよ', 1),
+            '008': this.createInitialCharData('008', 'ノア', 1),
+            '009': this.createInitialCharData('009', 'リフィエル', 1),
+            '010': this.createInitialCharData('010', 'プロセル', 1),
+            '011': this.createInitialCharData('011', '白蓮', 1)
+        };
+        // 紫苑（001）のみ初期加入
+        if (this.characters['001']) {
+            this.characters['001'].isJoined = true;
+            this.characters['001'].hasAccompanied = true;
         }
 
         // チュートリアルフラグの完全初期化
@@ -1751,6 +1786,12 @@ export class GlobalState {
         this.tutorialRestSeen = false;
         this.tutorialGameOverSeen = false;
         this.tutorialStep = 0;
+        this.guideTappedFormationBtn = false;
+        this.guideTappedSionFace = false;
+        this.guideTappedElementResistBtn = false;
+        this.guideTappedFriendshipBtn = false;
+        this.guideTappedEffectBtn = false;
+        this.guideTappedHealBtn = false;
     }
 
 
