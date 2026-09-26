@@ -447,11 +447,14 @@ export class BattleEngine {
     spawnKrakenBoss() {
         // 開幕はNPC対戦のように奥のZ=25からスタートし、手前へ前進してくる
         const kraken = new KrakenBoss(0, 25.0, {
-            name: '巨大タコ魔女クラーケン',
+            name: this.config.krakenName || '巨大タコ魔女クラーケン',
             level: this.majoLevel || 20,
-            attribute: this.enemyAttribute || 'purple',
-            hp: 222222,
-            bulletDamage: 10
+            attribute: this.config.krakenAttribute || this.config.attribute || this.enemyAttribute || 'purple',
+            hp: this.config.krakenHp || 222222,
+            tentacleHp: this.config.krakenTentacleHp || 44444,
+            bodySize: this.config.krakenBodySize || 3.0,
+            atkPower: this.config.krakenAtkPower !== undefined ? this.config.krakenAtkPower : 40,
+            bulletDamage: this.config.krakenBulletDamage !== undefined ? this.config.krakenBulletDamage : 10
         });
         this.krakenBoss = kraken;
         this.enemies.push(kraken);

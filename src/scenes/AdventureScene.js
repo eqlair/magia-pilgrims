@@ -2302,13 +2302,17 @@ export default class AdventureScene extends Phaser.Scene {
             }
 
 
+            // 47階のクラーケンボスの特別判定
+            const is47Kraken = this.isTowerMode && (59 - h.row === 46) && cell.exists;
+            const is47Cleared = !!gs.towerClearedHexes[`${h.col}_${h.row}`] || cell.cleared;
+
             // 広域表示時は軽量化のため敵LV・有利不利テキスト等は非表示にし、踏破済みの固有地名(showText)と魔女アイコンのみ表示
             if (this.isWideMap) {
                 if (h.text && h.text.visible !== showText) h.text.setVisible(showText);
                 if (h.witchText && h.witchText.visible) h.witchText.setVisible(false);
                 if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
                 if (h.affinityText && h.affinityText.visible) h.affinityText.setVisible(false);
-                if (cell.witchLevel > 0 && isVisibleToPlayer) {
+                if ((cell.witchLevel > 0 || (is47Kraken && !is47Cleared)) && isVisibleToPlayer) {
                     if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
                 } else {
                     if (h.witchSprite && h.witchSprite.visible) h.witchSprite.setVisible(false);
@@ -2321,8 +2325,17 @@ export default class AdventureScene extends Phaser.Scene {
                 };
                 const textColor = attrColors[cell.enemyAttr] || '#ffaa44';
 
-                // 魔女の表示更新（視界内または踏破済みのみ表示）
-                if (cell.witchLevel > 0 && isVisibleToPlayer) {
+                if (is47Kraken && !is47Cleared && isVisibleToPlayer) {
+                    // 47階 クラーケン表示
+                    if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
+                    const kText = `Kraken LV.${cell.enemyLevel || 33}`;
+                    if (h.witchText.text !== kText) h.witchText.setText(kText);
+                    const krakenAttrColor = cell.attribute === 'red' ? '#ff5555' : (cell.attribute === 'purple' ? '#cc66ff' : '#55ff55');
+                    if (h.witchText.color !== krakenAttrColor) h.witchText.setColor(krakenAttrColor);
+                    if (!h.witchText.visible) h.witchText.setVisible(true);
+                    if (h.enemyText && h.enemyText.visible) h.enemyText.setVisible(false);
+                } else if (cell.witchLevel > 0 && isVisibleToPlayer) {
+                    // 通常の魔女の表示更新（視界内または踏破済みのみ表示）
                     if (!h.witchSprite.visible) h.witchSprite.setVisible(true);
                     const wText = `Witch LV.${cell.witchLevel}`;
                     if (h.witchText.text !== wText) h.witchText.setText(wText);
@@ -2333,8 +2346,8 @@ export default class AdventureScene extends Phaser.Scene {
                     if (h.witchText && h.witchText.visible) h.witchText.setVisible(false);
                 }
                 
-                // 敵の表示更新（魔女がいる場合はWasp LVを非表示にする・視界内のみ表示）
-                if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && isVisibleToPlayer) {
+                // 敵の表示更新（魔女やクラーケンがいる場合はWasp LVを非表示にする・視界内のみ表示）
+                if (cell.enemyLevel > 0 && !(cell.witchLevel > 0) && !(is47Kraken && !is47Cleared) && isVisibleToPlayer) {
                     const eText = `Wasp LV.${cell.enemyLevel}`;
                     if (h.enemyText.text !== eText) h.enemyText.setText(eText);
                     if (h.enemyText.color !== textColor) h.enemyText.setColor(textColor);
@@ -2861,6 +2874,47 @@ export default class AdventureScene extends Phaser.Scene {
                             towerAreaName: hex.cellData?.name || '氷',
                             bossBgmKey: 'tow_frozen_silence_b',
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
+                            returnScene: 'AdventureScene'
+                        }
+                    });
+                    this.isJumping = false;
+                });
+                return;
+            }
+
+            // ★ 47階 (targetFloor === 46, row === 13): 巨大タコ魔女クラーケン（3部屋すべてに陣取る）
+            const hexKey47 = `${hex.col}_${hex.row}`;
+            if (targetFloor === 46 && !gs.towerClearedHexes[hexKey47]) {
+                const krakenAttr = hex.cellData?.attribute || (hex.col === 0 ? 'red' : (hex.col === 1 ? 'purple' : 'green'));
+                this.cameras.main.flash(1000, 255, 255, 255);
+                this.time.delayedCall(1000, () => {
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: events,
+                        returnScene: 'AdventureScene',
+                        isTowerBattle: true,
+                        towerAreaName: hex.cellData?.name || '深海',
+                        battleConfig: {
+                            rule: 0,
+                            bgKey: 'KrakenBG',
+                            isTowerBattle: true,
+                            isKrakenBossBattle: true,
+                            isBoss: true,
+                            krakenName: '巨大タコ魔女クラーケン',
+                            krakenHp: 888888,
+                            krakenTentacleHp: 88888,
+                            krakenAtkPower: 15,
+                            krakenBulletDamage: 15,
+                            krakenBodySize: 4.5,
+                            krakenAttribute: krakenAttr,
+                            attribute: krakenAttr,
+                            enemyAttribute: krakenAttr,
+                            towerAreaName: hex.cellData?.name || '深海',
+                            bgmKey: 'tow_Kraken',
+                            bossBgmKey: 'tow_Kraken',
+                            party: this.party && this.party.length > 0 ? this.party : ['001'],
+                            enemyLevel: hex.cellData?.enemyLevel || 33,
+                            majoLevel: hex.cellData?.enemyLevel || 33,
                             returnScene: 'AdventureScene'
                         }
                     });

@@ -28,9 +28,10 @@ export class KrakenBoss extends BattleEntity {
         this.level = data.level || 20;
         this.attribute = data.attribute || 'purple';
 
-        // 耐久力（驚異のHP 222222）
+        // 耐久力（デフォルトHP 222222, 脚HP 44444）
         this.hp = data.hp || 222222;
         this.maxHp = this.hp;
+        this.tentacleHp = data.tentacleHp || 44444;
         this.atkPower = data.atkPower || 40;
 
         // 比例スケール基準（基準本体幅: 3.0m）
@@ -121,8 +122,8 @@ export class KrakenBoss extends BattleEntity {
 
             this.tentacles.push({
                 id: i,
-                hp: 44444,
-                maxHp: 44444,
+                hp: this.tentacleHp,
+                maxHp: this.tentacleHp,
                 isBroken: false,
                 nodes,
                 orbitAngle: initAngle,
