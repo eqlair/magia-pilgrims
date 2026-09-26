@@ -687,11 +687,11 @@ export default class AdventureScene extends Phaser.Scene {
         // ── チュートリアル操作制限（午前：移動のみ、午後：探索のみ、夜：休息のみ）の再適用 ──
         this.applyTutorialRestrictions();
 
-        // 🗼 タワー初期位置（1F街など）への初進入会話チェック
+        // 🗼 タワー初期位置（1F街など）への初進入会話チェック（フェードイン1000ms完了後に安全に発動）
         if (this.isTowerMode) {
             const startHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
             if (startHex && this._shouldTriggerTowerAreaReaction(startHex, true)) {
-                this.time.delayedCall(400, () => {
+                this.time.delayedCall(1200, () => {
                     this._triggerTowerAreaReactionSolo(startHex);
                 });
             }
@@ -735,6 +735,19 @@ export default class AdventureScene extends Phaser.Scene {
             this.isTransitioningMode = false; // 画面・イベント遷移のロックを必ず解除
             this.isJumping = false; // ジャンプ動作ロックを必ず解除
             this.isHappyJumping = false;
+
+            // 🛡️ 安全弁: シーン復帰時は必ずタップ入力を有効化＆遷移用白スクリーンの残骸を除去
+            if (this.input) {
+                this.input.enabled = true;
+            }
+            if (this.children && this.children.each) {
+                this.children.each(child => {
+                    if (child && child.type === 'Rectangle' && child.depth >= 9990 && child.fillColor === 0xffffff) {
+                        try { child.destroy(); } catch (e) {}
+                    }
+                });
+            }
+
             this._updateFoodDisplay(); // タロット等で変更されたSP・食料表示をリアルタイム更新
 
             // マップ画面への復帰時のみマップビジュアル(描画・カメラ)を再表示！（直後に戦闘開始または突破戦直行の場合は非表示のまま）

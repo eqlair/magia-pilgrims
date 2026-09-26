@@ -121,8 +121,20 @@ export class TransitionManager {
             duration: TransitionManager.DURATION,
             ease: 'Linear',
             onComplete: () => {
-                whiteScreen.destroy();
-                scene.input.enabled = true; // タップ有効化
+                try { whiteScreen.destroy(); } catch (e) {}
+                if (scene.input) scene.input.enabled = true; // タップ有効化
+            }
+        });
+
+        // 🛡️ 安全弁: 途中でシーンが一時停止(pause)等されてTween完了が阻害されても、最大1.5秒後には必ず入力を復帰＆白画面除去
+        scene.time.delayedCall(TransitionManager.DURATION + 500, () => {
+            try {
+                if (whiteScreen && whiteScreen.active) {
+                    whiteScreen.destroy();
+                }
+            } catch (e) {}
+            if (scene.input && !scene.input.enabled) {
+                scene.input.enabled = true;
             }
         });
     }
