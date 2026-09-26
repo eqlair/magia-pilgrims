@@ -25,15 +25,10 @@ export default class TarotScene extends Phaser.Scene {
         // 前のシーン（マップ等）のBGMを確実に停止
         this.sound.stopAll();
 
-        this.events.on('resume', (scene, data) => {
-            if (data && data.fromFairyJoinEvent) {
-                // リフィエル加入イベント終了後、タロットシーンを完了してAdventureSceneへ戻る
-                this.endScene(5, true);
-            }
-        });
-
-        this.bgm = this.sound.add('bgm_tarot', { loop: true, volume: 0.5 });
-        this.bgm.play();
+        if (this.cache.audio.exists('bgm_tarot')) {
+            this.bgm = this.sound.add('bgm_tarot', { loop: true, volume: 0.5 });
+            this.bgm.play();
+        }
 
         this.width = this.scale.width;
         this.height = this.scale.height;
@@ -239,33 +234,6 @@ export default class TarotScene extends Phaser.Scene {
 
         // 選ばれなかった残りの2枚を保持（引き直し用）
         this._otherCardIds = this.drawnCardIds.filter((_, i) => i !== index);
-
-        // 🧚‍♀️ 2周目以降＋カード5（法皇/教皇）選択時、リフィエル加入風イベント発生！
-        const isHierophant = (cardId === 5 || cardData?.name === '法皇' || cardData?.name === '教皇');
-        const isSecondLoop = (gs.loopCount >= 2 || GlobalState.IS_DEBUG_MODE);
-        if (isHierophant && isSecondLoop && !gs.hasMetFairy) {
-            gs.hasMetFairy = true;
-            SaveManager.saveGame();
-
-            if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
-            if (!gs.drawnTarotCards.includes(cardId)) {
-                gs.drawnTarotCards.push(cardId);
-            }
-
-            if (this.bgm) {
-                try { this.bgm.stop(); this.bgm.destroy(); } catch(e){}
-            }
-            const eventData = this.cache.json.get('event_fairy_join');
-            if (eventData) {
-                this.scene.launch('EventScene', {
-                    events: eventData,
-                    returnScene: 'TarotScene',
-                    fromFairyJoinEvent: true
-                });
-                this.scene.pause();
-                return;
-            }
-        }
 
         // 選択したカードを永久獲得リスト(drawnTarotCards)に保存して山札から除外
         if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
@@ -545,9 +513,9 @@ export default class TarotScene extends Phaser.Scene {
                 let isUnlockedForTarot = true;
                 
                 // ① ノア(008)・ななよ(007): 一度でも塔に突入したことがある実績(hasEnteredTower)が必要
-                // ※ 単純に地上でリスポーンしただけでは解放されない
+                // ※ 単純に地上でリスポーンしただけでは解放されない (デバッグモード時はスキップ可能)
                 if (joinCharId === '007' || joinCharId === '008') {
-                    if (!gs.hasEnteredTower) {
+                    if (!gs.hasEnteredTower && !GlobalState.IS_DEBUG_MODE) {
                         isUnlockedForTarot = false;
                     }
                 }
@@ -557,7 +525,15 @@ export default class TarotScene extends Phaser.Scene {
                 if (joinCharId === '011') {
                     const hasMetInAkiba = !!(gs.characters?.['011']?.hasAccompanied);
                     const hasRespawned = (gs.loopCount || 1) >= 2;
-                    if (!hasMetInAkiba && !hasRespawned) {
+                    if (!hasMetInAkiba && !hasRespawned && !GlobalState.IS_DEBUG_MODE) {
+                        isUnlockedForTarot = false;
+                    }
+                }
+
+                // ③ リフィエル(009): 2周目以降 (loopCount >= 2 または デバッグモード) かつ 未遭遇 (!gs.hasMetFairy)
+                if (joinCharId === '009') {
+                    const isSecondLoop = (gs.loopCount >= 2 || GlobalState.IS_DEBUG_MODE);
+                    if (!isSecondLoop || gs.hasMetFairy) {
                         isUnlockedForTarot = false;
                     }
                 }
@@ -584,13 +560,20 @@ export default class TarotScene extends Phaser.Scene {
                     }
                 }
                 
-                if (joinEvents && (joinEvents[drawnCardId] || (joinCharId && joinEvents[joinCharId])) && !alreadyInParty && !isPartyFull && isUnlockedForTarot) {
+                const script = (joinEvents && (joinEvents[drawnCardId] || (joinCharId && joinEvents[joinCharId])))
+                    || (joinCharId === '009' ? this.cache.json.get('event_fairy_join') : null);
+
+                if (script && !alreadyInParty && !isPartyFull && isUnlockedForTarot) {
+                    if (joinCharId === '009') {
+                        gs.hasMetFairy = true;
+                        SaveManager.saveGame();
+                    }
                     this.scene.stop();
-                    const script = joinEvents[drawnCardId] || joinEvents[joinCharId];
                     this.scene.start('EventScene', { 
                         returnScene: this.returnScene,
                         events: script,
                         joinCharacterId: joinCharId,
+                        fromFairyJoinEvent: (joinCharId === '009'),
                         fromTarot: true
                     });
                 } else {
@@ -608,6 +591,7 @@ export default class TarotScene extends Phaser.Scene {
             1: '007',   // ななよ (愚者)
             4: '004',   // 黄蘭 (女帝)
             5: '008',   // ノア (皇帝)
+            6: '009',   // リフィエル (教皇)
             9: '003',   // 紅華 (力)
             10: '011',  // 白蓮 (隠者)
             12: '002',  // 蒼樹 (正義)
