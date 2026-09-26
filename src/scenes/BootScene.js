@@ -199,10 +199,8 @@ export default class BootScene extends Phaser.Scene {
         for (let i = 1; i <= 5; i++) {
             this.load.image(`BG_0${i}`, `files/BG_battle/BG_0${i}.webp`);
         }
-        this.load.image('floor_a', 'files/BG_battle/floor_a.webp');
         this.load.image('yuka_enkin01', 'files/BG_battle/yuka_enkin01.webp');
         this.load.image('yuka_enkin02', 'files/BG_battle/yuka_enkin02.webp');
-        this.load.image('yukamas', 'files/BG_battle/yukamas.webp');
         this.load.image('toppa_bg_1', 'files/BG_battle/yuka_enkin02.webp');
         this.load.image('toppa_bg_2', 'files/BG_battle/road_enkin02.webp');
         this.load.image('toppa_bg_3', 'files/BG_battle/grat_bg01.webp');
@@ -366,7 +364,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.json('hint_53f', 'files/DATA/53Fhint.json');
-        this.load.image('bg_tower01', 'files/MAP/tower01.webp');
+        this.load.image('bg_tower01', 'files/MAP/tow1.webp');
         this.load.image('bg_tow1', 'files/MAP/tow1.webp');
         this.load.image('bg_tow2', 'files/MAP/tow2.webp');
         this.load.image('bg_tow3', 'files/MAP/tow3.webp');

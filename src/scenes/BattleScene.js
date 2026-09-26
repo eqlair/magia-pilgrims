@@ -124,10 +124,8 @@ export default class BattleScene extends Phaser.Scene {
         this.load.image('toppa_bg_3', 'files/BG_battle/grat_bg01.webp');
 
         // 背景とエフェクト
-        this.load.image('floor_a', 'files/BG_battle/floor_a.webp');
         this.load.image('yuka_enkin01', 'files/BG_battle/yuka_enkin01.webp');
         this.load.image('yuka_enkin02', 'files/BG_battle/yuka_enkin02.webp');
-        this.load.image('yukamas', 'files/BG_battle/yukamas.webp');
 
         for (let i = 1; i <= 3; i++) {
             this.load.image(`bg00${i}`, `files/BG_battle/bg00${i}.webp`);

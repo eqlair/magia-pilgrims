@@ -234,7 +234,17 @@ export default class AdventureScene extends Phaser.Scene {
         // マップデータの初期化・状態付与
         this.hexes = [];
         this.grid = []; // 2次元配列でのアクセス用
-        const rawMapData = this.isTowerMode ? (this.cache.json.get('map_tower') || MapData) : MapData;
+        let rawMapData = MapData;
+        if (this.isTowerMode) {
+            const towerData = this.cache.json.get('map_tower');
+            if (towerData && Array.isArray(towerData) && towerData.length > 0) {
+                rawMapData = towerData;
+            } else {
+                console.warn('[AdventureScene] map_tower not found in cache! Reverting to normal map.');
+                this.isTowerMode = false;
+                gs.isTowerMode = false;
+            }
+        }
 
         for (let row = 0; row < rawMapData.length; row++) {
             this.grid[row] = [];
@@ -599,7 +609,24 @@ export default class AdventureScene extends Phaser.Scene {
         }
 
         // 最初のヘックスを踏破済みにする
-        this.moveToHex(this.grid[this.playerRow][this.playerCol], false);
+        let startHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : null;
+        if (!startHex) {
+            console.warn(`[AdventureScene] Invalid start hex at row=${this.playerRow}, col=${this.playerCol}. Falling back.`);
+            if (this.isTowerMode && this.grid && this.grid.length >= 60) {
+                this.playerRow = 59;
+                this.playerCol = 2;
+            } else if (this.grid && this.grid.length > 6) {
+                this.playerRow = 6;
+                this.playerCol = 3;
+            } else if (this.grid && this.grid[0]) {
+                this.playerRow = 0;
+                this.playerCol = 0;
+            }
+            startHex = (this.grid && this.grid[this.playerRow]) ? this.grid[this.playerRow][this.playerCol] : (this.hexes && this.hexes[0]);
+        }
+        if (startHex) {
+            this.moveToHex(startHex, false);
+        }
 
         
         // -- カメラ設定 --
