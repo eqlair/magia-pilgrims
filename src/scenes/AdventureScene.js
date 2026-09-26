@@ -1670,13 +1670,15 @@ export default class AdventureScene extends Phaser.Scene {
         }).setOrigin(0.5, 0.5).setDepth(501).setScrollFactor(0);
 
         // --- タワー用 階段探索案内バナー (画面中央寄り上部) ---
-        this.towerGuideText = this.add.text(width / 2, 75, '🔍 捜索、またはフロアの敵を全滅して階段を発見してください。', {
+        this.towerGuideText = this.add.text(width / 2, 100, '探索、またはそのフロアの敵を全滅して\n昇り階段を発見してください', {
             fontFamily: 'sans-serif',
-            fontSize: '13px',
+            fontSize: '15px',
             fontStyle: 'bold',
+            align: 'center',
+            lineSpacing: 4,
             color: '#ffee66',
             backgroundColor: '#000000cc',
-            padding: { x: 14, y: 6 }
+            padding: { x: 16, y: 8 }
         }).setOrigin(0.5, 0.5).setDepth(1500).setScrollFactor(0).setVisible(false);
         if (this.cameras && this.cameras.main) {
             this.cameras.main.ignore(this.towerGuideText);
@@ -4382,26 +4384,37 @@ export default class AdventureScene extends Phaser.Scene {
             }
             if (singleDrop) drops.push(singleDrop);
 
-            // 階段発見判定 (1/5から開始。同フロアの部屋攻略数または探索ごとに母数が減る)
+            // 階段発見判定: 最大必要な回数はそのフロアの部屋数[A]、攻略済み部屋数[B]、探索試行回数[C]
             const currentFloor = 59 - this.playerRow;
             if (!gs.towerSearchCount) gs.towerSearchCount = {};
-            const searchCount = gs.towerSearchCount[currentFloor] || 0;
+            const searchCountC = gs.towerSearchCount[currentFloor] || 0;
 
-            // 同フロアで攻略（敵撃破）した部屋数
-            let clearedCount = 0;
+            // [A] そのフロアの有効な部屋数
+            let roomCountA = 0;
+            if (this.grid && this.grid[this.playerRow]) {
+                for (let c = 0; c < this.grid[this.playerRow].length; c++) {
+                    const hex = this.grid[this.playerRow][c];
+                    if (hex && hex.cellData && hex.cellData.exists !== false) {
+                        roomCountA++;
+                    }
+                }
+            }
+            if (roomCountA <= 0) roomCountA = 1;
+
+            // [B] そのフロアで攻略を終えた部屋の数
+            let clearedCountB = 0;
             if (gs.towerClearedHexes) {
                 const rowSuffix = `_${this.playerRow}`;
-                clearedCount = Object.keys(gs.towerClearedHexes).filter(k => k.endsWith(rowSuffix)).length;
+                clearedCountB = Object.keys(gs.towerClearedHexes).filter(k => k.endsWith(rowSuffix)).length;
             }
 
-            // 攻略部屋数 + 探索回数に応じて母数が減少 (5 -> 4 -> 3 -> 2 -> 1)
-            const progress = searchCount + clearedCount;
-            const denominator = Math.max(1, 5 - progress);
+            // [C] 探索するたびカウント。分母は 1/(A - B - C)
+            const denominator = Math.max(1, roomCountA - clearedCountB - searchCountC);
             const stairsProb = 1.0 / denominator;
 
-            gs.towerSearchCount[currentFloor] = searchCount + 1;
+            gs.towerSearchCount[currentFloor] = searchCountC + 1;
 
-            console.log(`[TowerStairs] Floor ${currentFloor + 1}: progress=${progress} (cleared=${clearedCount}, searched=${searchCount}) -> denominator=${denominator}, prob=${(stairsProb * 100).toFixed(1)}%`);
+            console.log(`[TowerStairs] Floor ${currentFloor + 1}: roomCountA=${roomCountA}, clearedB=${clearedCountB}, searchC=${searchCountC} -> denominator=${denominator}, prob=${(stairsProb * 100).toFixed(1)}%`);
 
             if (!gs.towerStairsFound[currentFloor] && Math.random() < stairsProb) {
                 gs.towerStairsFound[currentFloor] = true;
