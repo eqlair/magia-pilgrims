@@ -4432,6 +4432,11 @@ export class BattleEngine {
         // SP不足やリロード中で発動しなかった場合は連携しない
         if (success === false) return;
 
+        // チーム内必殺技発動タイムスタンプを更新（コンビネーション発動・手動発動含む）
+        if (this.pvpAi && this.pvpAi.teamLastUltTime) {
+            this.pvpAi.teamLastUltTime[teamKey] = this.time || 0;
+        }
+
         // 自分が発動した必殺技に連携したBさんの必殺技によって他のキャラクターがさらに連携することはない
         if (isLinked) return;
 

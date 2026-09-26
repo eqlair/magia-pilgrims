@@ -17,15 +17,41 @@ export class PvpAiController {
         this.charTimers = new Map();
     }
 
-    /** キャラクターごとのロールタイプを取得 */
-    getRoleType(charId) {
-        if (charId === '002' || charId === '003' || charId === '006' || charId === '009') {
-            return 'melee'; // 【近接攻撃型】 蒼樹(002), 紅華(003), さくら(006), リフィエル(009)
-        } else if (charId === '005' || charId === '008' || charId === '010' || charId === '011') {
-            return 'ranged'; // 【後衛型】 李乃果(005), ノア(008), プロセル(010), 白蓮(011)
-        } else {
-            return 'support'; // 【支援型】 紫苑(001), 黄蘭(004), ななよ(007)
+    /**
+     * キャラクターごとのロールタイプを取得
+     * F : 前衛・標準 (蒼樹 002, さくら 006, ななよ 007)
+     * F2: 前衛・突進中央狙い (紅華 003)
+     * M : 補助・自由位置 (紫苑 001)
+     * M2: 補助・後衛中央狙い (黄蘭 004, 白蓮 011)
+     * B : 後列攻撃型 (ノア 008, プロセル 010)
+     * R : 後列攻撃・通常時 (リフィエル 009 通常時)
+     * R2: 前衛化・変身中 (リフィエル 009 必殺技発動中)
+     * H : 後列回復型 (李乃果 005)
+     */
+    getRoleType(member) {
+        const charId = (typeof member === 'string') ? member : member.charId;
+        if (charId === '009') {
+            return (typeof member === 'object' && member.isUltimateActive) ? 'R2' : 'R';
         }
+        if (charId === '002' || charId === '006' || charId === '007') {
+            return 'F'; // 蒼樹(002), さくら(006), ななよ(007)
+        }
+        if (charId === '003') {
+            return 'F2'; // 紅華(003)
+        }
+        if (charId === '001') {
+            return 'M'; // 紫苑(001)
+        }
+        if (charId === '004' || charId === '011') {
+            return 'M2'; // 黄蘭(004), 白蓮(011)
+        }
+        if (charId === '008' || charId === '010') {
+            return 'B'; // ノア(008), プロセル(010)
+        }
+        if (charId === '005') {
+            return 'H'; // 李乃果(005)
+        }
+        return 'F';
     }
 
     /** 毎フレームのAI思考更新 */
@@ -81,7 +107,7 @@ export class PvpAiController {
             }
 
             const timer = this.charTimers.get(member);
-            const role = this.getRoleType(member.charId);
+            const role = this.getRoleType(member);
 
             // ── 1. 必殺技の判断 ──
             timer.ultCheckTimer -= dt;
@@ -107,52 +133,53 @@ export class PvpAiController {
 
     /** 必殺技の発動条件判定 */
     _checkUltimateCondition(member, role, myTeam, now, isPlayerTeam) {
-        // ゲージがたまっていなければ撃てない
+        // ゲージ（リロードタイム）が100%になっていなければ撃てない
         if (member.ultimateCooldown > 0) return false;
+
+        // R2(変身中)はすでに必殺技発動中
+        if (role === 'R2') return false;
 
         const teamKey = isPlayerTeam ? 'player' : 'enemy';
         const isPvp = this.engine.isPvpBattle;
         const isBoss = this.engine.isBossBattle || (this.engine.enemies && this.engine.enemies.some(e => e.isBoss));
 
-        // 1. 戦闘タイプごとの発動条件判定
-        let battleConditionMet = false;
+        // チーム内連射制限: 6秒以内に他のメンバーが必殺技を撃っていたら撃たない（コンビネーション発動含む）
+        // ※H（後列回復型: 李乃果）は緊急回復のため対象外（味方が撃った直後でも撃てる）
+        if (role !== 'H') {
+            if (now - this.teamLastUltTime[teamKey] < 6.0) {
+                return false;
+            }
+        }
+
+        // 1. H（後列回復型: 李乃果）特有の回復トリガー
+        if (role === 'H') {
+            const aliveAllies = myTeam.filter(m => !m.isDead && m.hp > 0);
+            if (aliveAllies.length <= 1) {
+                // 自陣が1人きりの場合: 自身がHPの5%以上を失っていればあがいて回復！
+                if (member.hp > member.maxHp * 0.95) return false;
+            } else {
+                // 味方の2人以上がHPの5%以上を失っていれば撃つ
+                const damagedCount = aliveAllies.filter(m => m.hp <= m.maxHp * 0.95).length;
+                if (damagedCount < 2) return false;
+            }
+            return true;
+        }
+
+        // 2. その他の戦闘タイプごとの発動条件判定
         if (isPvp || isBoss) {
-            // ※魔女戦 / PvP戦: ゲージがたまれば撃つ
-            battleConditionMet = true;
+            // 魔女戦 / PvP戦: ゲージがたまれば撃つ
+            return true;
         } else {
-            // ※雑魚戦: 雑魚敵が画面に8匹以上、敵の残り数がまだ半分より多ければ必殺技を撃つ
+            // ※雑魚戦: 画面上に敵が一定数いるか、ウェーブ残敵が存在すれば撃つ
             const aliveEnemies = this.engine.enemies ? this.engine.enemies.filter(e => !e.isDead && !e.isDying && e.hp > 0).length : 0;
             const totalEnemies = this.engine.enemyCountPerWave || 0;
             const remainingEnemies = aliveEnemies + Math.max(0, (this.engine.enemyCountPerWave || 0) - (this.engine.spawnedInWave || 0));
 
-            if (aliveEnemies >= 8 && (totalEnemies === 0 || remainingEnemies > (totalEnemies / 2))) {
-                battleConditionMet = true;
+            if (aliveEnemies >= 4 || (totalEnemies > 0 && remainingEnemies >= 4)) {
+                return true;
             }
-        }
-
-        if (!battleConditionMet) return false;
-
-        // チーム内連射制限: 2.5秒以内に他のメンバーが必殺技を撃っていたら少し待つ
-        if (now - this.teamLastUltTime[teamKey] < 2.5) {
             return false;
         }
-
-        // 2. ロール・キャラクター別の条件
-        if (member.charId === '005') {
-            // 李乃果 (全体回復):
-            const aliveAllies = myTeam.filter(m => !m.isDead && m.hp > 0);
-            if (aliveAllies.length <= 1) {
-                // 自陣が1人きりの場合: 自身が少しでも被弾(HP95%以下)していればあがいて回復！
-                if (member.hp > member.maxHp * 0.95) return false;
-            } else {
-                // 2人以上の場合: 誰か1人でもHP80%以下、または2人以上がHP95%以下なら撃つ
-                const heavyDamaged = aliveAllies.some(m => m.hp <= m.maxHp * 0.80);
-                const lightDamagedCount = aliveAllies.filter(m => m.hp <= m.maxHp * 0.95).length;
-                if (!heavyDamaged && lightDamagedCount < 2) return false;
-            }
-        }
-
-        return true;
     }
 
     /** 必殺技の発動と移動処理 */
@@ -160,21 +187,28 @@ export class PvpAiController {
         const teamKey = isPlayerTeam ? 'player' : 'enemy';
         this.teamLastUltTime[teamKey] = now;
 
-        // 移動するかどうかの判定
-        // 【近接攻撃型】: 1/2で前衛中央に向かって移動して撃とうとする。1/2で移動せずそのまま撃つ。
-        // 【後衛型】: 1/2で後衛中央に向かって移動して撃とうとする。1/2で移動せずそのまま撃つ。
-        // 【支援型】: 1/2で後衛中央に向かって移動して撃とうとする。1/2で移動せずそのまま撃つ。
-        const shouldMove = Math.random() < 0.5;
+        // 雑魚戦等での必殺技発動位置取り
+        // F2: 1/2で前衛中央に向かって移動して撃とうとする。1/2で移動せずそのまま撃つ。
+        // M2, B: 1/2で後衛中央に向かって移動して撃とうとする。1/2で移動せずそのまま撃つ。
+        // F, M, R, H: 必殺技を撃つときに発動場所にこだわらず、どこでも撃つ
+        let shouldMove = false;
+        let targetFront = false;
+
+        if (role === 'F2') {
+            if (Math.random() < 0.5) {
+                shouldMove = true;
+                targetFront = true;
+            }
+        } else if (role === 'M2' || role === 'B') {
+            if (Math.random() < 0.5) {
+                shouldMove = true;
+                targetFront = false;
+            }
+        }
 
         if (shouldMove) {
             this._swapLane(member, 0, myTeam, now, teamKey);
-            if (role === 'melee') {
-                // 前衛中央へ
-                this._swapFrontBack(member, true, myTeam, isPlayerTeam, now);
-            } else {
-                // 後衛中央へ
-                this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
-            }
+            this._swapFrontBack(member, targetFront, myTeam, isPlayerTeam, now);
         }
 
         // 必殺技の実行（BattleEngine の共通処理を通して友好度連携判定を行う）
@@ -189,13 +223,13 @@ export class PvpAiController {
         }
     }
 
-    /** 前後列の移動およびスワップ（入れ替え）処理 - 敵限定で同レーンにいるキャラと重ならず入れ替わる */
+    /** 前後列の移動およびスワップ（入れ替え）処理 */
     _swapFrontBack(member, targetIsFront, myTeam, isPlayerTeam, now = 0) {
         if (!member || member.isFront === targetIsFront) return;
 
         const memberTimer = this.charTimers.get(member);
-        // クールダウン判定（直近2.0秒以内に入れ替えまたは前後移動したキャラは連続移動しない）
-        if (memberTimer && memberTimer.lastFrontBackTime && (now - memberTimer.lastFrontBackTime < 2.0)) {
+        // クールダウン判定（直近1.5秒以内に入れ替えまたは前後移動したキャラは連続移動しない）
+        if (memberTimer && memberTimer.lastFrontBackTime && (now - memberTimer.lastFrontBackTime < 1.5)) {
             return;
         }
 
@@ -278,44 +312,82 @@ export class PvpAiController {
     /** 前後列とレーン移動の思考ルーチン */
     _updatePositionAndLane(member, role, myTeam, opponents, isPlayerTeam, now) {
         const teamKey = isPlayerTeam ? 'player' : 'enemy';
-        const frontZ = isPlayerTeam ? 6.0 : 9.0;
-        const rearZ = isPlayerTeam ? 1.0 : 14.0;
+        const aliveTeam = myTeam.filter(m => !m.isDead && m.hp > 0);
+        if (aliveTeam.length === 0) return;
 
         // ── A. 前衛 / 後衛の判定 ──
-        // 共通ルール: 誰も前衛にいないと前衛に出る
-        const hasAnyFrontAlly = myTeam.some(m => m !== member && m.isFront);
+        let targetIsFront = member.isFront;
 
-        if (!member.isFront && !hasAnyFrontAlly) {
-            // 自分が後衛で、前衛に誰もいない -> 前衛に出る
-            this._swapFrontBack(member, true, myTeam, isPlayerTeam, now);
-        } else if (role === 'melee') {
-            // 【近接攻撃型】 全メンバーの中で最もHPが低くなると後列に下がる。それ以外の場合前衛に出る
-            let lowestHp = Infinity;
-            let lowestMember = null;
-            for (const m of myTeam) {
-                if (m.hp < lowestHp) {
-                    lowestHp = m.hp;
-                    lowestMember = m;
+        // 1. 後衛に下がる条件:
+        // 「他にメンバーがいて、HPが半分以下かつ全メンバーの中で最もHPが低くなると後列に下がる」
+        // 対象: F, F2, M, M2, B, R, R2 (H以外)
+        let isLowHpFallback = false;
+        if (role !== 'H' && aliveTeam.length > 1) {
+            const isHpHalfOrLess = member.hp <= (member.maxHp * 0.5);
+            const isLowestHp = aliveTeam.every(m => m.hp >= member.hp);
+            if (isHpHalfOrLess && isLowestHp) {
+                isLowHpFallback = true;
+            }
+        }
+
+        if (isLowHpFallback) {
+            targetIsFront = false;
+        } else {
+            // 2. 前衛に出る条件判定
+            // 他に前衛に味方がいるかどうか
+            const hasOtherFrontAlly = aliveTeam.some(m => m !== member && m.isFront);
+            const rearCount = aliveTeam.filter(m => !m.isFront).length;
+            const rearRatio = rearCount / aliveTeam.length;
+
+            let wantFront = false;
+
+            if (role === 'F' || role === 'F2' || role === 'R2') {
+                // F, F2, R2:
+                // ・誰も前衛にいないと前衛に出る
+                // ・メンバーの半分以上(>=50%)が後列にいると前衛に出る
+                // ・基本的な配置は前衛
+                wantFront = true;
+            } else if (role === 'M' || role === 'M2') {
+                // M, M2:
+                // ・誰も前衛にいないと前衛に出る（自分が前衛で他に前衛がいなければ前衛をキープ）
+                // ・メンバーの60%以上(>=60%)が後列にいると前衛に出る
+                // ・前後位置は隊列設定で決められた位置に従う
+                if (!hasOtherFrontAlly || rearRatio >= 0.6) {
+                    wantFront = true;
+                } else {
+                    const defaultFront = member.initialIsFront !== undefined ? member.initialIsFront : false;
+                    wantFront = defaultFront;
+                }
+            } else if (role === 'B') {
+                // B:
+                // ・誰も前衛にいないと前衛に出る（他に前衛がいなければ前に出る、他に前衛がいれば後衛へ）
+                // ・基本的な配置は後衛
+                if (!hasOtherFrontAlly) {
+                    wantFront = true;
+                } else {
+                    wantFront = false; // 基本配置: 後衛
+                }
+            } else if (role === 'R' || role === 'H') {
+                // R, H:
+                // ・他のメンバーがいない(1人のみ)と前衛に出る
+                // ・基本的な配置は後衛
+                if (aliveTeam.length <= 1) {
+                    wantFront = true;
+                } else {
+                    wantFront = false; // 基本配置: 後衛
                 }
             }
 
-            if (lowestMember === member && myTeam.length > 1) {
-                // 最もHPが低い -> 後列に下がる
-                this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
-            } else {
-                // それ以外 -> 前衛に出る
-                this._swapFrontBack(member, true, myTeam, isPlayerTeam, now);
-            }
-        } else if (role === 'ranged') {
-            // 【後衛型】 後列から動かない
-            this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
-        } else if (role === 'support') {
-            // 【支援型】 前衛に誰かがいれば後列から動かない。前衛がいなくなると前に出ようとする。
-            this._swapFrontBack(member, false, myTeam, isPlayerTeam, now);
+            targetIsFront = wantFront;
+        }
+
+        // 前後移動の実行
+        if (member.isFront !== targetIsFront) {
+            this._swapFrontBack(member, targetIsFront, myTeam, isPlayerTeam, now);
         }
 
         // ── B. レーン移動の判定 ──
-        // 共通ルール: 他のキャラクターが1秒以内にレーン移動していたら移動しない
+        // 共通ルール: 他のメンバーが1秒以内にレーン移動していたら移動しない (全タイプ共通)
         const canMoveLane = (now - this.teamLastLaneMoveTime[teamKey] >= 1.0);
         if (!canMoveLane) return;
 
@@ -325,20 +397,34 @@ export class PvpAiController {
             return Math.abs(p.x - currentLane * 1.8) < 1.0;
         });
 
-        if (role === 'melee') {
-            // 【近接攻撃型】
-            // ① 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たら隣接レーンへ移動する
-            let facingHighDef = false;
-            if (facingOpponent) {
-                const defAttr = facingOpponent.attribute || 'red';
-                const atkAttr = member.attribute || 'red';
-                const defValue = ATTR_DEF[defAttr]?.[atkAttr] !== undefined ? ATTR_DEF[defAttr][atkAttr] : 100;
-                if (defValue < 100) {
-                    facingHighDef = true;
+        // ── 後列にいる場合のレーン移動 ──
+        if (!member.isFront) {
+            // B, R, H: 「後列から動かない。右端か左端近いほうにレーン移動しようとする。」
+            if (role === 'B' || role === 'R' || role === 'H') {
+                const distToLeft = Math.abs(currentLane - (-2));
+                const distToRight = Math.abs(currentLane - 2);
+                const preferredLane = (distToLeft <= distToRight) ? -2 : 2;
+
+                if (preferredLane !== currentLane) {
+                    const step = preferredLane > currentLane ? 1 : -1;
+                    const nextLane = currentLane + step;
+                    this._swapLane(member, nextLane, myTeam, now, teamKey);
+                    return;
                 }
             }
+            // 後列にいるときは他のレーン移動は行わない
+            return;
+        }
 
-            if (facingHighDef) {
+        // ── 前衛にいる場合のレーン移動 ──
+        // 1. 「前衛にいるとき自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たらレーンを移動する」
+        // 対象: F, F2, M, M2, B, R, R2 (H以外)
+        if (role !== 'H' && facingOpponent) {
+            const defAttr = facingOpponent.attribute || 'red';
+            const atkAttr = member.attribute || 'red';
+            const defValue = ATTR_DEF[defAttr]?.[atkAttr] !== undefined ? ATTR_DEF[defAttr][atkAttr] : 100;
+            if (defValue < 100) {
+                // 属性耐性持ちを回避
                 if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
                     const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
                     if (adjacentCandidates.length > 0) {
@@ -348,8 +434,26 @@ export class PvpAiController {
                 }
                 return;
             }
+        }
 
-            // ② 敵の前列にいるキャラクターが自分の属性の防御力の高い(属性値100未満)キャラクターでなければその正面へ1歩近づく
+        // 2. 「前衛にいるとき、目の前に誰か（敵）がいたら左右どちらかのレーンへ移動する」
+        // 対象: M, M2, B, R (近接戦闘を避けるタイプ)
+        if (role === 'M' || role === 'M2' || role === 'B' || role === 'R') {
+            if (facingOpponent) {
+                if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
+                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
+                    if (adjacentCandidates.length > 0) {
+                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
+                        this._swapLane(member, targetLane, myTeam, now, teamKey);
+                    }
+                }
+                return;
+            }
+        }
+
+        // 3. 「前列にいるとき敵の前列にいるキャラクターが自分の属性の防御力の高い(属性値100未満)キャラクターでなければその正面に移動する」
+        // 対象: F, F2, R2 (案AによりM, M2は除外)
+        if (role === 'F' || role === 'F2' || role === 'R2') {
             const validFrontOpponents = opponents.filter(p => {
                 const isFrontOpp = p.isFront !== undefined ? p.isFront : (p.z < 15.0);
                 if (!isFrontOpp) return false;
@@ -367,81 +471,14 @@ export class PvpAiController {
                 if (!alreadyFacing) {
                     const targetOpp = validFrontOpponents[Math.floor(Math.random() * validFrontOpponents.length)];
                     const targetLane = targetOpp.lane !== undefined ? targetOpp.lane : Math.max(-2, Math.min(2, Math.round(targetOpp.x / 1.8)));
-                    this._swapLane(member, targetLane, myTeam, now, teamKey);
+                    const step = targetLane > currentLane ? 1 : -1;
+                    this._swapLane(member, currentLane + step, myTeam, now, teamKey);
                     return;
                 }
             }
 
-            // ③ ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する
-            if (Math.random() < 0.35) {
-                this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey);
-            }
-        } else if (role === 'ranged') {
-            // 【後衛型】
-            // ① 前衛にいるとき、目の前に誰かがいたら左右どちらかの隣接レーンへ移動する
-            if (member.isFront && facingOpponent) {
-                if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
-                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
-                    if (adjacentCandidates.length > 0) {
-                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
-                        this._swapLane(member, targetLane, myTeam, now, teamKey);
-                    }
-                }
-                return;
-            }
-
-            // ② 後列から動かない。右端か左端近いほうにレーン移動しようとする
-            const distToLeft = Math.abs(currentLane - (-2));
-            const distToRight = Math.abs(currentLane - 2);
-            const preferredLane = (distToLeft <= distToRight) ? -2 : 2;
-
-            if (preferredLane !== currentLane) {
-                const step = preferredLane > currentLane ? 1 : -1;
-                const nextLane = currentLane + step;
-                this._swapLane(member, nextLane, myTeam, now, teamKey);
-            } else {
-                // ③ ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する
-                if (Math.random() < 0.35) {
-                    this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey);
-                }
-            }
-        } else if (role === 'support') {
-            // 【支援型】
-            // ① 前衛にいるとき、目の前に誰かがいたら左右どちらかの隣接レーンへ移動する
-            if (member.isFront && facingOpponent) {
-                if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
-                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
-                    if (adjacentCandidates.length > 0) {
-                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
-                        this._swapLane(member, targetLane, myTeam, now, teamKey);
-                    }
-                }
-                return;
-            }
-
-            // ② 自分の正面に自分の属性の防御力の高い(属性値100未満)キャラクターが来たら隣接レーンへ移動する
-            let facingHighDef = false;
-            if (facingOpponent) {
-                const defAttr = facingOpponent.attribute || 'red';
-                const atkAttr = member.attribute || 'red';
-                const defValue = ATTR_DEF[defAttr]?.[atkAttr] !== undefined ? ATTR_DEF[defAttr][atkAttr] : 100;
-                if (defValue < 100) {
-                    facingHighDef = true;
-                }
-            }
-
-            if (facingHighDef) {
-                if (!this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey)) {
-                    const adjacentCandidates = [currentLane - 1, currentLane + 1].filter(l => l >= -2 && l <= 2);
-                    if (adjacentCandidates.length > 0) {
-                        const targetLane = adjacentCandidates[Math.floor(Math.random() * adjacentCandidates.length)];
-                        this._swapLane(member, targetLane, myTeam, now, teamKey);
-                    }
-                }
-                return;
-            }
-
-            // ③ ランダムで左右どちらかの隣接レーンを確認し、誰もいないとそちらに移動する
+            // 4. 「ランダムで左右どちらかのレーンを確認し、誰もいないとそちらに移動する」
+            // 対象: F, F2, R2
             if (Math.random() < 0.35) {
                 this._tryMoveToAdjacentEmptyLane(member, myTeam, now, teamKey);
             }

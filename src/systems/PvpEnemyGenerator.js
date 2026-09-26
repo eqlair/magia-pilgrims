@@ -2,15 +2,15 @@ import charDataJson from '../data/characters.json';
 
 export class PvpEnemyGenerator {
     static CHAR_LIST = [
-        { id: '001', name: '紫苑', roleName: '前衛/射撃近接', isDefaultFront: true, color: '#b993ff' },
+        { id: '001', name: '紫苑', roleName: '補助/射撃近接', isDefaultFront: true, color: '#b993ff' },
         { id: '002', name: '蒼樹', roleName: '前衛/大剣連撃', isDefaultFront: true, color: '#66aaff' },
         { id: '003', name: '紅華', roleName: '前衛/双剣突進', isDefaultFront: true, color: '#ff6666' },
         { id: '004', name: '黄蘭', roleName: '後衛/リボン支援', isDefaultFront: false, color: '#ffea77' },
         { id: '005', name: '李乃果', roleName: '後衛/全体回復', isDefaultFront: false, color: '#77ff88' },
         { id: '006', name: 'さくら', roleName: '前衛/瞬間移動連撃', isDefaultFront: true, color: '#ff77aa' },
-        { id: '007', name: 'ななよ', roleName: '後衛/三鈷杵結界', isDefaultFront: false, color: '#ffbb66' },
+        { id: '007', name: 'ななよ', roleName: '前衛/三鈷杵結界', isDefaultFront: true, color: '#ffbb66' },
         { id: '008', name: 'ノア', roleName: '後衛/不死鳥射撃', isDefaultFront: false, color: '#ff7755' },
-        { id: '009', name: 'リフィエル', roleName: '前衛/変身槍連撃', isDefaultFront: true, color: '#55ffcc' },
+        { id: '009', name: 'リフィエル', roleName: '後衛/変身槍連撃', isDefaultFront: false, color: '#55ffcc' },
         { id: '010', name: 'プロセル', roleName: '後衛/氷柱範囲', isDefaultFront: false, color: '#88ddff' },
         { id: '011', name: '白蓮', roleName: '後衛/バリア援護', isDefaultFront: false, color: '#ddaaff' }
     ];

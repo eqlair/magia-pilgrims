@@ -164,6 +164,7 @@ export class PlayerCharacter extends BattleEntity {
         this.name = data.name || "Unknown";
         this.lane = data.lane || 0; // -2, -1, 0, 1, 2
         this.isFront = data.isFront !== undefined ? data.isFront : false;
+        this.initialIsFront = this.isFront;
         
         this.charId = data.charId || '001';
         this.size = 1.0;
