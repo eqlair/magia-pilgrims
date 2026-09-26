@@ -1568,7 +1568,6 @@ export class PlayerCharacter extends BattleEntity {
                                     target.applyKnockback((50 * tdx) / (Math.hypot(tdx, tdz) || 1), (50 * tdz) / (Math.hypot(tdx, tdz) || 1));
                                 }
                             }
-                            self.engine.effects.push(new EffectEntity(this.x, this.z, { type: 'ultimate_burst_011', radius: 4.0, lifeTime: burstDuration }));
                         }
                     }
                 }
