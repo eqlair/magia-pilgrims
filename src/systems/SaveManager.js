@@ -65,7 +65,7 @@ export class SaveManager {
                 towerFormation: gs.towerFormation ? JSON.parse(JSON.stringify(gs.towerFormation)) : {},
                 autoLanes: gs.autoLanes ? JSON.parse(JSON.stringify(gs.autoLanes)) : { '-2': false, '-1': false, '0': false, '1': false, '2': false },
                 isBattleAutoEnabled: gs.isBattleAutoEnabled !== undefined ? gs.isBattleAutoEnabled : true,
-                pvpDamageDenominator: gs.pvpDamageDenominator !== undefined ? gs.pvpDamageDenominator : 20,
+                pvpDamageDenominator: gs.pvpDamageDenominator !== undefined ? gs.pvpDamageDenominator : 30,
                 activeTarots: gs.activeTarots,
                 drawnTarotCards: gs.drawnTarotCards || [],
                 event1207Played: gs.event1207Played,
@@ -350,9 +350,9 @@ export class SaveManager {
         if (d.autoLanes) gs.autoLanes = d.autoLanes;
         if (d.isBattleAutoEnabled !== undefined) gs.isBattleAutoEnabled = d.isBattleAutoEnabled;
         if (d.pvpDamageDenominator !== undefined) {
-            gs.pvpDamageDenominator = (d.pvpDamageDenominator === 30) ? 20 : d.pvpDamageDenominator;
+            gs.pvpDamageDenominator = (d.pvpDamageDenominator === 20) ? 30 : d.pvpDamageDenominator;
         } else {
-            gs.pvpDamageDenominator = 20;
+            gs.pvpDamageDenominator = 30;
         }
         if (d.activeTarots) gs.activeTarots = d.activeTarots;
         if (d.drawnTarotCards) gs.drawnTarotCards = d.drawnTarotCards;

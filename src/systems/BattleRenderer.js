@@ -1315,7 +1315,7 @@ export class BattleRenderer {
                     let cost = entity.charId === '005' ? (entity.maxSp || 500) * 0.10 : (entity.charId === '009' ? 20 + entity.wlv : 10 + entity.wlv);
                     if (isPvpEnemy || (this.engine && this.engine.isPvpBattle)) {
                         const gs = GlobalState.getInstance();
-                        const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 20;
+                        const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 30;
                         cost *= (1.0 / denom);
                     }
                     if (entity.sp >= cost) {

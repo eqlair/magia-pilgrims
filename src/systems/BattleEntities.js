@@ -398,7 +398,7 @@ export class PlayerCharacter extends BattleEntity {
                 let drainAmount = baseDrain * (this.spDrainRate || 1.0);
                 if (this.engine && this.engine.isPvpBattle) {
                     const gs = GlobalState.getInstance();
-                    const denom = (this.engine.config && this.engine.config.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 20;
+                    const denom = (this.engine.config && this.engine.config.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 30;
                     drainAmount *= (1.0 / denom);
                 }
                 this.sp = Math.max(0, this.sp - drainAmount);
@@ -537,7 +537,7 @@ export class PlayerCharacter extends BattleEntity {
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
                 if (isPvp) {
                     const gs = GlobalState.getInstance();
-                    const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 20;
+                    const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 30;
                     healAmount *= (1.0 / denom);
                     spCost *= (1.0 / denom);
                 }
@@ -623,7 +623,7 @@ export class PlayerCharacter extends BattleEntity {
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
                 if (isPvp) {
                     const gs = GlobalState.getInstance();
-                    const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 20;
+                    const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 30;
                     healAmount *= (1.0 / denom);
                     spCostPerPerson *= (1.0 / denom);
                 }
@@ -839,7 +839,7 @@ export class PlayerCharacter extends BattleEntity {
                 const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
                 if (isPvp) {
                     const gs = GlobalState.getInstance();
-                    const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 20;
+                    const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 30;
                     healAmount *= (1.0 / denom);
                     spCostPerPerson *= (1.0 / denom);
                 }
@@ -1016,7 +1016,7 @@ export class PlayerCharacter extends BattleEntity {
         // PvP対戦時は消費SPもPvPスケールで圧縮
         const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
         if (isPvp) {
-            const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 20;
+            const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 30;
             cost *= (1.0 / denom);
         }
         
@@ -1237,7 +1237,7 @@ export class PlayerCharacter extends BattleEntity {
             const isPvp = this.isPvpEnemy || (this.engine && this.engine.isPvpBattle);
             if (isPvp) {
                 const gs = GlobalState.getInstance();
-                const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 20;
+                const denom = (this.engine?.config?.pvpDamageDenominator) || (gs && gs.pvpDamageDenominator) || 30;
                 healTotal *= (1.0 / denom);
             }
 

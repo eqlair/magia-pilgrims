@@ -1069,12 +1069,12 @@ export class BattleEngine {
             }
         }
 
-        // 対人戦(PvP魔法少女戦)モード限定: 互いの攻撃ダメージを調整倍率(デフォルト1/20)にする
+        // 対人戦(PvP魔法少女戦)モード限定: 互いの攻撃ダメージを調整倍率(デフォルト1/30)にする
         if (this.isPvpBattle) {
             const gs = this.globalState || GlobalState.getInstance();
             const denom = (this.config && this.config.pvpDamageDenominator)
                 ? this.config.pvpDamageDenominator
-                : ((gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 20);
+                : ((gs && gs.pvpDamageDenominator) ? gs.pvpDamageDenominator : 30);
             finalDamage *= (1.0 / denom);
         }
 
