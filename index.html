@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Magia_Pilgrims</title>
+
+    <!-- Noto Serif JP: 400(Regular), 700(Bold) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        margin: 0; padding: 0; box-sizing: border-box;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      body, html {
+        width: 100%;
+        height: 100%;
+        height: 100vh;
+        height: 100dvh;
+        background-color: #000;
+        overflow: hidden;
+        touch-action: none; /* スワイプ時のブラウザ画面スクロール・更新防止 */
+      }
+
+      /*
+       * ゲーム全体のコンテナ
+       * position: fixed + inset: 0 で全画面に固定し、
+       * 100dvh (Dynamic Viewport Height) でアドレスバー表示時も画面下が見切れないようにする。
+       * flexbox で canvas を縦長画面でも完璧な画面真ん中に配置する。
+       */
+      #game-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        width: 100vw;
+        height: 100%;
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #000;
+      }
+
+      /* タイトル動画レイヤー（canvas背面） */
+      #title-video {
+        display: none;
+        position: absolute;
+        z-index: 0;
+        object-fit: cover;
+        pointer-events: none;
+      }
+
+      /* Phaser canvas（前面） 
+       * Phaserのインラインmargin指定による上下のズレを防ぐため margin: 0 !important を適用
+       */
+      canvas {
+        position: relative;
+        z-index: 1;
+        display: block;
+        margin: 0 !important;
+      }
+      /* 初期ローディング画面 */
+      #loading-screen {
+        position: absolute;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: #0a0a16;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        transition: opacity 0.5s ease-out;
+      }
+      .loading-title {
+        font-size: 22px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        color: #ffea77;
+        margin-bottom: 24px;
+        text-shadow: 0 0 12px rgba(255, 234, 119, 0.4);
+      }
+      .loading-bar-wrapper {
+        width: 240px;
+        height: 8px;
+        background: #1a1a2e;
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid #444466;
+        box-shadow: 0 0 8px rgba(0,0,0,0.6);
+        margin-bottom: 12px;
+      }
+      .loading-bar-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #ff8800, #ffea77);
+        border-radius: 4px;
+        transition: width 0.1s ease-out;
+      }
+      .loading-text {
+        font-size: 13px;
+        color: #aaaacc;
+        letter-spacing: 1px;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-UNGGsPlM.js"></script>
+  </head>
+  <body>
+    <div id="game-container">
+      <!-- 起動直後から最速で表示されるローディング画面（ロード完了までスキップ不可） -->
+      <div id="loading-screen">
+        <div class="loading-title">Magia Pilgrims</div>
+        <div class="loading-bar-wrapper">
+          <div id="loading-bar-fill" class="loading-bar-fill"></div>
+        </div>
+        <div id="loading-text" class="loading-text">Now Loading... 0%</div>
+      </div>
+      <video id="title-video" muted loop playsinline preload="none">
+        <source src="./files/OP/OP001.mp4" type="video/mp4">
+      </video>
+    </div>
+    <script>
+      window.skipBootLoading = function() {
+        var ls = document.getElementById('loading-screen');
+        if (ls) {
+          ls.style.opacity = '0';
+          setTimeout(function() { try { ls.remove(); } catch(e){} }, 500);
+        }
+        try {
+          var boot = window.game && window.game.scene && window.game.scene.getScene('BootScene');
+          if (boot && boot.load && boot.load.isLoading()) {
+            console.log('[HTML] Forcing BootScene loadComplete');
+            boot.load.loadComplete();
+          } else if (boot && boot.scene && boot.scene.isActive()) {
+            boot.scene.start('TitleScene');
+          }
+        } catch(e) {
+          console.warn('[HTML] skipBootLoading error:', e);
+        }
+      };
+
+      // 🛡️ 最大安全タイマー: 45秒経過してもローディングが残っている場合は自動フェードアウト＆強制完了（タップでも即座にスキップ可能）
+      setTimeout(function() {
+        if (window.skipBootLoading) window.skipBootLoading();
+      }, 45000);
+    </script>
+  </body>
+</html>
