@@ -488,11 +488,13 @@ export default class AdventureScene extends Phaser.Scene {
         // パーティ編成の読み込みと復元 (通常マップ / 塔 を完全分離して復元)
         let initialParty = this._initData.party;
 
-        if (this._initData.fromTitleNewGame || this._initData.isTutorialStart) {
+        if (this._initData.fromTitleNewGame || this._initData.isTutorialStart || this._initData.fromRespawn) {
             initialParty = ['001'];
-            gs.savedFormation = { '001': { lane: 0, isFront: false } };
+            gs.savedFormation = { '001': { lane: 0, isFront: true } };
             gs.normalParty = ['001'];
-            gs.normalFormation = { '001': { lane: 0, isFront: false } };
+            gs.normalFormation = { '001': { lane: 0, isFront: true } };
+            gs.towerParty = ['001'];
+            gs.towerFormation = { '001': { lane: 0, isFront: true } };
         } else if (this.isTowerMode) {
             // 塔モード時のパーティ・配置復元
             if (initialParty && initialParty.length > 0) {
@@ -553,7 +555,7 @@ export default class AdventureScene extends Phaser.Scene {
             partySet.add('001');
         }
 
-        if (!this._initData.fromTitleNewGame && !this._initData.isTutorialStart && gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+        if (!this._initData.fromTitleNewGame && !this._initData.isTutorialStart && !this._initData.fromRespawn && gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
             for (const cid of Object.keys(gs.savedFormation)) {
                 partySet.add(gs.normalizeCharId(cid));
             }
@@ -819,17 +821,17 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            // ── タワー爆破イベント終了時のハンドリング（リスポーンへ直行） ──
+            // ── タワー爆破イベント終了時のハンドリング（地上と同じ周回リスポーンへ直行） ──
             if (this.isTowerMode && data && data.fromTowerExplosion) {
-                const towerRespData = this.cache.json.get('event_tow_res');
-                if (towerRespData) {
-                    GlobalState.getInstance().addLog('💥 [TowerExplosion] Tower destroyed by dawn plasma attack. Launching event_tow_res!');
+                const respData = this.cache.json.get('event_resp') || this.cache.json.get('event_tow_res');
+                if (respData) {
+                    GlobalState.getInstance().addLog('💥 [TowerExplosion] Tower destroyed by dawn plasma attack. Launching event_resp loop reset!');
                     if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
                     this.scene.pause();
                     this.scene.launch('EventScene', {
-                        events: towerRespData,
+                        events: respData,
                         returnScene: 'AdventureScene',
-                        fromTowerRespEvent: true
+                        fromRespEvent: true
                     });
                     return;
                 }

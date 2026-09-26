@@ -430,8 +430,9 @@ export class SaveManager {
             const data = JSON.parse(raw);
             if (data) {
                 data.adventureState = null;
+                data.towerState = null;
                 localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-                console.log('[SaveManager] adventureState cleared for new loop.');
+                console.log('[SaveManager] adventureState and towerState cleared for new loop.');
             }
         } catch (e) {
             console.error('[SaveManager] clearAdventureState error:', e);

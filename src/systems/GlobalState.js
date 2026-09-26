@@ -1585,6 +1585,14 @@ export class GlobalState {
         this.savedFormation = {
             '001': { lane: 0, isFront: true }
         };
+        this.normalParty = ['001'];
+        this.normalFormation = {
+            '001': { lane: 0, isFront: true }
+        };
+        this.towerParty = ['001'];
+        this.towerFormation = {
+            '001': { lane: 0, isFront: true }
+        };
 
         // イベントフラグのリセット
         this.event1207Played = false;
