@@ -159,7 +159,7 @@ export class GlobalState {
         // ── AUTO運転設定 ──
         this.autoLanes = { '-2': false, '-1': false, '0': false, '1': false, '2': false };
         this.isBattleAutoEnabled = true; // 戦闘中AUTOマスターボタン (デフォルトON)
-        this.pvpDamageDenominator = 30;  // PvPダメージ分母 (デフォルト30 -> 1/30)
+        this.pvpDamageDenominator = 20;  // PvPダメージ分母 (デフォルト20 -> 1/20)
 
         // ── オンデマンド・デバッグログシステム ──
         this.debugLogs = [];
@@ -1349,7 +1349,7 @@ export class GlobalState {
             savedFormation: JSON.parse(JSON.stringify(this.savedFormation)),
             autoLanes: JSON.parse(JSON.stringify(this.autoLanes || { '-2': false, '-1': false, '0': false, '1': false, '2': false })),
             isBattleAutoEnabled: this.isBattleAutoEnabled,
-            pvpDamageDenominator: this.pvpDamageDenominator || 30,
+            pvpDamageDenominator: this.pvpDamageDenominator || 20,
             activeTarots: JSON.parse(JSON.stringify(this.activeTarots)),
             drawnTarotCards: JSON.parse(JSON.stringify(this.drawnTarotCards || [])),
 

@@ -2888,6 +2888,7 @@ export default class AdventureScene extends Phaser.Scene {
                             isTowerBattle: true,
                             towerAreaName: colorName,
                             pvpEnemies: enemyParty,
+                            pvpDamageDenominator: 20,
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
                             enemyLevel: 20,
                             bgmKey: 'tow_black_onyx_b',
@@ -2940,6 +2941,7 @@ export default class AdventureScene extends Phaser.Scene {
                             pvpEnemies: wave1,
                             pvpWaves: [wave1, wave2, wave3, wave4],
                             totalWaves: 4,
+                            pvpDamageDenominator: 20,
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
                             enemyLevel: 20,
                             bgmKey: 'bgm_inferno_shredder_x',
@@ -6323,7 +6325,7 @@ export default class AdventureScene extends Phaser.Scene {
         container.add(inputPromptBtn);
 
         // ── PvPダメージ倍率調整エリア ──
-        let pvpDenom = GlobalState.getInstance().pvpDamageDenominator || 30;
+        let pvpDenom = GlobalState.getInstance().pvpDamageDenominator || 20;
         const denomY = levelY + 100;
         const denomHeader = this.add.text(width / 2 - modalW / 2 + 30, denomY, '【PvPダメージ倍率】', {
             fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffcc', fontStyle: 'bold'
