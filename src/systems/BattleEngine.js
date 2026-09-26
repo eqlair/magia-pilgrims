@@ -220,6 +220,12 @@ export class BattleEngine {
             for (const eData of pvpDataList) {
                 const ep = new PvpEnemyCharacter(eData.lane * 1.8, eData.isFront ? 9.0 : 14.0, eData);
                 ep.engine = this;
+                // タワー内PVP限定: 敵側の攻撃力を1/3、HPを3倍に補正
+                if (this.config.isTowerPvP) {
+                    ep.atk = Math.max(1, Math.round(ep.atk / 3));
+                    ep.maxHp = Math.round(ep.maxHp * 3);
+                    ep.hp = ep.maxHp;
+                }
                 this.pvpEnemies.push(ep);
             }
         }
@@ -4662,6 +4668,12 @@ export class BattleEngine {
         for (const eData of pvpDataList) {
             const ep = new PvpEnemyCharacter(eData.lane * 1.8, eData.isFront ? 9.0 : 14.0, eData);
             ep.engine = this;
+            // タワー内PVP限定: 敵側の攻撃力を1/3、HPを3倍に補正
+            if (this.config.isTowerPvP) {
+                ep.atk = Math.max(1, Math.round(ep.atk / 3));
+                ep.maxHp = Math.round(ep.maxHp * 3);
+                ep.hp = ep.maxHp;
+            }
             this.pvpEnemies.push(ep);
         }
 
