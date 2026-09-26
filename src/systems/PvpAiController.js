@@ -170,15 +170,10 @@ export class PvpAiController {
             // 魔女戦 / PvP戦: ゲージがたまれば撃つ
             return true;
         } else {
-            // ※雑魚戦: 画面上に敵が一定数いるか、ウェーブ残敵が存在すれば撃つ
-            const aliveEnemies = this.engine.enemies ? this.engine.enemies.filter(e => !e.isDead && !e.isDying && e.hp > 0).length : 0;
-            const totalEnemies = this.engine.enemyCountPerWave || 0;
-            const remainingEnemies = aliveEnemies + Math.max(0, (this.engine.enemyCountPerWave || 0) - (this.engine.spawnedInWave || 0));
-
-            if (aliveEnemies >= 4 || (totalEnemies > 0 && remainingEnemies >= 4)) {
-                return true;
-            }
-            return false;
+            // ※雑魚戦: Z <= 20.0 の手前に生存している敵が12匹以上いるときに撃つ
+            if (!this.engine.enemies) return false;
+            const inRangeEnemies = this.engine.enemies.filter(e => !e.isDead && !e.isDying && e.hp > 0 && e.z <= 20.0).length;
+            return inRangeEnemies >= 12;
         }
     }
 
