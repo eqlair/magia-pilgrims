@@ -218,10 +218,65 @@ export default class EventScene extends Phaser.Scene {
     }
 
     _playBattleBgm(cb) {
-        // 現在のBGMをフェードアウト
+        let chosenKey = null;
+
+        // 1. 🐙 クラーケン（たこさん）ボス戦判定
+        const isKraken = this.battleConfig?.isKrakenBossBattle || this.fromIkebukuro02Event || (this.battleConfig?.bgmKey === 'tow_Kraken');
+        if (isKraken && this.cache.audio.exists('tow_Kraken')) {
+            chosenKey = 'tow_Kraken';
+        }
+
+        // 2. バトル設定に直接指定されている専用BGM（bgmKey または bossBgmKey）
+        if (!chosenKey && this.battleConfig) {
+            if (this.battleConfig.bgmKey && this.cache.audio.exists(this.battleConfig.bgmKey)) {
+                chosenKey = this.battleConfig.bgmKey;
+            } else if (this.battleConfig.bossBgmKey && this.cache.audio.exists(this.battleConfig.bossBgmKey)) {
+                chosenKey = this.battleConfig.bossBgmKey;
+            }
+        }
+
+        // 3. 🗼 タワー戦闘のエリア別専用BGM判定
+        if (!chosenKey && (this.isTowerBattle || this.battleConfig?.isTowerBattle)) {
+            const area = this.towerAreaName || (this.battleConfig?.towerAreaName || '');
+            if (['黒', '赤', '青', '緑', '黄', '紫'].includes(area)) {
+                chosenKey = 'tow_black_onyx_b';
+            } else if (area === '炎') {
+                chosenKey = 'tow_magma_core_b';
+            } else if (area === '氷') {
+                chosenKey = 'tow_frozen_silence_b';
+            } else if (area === '白' || area === 'top of tower') {
+                chosenKey = 'bgm_inferno_shredder_x';
+            }
+            if (chosenKey && (!this.cache.audio || !this.cache.audio.exists(chosenKey))) {
+                chosenKey = null;
+            }
+        }
+
+        // 4. 専用BGMがない場合は、通常の戦闘BGM（bgm_battle1〜4 / bgm_toppa / bgm_hexen）からランダム選出
+        if (!chosenKey) {
+            const availableBgms = [];
+            for (let i = 1; i <= 4; i++) {
+                if (this.cache && this.cache.audio && this.cache.audio.exists(`bgm_battle${i}`)) {
+                    availableBgms.push(`bgm_battle${i}`);
+                }
+            }
+            if (availableBgms.length === 0 && this.cache.audio.exists('bgm_toppa')) {
+                availableBgms.push('bgm_toppa');
+            }
+            if (availableBgms.length === 0 && this.cache.audio.exists('bgm_hexen')) {
+                availableBgms.push('bgm_hexen');
+            }
+            if (availableBgms.length > 0) {
+                chosenKey = availableBgms[Math.floor(Math.random() * availableBgms.length)];
+            }
+        }
+
+        this.selectedBgmKey = chosenKey;
+
+        // 現在のBGMのうち、chosenKey 以外のものをフェードアウト
         if (this.sound && this.sound.sounds) {
             this.sound.sounds.forEach(s => {
-                if (s && s.isPlaying) {
+                if (s && s.isPlaying && s.key !== chosenKey) {
                     try {
                         this.tweens.add({
                             targets: s, volume: 0, duration: 1000,
@@ -237,29 +292,20 @@ export default class EventScene extends Phaser.Scene {
             });
         }
 
-        // キャッシュに実在する戦闘BGM候補を探す
-        const availableBgms = [];
-        for (let i = 1; i <= 4; i++) {
-            if (this.cache && this.cache.audio && this.cache.audio.exists(`bgm_battle${i}`)) {
-                availableBgms.push(`bgm_battle${i}`);
-            }
-        }
-        if (availableBgms.length === 0 && this.cache.audio.exists('bgm_toppa')) {
-            availableBgms.push('bgm_toppa');
-        }
-        if (availableBgms.length === 0 && this.cache.audio.exists('bgm_hexen')) {
-            availableBgms.push('bgm_hexen');
-        }
-
-        if (availableBgms.length > 0) {
-            this.selectedBgmKey = availableBgms[Math.floor(Math.random() * availableBgms.length)];
-            try {
-                const battleBgm = this.sound.add(this.selectedBgmKey, { loop: true, volume: 0 });
-                battleBgm.play();
-                this.tweens.add({ targets: battleBgm, volume: 0.5, duration: 1000 });
-            } catch (err) {
-                console.warn('[EventScene] 戦闘BGMの再生に失敗しました（スキップ）:', err);
-                this.selectedBgmKey = null;
+        if (chosenKey) {
+            const alreadyPlaying = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.key === chosenKey && s.isPlaying) : null;
+            if (alreadyPlaying) {
+                // すでに同じ曲が鳴っている場合はTweenをクリアして確実に音量を0.5へ戻す
+                this.tweens.killTweensOf(alreadyPlaying);
+                this.tweens.add({ targets: alreadyPlaying, volume: 0.5, duration: 800 });
+            } else {
+                try {
+                    const battleBgm = this.sound.add(chosenKey, { loop: true, volume: 0 });
+                    battleBgm.play();
+                    this.tweens.add({ targets: battleBgm, volume: 0.5, duration: 1000 });
+                } catch (err) {
+                    console.warn('[EventScene] 戦闘BGMの再生に失敗しました（スキップ）:', err);
+                }
             }
         } else {
             console.warn('[EventScene] 再生可能な戦闘BGMがキャッシュに見つかりません。');
@@ -660,8 +706,10 @@ export default class EventScene extends Phaser.Scene {
                         battleBgmKey = 'tow_black_onyx_b';
                         bossBgmKey = 'tow_black_onyx_b';
                     } else if (area === '炎') {
+                        battleBgmKey = 'tow_magma_core_b';
                         bossBgmKey = 'tow_magma_core_b';
                     } else if (area === '氷') {
+                        battleBgmKey = 'tow_frozen_silence_b';
                         bossBgmKey = 'tow_frozen_silence_b';
                     } else if (area === '白' || area === 'top of tower') {
                         battleBgmKey = 'bgm_inferno_shredder_x';

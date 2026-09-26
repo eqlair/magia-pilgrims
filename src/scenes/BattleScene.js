@@ -310,11 +310,17 @@ export default class BattleScene extends Phaser.Scene {
             }
         } else if (isImmediateBoss) {
             // 直接魔女戦（タワー魔女マス、タワーボス等）の場合：
-            // 雑魚戦BGMは鳴らさず、前のマップBGM等を速やかにフェードアウト停止（警告演出後にボスBGMが鳴る）
+            // 既にボス専用BGM（bossBgmKey や bgmKey）が再生中ならそのまま継続し、それ以外の不要なBGMのみフェードアウト停止
+            const activeBossKey = this.battleConfig.bossBgmKey || this.battleConfig.bgmKey;
             if (this.sound && this.sound.sounds) {
                 this.sound.sounds.forEach(s => {
                     if (s && s.isPlaying) {
-                        this.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
+                        if (activeBossKey && s.key === activeBossKey) {
+                            this.tweens.killTweensOf(s);
+                            try { s.setVolume(0.5); } catch (e) {}
+                        } else {
+                            this.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
+                        }
                     }
                 });
             }
@@ -725,7 +731,7 @@ export default class BattleScene extends Phaser.Scene {
             const fadeDelay = Math.max(0, (presTimer - 2.5) * 1000); // 演出終了の2.5秒前、または即時
 
             // ★重要: ボスBGM(bgm_boss1~3, bossBgmKey等)は絶対にフェードアウト対象に含めない！
-            const targetBossKey = this.battleConfig.bossBgmKey;
+            const targetBossKey = this.battleConfig.bossBgmKey || this.battleConfig.bgmKey;
             const nonBossKeys = [
                 'bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 
                 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 
@@ -793,7 +799,7 @@ export default class BattleScene extends Phaser.Scene {
             }
 
             // 確実に前の通常BGMを全て止める（ボスBGMは除外）
-            const targetBossKey = this.battleConfig.bossBgmKey;
+            const targetBossKey = this.battleConfig.bossBgmKey || this.battleConfig.bgmKey;
             const nonBossKeys = [
                 'bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 
                 'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 
