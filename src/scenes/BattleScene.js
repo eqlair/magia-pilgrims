@@ -203,16 +203,8 @@ export default class BattleScene extends Phaser.Scene {
                 strokeThickness: 3
             }).setOrigin(0.5);
             this.breakthroughContainer.add([barBg, this.breakthroughBar, this.breakthroughText]);
-        } else if (this.battleConfig.isTowerBattle) {
-            const rawArea = this.battleConfig.towerAreaName || '街';
-            let bgKey = `battle_bg_${rawArea}`;
-            if (!this.textures.exists(bgKey)) {
-                bgKey = 'battle_bg_街';
-            }
-            const bg = this.add.image(width / 2, height / 2, bgKey);
-            bg.setOrigin(0.5, 0.5);
-            bg.setScale(Math.max(width / bg.width, height / bg.height));
         } else if (this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event || this.battleConfig.isKrakenBossTest) {
+            // 🐙 クラーケンボス戦: タワー内であっても必ず KrakenBG.jpg と波打ち演出を最優先適用！
             const bgCenterX = width / 2;
             const bgCenterY = height / 2;
             const baseScale = 0.62;
@@ -241,6 +233,15 @@ export default class BattleScene extends Phaser.Scene {
                 ease: 'Sine.easeInOut'
             });
             this.krakenBg = bg;
+        } else if (this.battleConfig.isTowerBattle) {
+            const rawArea = this.battleConfig.towerAreaName || '街';
+            let bgKey = `battle_bg_${rawArea}`;
+            if (!this.textures.exists(bgKey)) {
+                bgKey = 'battle_bg_街';
+            }
+            const bg = this.add.image(width / 2, height / 2, bgKey);
+            bg.setOrigin(0.5, 0.5);
+            bg.setScale(Math.max(width / bg.width, height / bg.height));
         } else {
             const bgIndex = Math.floor(Math.random() * 3) + 1;
             const bg = this.add.image(width / 2, height / 2, `bg00${bgIndex}`);
@@ -255,7 +256,7 @@ export default class BattleScene extends Phaser.Scene {
         // タワー魔女単体戦、タワーボスなど即時魔女戦フラグ
         const isImmediateBoss = this.battleConfig.isTower21Boss || this.battleConfig.isProcellBoss || this.battleConfig.isWitchOnly || (this.battleConfig.isTowerBattle && (this.battleConfig.majoLevel > 0)) || this.battleConfig.isSnakeBossTest || this.battleConfig.isKrakenBossTest;
 
-        const isKrakenBattle = this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event;
+        const isKrakenBattle = this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event || this.battleConfig.isKrakenBossTest;
 
         if (isWildhunt) {
             const isWhPlaying = this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt');
@@ -263,23 +264,30 @@ export default class BattleScene extends Phaser.Scene {
                 this.sound.play('bgm_wildhunt', { loop: true, volume: 0.75 });
             }
         } else if (isKrakenBattle) {
-            // 🐙 クラーケン戦: 先にBGMが鳴っていたら別に再生せずそのまま継続！
+            // 🐙 クラーケン戦: タワー内であっても必ず tow_Kraken を再生！
             this.isBossBgmStarted = true; // 後からのボスBGM割り込みも完全防止
-            const playingBgm = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying) : null;
-            if (playingBgm) {
-                this.tweens.killTweensOf(playingBgm);
-                try { playingBgm.setVolume(0.5); } catch (e) {}
-                // 重複している他の再生中サウンドがあれば停止
+            const kKey = (this.cache.audio.exists('tow_Kraken')) ? 'tow_Kraken' : (this.cache.audio.exists('bgm_boss_kraken') ? 'bgm_boss_kraken' : 'bgm_hexen');
+            
+            const playingKraken = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying && s.key === kKey) : null;
+            if (playingKraken) {
+                this.tweens.killTweensOf(playingKraken);
+                try { playingKraken.setVolume(0.5); } catch (e) {}
                 if (this.sound && this.sound.sounds) {
                     this.sound.sounds.forEach(s => {
-                        if (s && s.isPlaying && s !== playingBgm) {
+                        if (s && s.isPlaying && s !== playingKraken) {
                             try { s.stop(); } catch (e) {}
                         }
                     });
                 }
             } else {
-                // 先に鳴っているBGMが何もない場合のみ tow_Kraken を再生
-                const kKey = (this.cache.audio.exists('tow_Kraken')) ? 'tow_Kraken' : (this.cache.audio.exists('bgm_boss_kraken') ? 'bgm_boss_kraken' : 'bgm_hexen');
+                // 他のBGM（タワーエリアBGM等）をすべて停止して tow_Kraken を再生！
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying) {
+                            try { s.stop(); } catch (e) {}
+                        }
+                    });
+                }
                 if (this.cache.audio.exists(kKey)) {
                     this.sound.play(kKey, { loop: true, volume: 0.5 });
                 }
