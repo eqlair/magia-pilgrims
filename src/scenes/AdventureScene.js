@@ -1644,6 +1644,7 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.dojoBtn && this.dojoBtn.updateStatus) this.dojoBtn.updateStatus();
             if (this.jikukanBtn && this.jikukanBtn.updateStatus) this.jikukanBtn.updateStatus();
             if (this.fairyBtn && this.fairyBtn.updateStatus) this.fairyBtn.updateStatus();
+            if (this.towerElevatorBtn && this.towerElevatorBtn.updateStatus) this.towerElevatorBtn.updateStatus();
 
             // 復帰時のキャラ実績一括チェック
             AchievementManager.checkCharacterAchievements(this);
@@ -1954,6 +1955,9 @@ export default class AdventureScene extends Phaser.Scene {
         // ── 🧚‍♀️ UI: 妖精リフィエル取引ボタン（時空館の下、リフィエル解放時またはデバッグ時に表示） ──
         this.fairyBtn = this._createFairyButton(20, 190);
 
+        // ── 🛗 UI: タワーエレベーターボタン（妖精の下、5F到達解禁またはデバッグ時に表示） ──
+        this.towerElevatorBtn = this._createTowerElevatorButton(20, 235);
+
         const uiElements = [
             wideBtn,
             this.dailyRewardBtn,
@@ -1961,6 +1965,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.dojoBtn,
             this.jikukanBtn,
             this.fairyBtn,
+            this.towerElevatorBtn,
             this.dateBg,
             this.dateTimeText,
             this.exploreBtn,
@@ -2130,6 +2135,11 @@ export default class AdventureScene extends Phaser.Scene {
             this.debugButtons.forEach(btn => {
                 if (btn) btn.setVisible(GlobalState.IS_DEBUG_MODE);
             });
+        }
+
+        if (this.isTowerMode) {
+            const curFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1;
+            this._checkTowerElevatorUnlock(curFloor);
         }
     }
 
@@ -2491,6 +2501,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.dailyRewardBtn) this.dailyRewardBtn.setVisible(isVisible);
         if (this.dojoBtn) this.dojoBtn.setVisible(isVisible && (gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE));
         if (this.jikukanBtn) this.jikukanBtn.setVisible(isVisible && (gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE));
+        if (this.towerElevatorBtn) this.towerElevatorBtn.setVisible(isVisible && this.isTowerMode && (gs.isTowerElevatorUnlocked || GlobalState.IS_DEBUG_MODE));
 
         // 通常表示の固定背景の制御 (広域表示時は非表示にしてマップ全体・タワー背景を見せる)
         if (!this.isTowerMode) {
@@ -2559,6 +2570,7 @@ export default class AdventureScene extends Phaser.Scene {
                 const rawName = hex.cellData?.name || '';
                 const engName = TOWER_AREA_ENGLISH_NAMES[rawName] || '';
                 TimeReporter.showFloor(this, newFloor, engName);
+                this._checkTowerElevatorUnlock(newFloor);
             }
         } else {
             this._isTowerFloorChange = false;
@@ -3370,6 +3382,10 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.questAchBtn && this.questAchBtn.updateStatus) {
             this.questAchBtn.updateStatus();
             if (this.isWideMap) this.questAchBtn.setVisible(false);
+        }
+        if (this.towerElevatorBtn && this.towerElevatorBtn.updateStatus) {
+            this.towerElevatorBtn.updateStatus();
+            if (this.isWideMap) this.towerElevatorBtn.setVisible(false);
         }
 
         // トースト通知を表示
@@ -6911,6 +6927,55 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     /**
+     * 🛗 タワー内エレベーターボタン（EV_in.jpg）の生成
+     */
+    _createTowerElevatorButton(x, y) {
+        const gs = GlobalState.getInstance();
+        const isVisible = this.isTowerMode && !this.isWideMap && (gs.isTowerElevatorUnlocked || GlobalState.IS_DEBUG_MODE);
+
+        const container = this.add.container(x, y);
+        container.setVisible(isVisible);
+
+        const btnImg = this.add.image(0, 0, 'EV_in').setOrigin(0, 0);
+        const targetW = 76;
+        const scale = targetW / btnImg.width;
+        btnImg.setScale(scale);
+
+        // タップ領域と枠線（サイバー風のシアン光沢）
+        const hitArea = this.add.rectangle(0, 0, btnImg.displayWidth, btnImg.displayHeight, 0x000000, 0)
+            .setOrigin(0, 0)
+            .setStrokeStyle(2, 0x00ffcc)
+            .setInteractive({ useHandCursor: true });
+
+        // バッジラベル
+        const badge = this.add.text(btnImg.displayWidth / 2, btnImg.displayHeight + 2, '🛗 EV', {
+            fontFamily: 'sans-serif',
+            fontSize: '11px',
+            fontStyle: 'bold',
+            color: '#00ffcc',
+            backgroundColor: '#002233dd',
+            padding: { x: 6, y: 2 }
+        }).setOrigin(0.5, 0);
+
+        hitArea.on('pointerdown', () => {
+            container.setScale(0.92);
+            if (this.isWideMap || this.isTransitioningMode || this.isJumping) return;
+            this._showElevatorModal();
+        });
+        hitArea.on('pointerup', () => container.setScale(1.0));
+        hitArea.on('pointerout', () => container.setScale(1.0));
+
+        container.add([btnImg, hitArea, badge]);
+
+        container.updateStatus = () => {
+            const visible = this.isTowerMode && !this.isWideMap && (gs.isTowerElevatorUnlocked || GlobalState.IS_DEBUG_MODE);
+            container.setVisible(visible);
+        };
+
+        return container;
+    }
+
+    /**
      * 📋 デイリーミッション＆実績ボタンの生成
      */
     _createQuestAchievementButton(x, y) {
@@ -7535,6 +7600,177 @@ export default class AdventureScene extends Phaser.Scene {
         popContainer.add(okBtn);
 
         parentContainer.add(popContainer);
+    }
+
+    /**
+     * 🛗 タワー内エレベーターの解禁チェックおよび到達フロア更新
+     */
+    _checkTowerElevatorUnlock(currentFloor) {
+        if (!this.isTowerMode) return;
+        const gs = GlobalState.getInstance();
+        const f = Math.max(1, Math.min(60, currentFloor || (59 - this.playerRow + 1)));
+        gs.towerMaxFloorReached = Math.max(gs.towerMaxFloorReached || 1, f);
+
+        // 5フロア到達（5F以上）でエレベーター解禁！
+        if (f >= 5 && !gs.isTowerElevatorUnlocked) {
+            gs.isTowerElevatorUnlocked = true;
+            if (this.towerElevatorBtn && this.towerElevatorBtn.updateStatus) {
+                this.towerElevatorBtn.updateStatus();
+            }
+            SaveManager.saveGame(this);
+            this.time.delayedCall(600, () => {
+                this.showToast('🚪 エレベータの扉を破壊し、\nエレベータルームを使用可能になった！');
+            });
+        }
+    }
+
+    /**
+     * 🛗 タワー内エレベーターモーダル
+     */
+    _showElevatorModal() {
+        const { width, height } = this.scale;
+        const currentFloor = 59 - (this.playerRow !== undefined ? this.playerRow : 59) + 1;
+        const gs = GlobalState.getInstance();
+        const maxReached = Math.max(gs.towerMaxFloorReached || 1, currentFloor);
+
+        const modalContainer = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
+
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.ignore(modalContainer);
+        }
+
+        // 暗幕背景
+        const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75)
+            .setInteractive();
+        backdrop.on('pointerdown', (e) => e.stopPropagation());
+        modalContainer.add(backdrop);
+
+        // メインパネル
+        const panelWidth = Math.min(width - 30, 480);
+        const panelHeight = 580;
+        const panelBg = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x0a1424, 0.96)
+            .setStrokeStyle(2.5, 0x00ffcc);
+        modalContainer.add(panelBg);
+
+        // タイトル
+        const title = this.add.text(width / 2, height / 2 - 250, '🛗 エレベータールーム', {
+            fontFamily: FONT_MAIN, fontSize: '20px', fontStyle: 'bold', color: '#00ffcc'
+        }).setOrigin(0.5);
+        modalContainer.add(title);
+
+        const subTitle = this.add.text(width / 2, height / 2 - 218, 'どのフロアに移動する？', {
+            fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5);
+        modalContainer.add(subTitle);
+
+        const curInfo = this.add.text(width / 2, height / 2 - 188, `現在地: 【 ${currentFloor}F 】  (最大到達: ${maxReached}F)`, {
+            fontFamily: 'sans-serif', fontSize: '13px', color: '#ffee88'
+        }).setOrigin(0.5);
+        modalContainer.add(curInfo);
+
+        // 地上階フロアボタン一覧（高い階から低い階へ）
+        // 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 1
+        const targetFloors = [60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 1];
+        const cols = 4;
+        const btnW = 92;
+        const btnH = 36;
+        const startX = width / 2 - ((cols - 1) * (btnW + 10)) / 2;
+        const startY = height / 2 - 150;
+
+        targetFloors.forEach((f, idx) => {
+            const r = Math.floor(idx / cols);
+            const c = idx % cols;
+            const btnX = startX + c * (btnW + 10);
+            const btnY = startY + r * (btnH + 8);
+
+            const isUnlocked = (f <= maxReached);
+            const isCurrent = (f === currentFloor);
+
+            let bgCol = 0x142838;
+            let strokeCol = 0x00ccaa;
+            let textCol = '#00ffff';
+            if (isCurrent) {
+                bgCol = 0x333311;
+                strokeCol = 0xffea00;
+                textCol = '#ffea00';
+            } else if (!isUnlocked) {
+                bgCol = 0x111620;
+                strokeCol = 0x2a3848;
+                textCol = '#556677';
+            }
+
+            const btnBg = this.add.rectangle(btnX, btnY, btnW, btnH, bgCol, 0.9)
+                .setStrokeStyle(1.5, strokeCol);
+            modalContainer.add(btnBg);
+
+            const labelStr = isCurrent ? `${f}F(現在)` : `${f}F`;
+            const btnText = this.add.text(btnX, btnY, labelStr, {
+                fontFamily: 'sans-serif',
+                fontSize: '13px',
+                fontStyle: 'bold',
+                color: textCol
+            }).setOrigin(0.5);
+            modalContainer.add(btnText);
+
+            if (isUnlocked) {
+                btnBg.setInteractive({ useHandCursor: true });
+                btnBg.on('pointerdown', () => {
+                    modalContainer.destroy();
+                    if (f !== currentFloor) {
+                        this.jumpToTowerFloor(f);
+                    }
+                });
+                btnBg.on('pointerover', () => {
+                    btnBg.setFillStyle(0x005566, 1.0);
+                });
+                btnBg.on('pointerout', () => {
+                    btnBg.setFillStyle(bgCol, 0.9);
+                });
+            }
+        });
+
+        // ── 🚧 地下ダンジョン（B1F・B5F等）将来増設用スペース ──
+        const underY = height / 2 + 75;
+        const line = this.add.rectangle(width / 2, underY - 20, panelWidth - 60, 1, 0x2a3d54, 0.8);
+        modalContainer.add(line);
+
+        const underTitle = this.add.text(width / 2, underY, '── 地下エリア（未接続 / 準備中） ──', {
+            fontFamily: 'sans-serif', fontSize: '12px', color: '#556677'
+        }).setOrigin(0.5);
+        modalContainer.add(underTitle);
+
+        // B1F, B5F の予約ボタン（グレーアウト表示でスペース確保）
+        const underFloors = ['B1F', 'B5F', 'B10F', 'B15F', 'B20F'];
+        const uBtnW = 74;
+        const uStartX = width / 2 - ((underFloors.length - 1) * (uBtnW + 8)) / 2;
+        underFloors.forEach((uf, idx) => {
+            const ubX = uStartX + idx * (uBtnW + 8);
+            const ubY = underY + 34;
+            const ubBg = this.add.rectangle(ubX, ubY, uBtnW, 30, 0x0f1520, 0.6)
+                .setStrokeStyle(1, 0x223344);
+            const ubText = this.add.text(ubX, ubY, `🔒 ${uf}`, {
+                fontFamily: 'sans-serif', fontSize: '11px', color: '#445566'
+            }).setOrigin(0.5);
+            modalContainer.add([ubBg, ubText]);
+        });
+
+        // ── 「使用しない」ボタン ──
+        const cancelBtnY = height / 2 + 220;
+        const cancelBg = this.add.rectangle(width / 2, cancelBtnY, 200, 44, 0x331820, 0.95)
+            .setStrokeStyle(1.5, 0xaa4455)
+            .setInteractive({ useHandCursor: true });
+        modalContainer.add(cancelBg);
+
+        const cancelText = this.add.text(width / 2, cancelBtnY, '使用しない', {
+            fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#ffaaaa'
+        }).setOrigin(0.5);
+        modalContainer.add(cancelText);
+
+        cancelBg.on('pointerdown', () => {
+            modalContainer.destroy();
+        });
+        cancelBg.on('pointerover', () => cancelBg.setFillStyle(0x552233, 1.0));
+        cancelBg.on('pointerout', () => cancelBg.setFillStyle(0x331820, 0.95));
     }
 
     /**

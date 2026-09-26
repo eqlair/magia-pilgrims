@@ -160,6 +160,8 @@ export class SaveManager {
                         towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
                         towerSeenAreas: gs.towerSeenAreas ? JSON.parse(JSON.stringify(gs.towerSeenAreas)) : {},
                         tower21BossDefeated: !!gs.tower21BossDefeated,
+                        isTowerElevatorUnlocked: !!gs.isTowerElevatorUnlocked,
+                        towerMaxFloorReached: gs.towerMaxFloorReached || 1,
                         towerHexStates: hexStates,
                         party: gs.towerParty,
                         savedFormation: gs.towerFormation
@@ -200,6 +202,8 @@ export class SaveManager {
                             towerSearchCount: gs.towerSearchCount ? JSON.parse(JSON.stringify(gs.towerSearchCount)) : {},
                             towerClearedHexes: gs.towerClearedHexes ? JSON.parse(JSON.stringify(gs.towerClearedHexes)) : {},
                             towerSeenAreas: gs.towerSeenAreas ? JSON.parse(JSON.stringify(gs.towerSeenAreas)) : {},
+                            isTowerElevatorUnlocked: !!gs.isTowerElevatorUnlocked,
+                            towerMaxFloorReached: gs.towerMaxFloorReached || 1,
                             towerHexStates: gs.towerHexStates,
                             party: gs.towerParty,
                             savedFormation: gs.towerFormation
@@ -407,6 +411,8 @@ export class SaveManager {
             if (ts.towerClearedHexes) gs.towerClearedHexes = ts.towerClearedHexes;
             if (ts.towerSeenAreas) gs.towerSeenAreas = ts.towerSeenAreas;
             if (ts.tower21BossDefeated !== undefined) gs.tower21BossDefeated = ts.tower21BossDefeated;
+            if (ts.isTowerElevatorUnlocked !== undefined) gs.isTowerElevatorUnlocked = ts.isTowerElevatorUnlocked;
+            if (ts.towerMaxFloorReached !== undefined) gs.towerMaxFloorReached = ts.towerMaxFloorReached;
             if (ts.party && ts.party.length > 0) gs.towerParty = ts.party;
             if (ts.savedFormation && Object.keys(ts.savedFormation).length > 0) gs.towerFormation = ts.savedFormation;
         }

@@ -343,6 +343,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('KrakenA', 'files/ENEMY/KrakenA.png');
         this.load.image('KrakenB', 'files/ENEMY/KrakenB.png');
         this.load.image('KrakenC', 'files/ENEMY/KrakenC.png');
+        this.load.image('EV_in', 'files/event/EV_in.jpg');
 
         // タワー21階ボス（プロセル氷像）イベント＆敵アセット
         this.load.json('event_tow21', 'files/DATA/event_tow21.json');

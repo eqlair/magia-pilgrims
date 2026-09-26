@@ -45,6 +45,8 @@ export class GlobalState {
         this.towerClearedHexes = {}; // { [`${col}_${row}`]: true }
         this.towerSeenAreas = {}; // { [areaKey]: true } 既読タワーエリア反応フラグ
         this.tower21BossDefeated = false; // タワー21階ボス（プロセル氷像）撃破フラグ
+        this.isTowerElevatorUnlocked = false; // タワーエレベーター解放フラグ（5F到達で解放）
+        this.towerMaxFloorReached = 1; // タワー内到達最大フロア (1〜60)
 
         
         // 通常マップのプレイヤー座標保持用
