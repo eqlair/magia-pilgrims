@@ -2066,13 +2066,25 @@ export default class AdventureScene extends Phaser.Scene {
                 this._skipToNextMorningDebug();
             });
 
+            // 🗼 タワー敵復活デバッグボタン（翌朝スキップの下）
+            const towerRespawnBtnY = skipMorningBtnY + 45;
+            this.towerRespawnBtn = this.add.text(width - 20, towerRespawnBtnY, '🗼 タワー敵復活', {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ff88aa', fontStyle: 'bold',
+                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+
+            this.towerRespawnBtn.on('pointerdown', () => {
+                this._showTowerRespawnConfirmDialog();
+            });
+
             this.debugButtons.push(
                 this.breakTestBtn,
                 this.dpsTestBtn,
                 this.towerTestBtn,
                 this.pvpTestBtn,
                 this.timeAdvanceBtn,
-                this.skipMorningBtn
+                this.skipMorningBtn,
+                this.towerRespawnBtn
             );
 
             this.uiContainer.add([
@@ -2081,7 +2093,8 @@ export default class AdventureScene extends Phaser.Scene {
                 this.towerTestBtn,
                 this.pvpTestBtn,
                 this.timeAdvanceBtn,
-                this.skipMorningBtn
+                this.skipMorningBtn,
+                this.towerRespawnBtn
             ]);
 
             // 初期表示設定 (デバッグモードフラグに連動)
@@ -3628,6 +3641,130 @@ export default class AdventureScene extends Phaser.Scene {
 
         // トースト通知
         this.showToast(`[DEBUG] 🃏 タロット早送り: ${cardName}（${posStr}）${joinNotice}`);
+    }
+
+    /** 🗼 [DEBUG] タワー内敵復活の確認ダイアログ表示 */
+    _showTowerRespawnConfirmDialog() {
+        if (this._towerConfirmContainer) {
+            this._towerConfirmContainer.destroy();
+            this._towerConfirmContainer = null;
+        }
+
+        const width = this.scale.width;
+        const height = this.scale.height;
+
+        const container = this.add.container(0, 0).setDepth(9999).setScrollFactor(0);
+        this._towerConfirmContainer = container;
+
+        // 背景暗転（クリックブロック）
+        const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.65)
+            .setInteractive();
+        container.add(backdrop);
+
+        // ダイアログ枠
+        const modalW = Math.min(width - 40, 420);
+        const modalH = 190;
+        const box = this.add.rectangle(width / 2, height / 2, modalW, modalH, 0x1e1e2f, 0.95)
+            .setStrokeStyle(2, 0xff88aa);
+        container.add(box);
+
+        // タイトル・確認メッセージ
+        const msgText = this.add.text(width / 2, height / 2 - 35, 'タワー内部の敵がすべて復活します\nよろしいですか？', {
+            fontFamily: 'sans-serif',
+            fontSize: '18px',
+            color: '#ffffff',
+            align: 'center',
+            lineSpacing: 8
+        }).setOrigin(0.5);
+        container.add(msgText);
+
+        // 「はい」ボタン
+        const yesBtn = this.add.text(width / 2 - 75, height / 2 + 40, '  はい  ', {
+            fontFamily: 'sans-serif',
+            fontSize: '19px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            backgroundColor: '#882244',
+            padding: { x: 22, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        yesBtn.on('pointerdown', () => {
+            container.destroy();
+            this._towerConfirmContainer = null;
+            this._respawnTowerEnemiesDebug();
+        });
+        container.add(yesBtn);
+
+        // 「いいえ」ボタン
+        const noBtn = this.add.text(width / 2 + 75, height / 2 + 40, ' いいえ ', {
+            fontFamily: 'sans-serif',
+            fontSize: '19px',
+            color: '#cccccc',
+            backgroundColor: '#444455',
+            padding: { x: 22, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        noBtn.on('pointerdown', () => {
+            container.destroy();
+            this._towerConfirmContainer = null;
+        });
+        container.add(noBtn);
+    }
+
+    /** 🗼 [DEBUG] タワー内敵・魔女・PvPを完全復活させる処理 */
+    _respawnTowerEnemiesDebug() {
+        const gs = GlobalState.getInstance();
+        const towerMapData = this.cache.json.get('map_tower');
+        let respawnCount = 0;
+
+        // 1. gs.towerHexStates の敵・魔女情報を map_tower.json から完全復旧
+        if (towerMapData && Array.isArray(towerMapData)) {
+            if (gs.towerHexStates && Array.isArray(gs.towerHexStates)) {
+                for (const state of gs.towerHexStates) {
+                    const rawCell = towerMapData[state.row]?.[state.col];
+                    if (rawCell) {
+                        state.enemyLevel = rawCell.enemyLevel || (10 + Math.floor((59 - state.row) * 0.5));
+                        state.witchLevel = rawCell.hasWitch ? (rawCell.witchLevel || state.enemyLevel) : 0;
+                        state.isCleared = false;
+                        state.cleared = false;
+                        respawnCount++;
+                    }
+                }
+            }
+        }
+
+        // 2. 撃破済みヘクス一覧（towerClearedHexes）をクリア
+        gs.towerClearedHexes = {};
+
+        // 3. 21階ボス（プロセル）撃破フラグもリセット（再戦可能に）
+        gs.tower21BossDefeated = false;
+
+        // 4. 現在タワーモードで画面上にヘクスが展開されている場合、リアルタイムに反映
+        if (this.isTowerMode && this.hexes) {
+            for (const hex of this.hexes) {
+                if (!hex.cellData) continue;
+                const state = (gs.towerHexStates || []).find(s => s.col === hex.col && s.row === hex.row);
+                if (state) {
+                    hex.cellData.enemyLevel = state.enemyLevel;
+                    hex.cellData.witchLevel = state.witchLevel;
+                    hex.cellData.cleared = false;
+                    hex.cellData.isCleared = false;
+                } else if (towerMapData && towerMapData[hex.row]?.[hex.col]) {
+                    const rawCell = towerMapData[hex.row][hex.col];
+                    hex.cellData.enemyLevel = rawCell.enemyLevel || (10 + Math.floor((59 - hex.row) * 0.5));
+                    hex.cellData.witchLevel = rawCell.hasWitch ? (rawCell.witchLevel || hex.cellData.enemyLevel) : 0;
+                    hex.cellData.cleared = false;
+                    hex.cellData.isCleared = false;
+                }
+            }
+            this.updateVisibility();
+        }
+
+        // 5. 即時セーブ
+        SaveManager.saveGame(this);
+
+        this.showToast('🗼 [DEBUG] タワー内部の敵がすべて復活しました！');
+        console.log(`[DEBUG] Respawned all tower enemies across ${respawnCount} hexes.`);
     }
 
     /** 時間経過後の各種イベント・タロットチェックと時報の優先度制御 */
