@@ -475,46 +475,125 @@ export default class DojoScene extends Phaser.Scene {
         });
 
         // ── 最下部: 訓練ボタン ──
-        const btnY = height - 36;
+        const isStage2OrMore = (this.selectedDept !== 'A' && selectedDeptState.stage >= 2 && !isCurrentLocked);
 
-        let btnColor = canTrain ? 0x882222 : 0x333344;
-        let btnTextColor = canTrain ? '#ffffff' : '#777788';
-        let btnLabel = `🥋 ${selectedDeptDef.name}を訓練する (SP: ${cost})`;
-
-        if (isACompleted) {
-            btnLabel = '【KISO学科 履修完了】';
-        } else if (isMaxStage) {
-            btnLabel = '【この学科は免許皆伝まで満了】';
-        } else if (totalAvailableSp < cost) {
-            btnLabel = `SP不足 (必要: ${cost} SP)`;
+        // 5回分の合計SPコスト
+        let cost5 = 0;
+        for (let i = 1; i <= 5; i++) {
+            cost5 += (dojo.totalTrainCount + i) * 50;
         }
+        const canTrain5 = canTrain && (totalAvailableSp >= cost5);
 
-        const trainBtn = this.add.rectangle(width / 2, btnY, width - 36, 48, btnColor, 0.95)
-            .setStrokeStyle(1.5, canTrain ? 0xff5555 : 0x444455)
-            .setInteractive({ useHandCursor: canTrain });
+        if (isStage2OrMore) {
+            // 道場2段以降: 表の下にある「1回訓練する」ボタンの上に「5回まとめて訓練する」を増設！
+            const btn5Y = height - 76;
+            const btn1Y = height - 30;
 
-        const trainBtnText = this.add.text(width / 2, btnY, btnLabel, {
-            fontFamily: FONT_MAIN,
-            fontSize: '17px',
-            color: btnTextColor,
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5, 0.5);
+            // ① 5回まとめて訓練するボタン
+            let btn5Color = canTrain5 ? 0x6e215e : 0x2d1f2e;
+            let btn5TextColor = canTrain5 ? '#ffffff' : '#6f6075';
+            let btn5Label = `🥋 5回まとめて訓練する (SP: ${cost5})`;
 
-        this.mainContainer.add([trainBtn, trainBtnText]);
+            if (isMaxStage) {
+                btn5Label = '【この学科は免許皆伝まで満了】';
+            } else if (totalAvailableSp < cost5) {
+                btn5Label = `SP不足 (5回分必要: ${cost5} SP)`;
+            }
 
-        if (canTrain) {
-            trainBtn.on('pointerdown', () => {
-                this.showConfirmDialog(charData, selectedDeptDef, cost);
-            });
+            const train5Btn = this.add.rectangle(width / 2, btn5Y, width - 36, 40, btn5Color, 0.95)
+                .setStrokeStyle(1.5, canTrain5 ? 0xff66cc : 0x443344)
+                .setInteractive({ useHandCursor: canTrain5 });
+
+            const train5BtnText = this.add.text(width / 2, btn5Y, btn5Label, {
+                fontFamily: FONT_MAIN,
+                fontSize: '16px',
+                color: btn5TextColor,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5, 0.5);
+
+            this.mainContainer.add([train5Btn, train5BtnText]);
+
+            if (canTrain5) {
+                train5Btn.on('pointerdown', () => {
+                    this.showConfirmDialog(charData, selectedDeptDef, cost5, 5);
+                });
+            }
+
+            // ② 1回訓練するボタン
+            let btn1Color = canTrain ? 0x5a232e : 0x2b2226;
+            let btn1TextColor = canTrain ? '#e0d0d0' : '#66555a';
+            let btn1Label = `🥋 1回訓練する (SP: ${cost})`;
+
+            if (isMaxStage) {
+                btn1Label = '【この学科は免許皆伝まで満了】';
+            } else if (totalAvailableSp < cost) {
+                btn1Label = `SP不足 (必要: ${cost} SP)`;
+            }
+
+            const train1Btn = this.add.rectangle(width / 2, btn1Y, width - 36, 38, btn1Color, 0.95)
+                .setStrokeStyle(1.5, canTrain ? 0xaa5566 : 0x44333b)
+                .setInteractive({ useHandCursor: canTrain });
+
+            const train1BtnText = this.add.text(width / 2, btn1Y, btn1Label, {
+                fontFamily: FONT_MAIN,
+                fontSize: '15px',
+                color: btn1TextColor,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5, 0.5);
+
+            this.mainContainer.add([train1Btn, train1BtnText]);
+
+            if (canTrain) {
+                train1Btn.on('pointerdown', () => {
+                    this.showConfirmDialog(charData, selectedDeptDef, cost, 1);
+                });
+            }
+        } else {
+            // 初段またはA学科: 従来の1回訓練ボタン（単独）
+            const btnY = height - 36;
+            let btnColor = canTrain ? 0x882222 : 0x333344;
+            let btnTextColor = canTrain ? '#ffffff' : '#777788';
+            let btnLabel = `🥋 ${selectedDeptDef.name}を訓練する (SP: ${cost})`;
+
+            if (isACompleted) {
+                btnLabel = '【KISO学科 履修完了】';
+            } else if (isMaxStage) {
+                btnLabel = '【この学科は免許皆伝まで満了】';
+            } else if (totalAvailableSp < cost) {
+                btnLabel = `SP不足 (必要: ${cost} SP)`;
+            }
+
+            const trainBtn = this.add.rectangle(width / 2, btnY, width - 36, 48, btnColor, 0.95)
+                .setStrokeStyle(1.5, canTrain ? 0xff5555 : 0x444455)
+                .setInteractive({ useHandCursor: canTrain });
+
+            const trainBtnText = this.add.text(width / 2, btnY, btnLabel, {
+                fontFamily: FONT_MAIN,
+                fontSize: '17px',
+                color: btnTextColor,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5, 0.5);
+
+            this.mainContainer.add([trainBtn, trainBtnText]);
+
+            if (canTrain) {
+                trainBtn.on('pointerdown', () => {
+                    this.showConfirmDialog(charData, selectedDeptDef, cost, 1);
+                });
+            }
         }
     }
 
     /**
      * 訓練確認ダイアログ
      */
-    showConfirmDialog(charData, deptDef, cost) {
+    showConfirmDialog(charData, deptDef, cost, count = 1) {
         const { width, height } = this.scale;
         const gs = GlobalState.getInstance();
 
@@ -529,12 +608,15 @@ export default class DojoScene extends Phaser.Scene {
         const panelW = Math.min(width * 0.88, 460);
         const panelH = 265;
         const panel = this.add.rectangle(width / 2, height / 2, panelW, panelH, 0x1b1424, 0.98)
-            .setStrokeStyle(2, 0xaa4466);
+            .setStrokeStyle(2, count > 1 ? 0xff66cc : 0xaa4466);
         dialogContainer.add(panel);
 
         // メッセージ
-        const msg = this.add.text(width / 2, height / 2 - 60,
-            `${deptDef.name}を訓練するのか？\n(消費SP: ${cost})`, {
+        const msgStr = count > 1
+            ? `${deptDef.name}を5回まとめて訓練するのか？\n(合計消費SP: ${cost})`
+            : `${deptDef.name}を訓練するのか？\n(消費SP: ${cost})`;
+
+        const msg = this.add.text(width / 2, height / 2 - 60, msgStr, {
             fontFamily: FONT_MAIN,
             fontSize: '19px',
             color: '#ffffff',
@@ -552,13 +634,17 @@ export default class DojoScene extends Phaser.Scene {
             fontSize: '19px',
             color: '#ffffff',
             fontStyle: 'bold',
-            backgroundColor: '#882233',
+            backgroundColor: count > 1 ? '#772266' : '#882233',
             padding: { x: 36, y: 8 }
         }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
 
         yesBtn.on('pointerdown', () => {
             dialogContainer.destroy();
-            this.executeTraining(charData, deptDef.id, cost);
+            if (count > 1) {
+                this.executeTrainingMulti(charData, deptDef.id, cost, count);
+            } else {
+                this.executeTraining(charData, deptDef.id, cost);
+            }
         });
         dialogContainer.add(yesBtn);
 
@@ -675,5 +761,126 @@ export default class DojoScene extends Phaser.Scene {
         });
 
         popupContainer.add([header, name, desc, closeBtn]);
+    }
+
+    /**
+     * 複数回（5回）まとめて訓練の実行
+     */
+    executeTrainingMulti(charData, deptKey, totalCost, count = 5) {
+        const gs = GlobalState.getInstance();
+        const jState = gs.getJikukanState ? gs.getJikukanState() : gs.jikukanState;
+        const limitedSp = (jState && jState.limitedSp) ? jState.limitedSp : 0;
+        const totalAvailableSp = (gs.stockSp || 0) + (gs.devilStockSp || 0) + limitedSp;
+        if (totalAvailableSp < totalCost) return;
+
+        // SP消費: 周回時喪失SP(devilStockSp) ➔ 時空館限定SP(limitedSp) ➔ 通常所持SP(stockSp) の順で優先消費！
+        let remainingCost = totalCost;
+        if ((gs.devilStockSp || 0) > 0) {
+            const fromDevil = Math.min(gs.devilStockSp, remainingCost);
+            gs.devilStockSp -= fromDevil;
+            remainingCost -= fromDevil;
+        }
+        if (remainingCost > 0 && jState && (jState.limitedSp || 0) > 0) {
+            const fromLimited = Math.min(jState.limitedSp, remainingCost);
+            jState.limitedSp -= fromLimited;
+            remainingCost -= fromLimited;
+        }
+        if (remainingCost > 0) {
+            gs.stockSp = Math.max(0, (gs.stockSp || 0) - remainingCost);
+        }
+
+        // 指定回数分連続で履修
+        const learnedSubjects = [];
+        let hpBonusTotal = 0;
+        for (let i = 0; i < count; i++) {
+            const learned = performDojoTraining(charData, deptKey);
+            if (learned) {
+                learnedSubjects.push(learned);
+                if (learned.id.includes('1')) {
+                    hpBonusTotal += 100;
+                }
+            } else {
+                break;
+            }
+        }
+
+        // 最新ステータスに同期
+        const newStats = gs.calcStats(charData.id);
+        if (newStats) {
+            charData.currentHp = Math.min(newStats.maxHp, (charData.currentHp || newStats.maxHp) + hpBonusTotal);
+        }
+
+        // オートセーブ
+        SaveManager.saveGame();
+
+        // ポップアップ表示
+        if (learnedSubjects.length > 1) {
+            this.showLearnedMultiPopup(charData, deptKey, learnedSubjects);
+        } else if (learnedSubjects.length === 1) {
+            this.showLearnedPopup(charData, learnedSubjects[0]);
+        } else {
+            this.drawScene();
+        }
+    }
+
+    /**
+     * まとめて訓練完了ポップアップ演出
+     */
+    showLearnedMultiPopup(charData, deptKey, subjects) {
+        const { width, height } = this.scale;
+        const deptDef = DOJO_SUBJECTS[deptKey];
+        const popupContainer = this.add.container(0, 0).setDepth(30000);
+
+        const curtain = this.add.rectangle(0, 0, width, height, 0x000000, 0.85)
+            .setOrigin(0, 0).setInteractive();
+        popupContainer.add(curtain);
+
+        const panelW = Math.min(width * 0.88, 440);
+        const panelH = 300;
+        const panel = this.add.rectangle(width / 2, height / 2, panelW, panelH, 0x1f1226, 0.98)
+            .setStrokeStyle(2, 0xffcc00);
+        popupContainer.add(panel);
+
+        const header = this.add.text(width / 2, height / 2 - 120, '✨ まとめて訓練完了！ ✨', {
+            fontFamily: FONT_MAIN,
+            fontSize: '20px',
+            color: '#ffcc00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5, 0.5);
+        popupContainer.add(header);
+
+        // 履修科目のリスト表示
+        const startY = height / 2 - 88;
+        const stepY = 20;
+        subjects.forEach((s, idx) => {
+            const itemY = startY + idx * stepY;
+            const itemText = this.add.text(width / 2, itemY, `・${s.name} : ${s.desc}`, {
+                fontFamily: FONT_MAIN,
+                fontSize: '13px',
+                color: '#e2ddff',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5, 0.5);
+            popupContainer.add(itemText);
+        });
+
+        // 「閉じる」ボタン（確認ダイアログの「はい」と完全同一座標）
+        const closeBtn = this.add.text(width / 2, height / 2 + 35, '　閉じる　', {
+            fontFamily: FONT_MAIN,
+            fontSize: '18px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            backgroundColor: '#553366',
+            padding: { x: 32, y: 8 }
+        }).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
+
+        closeBtn.on('pointerdown', () => {
+            popupContainer.destroy();
+            this.drawScene();
+        });
+        popupContainer.add(closeBtn);
     }
 }
