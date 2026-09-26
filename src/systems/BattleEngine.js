@@ -1810,6 +1810,7 @@ export class BattleEngine {
                     const isFinalHit = (cs.countIdx === action.count - 1);
                     const spawnShockwave = () => {
                         if (p.hp <= 0 || p.sp <= 0 || p.stunTimer > 0) return;
+                        this.swapIfOffscreen(p, target);
                         // 前回と連続して同じスプライトが選ばれないようにランダム選択
                         const lastFrame = p.sakuraAttackFrame !== undefined ? p.sakuraAttackFrame : -1;
                         let nextFrame = Math.floor(Math.random() * 7);
@@ -2959,6 +2960,7 @@ export class BattleEngine {
                         const isFinalHit = (cs.countIdx === action.count - 1);
                         const spawnShockwave = () => {
                             if (ep.hp <= 0 || ep.sp <= 0 || ep.stunTimer > 0) return;
+                            this.swapIfOffscreen(ep, target);
                             // 前回と連続して同じスプライトが選ばれないようにランダム選択
                             const lastFrame = ep.sakuraAttackFrame !== undefined ? ep.sakuraAttackFrame : -1;
                             let nextFrame = Math.floor(Math.random() * 7);
@@ -4556,6 +4558,86 @@ export class BattleEngine {
         }
 
         this.bullets.push(flame);
+    }
+
+    /**
+     * 🌸 さくら(006) 近接攻撃時：ターゲットが画面外の場合、攻撃直前に攻撃者とターゲットの座標を入れ替える
+     * @param {BattleEntity} attacker 攻撃者（さくら）
+     * @param {BattleEntity} target 攻撃対象
+     * @returns {boolean} 入れ替えが行われたかどうか
+     */
+    swapIfOffscreen(attacker, target) {
+        if (!attacker || !target || target.isDead || target.hp <= 0) return false;
+
+        // 画面外判定
+        let isOffscreen = false;
+        if (this.projector) {
+            const proj = this.projector.project(target.x, target.z);
+            const screenW = this.projector.screenWidth || 540;
+            const screenH = this.projector.screenHeight || 960;
+            if (!proj.visible || proj.x < 15 || proj.x > screenW - 15 || proj.y < 15 || proj.y > screenH - 15) {
+                isOffscreen = true;
+            }
+        }
+        // ワールド座標での極端な画面外（奥Z >= 17.5m, 手前Z <= 0.5m, 左右|X| >= 4.2m）
+        if (target.z >= 17.5 || target.z <= 0.5 || Math.abs(target.x) >= 4.2) {
+            isOffscreen = true;
+        }
+
+        if (!isOffscreen) return false;
+
+        // 座標スワップ処理
+        const origAx = attacker.x;
+        const origAz = attacker.z;
+        const origTx = target.x;
+        const origTz = target.z;
+
+        // 残像エフェクト（入れ替わりの瞬間に両者の位置に残像を発生）
+        if (!attacker.afterimages) attacker.afterimages = [];
+        attacker.afterimages.push({ x: origAx, z: origAz, alpha: 0.8, lifeTime: 0.4 });
+        if (!target.afterimages) target.afterimages = [];
+        target.afterimages.push({ x: origTx, z: origTz, alpha: 0.8, lifeTime: 0.4 });
+
+        // ターゲットを画面内（攻撃者がいた位置）へ移動
+        target.knockbackOffsetX = 0;
+        target.knockbackOffsetZ = 0;
+        if (typeof target.baseX === 'number' && typeof target.baseZ === 'number') {
+            target.animOffsetX = origAx - target.baseX;
+            target.animOffsetZ = origAz - target.baseZ;
+            target.targetOffsetX = target.animOffsetX;
+            target.targetOffsetZ = target.animOffsetZ;
+        }
+        target.x = origAx;
+        target.z = origAz;
+
+        // 攻撃者を敵がいた位置へ（敵との距離が離れすぎて空振りしないよう、敵から1.0mの位置に調整）
+        const dx = origTx - origAx;
+        const dz = origTz - origAz;
+        const currentDist = Math.hypot(dx, dz) || 1.0;
+        let finalAx = origTx;
+        let finalAz = origTz;
+        if (currentDist > 1.5) {
+            finalAx = origAx + (dx / currentDist) * 1.0;
+            finalAz = origAz + (dz / currentDist) * 1.0;
+        }
+
+        if (typeof attacker.baseX === 'number' && typeof attacker.baseZ === 'number') {
+            attacker.animOffsetX = finalAx - attacker.baseX;
+            attacker.animOffsetZ = finalAz - attacker.baseZ;
+            attacker.targetOffsetX = attacker.animOffsetX;
+            attacker.targetOffsetZ = attacker.animOffsetZ;
+        }
+        attacker.x = finalAx;
+        attacker.z = finalAz;
+        attacker.isSakuraStepping = false;
+
+        // 攻撃者の向きを手前の敵に向ける
+        const newDx = target.x - attacker.x;
+        const newDz = target.z - attacker.z;
+        const newDist = Math.hypot(newDx, newDz) || 1.0;
+        attacker.sakuraAttackDirX = newDx / newDist;
+
+        return true;
     }
 
     /**
