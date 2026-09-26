@@ -214,11 +214,12 @@ export default class BattleScene extends Phaser.Scene {
             const bg = this.add.image(width / 2, height / 2, bgKey);
             bg.setOrigin(0.5, 0.5);
             bg.setScale(Math.max(width / bg.width, height / bg.height));
-        } else if (this.battleConfig.isKrakenBossTest) {
+        } else if (this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event || this.battleConfig.isKrakenBossTest) {
             const bgCenterX = width / 2;
             const bgCenterY = height / 2;
             const baseScale = 0.62;
-            const bg = this.add.image(bgCenterX, bgCenterY, 'kraken_bg');
+            const texKey = this.textures.exists('KrakenBG') ? 'KrakenBG' : (this.textures.exists('kraken_bg') ? 'kraken_bg' : 'KrakenBG');
+            const bg = this.add.image(bgCenterX, bgCenterY, texKey);
             bg.setOrigin(0.5, 0.5);
             bg.setScale(baseScale * 1.10, baseScale);
             bg.setDepth(-100);
