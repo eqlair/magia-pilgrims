@@ -1,0 +1,58 @@
+[
+  {
+    "cmd": "image",
+    "key": "bg_tow_spo01"
+  },
+  {
+    "cmd": "bgm",
+    "key": "unknoun_terror"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "この感覚を知っている。"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "永遠とも思える空白の底。"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "肉体を失い、視覚も聴覚もないはずの意識が、"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "確かに「誰か」を捉えていた。"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "響く声。浮かび上がる姿。"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "『――もう少し前まで、もどってみる？』"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "記憶すら剥がれ落ち、"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "自我も曖昧な今の君に、"
+  },
+  {
+    "cmd": "text",
+    "name": "",
+    "text": "その言葉の意味を理解する術はないのだが。"
+  },
+  {
+    "cmd": "end"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  { "cmd": "bg", "key": "bg_img_12_1", "darkOverlay": 0.7 },
+  { "cmd": "chara", "key": "portrait_001", "pos": "right" },
+  { "cmd": "text", "name": "紫苑", "body": "日が暮れてしまう、電気もないし何も見えなくなるかもしれない…" },
+  { "cmd": "text", "name": "紫苑", "body": "心なしか周辺の化け物の気配も妙に強くなったように感じる…" },
+  { "cmd": "text", "name": "紫苑", "body": "夜の間はどこかに隠れて休んでいたほうがいいかもしれない。" },
+  { "cmd": "text", "name": "", "body": "(休息を選んでみてください。)" },
+  { "cmd": "clearText" },
+  { "cmd": "end" }
+]
