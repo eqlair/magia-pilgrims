@@ -11,6 +11,7 @@ import { BattleRenderer } from '../systems/BattleRenderer';
 import { FogEffect } from '../systems/FogEffect';
 import { GlobalState } from '../systems/GlobalState';
 import { TelemetryService } from '../systems/TelemetryService';
+import { BGM_MANIFEST } from '../systems/AssetLoader';
 
 export default class BattleScene extends Phaser.Scene {
     constructor() {
@@ -102,6 +103,19 @@ export default class BattleScene extends Phaser.Scene {
         this.load.image('kraken_c', 'files/ENEMY/KrakenC.png');
         this.load.image('kraken_bg', 'files/BG_battle/KrakenBG.jpg');
         this.load.audio('bgm_boss_kraken', 'files/BGM/BOSS002.mp3');
+
+        // ⚔️ 今回の戦闘で使用するBGMをオンデマンドでキューに追加
+        const bKey = this.battleConfig?.bgmKey || ((this.battleConfig?.rule === 2) ? 'bgm_toppa' : 'bgm_battle1');
+        if (bKey && !this.cache.audio.exists(bKey) && BGM_MANIFEST[bKey]) {
+            this.load.audio(bKey, BGM_MANIFEST[bKey]);
+        }
+        if (!this.cache.audio.exists('bgm_battle1') && BGM_MANIFEST['bgm_battle1']) {
+            this.load.audio('bgm_battle1', BGM_MANIFEST['bgm_battle1']);
+        }
+        const bossKey = this.battleConfig?.bossBgmKey;
+        if (bossKey && !this.cache.audio.exists(bossKey) && BGM_MANIFEST[bossKey]) {
+            this.load.audio(bossKey, BGM_MANIFEST[bossKey]);
+        }
 
 
         this.load.image('bullet', 'files/CHR/001004.webp');

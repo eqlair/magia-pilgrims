@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TransitionManager } from '../systems/TransitionManager';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 import { AudioOptimizer } from '../systems/AudioOptimizer';
+import { LoadingOverlay } from '../systems/LoadingOverlay';
 
 export default class BootScene extends Phaser.Scene {
     constructor() {
@@ -336,116 +337,29 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('event_ikebukuro02', 'files/DATA/event_ikebukuro02.json');
         this.load.image('ikebukuro01', 'files/event/ikebukuro01.webp');
         this.load.image('ikebukuro02', 'files/event/ikebukuro02.webp');
-        this.load.image('Kraken_ev', 'files/event/Kraken_ev.jpg');
-        this.load.audio('unknoun_terror', 'files/BGM/unknoun_terror.mp3');
-        this.load.audio('tow_Kraken', 'files/BGM/tow_Kraken.mp3');
-        this.load.image('KrakenBG', 'files/BG_battle/KrakenBG.jpg');
-        this.load.image('KrakenA', 'files/ENEMY/KrakenA.png');
-        this.load.image('KrakenB', 'files/ENEMY/KrakenB.png');
-        this.load.image('KrakenC', 'files/ENEMY/KrakenC.png');
         this.load.image('EV_in', 'files/event/EV_in.jpg');
 
-        // タワー21階ボス（プロセル氷像）イベント＆敵アセット
-        this.load.json('event_tow21', 'files/DATA/event_tow21.json');
-        this.load.json('event_tow21b', 'files/DATA/event_tow21b.json');
-        this.load.image('event_tow_21', 'files/event/tow_21.webp');
-        this.load.image('event_tow_21b', 'files/event/tow_21b.webp');
-
-        // タワー34階最奥（天隕晶）イベントアセット
-        this.load.json('event_ten_in_shou', 'files/DATA/event_ten_in_shou.json');
-        this.load.image('event_ten_in_shou', 'files/event/T_ten-in-shou.webp');
-
-        // タワー11階最奥（七曜杖）イベントアセット
-        this.load.json('event_shichiyo_cane', 'files/DATA/event_shichiyo_cane.json');
-        this.load.image('event_shichiyo_cane', 'files/event/T_sichiseiken.webp');
-        this.load.audio('tow_frozen_silence', 'files/BGM/tow_Frozen Silence.mp3');
-        this.load.audio('tow_frozen_silence_b', 'files/BGM/tow_Frozen SilenceB.mp3');
-        this.load.audio('tow_magma_core', 'files/BGM/tow_Magma Core.mp3');
-        this.load.audio('tow_magma_core_b', 'files/BGM/tow_Magma CoreB.mp3');
-        this.load.audio('tow_black_onyx', 'files/BGM/tow_Black Onyx area.mp3');
-        this.load.audio('tow_black_onyx_b', 'files/BGM/tow_Black Onyx areaB.mp3');
-        this.load.audio('tow_sakura', 'files/BGM/tow_sakura.mp3');
-        this.load.audio('bgm_inferno_shredder_x', 'files/BGM/Inferno Shredder X.mp3');
-        this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
-        this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.webp');
-
-        // タワー編アセット
+        // タワー編基本データ（JSON・遠景）
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.json('hint_53f', 'files/DATA/53Fhint.json');
         this.load.image('bg_tower01', 'files/MAP/tow1.webp');
-        this.load.image('bg_tow1', 'files/MAP/tow1.webp');
-        this.load.image('bg_tow2', 'files/MAP/tow2.webp');
-        this.load.image('bg_tow3', 'files/MAP/tow3.webp');
-        this.load.image('bg_tow4', 'files/MAP/tow4.webp');
         this.load.image('tow1', 'files/MAP/tow1.webp');
         this.load.image('tow2', 'files/MAP/tow2.webp');
         this.load.image('tow3', 'files/MAP/tow3.webp');
         this.load.image('tow4', 'files/MAP/tow4.webp');
 
-        // タワー用エリア画像 (ヘクス用 200x200六角形PNG & 画面背景用JPG)
-        const towerAreaAssets = {
-            '街': { hex: 'files/MAP/hex_01city.webp', bg: 'files/MAP/01city.webp' },
-            '石': { hex: 'files/MAP/hex_02boulder.webp', bg: 'files/MAP/02boulder.webp' },
-            '樹': { hex: 'files/MAP/hex_03tree.webp', bg: 'files/MAP/03tree.webp' },
-            '骨': { hex: 'files/MAP/hex_06skal.webp', bg: 'files/MAP/06skal.webp' },
-            '氷': { hex: 'files/MAP/hex_04ice.webp', bg: 'files/MAP/04ice.webp' },
-            '顔': { hex: 'files/MAP/hex_07face.webp', bg: 'files/MAP/07face.webp' },
-            '炎': { hex: 'files/MAP/hex_05fire.webp', bg: 'files/MAP/05fire.webp' },
-            '金': { hex: 'files/MAP/hex_08gold.webp', bg: 'files/MAP/08gold.webp' },
-            '異': { hex: 'files/MAP/hex_09al.webp', bg: 'files/MAP/09al.webp' },
-            '外': { hex: 'files/MAP/hex_10out.webp', bg: 'files/MAP/10out.webp' },
-            '黒': { hex: 'files/MAP/hex_11black.webp', bg: 'files/MAP/11black.webp' },
-            '赤': { hex: 'files/MAP/hex_12red.webp', bg: 'files/MAP/12red.webp' },
-            '青': { hex: 'files/MAP/hex_16blue.webp', bg: 'files/MAP/16blue.webp' },
-            '黄': { hex: 'files/MAP/hex_15yerrow.webp', bg: 'files/MAP/15yerrow.webp' },
-            '緑': { hex: 'files/MAP/hex_14green.webp', bg: 'files/MAP/14green.webp' },
-            '紫': { hex: 'files/MAP/hex_13purple.webp', bg: 'files/MAP/13purple.webp' },
-            '白': { hex: 'files/MAP/hex_17white.webp', bg: 'files/MAP/17white.webp' },
-            'top of tower': { hex: 'files/MAP/hex_top_of_tower.webp', bg: 'files/MAP/17white.webp' }
-        };
-        for (const [key, paths] of Object.entries(towerAreaAssets)) {
-            this.load.image(`hex_map_${key}`, paths.hex);
-            this.load.image(`tower_bg_${key}`, paths.bg);
-            this.load.image(`tower_map_${key}`, paths.hex); // 互換用
-        }
-
-        // タワー戦闘背景用画像 (files/BG_battle/)
-        const towerBattleBgs = ['街', '石', '樹', '骨', '氷', '顔', '炎', '金', '異', '外', '黒', '赤', '青', '黄', '緑', '紫', '白'];
-        for (const key of towerBattleBgs) {
-            this.load.image(`battle_bg_${key}`, `files/BG_battle/${key}.webp`);
-        }
-        this.load.image('battle_bg_top of tower', 'files/BG_battle/白.webp');
-
-        this.load.image('bg_resp', 'files/event/resp.webp');
-        this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
-        this.load.audio('bgm_star', 'files/BGM/star.mp3');
-        this.load.audio('bgm_bad', 'files/BGM/bad.mp3');
-        this.load.audio('bgm_op', 'files/BGM/001_OP001.mp3');
+        // タイトル・オープニング・初回地上マップ必須サウンドのみ先行ロード
         this.load.image('op_title', 'files/OP/title.webp');
         this.load.audio('op_start', 'files/OP/start.mp3');
-
-
-        
-        // BGM
-        this.load.audio('bgm_tarot', 'files/BGM/006_TAROT.mp3');
-        this.load.audio('JOIN_US', 'files/BGM/005_JOIN_US.mp3');
+        this.load.audio('bgm_op', 'files/BGM/001_OP001.mp3');
         this.load.audio('002_menu', 'files/BGM/002_menu.mp3');
         this.load.audio('bgm_menu', 'files/BGM/002_menu.mp3');
         this.load.audio('bgm_hexen', 'files/BGM/004_hexen.mp3');
-        this.load.audio('bgm_toppa', 'files/BGM/toppa.mp3');
-        this.load.audio('bgm_wildhunt', 'files/BGM/wildhunt.mp3');
-        this.load.audio('bgm_result', 'files/BGM/008_fan-37.mp3');
+
+        // 軽量SE（効果音）
         this.load.audio('se_awaken_boss', 'files/SOUND/awaken_boss.mp3');
         this.load.audio('se_bossbomb', 'files/SOUND/bossbomb002x.mp3');
-        this.load.audio('bgm_camp', 'files/BGM/camp_BGM.mp3');
-        
-        for (let i = 1; i <= 4; i++) {
-            this.load.audio(`bgm_battle${i}`, `files/BGM/battole_00${i}.mp3`);
-        }
-        for (let i = 1; i <= 3; i++) {
-            this.load.audio(`bgm_boss${i}`, `files/BGM/BOSS00${i}.mp3`);
-        }
         this.load.audio('se_get', 'files/SOUND/get.mp3');
     }
 
@@ -632,11 +546,29 @@ export default class BootScene extends Phaser.Scene {
                     }
                 }
             }
-            if (onComplete) onComplete();
+            if (needsLoad) {
+                LoadingOverlay.setProgress(scene, 100);
+                scene.time.delayedCall(100, () => {
+                    LoadingOverlay.hide(scene, () => {
+                        if (onComplete) onComplete();
+                    });
+                });
+            } else {
+                if (onComplete) onComplete();
+            }
         };
 
         if (needsLoad) {
-            scene.load.once('complete', handleComplete);
+            LoadingOverlay.show(scene, 'Now Loading Tower...');
+            LoadingOverlay.setProgress(scene, 15);
+            const onProgress = (val) => {
+                LoadingOverlay.setProgress(scene, 15 + val * 80);
+            };
+            scene.load.on('progress', onProgress);
+            scene.load.once('complete', () => {
+                scene.load.off('progress', onProgress);
+                handleComplete();
+            });
             scene.load.start();
         } else {
             handleComplete();

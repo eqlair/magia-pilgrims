@@ -18,6 +18,17 @@ export default class TarotScene extends Phaser.Scene {
         this._hasRerolledTarot = false;
     }
 
+    preload() {
+        for (let i = 0; i <= 22; i++) {
+            if (!this.textures.exists(`tarot_${i}`)) {
+                this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).webp`);
+            }
+        }
+        if (!this.cache.audio.exists('bgm_tarot')) {
+            this.load.audio('bgm_tarot', 'files/BGM/006_TAROT.mp3');
+        }
+    }
+
     create() {
         this.cameras.main.setBackgroundColor('#052210');
         TransitionManager.fadeIn(this);

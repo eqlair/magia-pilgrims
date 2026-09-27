@@ -22,6 +22,12 @@ export default class RestScene extends Phaser.Scene {
         this.towerBgKey = data.bgKey || null;
     }
 
+    preload() {
+        if (!this.cache.audio.exists('bgm_camp')) {
+            this.load.audio('bgm_camp', 'files/BGM/camp_BGM.mp3');
+        }
+    }
+
     create() {
         this.cameras.main.fadeIn(300, 0, 0, 0);
         

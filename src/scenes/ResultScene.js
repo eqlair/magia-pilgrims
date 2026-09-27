@@ -32,6 +32,12 @@ export default class ResultScene extends Phaser.Scene {
         this.battleDuration = data.battleDuration || 1;
     }
 
+    preload() {
+        if (!this.cache.audio.exists('bgm_result')) {
+            this.load.audio('bgm_result', 'files/BGM/008_fan-37.mp3');
+        }
+    }
+
     create() {
         TransitionManager.fadeIn(this);
 

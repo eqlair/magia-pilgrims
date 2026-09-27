@@ -17,6 +17,8 @@ import { PvpEnemyGenerator } from '../systems/PvpEnemyGenerator';
 import { DailyQuestManager } from '../systems/DailyQuestManager';
 import { AchievementManager, ACHIEVEMENTS } from '../systems/AchievementManager';
 import { FairyTradeManager } from '../systems/FairyTradeManager';
+import { AssetLoader } from '../systems/AssetLoader';
+import BootScene from './BootScene';
 
 
 
@@ -668,9 +670,13 @@ export default class AdventureScene extends Phaser.Scene {
             return;
         }
 
-        // タワー広域表示時の背景セットアップ (tow1〜tow4)
+        // タワー広域表示時の背景セットアップ (tow1〜tow4) & アセットオンデマンドロード
         if (this.isTowerMode) {
-            this._setupTowerWideBackground();
+            BootScene.loadTowerAssets(this, () => {
+                this._setupTowerWideBackground();
+                this.updateVisibility();
+                this._playMapBgm(true);
+            });
         }
 
         // 休息モード中であればRestSceneへ直接接続して再開（時間の踏み倒し裏技防止）
@@ -6444,20 +6450,25 @@ export default class AdventureScene extends Phaser.Scene {
             });
         }
 
-        if (this.cache.audio.exists(bgmKey)) {
-            const mapBgm = this.sound.add(bgmKey, { loop: true, volume: 0 });
-            mapBgm.play();
-            this.tweens.add({
-                targets: mapBgm,
-                volume: 0.5,
-                duration: 1000,
-                onUpdate: (tween, target) => {
-                    if (!target || !target.manager) {
-                        try { tween.stop(); } catch(e){}
-                    }
-                }
-            });
+        if (!this.cache.audio.exists(bgmKey)) {
+            AssetLoader.ensureBgm(this, bgmKey, () => {
+                this._playMapBgm(force);
+            }, false);
+            return;
         }
+
+        const mapBgm = this.sound.add(bgmKey, { loop: true, volume: 0 });
+        mapBgm.play();
+        this.tweens.add({
+            targets: mapBgm,
+            volume: 0.5,
+            duration: 1000,
+            onUpdate: (tween, target) => {
+                if (!target || !target.manager) {
+                    try { tween.stop(); } catch(e){}
+                }
+            }
+        });
     }
 
     /** ⚔️ 対人戦（PvP魔法少女戦）テスト起動用モーダルダイアログ */

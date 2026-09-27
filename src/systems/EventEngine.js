@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 import { GlobalState } from '../systems/GlobalState';
+import { AssetLoader } from './AssetLoader';
 
 /**
  * シナリオ・イベント再生用の汎用エンジン「イベント」
@@ -199,17 +200,27 @@ export class EventEngine {
                 onComplete: () => { try { old.stop(); old.destroy(); } catch(e){} }
             });
         }
-        // 新しいBGMをフェードイン（キーが存在すれば）
+        // 新しいBGMをフェードイン（キーが存在すれば、無ければオンデマンドロード）
+        const playNewBgm = () => {
+            if (this.scene.cache.audio.exists(key)) {
+                const bgm = this.scene.sound.add(key, { loop: true, volume: 0 });
+                bgm.play();
+                this.scene.tweens.add({
+                    targets: bgm, volume: 0.75, duration: 800,
+                    onUpdate: (t, target) => { if (!target || !target.manager) { try { t.stop(); } catch(e){} } }
+                });
+                this._currentBgm = bgm;
+            } else {
+                console.warn(`EventEngine: BGMキー "${key}" が見つかりません`);
+            }
+        };
+
         if (this.scene.cache.audio.exists(key)) {
-            const bgm = this.scene.sound.add(key, { loop: true, volume: 0 });
-            bgm.play();
-            this.scene.tweens.add({
-                targets: bgm, volume: 0.75, duration: 800,
-                onUpdate: (t, target) => { if (!target || !target.manager) { try { t.stop(); } catch(e){} } }
-            });
-            this._currentBgm = bgm;
+            playNewBgm();
         } else {
-            console.warn(`EventEngine: BGMキー "${key}" が見つかりません`);
+            AssetLoader.ensureBgm(this.scene, key, () => {
+                playNewBgm();
+            }, false);
         }
         cb(); // BGMはバックグラウンドで再生、即次へ
     }
