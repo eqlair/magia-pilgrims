@@ -1123,6 +1123,84 @@ export default class AdventureScene extends Phaser.Scene {
                             return;
                         }
                     }
+
+                    // ★ タワー34階最奥（25, 3）敵撃破後の天隕晶イベント
+                    if (this.playerRow === 25 && this.playerCol === 3 && !data.isRetreated && !data.isGameOver && !gs.obtainedTenInShou) {
+                        gs.obtainedTenInShou = true;
+                        
+                        // 天隕晶（GR、3段階突破済み）をインベントリに付与
+                        const tenInShouGem = RelicGenerator.generateTenInShou();
+                        if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                        if (!gs.inventory.gems) gs.inventory.gems = [];
+                        gs.inventory.gems.push(tenInShouGem);
+
+                        SaveManager.saveGame(this);
+                        this.updateVisibility();
+
+                        const eventData = this.cache.json.get('event_ten_in_shou');
+                        if (eventData) {
+                            let eventDone = false;
+                            const onEventEnd = (scene, resumeData) => {
+                                if (eventDone) return;
+                                eventDone = true;
+                                this.events.off('resume', onEventEnd);
+
+                                this.showToast('宝石・天隕晶を手に入れた！');
+                                SaveManager.saveGame(this);
+                                this.updateVisibility();
+                                this._playMapBgm(true);
+                            };
+                            this.events.on('resume', onEventEnd);
+
+                            this.hideMapVisuals();
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: eventData,
+                                returnScene: 'AdventureScene',
+                                eventId: 'event_ten_in_shou'
+                            });
+                            return;
+                        }
+                    }
+
+                    // ★ タワー11階最奥（48, 0）敵撃破後の七曜杖イベント
+                    if (this.playerRow === 48 && this.playerCol === 0 && !data.isRetreated && !data.isGameOver && !gs.obtainedShichiyoCane) {
+                        gs.obtainedShichiyoCane = true;
+                        
+                        // 七曜杖（GR、3段階突破済み）をインベントリに付与
+                        const shichiyoGem = RelicGenerator.generateShichiyoCane();
+                        if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                        if (!gs.inventory.gems) gs.inventory.gems = [];
+                        gs.inventory.gems.push(shichiyoGem);
+
+                        SaveManager.saveGame(this);
+                        this.updateVisibility();
+
+                        const eventData = this.cache.json.get('event_shichiyo_cane');
+                        if (eventData) {
+                            let eventDone = false;
+                            const onEventEnd = (scene, resumeData) => {
+                                if (eventDone) return;
+                                eventDone = true;
+                                this.events.off('resume', onEventEnd);
+
+                                this.showToast('宝石・七曜杖を手に入れた！');
+                                SaveManager.saveGame(this);
+                                this.updateVisibility();
+                                this._playMapBgm(true);
+                            };
+                            this.events.on('resume', onEventEnd);
+
+                            this.hideMapVisuals();
+                            this.scene.pause();
+                            this.scene.launch('EventScene', {
+                                events: eventData,
+                                returnScene: 'AdventureScene',
+                                eventId: 'event_shichiyo_cane'
+                            });
+                            return;
+                        }
+                    }
                 }
 
                 // 現在のヘクスを制圧済みに（敵レベル・魔女レベルを0にして敵なしヘクスにする）

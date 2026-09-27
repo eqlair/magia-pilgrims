@@ -1070,7 +1070,15 @@ export class BattleEngine {
                 if (defender.elementalDefDebuff && (defender.elementalDefDebuffTimer === undefined || defender.elementalDefDebuffTimer > 0)) {
                     defBase += defender.elementalDefDebuff;
                 }
-                const multiplier = defBase / 100.0;
+                let multiplier = defBase / 100.0;
+
+                // ── 💎 三種の神器「七曜杖」の効果 ──
+                // 弱点属性の敵への攻撃ダメージを2倍にする（全キャラ適用、時空館無効）
+                const isWeakness = ATTR_DEF[defAttr][atkAttr] > 100;
+                if (isWeakness && attacker.hasShichiyoCane && !this.isJikukan) {
+                    multiplier *= 2.0;
+                }
+
                 finalDamage *= multiplier;
                 
                 if (multiplier > 1.0 && type === 'normal') damageType = 'critical'; // 有効

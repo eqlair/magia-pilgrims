@@ -82,7 +82,9 @@ export class RelicGenerator {
     }
 
     static generateGem(targetRank = null, specificName = null) {
-        const gemNames = Object.keys(gemEffects);
+        // 天隕晶・七曜杖などの神器は通常ランダムプールから除外
+        const sacredNames = ['天隕晶', '七曜杖'];
+        const gemNames = Object.keys(gemEffects).filter(n => !sacredNames.includes(n));
         const name = (specificName && gemEffects[specificName]) ? specificName : gemNames[Math.floor(Math.random() * gemNames.length)];
         const minR = gemEffects[name]?.minRank || 1;
         const rank = targetRank !== null ? Math.max(minR, targetRank) : minR;
@@ -106,6 +108,44 @@ export class RelicGenerator {
             rank: Math.min(8, rank),
             traits: traits,
             isLocked: false
+        };
+    }
+
+    /**
+     * 三種の神器「天隕晶」（ランクGR、3段階突破済み全開花）生成
+     */
+    static generateTenInShou() {
+        return {
+            id: 'gem_ten_in_shou',
+            type: 'gem',
+            name: '天隕晶',
+            rank: 7, // GR
+            traits: [
+                { name: '精神力UP(%)', level: 5 },
+                { name: 'リロード短縮(%)', level: 5 },
+                { name: 'CH率(%)', level: 5 }
+            ],
+            isLocked: true,
+            isSacredArtifact: true
+        };
+    }
+
+    /**
+     * 三種の神器「七曜杖」（ランクGR、3段階突破済み全開花）生成
+     */
+    static generateShichiyoCane() {
+        return {
+            id: 'gem_shichiyo_cane',
+            type: 'gem',
+            name: '七曜杖',
+            rank: 7, // GR
+            traits: [
+                { name: '攻撃力UP(%)', level: 5 },
+                { name: 'CH率(%)', level: 5 },
+                { name: 'CH倍率(%)', level: 5 }
+            ],
+            isLocked: true,
+            isSacredArtifact: true
         };
     }
 

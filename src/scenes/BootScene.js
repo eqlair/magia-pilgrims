@@ -350,6 +350,14 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('event_tow21b', 'files/DATA/event_tow21b.json');
         this.load.image('event_tow_21', 'files/event/tow_21.webp');
         this.load.image('event_tow_21b', 'files/event/tow_21b.webp');
+
+        // タワー34階最奥（天隕晶）イベントアセット
+        this.load.json('event_ten_in_shou', 'files/DATA/event_ten_in_shou.json');
+        this.load.image('event_ten_in_shou', 'files/event/T_ten-in-shou.webp');
+
+        // タワー11階最奥（七曜杖）イベントアセット
+        this.load.json('event_shichiyo_cane', 'files/DATA/event_shichiyo_cane.json');
+        this.load.image('event_shichiyo_cane', 'files/event/T_sichiseiken.webp');
         this.load.audio('tow_frozen_silence', 'files/BGM/tow_Frozen Silence.mp3');
         this.load.audio('tow_frozen_silence_b', 'files/BGM/tow_Frozen SilenceB.mp3');
         this.load.audio('tow_magma_core', 'files/BGM/tow_Magma Core.mp3');
@@ -578,9 +586,25 @@ export default class BootScene extends Phaser.Scene {
             scene.load.json('event_tow21b', 'files/DATA/event_tow21b.json');
             needsLoad = true;
         }
+        if (!scene.cache.json.exists('event_ten_in_shou')) {
+            scene.load.json('event_ten_in_shou', 'files/DATA/event_ten_in_shou.json');
+            needsLoad = true;
+        }
+        if (!scene.cache.json.exists('event_shichiyo_cane')) {
+            scene.load.json('event_shichiyo_cane', 'files/DATA/event_shichiyo_cane.json');
+            needsLoad = true;
+        }
         if (!scene.textures.exists('event_tow_21')) {
             scene.load.image('event_tow_21', 'files/event/tow_21.webp');
             scene.load.image('event_tow_21b', 'files/event/tow_21b.webp');
+            needsLoad = true;
+        }
+        if (!scene.textures.exists('event_ten_in_shou')) {
+            scene.load.image('event_ten_in_shou', 'files/event/T_ten-in-shou.webp');
+            needsLoad = true;
+        }
+        if (!scene.textures.exists('event_shichiyo_cane')) {
+            scene.load.image('event_shichiyo_cane', 'files/event/T_sichiseiken.webp');
             needsLoad = true;
         }
         if (!scene.textures.exists('enemy_prc_a')) {

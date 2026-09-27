@@ -10,6 +10,20 @@ export class GlobalState {
     static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
     static ALLOW_DEBUG_TOGGLE = false; // デバッグ切り替え許可フラグ（デバッグモード時のみ有効化）
 
+    // ⚔️ 物理・魔法キャラクターの公式分類
+    static PHYSICAL_CHAR_IDS = ['001', '002', '003', '007', '009']; // 紫苑, 蒼樹, 紅華, ななよ, リフィエル
+    static MAGIC_CHAR_IDS = ['004', '005', '006', '008', '010', '011']; // 黄蘭, 李乃果, さくら, ノア, プロセル, 白蓮
+
+    static isMagicCharacter(charId) {
+        const norm = (charId || '').toString().padStart(3, '0');
+        return GlobalState.MAGIC_CHAR_IDS.includes(norm);
+    }
+
+    static isPhysicalCharacter(charId) {
+        const norm = (charId || '').toString().padStart(3, '0');
+        return GlobalState.PHYSICAL_CHAR_IDS.includes(norm);
+    }
+
     constructor() {
         if (typeof window !== 'undefined' && window.__MAGIA_GLOBAL_STATE_INSTANCE__) {
             GlobalState.instance = window.__MAGIA_GLOBAL_STATE_INSTANCE__;
@@ -43,6 +57,8 @@ export class GlobalState {
         this.towerStairsFound = {}; // { [floor]: true }
         this.towerSearchCount = {}; // { [floor]: Number }
         this.towerClearedHexes = {}; // { [`${col}_${row}`]: true }
+        this.obtainedTenInShou = false; // 三種の神器「天隕晶」入手フラグ
+        this.obtainedShichiyoCane = false; // 三種の神器「七曜杖」入手フラグ
         this.towerSeenAreas = {}; // { [areaKey]: true } 既読タワーエリア反応フラグ
         this.tower21BossDefeated = false; // タワー21階ボス（プロセル氷像）撃破フラグ
         this.isTowerElevatorUnlocked = false; // タワーエレベーター解放フラグ（5F到達で解放）
@@ -916,7 +932,21 @@ export class GlobalState {
         maxSp = Math.floor(maxSp * (1 + spMod));
         atk = Math.floor(atk * (1 + atkMod));
         reload = Math.floor(reload * (1 + reloadMod)) + reloadLevelBonus;
+
+        // ── 💎 三種の神器「天隕晶」の効果 ──
+        // 現在精神力の 1/10 を攻撃力に加算（魔法キャラ専用・時空館無効）
+        let tenInShouAtkBonus = 0;
+        const hasTenInShou = (validEquips && validEquips.some(e => e && e.name === '天隕晶')) || (char.equipGem && char.equipGem.name === '天隕晶');
+        const isMagic = GlobalState.isMagicCharacter(charId);
+        if (hasTenInShou && isMagic && !isJikukan) {
+            const currentSpVal = (char.currentSp !== undefined && char.currentSp !== null) ? char.currentSp : maxSp;
+            tenInShouAtkBonus = Math.floor(currentSpVal / 10);
+            atk += tenInShouAtkBonus;
+        }
         
+        // ── 💎 三種の神器「七曜杖」の判定 ──
+        const hasShichiyoCane = (validEquips && validEquips.some(e => e && e.name === '七曜杖')) || (char.equipGem && char.equipGem.name === '七曜杖');
+
         if (this.tarot13_targetHp === charId) {
             maxHp = Math.floor(maxHp * 0.75);
         }
@@ -937,6 +967,9 @@ export class GlobalState {
             maxHp,
             maxSp,
             atk,
+            hasTenInShou: hasTenInShou && isMagic && !isJikukan,
+            tenInShouAtkBonus: tenInShouAtkBonus,
+            hasShichiyoCane: !isJikukan && !!hasShichiyoCane,
             reload,
             hitRateBonus: hitRateMod,
             baseEvadeRate,
@@ -1741,6 +1774,8 @@ export class GlobalState {
         this.towerClearedHexes = {};
         this.towerSeenAreas = {};
         this.tower21BossDefeated = false;
+        this.obtainedTenInShou = false;
+        this.obtainedShichiyoCane = false;
 
         // 🛗 タワーエレベーター＆到達フロアの初期化（新規時のみリセット）
         this.isTowerElevatorUnlocked = false;

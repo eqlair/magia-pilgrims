@@ -1,4 +1,4 @@
-﻿# Project backups and raw assets
+# Project backups and raw assets
 *.psd
 *.zip
 *.bak
@@ -17,3 +17,7 @@ debug_*.png
 node_modules/
 dist/
 .browser_profile/
+
+# OS metadata
+desktop.ini
+Thumbs.db

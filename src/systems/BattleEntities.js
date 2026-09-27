@@ -187,7 +187,12 @@ export class PlayerCharacter extends BattleEntity {
         this.maxHp = this.hp;
         this.sp = (stats && stats.maxSp) ? stats.maxSp : (this.charDef.baseSp || 500);
         this.maxSp = this.sp;
-        this.atk = (stats && stats.atk) ? stats.atk : (this.charDef.baseAtk || 100);
+        const rawAtk = (stats && stats.atk) ? stats.atk : (this.charDef.baseAtk || 100);
+        this.hasTenInShou = !!(stats && stats.hasTenInShou);
+        this.hasShichiyoCane = !!(stats && stats.hasShichiyoCane);
+        const tenInShouBonus = (stats && stats.tenInShouAtkBonus) || 0;
+        this._baseAtk = rawAtk - tenInShouBonus;
+        this._atk = rawAtk;
         this.reloadStat = (stats && stats.reload) ? stats.reload : 100; // ベース100
         this.hitRateBonus = (stats && stats.hitRateBonus) ? stats.hitRateBonus : 0; // 命中率ボーナス
         this.evadeRateBonus = ((stats && stats.evadeRateBonus) ? stats.evadeRateBonus : 0) + 0.05; // デフォルト回避率5% ＋ 装備補正
@@ -383,7 +388,21 @@ export class PlayerCharacter extends BattleEntity {
         }
     }
 
+    get atk() {
+        if (this.hasTenInShou) {
+            const spVal = Math.max(0, this.sp || 0);
+            return Math.max(1, (this._baseAtk !== undefined ? this._baseAtk : 100) + Math.floor(spVal / 10));
+        }
+        return this._atk !== undefined ? this._atk : 100;
+    }
 
+    set atk(val) {
+        if (this.hasTenInShou) {
+            this._baseAtk = val;
+        } else {
+            this._atk = val;
+        }
+    }
 
     updateSpecialSkills(dt, players, effects, floatingTexts) {
         if (this.isDead) return;

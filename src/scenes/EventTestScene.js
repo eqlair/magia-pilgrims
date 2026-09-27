@@ -200,6 +200,8 @@ export default class EventTestScene extends Phaser.Scene {
                     { name: '2周目 12月1日 朝の目覚め', cacheKey: 'event_2r1201', eventId: 'event_2r1201', from2R1201Event: true },
                     { name: '地上敗北リスポーンイベント', cacheKey: 'event_resp', eventId: 'event_resp', fromRespEvent: true },
                     { name: 'タワー敗北リスポーンイベント', cacheKey: 'event_tow_res', eventId: 'event_tow_res', fromTowerRespEvent: true },
+                    { name: 'タワー34F最奥：天隕晶イベント', cacheKey: 'event_ten_in_shou', eventId: 'event_ten_in_shou' },
+                    { name: 'タワー11F最奥：七曜杖イベント', cacheKey: 'event_shichiyo_cane', eventId: 'event_shichiyo_cane' },
                 ]
             },
             {

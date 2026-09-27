@@ -82,6 +82,8 @@ export class SaveManager {
                 hasEnteredTower: gs.hasEnteredTower || false,
                 towerElapsedSeconds: gs.towerElapsedSeconds || 0,
                 isTowerTimeUpGameOver: gs.isTowerTimeUpGameOver || false,
+                obtainedTenInShou: !!gs.obtainedTenInShou,
+                obtainedShichiyoCane: !!gs.obtainedShichiyoCane,
 
                 extraEnemyLevel: gs.extraEnemyLevel,
                 extraWitchLevel: gs.extraWitchLevel,
@@ -374,6 +376,8 @@ export class SaveManager {
         if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
         if (d.towerElapsedSeconds !== undefined) gs.towerElapsedSeconds = d.towerElapsedSeconds;
         if (d.isTowerTimeUpGameOver !== undefined) gs.isTowerTimeUpGameOver = d.isTowerTimeUpGameOver;
+        if (d.obtainedTenInShou !== undefined) gs.obtainedTenInShou = d.obtainedTenInShou;
+        if (d.obtainedShichiyoCane !== undefined) gs.obtainedShichiyoCane = d.obtainedShichiyoCane;
         if (d.seenEventHistory !== undefined) gs.seenEventHistory = d.seenEventHistory || [];
 
         if (d.extraEnemyLevel !== undefined) gs.extraEnemyLevel = d.extraEnemyLevel;
