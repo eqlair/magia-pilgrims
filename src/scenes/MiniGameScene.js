@@ -638,7 +638,7 @@ var AI = {
     return true;
   },
   /** choose an action; returns true when an aim has started */
-  decideSupport(a) {
+  decideSupport(a, leading = false) {
     const m = this.member(a), cls = m.cls;
     if (cls === CLASS.FIGHTER || a.proj) return false;
     const ilyuck = cls === CLASS.MAGICIAN && this.wizardWant(a) === 6;
@@ -650,7 +650,7 @@ var AI = {
     } else if (cls === CLASS.CLERIC) {
       const known = spellsKnown(cls, m.level);
       const hurt = this.actors.some((o) => o.state === "active" && o.loc === a.loc && this.member(o).hp <= this.member(o).maxhp / 2);
-      if (hurt && known >= 2 && m.mp >= 2) act = { kind: "spell", idx: 2 };
+      if (hurt && !leading && known >= 2 && m.mp >= 2) act = { kind: "spell", idx: 2 };
       else if (known >= 1 && m.mp >= 1) act = { kind: "spell", idx: 1 };
     } else if (cls === CLASS.MAGICIAN) {
       const w = this.wizardWant(a);
@@ -735,17 +735,30 @@ var AI = {
     return true;
   },
   cancelAutopilot(quiet = false) {
-    if (this.auto || this.homeRun) {
-      this.auto = null;
-      this.homeRun = null;
-      if (!quiet) this.msg("\u3058\u3069\u3046 \u3044\u3069\u3046\u3092 \u3084\u3081\u305F");
+    if (!this.auto && !this.homeRun) return;
+    this.auto = null;
+    this.homeRun = null;
+    const L = this.focusActor();
+    if (L && L.ai) {
+      L.ai.aim = 0;
+      L.ai.act = null;
     }
+    if (!quiet) this.msg("\u3058\u3069\u3046 \u3044\u3069\u3046\u3092 \u3084\u3081\u305F");
   },
   autoStep(lead) {
     const A = this.auto;
     if (!lead || lead.state !== "active" || lead.loc !== A.loc || this.mode !== "play") {
       this.auto = null;
       return;
+    }
+    if (this.ai !== false && this.member(lead).cls !== CLASS.FIGHTER) {
+      lead.ai = lead.ai || { aim: 0, cool: 0 };
+      if (lead.ai.cool > 0) lead.ai.cool--;
+      if (lead.ai.aim > 0) {
+        if (--lead.ai.aim === 0) this.fireSupport(lead);
+        return;
+      }
+      if (lead.ai.cool === 0 && !lead.proj && this.decideSupport(lead, true)) return;
     }
     const loc = lead.loc, keys = this.sharedKeys(), f = this.autoField(loc, A.tx, A.ty, keys);
     const r = this.walkField(lead, f, this.speedOf(lead), true);
