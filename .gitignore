@@ -17,6 +17,7 @@ debug_*.png
 node_modules/
 dist/
 .browser_profile/
+android/app/src/main/assets/public/
 
 # OS metadata
 desktop.ini
