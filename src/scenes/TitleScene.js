@@ -134,6 +134,25 @@ export default class TitleScene extends Phaser.Scene {
             gearBtnBg.on('pointerout', () => gearBtnBg.setFillStyle(0x000000, 0.6));
         }
 
+        // ── 画面左下 「だんます」ミニゲームボタン ──
+        const dmBtn = this.add.text(16, height - 50, '🎮 だんます', {
+            fontFamily: FONT_MAIN,
+            fontSize: '15px',
+            color: '#ffdd88',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3,
+            backgroundColor: '#1a2035dd',
+            padding: { x: 12, y: 7 }
+        }).setOrigin(0, 0).setDepth(100).setInteractive({ useHandCursor: true });
+
+        dmBtn.on('pointerdown', (pointer) => {
+            if (pointer && pointer.event) pointer.event.stopPropagation();
+            this._openMiniGame();
+        });
+        dmBtn.on('pointerover', () => dmBtn.setStyle({ color: '#ffffff', backgroundColor: '#2b365fee' }));
+        dmBtn.on('pointerout', () => dmBtn.setStyle({ color: '#ffdd88', backgroundColor: '#1a2035dd' }));
+
         // ── 画面右上 「新規」ボタン (セーブデータが存在する時のみ表示) ──
         if (SaveManager.hasSaveData()) {
             const newGameBtn = this.add.text(width - 20, 20, '新規', {
@@ -167,6 +186,11 @@ export default class TitleScene extends Phaser.Scene {
             if (GlobalState.IS_DEBUG_MODE && pointer && pointer.x <= 80 && pointer.y <= 80) return;
             // 右上「新規」ボタンの領域タップは除外
             if (SaveManager.hasSaveData() && pointer && pointer.x >= width - 90 && pointer.y <= 70) return;
+            // 左下「だんます」ボタンの領域タップ
+            if (pointer && pointer.x <= 150 && pointer.y >= height - 60) {
+                this._openMiniGame();
+                return;
+            }
             this._startDirectGame();
         });
 
@@ -439,6 +463,23 @@ export default class TitleScene extends Phaser.Scene {
             console.error('[TitleScene] Failed to load test snapshot save:', e);
             this._startDirectGame();
         }
+    }
+
+    /**
+     * 🎮 だんます（ミニゲーム）を起動
+     */
+    _openMiniGame() {
+        if (this._video) {
+            this._video.pause();
+            this._video.style.display = 'none';
+        }
+        if (this._bgm && this._bgm.isPlaying) {
+            this._bgm.stop();
+        }
+        this.scene.start('MiniGameScene', {
+            returnScene: 'TitleScene',
+            assetBase: 'assets/dm/'
+        });
     }
 
     shutdown() {
