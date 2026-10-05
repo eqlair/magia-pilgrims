@@ -1893,8 +1893,10 @@ var Game = class {
     loc.chests.splice(loc.chests.indexOf(chest), 1);
     const r = this.rng.word() & 8191;
     let acc = r, id = 255;
+    const bonus = this.chestBonus();
     for (let i = 0; i < 45; i++) {
-      const [w, minLv] = ROM.chestW[i];
+      const [w0, minLv] = ROM.chestW[i];
+      const w = w0 > 0 ? w0 + bonus : 0;
       acc -= w;
       if (acc < 0) {
         if (this.floor.level >= minLv && this.floor.killsLeft === 0) id = i + 1;
@@ -1904,11 +1906,14 @@ var Game = class {
     const p2 = this.rollPlus2();
     if (p2) id = p2;
     let food = false;
-    if (id === 255 && this.rng.chance(8)) food = true;
+    if (id === 255 && this.rng.chance(32)) food = true;
     loc.ground.push({ id, x: chest.x, y: chest.y, food });
     this.sound(5);
     this.msg(food ? "\u305F\u304B\u3089\u3070\u3053\u306E \u306A\u304B\u306B FOOD\u304C \u3042\u3063\u305F" : id === 255 ? "\u305F\u304B\u3089\u3070\u3053\u306E \u306A\u304B\u306B \u304A\u304B\u306D\u304C \u3042\u3063\u305F" : "\u305F\u304B\u3089\u3070\u3053\u3092 \u3042\u3051\u305F!");
-    if (id === 255 && this.floor.killsLeft > 0) this.msg(`\u3042\u3068 ${this.floor.killsLeft}\u305F\u3044 \u305F\u304A\u3059\u3068\u2026`);
+  }
+  /** v0.27: chest weight bonus = rooms first entered since arriving on this floor (0..31) */
+  chestBonus() {
+    return this.floor ? Math.min(31, this.floor.visited.size) : 0;
   }
   /** one draw for all eligible "+2" items: each one wins with probability 1/PLUS2_CHANCE */
   rollPlus2() {
@@ -2001,7 +2006,7 @@ var Game = class {
       m.exp = Math.min(65535, m.exp + e);
     }
     this.emit("kill", { loc: loc.key, x: mon.x, y: mon.y, w: mon.w, h: mon.h });
-    let food = FOOD_MONSTERS.has(mon.type) && this.rng.chance(4);
+    let food = FOOD_MONSTERS.has(mon.type) && this.rng.chance(32);
     if (loc.kind === "room" && loc.monsters.every((x) => !x) && this.roomCleared(loc, mon)) food = false;
     if (food) {
       const n = Math.max(1, def.lvl);
@@ -4574,7 +4579,7 @@ var MiniGameScene = class extends Phaser3.Scene {
     this.se(10);
   }
   showEnding(name, lines) {
-    this.bgm("ending");
+    this.bgm("ending", false);
     this.openOverlay("ending", (c) => {
       const F = this.frame(), y0 = F.land ? 16 : 240, oy = F.land ? 470 : 660;
       c.add(this.box(F.W / 2 - 250, y0, 500, F.land ? 420 : 360));
