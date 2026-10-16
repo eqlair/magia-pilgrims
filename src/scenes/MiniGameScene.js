@@ -1911,9 +1911,9 @@ var Game = class {
     this.sound(5);
     this.msg(food ? "\u305F\u304B\u3089\u3070\u3053\u306E \u306A\u304B\u306B FOOD\u304C \u3042\u3063\u305F" : id === 255 ? "\u305F\u304B\u3089\u3070\u3053\u306E \u306A\u304B\u306B \u304A\u304B\u306D\u304C \u3042\u3063\u305F" : "\u305F\u304B\u3089\u3070\u3053\u3092 \u3042\u3051\u305F!");
   }
-  /** v0.27: chest weight bonus = rooms first entered since arriving on this floor (0..31) */
+  /** chest weight bonus (0..31): v0.28 - each room first entered on this visit of the floor adds 1 with a 1/4 chance */
   chestBonus() {
-    return this.floor ? Math.min(31, this.floor.visited.size) : 0;
+    return this.floor ? Math.min(31, this.floor.chestBonus || 0) : 0;
   }
   /** one draw for all eligible "+2" items: each one wins with probability 1/PLUS2_CHANCE */
   rollPlus2() {
@@ -2550,6 +2550,7 @@ var Game = class {
     }
     if (!this.floor.visited.has(key)) {
       this.floor.visited.add(key);
+      if (this.rng.chance(4)) this.floor.chestBonus = Math.min(31, (this.floor.chestBonus || 0) + 1);
       const k = this.rng.dice(1, (L + 1) * 4);
       for (let i = 0; i < k; i++) {
         const p = this.rng.word() % 320, x = p % 32, y = p / 32 | 0;
@@ -3407,6 +3408,8 @@ var MiniGameScene = class extends Phaser3.Scene {
     const sheet = (k, f, w, h) => this.load.spritesheet(k, b + "img/" + f, { frameWidth: w, frameHeight: h });
     img("dm_chars_dun", "chars_dun.png");
     img("dm_chars_town", "chars_town.png");
+    for (let l = 1; l <= 10; l++) img("dm_chars_dun_arr" + l, `chars_dun_arr${l}.png`);
+    img("dm_chars_town_arr", "chars_town_arr.png");
     img("dm_fontimg", "font.png");
     img("dm_brick", "brick.png");
     sheet("dm_items", "items.png", 16, 16);
@@ -3926,6 +3929,29 @@ var MiniGameScene = class extends Phaser3.Scene {
       this.bgm("dungeon");
     }
   }
+  // ---- v0.28 map graphics: original / arrange (wall colour by depth, dark floor, modern town)
+  isArrange() {
+    const o = this.game_.save.options;
+    return !!(o && o.gfx === "arrange");
+  }
+  tilesKey(town) {
+    if (!this.isArrange()) return town ? "dm_chars_town" : "dm_chars_dun";
+    if (town) return "dm_chars_town_arr";
+    const lv = Math.max(1, Math.min(10, this.game_.floor && this.game_.floor.level || 1));
+    return "dm_chars_dun_arr" + lv;
+  }
+  /** arrange mode: some characters are drawn with one of several variant tiles, picked by position */
+  tileOf(ch, x, y, town, room) {
+    if (!this.isArrange()) return ch;
+    const h = (Math.imul(x + 31, 73856093) ^ Math.imul(y + 17, 19349663)) >>> 0;
+    if (ch === 0) return town ? (room ? 340 : 336) + (h >>> 3) % 4 : 320 + (h >>> 3) % 4;
+    if (town && ch === 9) {
+      if (room) return 328;
+      const k = (h >>> 5) % 18;
+      return 320 + (k === 0 ? 0 : k === 1 ? 1 : 2 + (h >>> 9) % 6);
+    }
+    return ch;
+  }
   buildMap() {
     const loc = this.game_.mapLoc;
     if (this.mapLayer) {
@@ -3935,11 +3961,11 @@ var MiniGameScene = class extends Phaser3.Scene {
     const data = [];
     for (let y = 0; y < loc.h; y++) {
       const row = [];
-      for (let x = 0; x < loc.w; x++) row.push(loc.char(x, y));
+      for (let x = 0; x < loc.w; x++) row.push(this.tileOf(loc.char(x, y), x, y, loc.town, false));
       data.push(row);
     }
     this.mapTilemap = this.make.tilemap({ data, tileWidth: 8, tileHeight: 8 });
-    const ts = this.mapTilemap.addTilesetImage(loc.town ? "dm_chars_town" : "dm_chars_dun", void 0, 8, 8, 0, 0);
+    const ts = this.mapTilemap.addTilesetImage(this.tilesKey(loc.town), void 0, 8, 8, 0, 0);
     this.mapLayer = this.mapTilemap.createLayer(0, ts, 0, 0).setDepth(-10);
     this.mapLayer.setCullPadding(2, 2);
     this.world(this.mapLayer);
@@ -3954,11 +3980,11 @@ var MiniGameScene = class extends Phaser3.Scene {
     const data = [];
     for (let y = 0; y < ROOM_H; y++) {
       const row = [];
-      for (let x = 0; x < ROOM_W; x++) row.push(room.char(x, y));
+      for (let x = 0; x < ROOM_W; x++) row.push(this.tileOf(room.char(x, y), x, y, room.town, true));
       data.push(row);
     }
     this.roomTilemap = this.make.tilemap({ data, tileWidth: 8, tileHeight: 8 });
-    const ts = this.roomTilemap.addTilesetImage(room.town ? "dm_chars_town" : "dm_chars_dun", void 0, 8, 8, 0, 0);
+    const ts = this.roomTilemap.addTilesetImage(this.tilesKey(room.town), void 0, 8, 8, 0, 0);
     this.roomLayer = this.roomTilemap.createLayer(0, ts, ROOM_OX, 0).setDepth(-10);
     this.world(this.roomLayer);
     this.worldLayer.sendToBack(this.roomLayer);
@@ -3966,7 +3992,10 @@ var MiniGameScene = class extends Phaser3.Scene {
   redrawCell(cx, cy) {
     const loc = this.game_.mapLoc;
     if (!this.mapLayer) return;
-    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) this.mapLayer.putTileAt(loc.char(cx * 4 + i, cy * 4 + j), cx * 4 + i, cy * 4 + j);
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+      const x = cx * 4 + i, y = cy * 4 + j;
+      this.mapLayer.putTileAt(this.tileOf(loc.char(x, y), x, y, loc.town, false), x, y);
+    }
   }
   render(delta) {
     const g = this.game_;
@@ -4423,7 +4452,8 @@ var MiniGameScene = class extends Phaser3.Scene {
       lvl: (m) => `LV${m.level} ${title(m)}`,
       leave: [150, 378, 240, 56],
       back: [390, 378, 200, 56],
-      combat: [730, 378, 360, 56],
+      combat: [615, 378, 220, 56],
+      gfx: [845, 378, 210, 56],
       msgBox: [FW / 2, 470, FW, 100],
       hintY: 438,
       msgY: 474,
@@ -4441,7 +4471,8 @@ var MiniGameScene = class extends Phaser3.Scene {
       lvl: (m) => `LEVEL ${m.level}  ${title(m)}`,
       leave: [150, 742, 250, 64],
       back: [400, 742, 230, 64],
-      combat: [W2 / 2, 914, 380, 52],
+      combat: [140, 914, 250, 52],
+      gfx: [405, 914, 250, 52],
       msgBox: [W2 / 2, 830, 540, 100],
       hintY: 790,
       msgY: 830,
@@ -4493,13 +4524,21 @@ var MiniGameScene = class extends Phaser3.Scene {
       this.ot(c, FW / 2, P.hintY, `\u305F\u3063\u3077\u3067 \u3048\u3089\u3076  FOOD\u306F ${FOOD_PRICE}GOLD\u3067 1\u3053`, 2, 11184810, 0.5);
       this.innMsg = this.ot(c, FW / 2, P.msgY, this.innMsgText || "", 2, 16777062, 0.5);
       const sv = g.save, cur = sv.options && sv.options.combat || 2, lbl = { 1: "\u3082\u3068", 2: "1/2", 4: "1/4" }[cur];
-      this.ob(c, ...P.combat, `\u305B\u3093\u3068\u3046\u306E \u306F\u3084\u3055  ${lbl}`, () => {
+      this.ob(c, ...P.combat, `\u305B\u3093\u3068\u3046 ${lbl}`, () => {
         sv.options = sv.options || {};
         sv.options.combat = { 1: 2, 2: 4, 4: 1 }[cur];
         g.persist();
         this.se(1);
         this.showInn([]);
       }, 4206624);
+      const arr = this.isArrange();
+      this.ob(c, ...P.gfx, arr ? "MAP ARRANGE" : "MAP ORIGINAL", () => {
+        sv.options = sv.options || {};
+        sv.options.gfx = arr ? "original" : "arrange";
+        g.persist();
+        this.se(1);
+        this.showInn([]);
+      }, arr ? 2117712 : 3158080);
     };
     this.innMsgText = "";
     this.innAnim = this.innAnim || [];
