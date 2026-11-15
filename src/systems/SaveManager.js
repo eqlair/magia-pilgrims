@@ -54,6 +54,8 @@ export class SaveManager {
                 extraDailyGachaCount: gs.extraDailyGachaCount || 0,
                 loopCount: gs.loopCount || 1,
                 hasMetFairy: gs.hasMetFairy || false,
+                hasNoAdsPass: gs.hasNoAdsPass || false,
+                fairyTradeUsage: gs.fairyTradeUsage ? JSON.parse(JSON.stringify(gs.fairyTradeUsage)) : {},
                 achievements: gs.achievements || {},
                 dailyQuests: gs.dailyQuests || null,
                 fairyDailyTrade: gs.fairyDailyTrade || null,
@@ -289,6 +291,8 @@ export class SaveManager {
         if (d.extraDailyGachaCount !== undefined) gs.extraDailyGachaCount = d.extraDailyGachaCount;
         if (d.loopCount !== undefined) gs.loopCount = d.loopCount;
         if (d.hasMetFairy !== undefined) gs.hasMetFairy = d.hasMetFairy;
+        if (d.hasNoAdsPass !== undefined) gs.hasNoAdsPass = d.hasNoAdsPass;
+        if (d.fairyTradeUsage) gs.fairyTradeUsage = d.fairyTradeUsage;
         if (d.achievements) gs.achievements = d.achievements;
         if (d.dailyQuests) gs.dailyQuests = d.dailyQuests;
         if (d.fairyDailyTrade) gs.fairyDailyTrade = d.fairyDailyTrade;

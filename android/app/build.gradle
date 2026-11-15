@@ -5,7 +5,7 @@ android {
     namespace "com.antigravity.game"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.antigravity.game"
+        applicationId "com.ndk.magiapilgrims"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 3
@@ -23,11 +23,20 @@ android {
             outputFileName = "magia_pilgrims-${variant.buildType.name}.apk"
         }
     }
+    signingConfigs {
+        release {
+            storeFile file('ndk-release-key.jks')
+            storePassword 'nagasawa2026'
+            keyAlias 'ndk_key'
+            keyPassword 'nagasawa2026'
+        }
+    }
     buildTypes {
         debug {
             debuggable true
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

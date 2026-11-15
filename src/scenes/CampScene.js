@@ -3,6 +3,7 @@ import { GlobalState } from '../systems/GlobalState';
 import { SaveManager } from '../systems/SaveManager';
 import { CharacterDetailHelper } from '../components/CharacterDetailHelper';
 import { RelicGenerator } from '../systems/RelicGenerator';
+import { AssetLoader } from '../systems/AssetLoader';
 
 import { fontSize, FONT_MAIN } from '../config/GameFont';
 
@@ -42,10 +43,16 @@ export default class CampScene extends Phaser.Scene {
             this.bgContainer.add(defaultBg);
         }
 
-        // キャンプBGM再生
+        // キャンプBGM再生（キャッシュにあれば即座に、未ロードならオンデマンド読み込みして再生）
         this.sound.stopAll();
         if (this.cache.audio.exists('bgm_camp')) {
             this.sound.play('bgm_camp', { loop: true, volume: 0.5 });
+        } else {
+            AssetLoader.ensureBgm(this, 'bgm_camp', () => {
+                if (this.scene.isActive('CampScene')) {
+                    this.sound.play('bgm_camp', { loop: true, volume: 0.5 });
+                }
+            });
         }
 
         const state = GlobalState.getInstance();
@@ -199,9 +206,26 @@ export default class CampScene extends Phaser.Scene {
                 this.showDetailView(charId, width, height);
             });
 
-            // 顔アイコン
+            // 顔アイコン（未ロード時の自動ロード＆フォールバック安全網）
             const faceKey = `face_${charId}`;
-            const face = this.add.image(width * 0.15, cy, faceKey).setDisplaySize(rowHeight * 0.8, rowHeight * 0.8).setInteractive({ useHandCursor: true });
+            let face;
+            if (this.textures.exists(faceKey)) {
+                face = this.add.image(width * 0.15, cy, faceKey);
+            } else {
+                const fallbackKey = this.textures.exists(`mini_${charId}`) ? `mini_${charId}` : 'emb_0';
+                face = this.add.image(width * 0.15, cy, fallbackKey);
+                const normId = charId.length === 3 ? charId : String(charId).padStart(3, '0');
+                const fileUrl = `files/CHR/${normId}p.webp`;
+                this.load.image(faceKey, fileUrl);
+                this.load.once(`filecomplete-image-${faceKey}`, () => {
+                    if (face && face.scene && this.textures.exists(faceKey)) {
+                        face.setTexture(faceKey);
+                        face.setDisplaySize(rowHeight * 0.8, rowHeight * 0.8);
+                    }
+                });
+                this.load.start();
+            }
+            face.setDisplaySize(rowHeight * 0.8, rowHeight * 0.8).setInteractive({ useHandCursor: true });
             
             if (charId === '001' && !this.globalState.guideTappedSionFace) {
                 this.tweens.add({

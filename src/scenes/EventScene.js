@@ -4,6 +4,7 @@ import { TransitionManager } from '../systems/TransitionManager';
 import { FogEffect } from '../systems/FogEffect';
 import { Dec21Effect } from '../systems/Dec21Effect';
 import { GlobalState } from '../systems/GlobalState';
+import { AssetLoader } from '../systems/AssetLoader';
 import { FONT_MAIN } from '../config/GameFont';
 
 /**
@@ -136,42 +137,59 @@ export default class EventScene extends Phaser.Scene {
             }
         }
 
-        // ワイルドハントイベント時：既存のマップBGM(bgm_hexenなど)をstopAll()で完全消去し、bgm_wildhuntを直接再生
-        if (this.from1221WildhuntEvent) {
-            if (this.sound) {
-                this.sound.stopAll();
+        const startEventEngine = () => {
+            let whBgmInstance = null;
+            // ワイルドハントイベント時：既存のマップBGM(bgm_hexenなど)をstopAll()で完全消去し、bgm_wildhuntを直接再生
+            if (this.from1221WildhuntEvent) {
+                if (this.sound) {
+                    this.sound.stopAll();
+                }
+                if (this.cache.audio.exists('bgm_wildhunt')) {
+                    whBgmInstance = this.sound.add('bgm_wildhunt', { loop: true, volume: 0.75 });
+                    whBgmInstance.play();
+                    console.log('[EventScene] bgm_wildhunt 直前ロード後再生成功 ✓');
+                }
             }
-            if (this.cache.audio.exists('bgm_wildhunt')) {
-                const wh = this.sound.add('bgm_wildhunt', { loop: true, volume: 0.75 });
-                wh.play();
-                console.log('[EventScene] bgm_wildhunt 強行再生成功 ✓');
-            } else {
-                console.warn('[EventScene] bgm_wildhunt キーが見つかりません');
+
+            this.engine = new EventEngine(this, this.eventData, () => {
+                this._onEventComplete();
+            });
+            if (whBgmInstance) {
+                this.engine._currentBgm = whBgmInstance;
             }
-        }
 
-        this.engine = new EventEngine(this, this.eventData, () => {
-            this._onEventComplete();
-        });
+            // カスタムコールバックの設定
+            this.engine.callbacks = {
+                ...this.callbacks,
+                showFog: (cb) => this._showFog(cb),
+                playBattleBgm: (cb) => this._playBattleBgm(cb)
+            };
 
-        // カスタムコールバックの設定
-        this.engine.callbacks = {
-            ...this.callbacks,
-            showFog: (cb) => this._showFog(cb),
-            playBattleBgm: (cb) => this._playBattleBgm(cb)
+            this.engine.start();
+
+            // 12/21掛け合いイベント等で背景もやもやエフェクトを表示
+            if (this.showDec21Effect) {
+                this.dec21Effect = new Dec21Effect(this, 12);
+            }
+
+            // ── 2回目以降（既読イベント）またはデバッグモード時に「⏩ SKIP」ボタンを表示 ──
+            const isSeen = this.eventId ? gs.isEventSeen(this.eventId) : false;
+            if (isSeen || GlobalState.IS_DEBUG_MODE) {
+                this._createSkipButton();
+            }
         };
 
-        this.engine.start();
-
-        // 12/21掛け合いイベント等で背景もやもやエフェクトを表示
-        if (this.showDec21Effect) {
-            this.dec21Effect = new Dec21Effect(this, 12);
-        }
-
-        // ── 2回目以降（既読イベント）またはデバッグモード時に「⏩ SKIP」ボタンを表示 ──
-        const isSeen = this.eventId ? gs.isEventSeen(this.eventId) : false;
-        if (isSeen || GlobalState.IS_DEBUG_MODE) {
-            this._createSkipButton();
+        // 🌟 ワイルドハントやバッドエンド・リスポーン等、閲覧頻度の低いイベントは直前にオンデマンド遅延ロード！
+        if (this.from1221WildhuntEvent) {
+            AssetLoader.ensureWildhuntAssets(this, () => {
+                startEventEngine();
+            });
+        } else if (this.fromRespEvent || this.fromTowerRespEvent || this.eventId === 'event_resp' || this.eventId === 'event_tow_res') {
+            AssetLoader.ensureRespawnAssets(this, this.fromTowerRespEvent, () => {
+                startEventEngine();
+            });
+        } else {
+            startEventEngine();
         }
     }
 
@@ -262,9 +280,6 @@ export default class EventScene extends Phaser.Scene {
             }
             if (availableBgms.length === 0 && this.cache.audio.exists('bgm_toppa')) {
                 availableBgms.push('bgm_toppa');
-            }
-            if (availableBgms.length === 0 && this.cache.audio.exists('bgm_hexen')) {
-                availableBgms.push('bgm_hexen');
             }
             if (availableBgms.length > 0) {
                 chosenKey = availableBgms[Math.floor(Math.random() * availableBgms.length)];

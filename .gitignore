@@ -22,3 +22,7 @@ android/app/src/main/assets/public/
 # OS metadata
 desktop.ini
 Thumbs.db
+
+# Signing keys & secrets
+*.jks
+*.keystore

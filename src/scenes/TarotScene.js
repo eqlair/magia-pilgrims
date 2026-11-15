@@ -4,6 +4,7 @@ import { FONT_MAIN, fontSize } from '../config/GameFont';
 import { GlobalState } from '../systems/GlobalState';
 import { CharacterLossManager } from '../systems/CharacterLossManager';
 import { RewardService } from '../systems/RewardService';
+import { FairyTradeManager } from '../systems/FairyTradeManager';
 import { SaveManager } from '../systems/SaveManager';
 
 export default class TarotScene extends Phaser.Scene {
@@ -19,6 +20,9 @@ export default class TarotScene extends Phaser.Scene {
     }
 
     preload() {
+        if (!this.cache.json.exists('tarot_data')) {
+            this.load.json('tarot_data', 'files/DATA/tarot.json');
+        }
         for (let i = 0; i <= 22; i++) {
             if (!this.textures.exists(`tarot_${i}`)) {
                 this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).webp`);
@@ -44,7 +48,7 @@ export default class TarotScene extends Phaser.Scene {
         this.width = this.scale.width;
         this.height = this.scale.height;
 
-        this.tarotData = this.cache.json.get('tarot_data');
+        this.tarotData = this.cache.json.get('tarot_data') || {};
 
         // Create UI layer
         this.uiContainer = this.add.container(0, 0).setDepth(100);
@@ -240,7 +244,16 @@ export default class TarotScene extends Phaser.Scene {
 
         const selectedCard = this.cards[index];
         const cardId = this.drawnCardIds[index];
-        const cardData = this.tarotData[cardId];
+        if (!this.tarotData) {
+            this.tarotData = this.cache.json.get('tarot_data') || {};
+        }
+        const cardData = this.tarotData[cardId] || {
+            id: cardId,
+            name: `タロット No.${cardId}`,
+            character: '',
+            upright: '効果なし',
+            reversed: '効果なし'
+        };
         this._selectedCardObj = selectedCard;
 
         // 選ばれなかった残りの2枚を保持（引き直し用）
@@ -334,13 +347,19 @@ export default class TarotScene extends Phaser.Scene {
         let rerollBtn = null;
         let isConfirmed = false;
 
-        // 🧚‍♀️ リフィエル解放済みの場合、残りの2枚を表にして選び直す取引ボタンを表示！
-        if (gs.hasMetFairy && !this._hasRerolledTarot && this._otherCardIds && this._otherCardIds.length === 2) {
-            rerollBtn = this.add.text(this.width / 2, this.height - 75, '🧚‍♀️ 妖精の取引：残りのカードを表にして選び直す (🎬広告)', {
+        // 🧚‍♀️ リフィエル解放済みの場合、残りの2枚を表にして選び直す取引ボタンを表示！(0時更新・1日1回)
+        const canTarotTrade = gs.hasMetFairy && !this._hasRerolledTarot && !FairyTradeManager.isTradeUsedToday('tarot_reroll') && this._otherCardIds && this._otherCardIds.length === 2;
+        if (canTarotTrade) {
+            const isVip = !!gs.hasNoAdsPass;
+            const btnLabel = isVip
+                ? '🧚‍♀️ 妖精の取引：残りのカードを表にして選び直す (✨VIP即時)'
+                : '🧚‍♀️ 妖精の取引：残りのカードを表にして選び直す (🎬広告)';
+
+            rerollBtn = this.add.text(this.width / 2, this.height - 75, btnLabel, {
                 fontFamily: FONT_MAIN,
                 fontSize: '14px',
                 fontStyle: 'bold',
-                color: '#ffea00',
+                color: isVip ? '#ffeeaa' : '#ffea00',
                 backgroundColor: '#221144ee',
                 padding: { x: 12, y: 7 }
             }).setOrigin(0.5).setAlpha(0).setDepth(500).setInteractive({ useHandCursor: true });
@@ -353,6 +372,7 @@ export default class TarotScene extends Phaser.Scene {
                     rewardDescription: '残り2枚のタロットを表にして引き直す',
                     onReward: () => {
                         this._hasRerolledTarot = true;
+                        FairyTradeManager.recordTrade('tarot_reroll');
                         // 現在のカードUIを破棄
                         infoBox.destroy();
                         titleText.destroy();
@@ -458,7 +478,16 @@ export default class TarotScene extends Phaser.Scene {
 
                 this._selectedCardObj = cardObj;
                 const isUpright = Math.random() >= 0.5;
-                const newCardData = this.tarotData[cId];
+                if (!this.tarotData) {
+                    this.tarotData = this.cache.json.get('tarot_data') || {};
+                }
+                const newCardData = this.tarotData[cId] || {
+                    id: cId,
+                    name: `タロット No.${cId}`,
+                    character: '',
+                    upright: '効果なし',
+                    reversed: '効果なし'
+                };
 
                 this.tweens.add({
                     targets: cardObj,
@@ -524,9 +553,9 @@ export default class TarotScene extends Phaser.Scene {
                 let isUnlockedForTarot = true;
                 
                 // ① ノア(008)・ななよ(007): 一度でも塔に突入したことがある実績(hasEnteredTower)が必要
-                // ※ 単純に地上でリスポーンしただけでは解放されない (デバッグモード時はスキップ可能)
+                // ※ 単純に地上でリスポーンしただけでは解放されない
                 if (joinCharId === '007' || joinCharId === '008') {
-                    if (!gs.hasEnteredTower && !GlobalState.IS_DEBUG_MODE) {
+                    if (!gs.hasEnteredTower) {
                         isUnlockedForTarot = false;
                     }
                 }
@@ -536,21 +565,39 @@ export default class TarotScene extends Phaser.Scene {
                 if (joinCharId === '011') {
                     const hasMetInAkiba = !!(gs.characters?.['011']?.hasAccompanied);
                     const hasRespawned = (gs.loopCount || 1) >= 2;
-                    if (!hasMetInAkiba && !hasRespawned && !GlobalState.IS_DEBUG_MODE) {
+                    if (!hasMetInAkiba && !hasRespawned) {
                         isUnlockedForTarot = false;
                     }
                 }
 
-                // ③ リフィエル(009): 2周目以降 (loopCount >= 2 または デバッグモード) かつ 未遭遇 (!gs.hasMetFairy)
-                if (joinCharId === '009') {
-                    const isSecondLoop = (gs.loopCount >= 2 || GlobalState.IS_DEBUG_MODE);
-                    if (!isSecondLoop || gs.hasMetFairy) {
-                        isUnlockedForTarot = false;
+                // ★ 教皇カード（ID: 6）引き時: 2周目以降かつ妖精未遭遇の場合、リフィエル遭遇イベントを発火！（※仲間には加えない隠しキャラ）
+                const isSecondLoopFairy = (gs.loopCount || 1) >= 2;
+                if (drawnCardId === 6 && isSecondLoopFairy && !gs.hasMetFairy) {
+                    const fairyEventRaw = this.cache.json.get('event_fairy_join');
+                    if (fairyEventRaw) {
+                        const fairyEvent = JSON.parse(JSON.stringify(fairyEventRaw));
+                        if (fairyEvent[0] && fairyEvent[0].cmd === 'bg') {
+                            fairyEvent[0].key = this.bgKey || 'bg_map_base';
+                        } else {
+                            fairyEvent.unshift({ cmd: 'bg', key: this.bgKey || 'bg_map_base' });
+                        }
+                        gs.hasMetFairy = true;
+                        SaveManager.saveGame();
+
+                        this.scene.stop();
+                        this.scene.start('EventScene', {
+                            returnScene: this.returnScene,
+                            events: fairyEvent,
+                            joinCharacterId: null, // ★ パーティには編成させない！
+                            fromFairyJoinEvent: true,
+                            fromTarot: true
+                        });
+                        return;
                     }
                 }
                 
                 // ★ 悪魔カード（ID: 16）引き時: 2周目以降かつ道場未解放の場合、2RDEVILイベントを発火！
-                const isSecondLoopOrLater = (gs.loopCount || 1) >= 2 || (gs.devilStockSp || 0) > 0 || GlobalState.IS_DEBUG_MODE;
+                const isSecondLoopOrLater = (gs.loopCount || 1) >= 2 || (gs.devilStockSp || 0) > 0;
                 if (drawnCardId === 16 && isSecondLoopOrLater && !gs.isDojoUnlocked) {
                     const devilEventRaw = this.cache.json.get('event_2rdevil');
                     if (devilEventRaw) {
@@ -571,20 +618,14 @@ export default class TarotScene extends Phaser.Scene {
                     }
                 }
                 
-                const script = (joinEvents && (joinEvents[drawnCardId] || (joinCharId && joinEvents[joinCharId])))
-                    || (joinCharId === '009' ? this.cache.json.get('event_fairy_join') : null);
+                const script = joinEvents && (joinEvents[drawnCardId] || (joinCharId && joinEvents[joinCharId]));
 
                 if (script && !alreadyInParty && !isPartyFull && isUnlockedForTarot) {
-                    if (joinCharId === '009') {
-                        gs.hasMetFairy = true;
-                        SaveManager.saveGame();
-                    }
                     this.scene.stop();
                     this.scene.start('EventScene', { 
                         returnScene: this.returnScene,
                         events: script,
                         joinCharacterId: joinCharId,
-                        fromFairyJoinEvent: (joinCharId === '009'),
                         fromTarot: true
                     });
                 } else {
@@ -602,14 +643,13 @@ export default class TarotScene extends Phaser.Scene {
             1: '007',   // ななよ (愚者)
             4: '004',   // 黄蘭 (女帝)
             5: '008',   // ノア (皇帝)
-            6: '009',   // リフィエル (教皇)
             9: '003',   // 紅華 (力)
             10: '011',  // 白蓮 (隠者)
             12: '002',  // 蒼樹 (正義)
             15: '005'   // 李乃果 (節制)
         };
         // ★ 悪魔（ID: 16）: 塔21階のプロセル氷像を撃破済みの場合、プロセル(010)が加入対象になる
-        if (tarotId === 16 && (gs.tower21BossDefeated || GlobalState.IS_DEBUG_MODE)) {
+        if (tarotId === 16 && gs.tower21BossDefeated) {
             return '010';
         }
         return map[tarotId] || null;

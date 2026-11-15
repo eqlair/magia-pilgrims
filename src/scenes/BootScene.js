@@ -3,6 +3,7 @@ import { TransitionManager } from '../systems/TransitionManager';
 import { FONT_MAIN, fontSize } from '../config/GameFont';
 import { AudioOptimizer } from '../systems/AudioOptimizer';
 import { LoadingOverlay } from '../systems/LoadingOverlay';
+import { TOWER_AREA_MANIFEST, BGM_MANIFEST } from '../systems/AssetLoader';
 
 export default class BootScene extends Phaser.Scene {
     constructor() {
@@ -57,10 +58,19 @@ export default class BootScene extends Phaser.Scene {
             if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
             if (maxLoadTimer) { clearTimeout(maxLoadTimer); maxLoadTimer = null; }
             try {
-                if (this.load.inflight) {
-                    this.load.inflight.forEach(f => console.warn(' -> Inflight:', f.key, f.src || f.url));
+                if (this.load.inflight && this.load.inflight.size > 0) {
+                    this.load.inflight.forEach(f => {
+                        console.warn('[ON-SCREEN-ERROR] [BootScene Stalled Asset]:', f ? (f.key || f.src || f.url || f) : 'unknown');
+                    });
                 }
-            } catch (e) {}
+                if (this.load.queue && this.load.queue.size > 0) {
+                    this.load.queue.forEach(f => {
+                        console.warn('[ON-SCREEN-ERROR] [BootScene Queued Asset]:', f ? (f.key || f.src || f.url || f) : 'unknown');
+                    });
+                }
+            } catch (e) {
+                console.error('[BootScene] Error logging stalled assets:', e);
+            }
             if (htmlBar) htmlBar.style.width = '100%';
             if (htmlText) htmlText.innerText = 'Now Loading... 100%';
             try {
@@ -85,7 +95,7 @@ export default class BootScene extends Phaser.Scene {
 
         // 🛡️ ロードエラー発生時もクラッシュ・停止させずに安全にスキップ
         this.load.on('loaderror', (file) => {
-            console.warn('[BootScene] Asset load failed/skipped:', file.key, file.url);
+            console.warn('[ON-SCREEN-ERROR] [BootScene] Asset load failed/skipped:', file.key, file.url);
             resetStallTimer();
         });
 
@@ -268,38 +278,20 @@ export default class BootScene extends Phaser.Scene {
 
 
 
-        for (let i = 0; i <= 22; i++) {
-            this.load.image(`tarot_${i}`, `files/tarot/tc (${i}).webp`);
-        }
-        
-        // イベント一枚絵 (実在するevp002 ~ 008, 011をロード)
-        const validEvpNums = [2, 3, 4, 5, 6, 7, 8, 11];
-        for (const i of validEvpNums) {
-            const numStr = i.toString().padStart(3, '0');
-            this.load.image(`evp${numStr}`, `files/event/evp${numStr}.webp`);
-        }
-
-        // 好感度イベント一枚絵 (evl001 ~ evl011) & イベントデータ
-        for (let i = 1; i <= 11; i++) {
-            const numStr = i.toString().padStart(3, '0');
-            this.load.image(`evl${numStr}`, `files/event/evl${numStr}.webp`);
-        }
-        this.load.json('love_events', 'files/DATA/love_events.json');
-
         // 探索・休息イベント画像
         this.load.image('ev_expr', 'files/event/ev_expr.webp');
         this.load.image('ev_exprX', 'files/event/ev_exprX.webp');
         this.load.image('ev_daycamp', 'files/event/ev_daycamp.webp');
         this.load.image('ev_camp', 'files/event/ev_camp.webp');
         this.load.image('ev_multiply', 'files/event/multiply.webp');
+        this.load.json('love_events', 'files/DATA/love_events.json');
 
-        // 仲間喪失（死亡・離脱）一枚絵
-        this.load.image('evx_002', 'files/event/evx002.webp');
-        this.load.image('evx_003', 'files/event/evx003.webp');
-        this.load.image('evx_004', 'files/event/evx005.webp');
-        this.load.image('evx_005', 'files/event/evx006.webp');
-        this.load.image('evx_009', 'files/event/evx009.webp');
-        this.load.image('evx_010', 'files/event/evx011.webp');
+        // イベント一枚絵 (実在するevp002 ~ 008, 011をロード)
+        const validEvpNums = [2, 3, 4, 5, 6, 7, 8, 11];
+        for (const i of validEvpNums) {
+            const numStr = i.toString().padStart(3, '0');
+            this.load.image(`evp${numStr}`, `files/event/evp${numStr}.webp`);
+        }
         
         // 12/7, 12/14, 12/21, 周回イベント画像とBGM
         this.load.json('event_1207', 'files/DATA/event_1207.json');
@@ -316,13 +308,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_1221a', 'files/event/1221a.webp');
         this.load.image('bg_1221b', 'files/event/1221b.webp');
         this.load.image('bg_1221c', 'files/event/1221c.webp');
-        this.load.image('bg_wildhunt', 'files/event/wildhunt.webp');
         this.load.json('event_resp', 'files/DATA/event_resp.json');
         this.load.json('event_2r1201', 'files/DATA/event_2r1201.json');
         this.load.json('event_2rdevil', 'files/DATA/event_2rdevil.json');
-        this.load.json('event_dojo', 'files/DATA/event_dojo.json');
-        this.load.json('event_jiku', 'files/DATA/event_jiku.json');
-        this.load.image('jiku_cg', 'files/MAP/jiku-.webp');
         this.load.image('bg_img_m(k,11)r.jpg', 'files/MAP/m(k,11)r.webp');
         this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).webp');
         this.load.image('bg_tow_spo01', 'files/event/tou_spo01.webp');
@@ -339,15 +327,11 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('ikebukuro02', 'files/event/ikebukuro02.webp');
         this.load.image('EV_in', 'files/event/EV_in.jpg');
 
-        // タワー編基本データ（JSON・遠景）
+        // タワー編基本データ（JSON・遠景）※tow1〜tow4等の詳細アセットはタワー突入時に遅延ロード
         this.load.json('map_tower', 'files/DATA/MAP002.json');
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.json('hint_53f', 'files/DATA/53Fhint.json');
         this.load.image('bg_tower01', 'files/MAP/tow1.webp');
-        this.load.image('tow1', 'files/MAP/tow1.webp');
-        this.load.image('tow2', 'files/MAP/tow2.webp');
-        this.load.image('tow3', 'files/MAP/tow3.webp');
-        this.load.image('tow4', 'files/MAP/tow4.webp');
 
         // タイトル・オープニング・初回地上マップ必須サウンドのみ先行ロード
         this.load.image('op_title', 'files/OP/title.webp');
@@ -375,26 +359,6 @@ export default class BootScene extends Phaser.Scene {
             }
             this.registry.set('charStats', initialStats);
             this.registry.set('stockExp', 0);
-        }
-
-        // プロセル巨大ボス用テクスチャ結合 (enemy_prc_a: 上半身 + enemy_prc_b: 下半身 = 342x584)
-        if (this.textures.exists('enemy_prc_a') && this.textures.exists('enemy_prc_b')) {
-            if (!this.textures.exists('enemy_prc_full')) {
-                const canvas = this.textures.createCanvas('enemy_prc_full', 342, 584);
-                if (canvas) {
-                    const ctx = canvas.getContext();
-                    const imgA = this.textures.get('enemy_prc_a').getSourceImage();
-                    const imgB = this.textures.get('enemy_prc_b').getSourceImage();
-                    if (imgA && imgB) {
-                        ctx.drawImage(imgA, 0, 0);
-                        // 下半身は床下に埋まって透けて見えている表現のため半透明(alpha 0.60)で描画
-                        ctx.globalAlpha = 0.60;
-                        ctx.drawImage(imgB, 0, 292);
-                        ctx.globalAlpha = 1.0;
-                        canvas.refresh();
-                    }
-                }
-            }
         }
 
         // タイトル動画を非表示にする（他シーンから戻ってきた場合も含む）
@@ -469,8 +433,15 @@ export default class BootScene extends Phaser.Scene {
 
         let needsLoad = false;
         for (const [key, path] of Object.entries(towerAreaAssets)) {
+            // 背景画像
             if (!scene.textures.exists(`tower_bg_${key}`)) {
                 scene.load.image(`tower_bg_${key}`, path);
+                needsLoad = true;
+            }
+            // ヘクス（マップチップ）画像
+            const hexPath = TOWER_AREA_MANIFEST[key]?.hex;
+            if (hexPath && !scene.textures.exists(`hex_map_${key}`)) {
+                scene.load.image(`hex_map_${key}`, hexPath);
                 needsLoad = true;
             }
         }

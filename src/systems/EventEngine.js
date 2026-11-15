@@ -166,6 +166,41 @@ export class EventEngine {
             return;
         }
 
+        // ★ 既に同じキーのBGMが再生中であれば、それをそのままシームレス継続（フェードアウト停止・再生成しない）
+        let existingSameBgm = null;
+        if (this._currentBgm && this._currentBgm.isPlaying && this._currentBgm.key === key) {
+            existingSameBgm = this._currentBgm;
+        } else if (this.scene.sound && this.scene.sound.sounds) {
+            existingSameBgm = this.scene.sound.sounds.find(s => s && s.isPlaying && s.key === key);
+        }
+
+        if (existingSameBgm) {
+            this._currentBgm = existingSameBgm;
+            try { this.scene.tweens.killTweensOf(existingSameBgm); } catch(e){}
+            try { existingSameBgm.setVolume(0.75); } catch(e){}
+
+            // それ以外のBGM（EventEngine管理外のbgm_hexen等）のみフェードアウト停止
+            if (this.scene.sound && this.scene.sound.sounds) {
+                this.scene.sound.sounds.forEach(s => {
+                    if (s && s.isPlaying && s !== existingSameBgm) {
+                        try {
+                            this.scene.tweens.add({
+                                targets: s, volume: 0, duration: 600,
+                                onUpdate: (t, target) => {
+                                    if (!target || !target.manager || target.pendingRemove) {
+                                        try { t.stop(); } catch(e){}
+                                    }
+                                },
+                                onComplete: () => { try { s.stop(); } catch(e){} }
+                            });
+                        } catch(e) {}
+                    }
+                });
+            }
+            if (cb) cb();
+            return;
+        }
+
         // EventEngine管理外のBGM（bgm_hexenなど）も含めて全て止める
         if (this.scene.sound && this.scene.sound.sounds) {
             this.scene.sound.sounds.forEach(s => {
@@ -434,7 +469,31 @@ export class EventEngine {
             .setDepth(this.DEPTH + 1)
             .setAlpha(this.isFastForward ? 1 : 0);
         img.y = this.H / 2;
-        img.setScale(this.W / img.width);
+        img.setScale(this.W / (img.width || 1));
+
+        // テクスチャ未キャッシュ時のフォールバック＆オンデマンド救済（Missing Texture緑枠防止）
+        if (!this.scene.textures.exists(key)) {
+            console.warn(`[EventEngine] Illust texture "${key}" not in cache. Attempting on-demand load.`);
+            const cleanKey = key.replace(/^bg_/, '');
+            const candidatePaths = [
+                `files/event/${cleanKey}.webp`,
+                `files/event/${key}.webp`,
+                `files/MAP/${cleanKey}.webp`
+            ];
+            const loadPath = candidatePaths[0];
+            try {
+                this.scene.load.image(key, loadPath);
+                this.scene.load.once('complete', () => {
+                    if (img && img.scene && this.scene.textures.exists(key)) {
+                        img.setTexture(key);
+                        img.setScale(this.W / (img.width || 1));
+                    }
+                });
+                if (!this.scene.load.isLoading()) {
+                    this.scene.load.start();
+                }
+            } catch(e) {}
+        }
 
         if (this.isFastForward) {
             this.illustImage = img;

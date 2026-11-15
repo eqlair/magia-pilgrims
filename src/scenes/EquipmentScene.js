@@ -5,6 +5,8 @@ import { SaveManager } from '../systems/SaveManager';
 import { RelicGenerator } from '../systems/RelicGenerator';
 import { DailyQuestManager } from '../systems/DailyQuestManager';
 import { AchievementManager } from '../systems/AchievementManager';
+import { RewardService } from '../systems/RewardService';
+import { FairyTradeManager } from '../systems/FairyTradeManager';
 import relicWords from '../data/relic_words.json';
 import gemEffects from '../data/gem_effects.json';
 
@@ -953,16 +955,19 @@ export default class EquipmentScene extends Phaser.Scene {
         // SP消費
         this.globalState.stockSp -= spCost;
 
+        let createdItem = null;
         if (this.itemType === 'relic') {
             this.globalState.inventory.relics = this.globalState.inventory.relics.filter(r => !consumed.includes(r));
             const newRelic = RelicGenerator.generateRelic(targetRank + 1);
             this.globalState.inventory.relics.push(newRelic);
+            createdItem = newRelic;
             this.showToast(`『${newRelic.name}』のメモリアを合成した (-${spCost.toLocaleString()} SP)`);
         } else {
             if (!this.globalState.inventory.gems) this.globalState.inventory.gems = [];
             this.globalState.inventory.gems = this.globalState.inventory.gems.filter(g => !consumed.includes(g));
             const newGem = RelicGenerator.generateGem(targetRank + 1);
             this.globalState.inventory.gems.push(newGem);
+            createdItem = newGem;
             this.showToast(`『${newGem.name}』の宝石を合成した (-${spCost.toLocaleString()} SP)`);
         }
 
@@ -993,6 +998,177 @@ export default class EquipmentScene extends Phaser.Scene {
         this.selectedItem = null;
         this.enhanceMode = false;
         this.drawUI();
+
+        // 合成結果モーダルを表示（妖精取引による引き直し付き）
+        if (createdItem) {
+            this.showSynthesisResultModal(createdItem, generatedRank);
+        }
+    }
+
+    showSynthesisResultModal(item, rank) {
+        let currentItem = item;
+        const modalContainer = this.add.container(0, 0).setDepth(20000);
+
+        // 背景暗幕
+        const overlay = this.add.rectangle(this.width / 2, this.height / 2, this.width, this.height, 0x000000, 0.8)
+            .setInteractive();
+        modalContainer.add(overlay);
+
+        const cardW = Math.min(this.width - 40, 420);
+        const cardH = 370;
+        const cardX = this.width / 2;
+        const cardY = this.height / 2;
+
+        const cardBg = this.add.graphics();
+        cardBg.fillStyle(0x1a1e33, 0.98);
+        cardBg.fillRoundedRect(cardX - cardW / 2, cardY - cardH / 2, cardW, cardH, 16);
+        cardBg.lineStyle(2, 0xffcc44, 0.9);
+        cardBg.strokeRoundedRect(cardX - cardW / 2, cardY - cardH / 2, cardW, cardH, 16);
+        modalContainer.add(cardBg);
+
+        const titleTxt = this.add.text(cardX, cardY - cardH / 2 + 25, '✨ 合成完了！', {
+            fontSize: '22px', fontStyle: 'bold', color: '#ffea00'
+        }).setOrigin(0.5);
+        modalContainer.add(titleTxt);
+
+        // アイテム描画用サブコンテナ
+        const detailContainer = this.add.container(0, 0);
+        modalContainer.add(detailContainer);
+
+        const renderItemDetail = (it) => {
+            detailContainer.removeAll(true);
+            const rankStr = this.getRankString(it.rank || rank);
+            const rColor = this.getRankColor(it.rank || rank);
+
+            const nameTxt = this.add.text(cardX, cardY - 100, `[${rankStr}] ${it.name || 'Unknown'}`, {
+                fontSize: '20px', fontStyle: 'bold', color: rColor
+            }).setOrigin(0.5);
+            detailContainer.add(nameTxt);
+
+            let dy = cardY - 65;
+            if (it.traits && Array.isArray(it.traits)) {
+                it.traits.forEach(t => {
+                    if (!t) return;
+                    const tName = t.name ? t.name.replace(/(\(%\))/,'') : 'Unknown';
+                    if (t.level > 0) {
+                        const tRank = this.getTraitRank(t.level);
+                        const tColor = this.getRankColor(tRank);
+                        const tTxt = this.add.text(cardX, dy, `${tName} +${t.level}`, {
+                            fontSize: '15px', color: tColor
+                        }).setOrigin(0.5);
+                        detailContainer.add(tTxt);
+                    } else {
+                        const tTxt = this.add.text(cardX, dy, `${tName} (未開花)`, {
+                            fontSize: '14px', color: '#777788'
+                        }).setOrigin(0.5);
+                        detailContainer.add(tTxt);
+                    }
+                    dy += 24;
+                });
+            }
+            if (it.type === 'gem' && typeof gemEffects !== 'undefined' && gemEffects[it.name]) {
+                const unique = gemEffects[it.name]?.effects?.[it.rank || rank];
+                if (unique && unique !== 'なし') {
+                    const uTxt = this.add.text(cardX, dy, `【${unique}】`, {
+                        fontSize: '15px', color: rColor
+                    }).setOrigin(0.5);
+                    detailContainer.add(uTxt);
+                    dy += 24;
+                }
+            }
+        };
+
+        renderItemDetail(currentItem);
+
+        // 🧚‍♀️ 妖精の取引：引き直しボタン
+        const gs = this.globalState;
+        const rerollBtnContainer = this.add.container(cardX, cardY + 75);
+        modalContainer.add(rerollBtnContainer);
+
+        const renderRerollBtn = () => {
+            rerollBtnContainer.removeAll(true);
+            const canTrade = gs.hasMetFairy && !FairyTradeManager.isTradeUsedToday('synth_reroll');
+            if (!canTrade) {
+                if (gs.hasMetFairy) {
+                    const usedTxt = this.add.text(0, 0, '🧚‍♀️ 本日の引き直し取引は終了しました (0時更新)', {
+                        fontSize: '13px', color: '#777788'
+                    }).setOrigin(0.5);
+                    rerollBtnContainer.add(usedTxt);
+                }
+                return;
+            }
+
+            const isVip = !!gs.hasNoAdsPass;
+            const btnLabel = isVip
+                ? '🧚‍♀️ 妖精の取引：結果を引き直す (✨VIP即時)'
+                : '🧚‍♀️ 妖精の取引：結果を引き直す (🎬広告)';
+
+            const btnBg = this.add.rectangle(0, 0, cardW - 50, 42, 0x221144, 0.95)
+                .setStrokeStyle(1.5, isVip ? 0xffcc44 : 0x88bbff)
+                .setInteractive({ useHandCursor: true });
+
+            const btnTxt = this.add.text(0, 0, btnLabel, {
+                fontSize: '14px', fontStyle: 'bold', color: isVip ? '#ffeeaa' : '#ffea00'
+            }).setOrigin(0.5);
+
+            btnBg.on('pointerdown', () => {
+                RewardService.showRewardAd(this, {
+                    title: '運命の再鍛造',
+                    rewardDescription: '合成結果の能力・特性を引き直す',
+                    onReward: () => {
+                        FairyTradeManager.recordTrade('synth_reroll');
+
+                        // インベントリ内の currentItem を置換
+                        if (this.itemType === 'relic') {
+                            const idx = gs.inventory.relics.indexOf(currentItem);
+                            const rerolled = RelicGenerator.generateRelic(rank);
+                            if (idx !== -1) {
+                                gs.inventory.relics[idx] = rerolled;
+                            } else {
+                                gs.inventory.relics.push(rerolled);
+                            }
+                            currentItem = rerolled;
+                        } else {
+                            if (!gs.inventory.gems) gs.inventory.gems = [];
+                            const idx = gs.inventory.gems.indexOf(currentItem);
+                            const rerolled = RelicGenerator.generateGem(rank);
+                            if (idx !== -1) {
+                                gs.inventory.gems[idx] = rerolled;
+                            } else {
+                                gs.inventory.gems.push(rerolled);
+                            }
+                            currentItem = rerolled;
+                        }
+
+                        gs.cleanupJikukanEquipsOnInventoryChange();
+                        SaveManager.saveGame();
+
+                        if (this.cache.audio.exists('se_powerup')) {
+                            this.sound.play('se_powerup');
+                        }
+
+                        renderItemDetail(currentItem);
+                        renderRerollBtn();
+                        this.drawUI();
+                    }
+                });
+            });
+
+            rerollBtnContainer.add([btnBg, btnTxt]);
+        };
+
+        renderRerollBtn();
+
+        // 閉じるボタン (OK)
+        const okBtn = this.add.text(cardX, cardY + cardH / 2 - 32, '閉じる', {
+            fontSize: '16px', color: '#ffffff', backgroundColor: '#334466', padding: { x: 30, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        okBtn.on('pointerdown', () => {
+            modalContainer.destroy();
+            this.drawUI();
+        });
+        modalContainer.add(okBtn);
     }
 
     drawConfirmRelicItem(container, x, y, item, isBase = false, onLockToggle = null) {

@@ -97,12 +97,25 @@ export default class BattleScene extends Phaser.Scene {
         // 蛇型ボス（海竜・ウツボ魔女: 167x1024 縦長Rope用）
         this.load.image('boss_snake', 'files/ENEMY/boss_snake.webp');
 
-        // 巨大タコ魔女（クラーケン）用アセット
-        this.load.image('kraken_a', 'files/ENEMY/KrakenA.png');
-        this.load.image('kraken_b', 'files/ENEMY/KrakenB.png');
-        this.load.image('kraken_c', 'files/ENEMY/KrakenC.png');
-        this.load.image('kraken_bg', 'files/BG_battle/KrakenBG.jpg');
-        this.load.audio('bgm_boss_kraken', 'files/BGM/BOSS002.mp3');
+        // 巨大タコ魔女（クラーケン）用アセット（クラーケン戦の時のみオンデマンド遅延ロード）
+        const isKrakenBattle = !!(this.battleConfig?.isKrakenBossBattle || this.battleConfig?.fromIkebukuro02Event || this.battleConfig?.isKrakenBossTest);
+        if (isKrakenBattle) {
+            this.load.image('kraken_a', 'files/ENEMY/KrakenA.png');
+            this.load.image('kraken_b', 'files/ENEMY/KrakenB.png');
+            this.load.image('kraken_c', 'files/ENEMY/KrakenC.png');
+            this.load.image('kraken_bg', 'files/BG_battle/KrakenBG.jpg');
+            this.load.audio('bgm_boss_kraken', 'files/BGM/BOSS002.mp3');
+            if (!this.cache.audio.exists('tow_Kraken') && BGM_MANIFEST['tow_Kraken']) {
+                this.load.audio('tow_Kraken', BGM_MANIFEST['tow_Kraken']);
+            }
+        }
+
+        // プロセル巨大ボス用アセット（タワー21Fボス戦・道場戦などの時のみオンデマンド遅延ロード）
+        const isProcellBattle = !!(this.battleConfig?.isProcellBoss || this.battleConfig?.isTower21Boss);
+        if (isProcellBattle) {
+            if (!this.textures.exists('enemy_prc_a')) this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
+            if (!this.textures.exists('enemy_prc_b')) this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.webp');
+        }
 
         // ⚔️ 今回の戦闘で使用するBGMをオンデマンドでキューに追加
         const bKey = this.battleConfig?.bgmKey || ((this.battleConfig?.rule === 2) ? 'bgm_toppa' : 'bgm_battle1');
@@ -116,6 +129,16 @@ export default class BattleScene extends Phaser.Scene {
         if (bossKey && !this.cache.audio.exists(bossKey) && BGM_MANIFEST[bossKey]) {
             this.load.audio(bossKey, BGM_MANIFEST[bossKey]);
         }
+        // ワイルドハント（12/21夜突破戦）時は直前にbgm_wildhuntをロード
+        if (this.battleConfig?.is1221NightBattle && !this.cache.audio.exists('bgm_wildhunt') && BGM_MANIFEST['bgm_wildhunt']) {
+            this.load.audio('bgm_wildhunt', BGM_MANIFEST['bgm_wildhunt']);
+        }
+        // 魔女出現時にボスBGMが未ロードでマップBGMにフォールバックする現象を防ぐため、ボスBGM 1〜3 も事前ロード
+        ['bgm_boss1', 'bgm_boss2', 'bgm_boss3'].forEach(k => {
+            if (!this.cache.audio.exists(k) && BGM_MANIFEST[k]) {
+                this.load.audio(k, BGM_MANIFEST[k]);
+            }
+        });
 
 
         this.load.image('bullet', 'files/CHR/001004.webp');
@@ -185,6 +208,23 @@ export default class BattleScene extends Phaser.Scene {
             bG.fillCircle(32, 32, 32);
             bG.generateTexture('enemy_bullet', 64, 64);
             bG.destroy();
+        }
+
+        // プロセル巨大ボス用テクスチャ合成（タワー21Fボス戦・道場戦などで必要な場合のみ合成）
+        if (this.textures.exists('enemy_prc_a') && this.textures.exists('enemy_prc_b') && !this.textures.exists('enemy_prc_full')) {
+            const canvas = this.textures.createCanvas('enemy_prc_full', 342, 584);
+            if (canvas) {
+                const ctx = canvas.getContext();
+                const imgA = this.textures.get('enemy_prc_a').getSourceImage();
+                const imgB = this.textures.get('enemy_prc_b').getSourceImage();
+                if (imgA && imgB) {
+                    ctx.drawImage(imgA, 0, 0);
+                    ctx.globalAlpha = 0.60;
+                    ctx.drawImage(imgB, 0, 292);
+                    ctx.globalAlpha = 1.0;
+                    canvas.refresh();
+                }
+            }
         }
 
         // 1. パース投影器の初期化（パラメータは調整済みの値）
@@ -273,14 +313,36 @@ export default class BattleScene extends Phaser.Scene {
         const isKrakenBattle = this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event || this.battleConfig.isKrakenBossTest;
 
         if (isWildhunt) {
-            const isWhPlaying = this.sound && this.sound.sounds && this.sound.sounds.some(s => s && s.isPlaying && s.key === 'bgm_wildhunt');
-            if (!isWhPlaying && this.cache.audio.exists('bgm_wildhunt')) {
-                this.sound.play('bgm_wildhunt', { loop: true, volume: 0.75 });
+            const playingWh = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying && s.key === 'bgm_wildhunt') : null;
+            if (playingWh) {
+                // ★ 前シーン(EventScene)から既に流れている場合は絶対に新規再生せずシームレス継続！
+                this.tweens.killTweensOf(playingWh);
+                try { playingWh.setVolume(0.75); } catch (e) {}
+                // それ以外の不要なBGMを全て停止
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying && s !== playingWh) {
+                            try { s.stop(); } catch (e) {}
+                        }
+                    });
+                }
+            } else {
+                // 鳴っていなかった場合のみ新規再生
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying) {
+                            try { s.stop(); } catch (e) {}
+                        }
+                    });
+                }
+                if (this.cache.audio.exists('bgm_wildhunt')) {
+                    this.sound.play('bgm_wildhunt', { loop: true, volume: 0.75 });
+                }
             }
         } else if (isKrakenBattle) {
-            // 🐙 クラーケン戦: タワー内であっても必ず tow_Kraken を再生！
+            // 🐙 クラーケン戦: タワー内であっても必ず tow_Kraken を再生！（マップBGMへのフォールバックは絶対に行わない）
             this.isBossBgmStarted = true; // 後からのボスBGM割り込みも完全防止
-            const kKey = (this.cache.audio.exists('tow_Kraken')) ? 'tow_Kraken' : (this.cache.audio.exists('bgm_boss_kraken') ? 'bgm_boss_kraken' : 'bgm_hexen');
+            const kKey = (this.cache.audio.exists('tow_Kraken')) ? 'tow_Kraken' : (this.cache.audio.exists('bgm_boss_kraken') ? 'bgm_boss_kraken' : (this.cache.audio.exists('bgm_boss2') ? 'bgm_boss2' : null));
             
             const playingKraken = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying && s.key === kKey) : null;
             if (playingKraken) {
@@ -343,7 +405,7 @@ export default class BattleScene extends Phaser.Scene {
             let defaultBKey = (this.battleConfig.rule === 2) ? 'bgm_toppa' : `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
             if (this.cache && this.cache.audio && !this.cache.audio.exists(defaultBKey)) {
                 const available = [1, 2, 3, 4].map(i => `bgm_battle${i}`).filter(k => this.cache.audio.exists(k));
-                defaultBKey = available.length > 0 ? available[0] : (this.cache.audio.exists('bgm_toppa') ? 'bgm_toppa' : 'bgm_hexen');
+                defaultBKey = available.length > 0 ? available[0] : (this.cache.audio.exists('bgm_toppa') ? 'bgm_toppa' : (this.cache.audio.exists('bgm_battle1') ? 'bgm_battle1' : null));
             }
             let bKey = this.battleConfig.bgmKey || defaultBKey;
             if (bKey && this.cache && this.cache.audio && !this.cache.audio.exists(bKey)) {
@@ -740,34 +802,34 @@ export default class BattleScene extends Phaser.Scene {
         if (this.engine.waveState === 'boss_presentation' && !this.isBossPresentationStarted) {
             this.isBossPresentationStarted = true;
             
-            // 通常雑魚ウェーブからの魔女演出（bossPresTimerが長い場合）のみ、遅延フェードアウトを行う
-            const presTimer = this.engine.bossPresTimer || 2.0;
-            const fadeDelay = Math.max(0, (presTimer - 2.5) * 1000); // 演出終了の2.5秒前、または即時
-
-            // ★重要: ボスBGM(bgm_boss1~3, bossBgmKey等)は絶対にフェードアウト対象に含めない！
+            // 魔女出現のWARNING発生と同時に、雑魚戦BGMを含む現在鳴っている全BGMを即座にフェードアウト停止する！
             const targetBossKey = this.battleConfig.bossBgmKey || this.battleConfig.bgmKey;
-            const nonBossKeys = [
-                'bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 
-                'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 
-                'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx',
-                'tow_frozen_silence_b', 'tow_magma_core_b', 'tow_black_onyx_b', 'bgm_inferno_shredder_x'
-            ].filter(k => !targetBossKey || k !== targetBossKey);
             
             if (this.bossFadeTimer) {
                 try { this.bossFadeTimer.remove(); } catch (e) {}
                 this.bossFadeTimer = null;
             }
 
-            this.bossFadeTimer = this.time.delayedCall(fadeDelay, () => {
-                nonBossKeys.forEach(key => {
-                    try {
-                        const s = this.sound.get(key);
-                        if (s && s.isPlaying) {
-                            this.tweens.add({ targets: s, volume: 0, duration: 800, onComplete: () => { try { s.stop(); } catch (e) {} } });
+            // this.sound.sounds 配列内の「現在再生中の全サウンド」を走査して確実にフェードアウト停止
+            if (this.sound && this.sound.sounds) {
+                this.sound.sounds.forEach(s => {
+                    if (s && s.isPlaying && s.key !== targetBossKey) {
+                        try {
+                            this.tweens.killTweensOf(s);
+                            this.tweens.add({
+                                targets: s,
+                                volume: 0,
+                                duration: 400,
+                                onComplete: () => {
+                                    try { s.stop(); } catch (e) {}
+                                }
+                            });
+                        } catch (e) {
+                            try { s.stop(); } catch (e2) {}
                         }
-                    } catch (e) { /* 無視 */ }
+                    }
                 });
-            });
+            }
 
             // 魔女覚醒SE
             if (this.cache.audio.exists('se_awaken_boss')) {
@@ -806,32 +868,26 @@ export default class BattleScene extends Phaser.Scene {
                 return;
             }
             
-            // 残存している遅延フェードアウトタイマーを確実に破棄（ボスBGMの巻き込み停止を完全防止）
+            // 残存している遅延フェードアウトタイマーを確実に破棄
             if (this.bossFadeTimer) {
                 try { this.bossFadeTimer.remove(); } catch (e) {}
                 this.bossFadeTimer = null;
             }
 
-            // 確実に前の通常BGMを全て止める（ボスBGMは除外）
-            const targetBossKey = this.battleConfig.bossBgmKey || this.battleConfig.bgmKey;
-            const nonBossKeys = [
-                'bgm_hexen', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4', 
-                'bgm_tarot', 'bgm_op', 'bgm_menu', 'JOIN_US', 'bgm_wildhunt', 'bgm_toppa', 
-                'tow_frozen_silence', 'tow_magma_core', 'tow_black_onyx',
-                'tow_frozen_silence_b', 'tow_magma_core_b', 'tow_black_onyx_b', 'bgm_inferno_shredder_x'
-            ].filter(k => !targetBossKey || k !== targetBossKey);
-            nonBossKeys.forEach(key => {
-                if (this.sound.stopByKey) {
-                    this.sound.stopByKey(key);
-                } else {
-                    try {
-                        const s = this.sound.get(key);
-                        if (s) s.stop();
-                    } catch (e) {}
-                }
-            });
-
             const bossKey = this.battleConfig.bossBgmKey || `bgm_boss${Math.floor(Math.random() * 3) + 1}`;
+
+            // ボスBGM以外の現在再生中サウンドを100%確実に即時停止！
+            if (this.sound && this.sound.sounds) {
+                this.sound.sounds.forEach(s => {
+                    if (s && s.isPlaying && s.key !== bossKey) {
+                        try {
+                            this.tweens.killTweensOf(s);
+                            s.stop();
+                        } catch (e) {}
+                    }
+                });
+            }
+
             let isBossBgmPlaying = false;
             if (this.sound && this.sound.sounds) {
                 const cur = this.sound.sounds.find(s => s && s.isPlaying && s.key === bossKey);
@@ -845,8 +901,14 @@ export default class BattleScene extends Phaser.Scene {
             if (!isBossBgmPlaying) {
                 if (this.cache.audio.exists(bossKey)) {
                     this.sound.play(bossKey, { loop: true, volume: 0.5 });
-                } else if (this.cache.audio.exists('bgm_hexen')) {
-                    this.sound.play('bgm_hexen', { loop: true, volume: 0.5 });
+                } else {
+                    // オンデマンドでロードして安全に再生（通常戦闘BGMへのフォールバックは絶対に行わない）
+                    AssetLoader.ensureBgm(this, bossKey, () => {
+                        const alreadyPlaying = this.sound && this.sound.sounds ? this.sound.sounds.some(s => s && s.isPlaying && s.key === bossKey) : false;
+                        if (!alreadyPlaying) {
+                            this.sound.play(bossKey, { loop: true, volume: 0.5 });
+                        }
+                    }, false);
                 }
             }
 

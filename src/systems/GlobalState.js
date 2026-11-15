@@ -194,6 +194,8 @@ export class GlobalState {
         // ── 🧚‍♀️ 妖精リフィエル・周回・デイリー・実績 ──
         this.loopCount = 1;              // 周回数（初期1）
         this.hasMetFairy = false;        // 妖精リフィエル遭遇フラグ
+        this.hasNoAdsPass = false;       // 🧚‍♀️ 妖精の祝福（広告スキップVIPパス所持フラグ）
+        this.fairyTradeUsage = {};       // 妖精取引の日次利用記録 (tradeKey -> "YYYY-MM-DD")
         this.achievements = {};          // 実績解除データ
         this.dailyQuests = null;         // 当日デイリークエストデータ
         this.fairyDailyTrade = null;     // 妖精日次取引データ

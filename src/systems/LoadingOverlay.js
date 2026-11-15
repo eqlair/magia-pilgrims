@@ -8,22 +8,37 @@ export class LoadingOverlay {
     /**
      * ローディング画面を表示
      * @param {Phaser.Scene} scene 
-     * @param {string} [text='Now Loading...'] 
+     * @param {string|object} [optionsOrText='Now Loading...'] 
      * @returns {Phaser.GameObjects.Container}
      */
-    static show(scene, text = 'Now Loading...') {
+    static show(scene, optionsOrText = 'Now Loading...') {
         if (!scene || !scene.add) return null;
+
+        // 引数の正規化（オブジェクト渡しの際に [object Object] と表示されるのを完全防止）
+        let messageText = 'Now Loading...';
+        let overlayDepth = 999999;
+        if (typeof optionsOrText === 'string') {
+            messageText = optionsOrText;
+        } else if (typeof optionsOrText === 'object' && optionsOrText !== null) {
+            messageText = optionsOrText.text || optionsOrText.message || 'Now Loading...';
+            if (optionsOrText.depth !== undefined) {
+                overlayDepth = optionsOrText.depth;
+            }
+        }
 
         // 既に表示中なら再利用してテキストを更新
         if (scene._loadingOverlayContainer && scene._loadingOverlayContainer.active) {
             if (scene._loadingOverlayText) {
-                scene._loadingOverlayText.setText(text);
+                scene._loadingOverlayText.setText(messageText);
+            }
+            if (overlayDepth !== 999999) {
+                scene._loadingOverlayContainer.setDepth(overlayDepth);
             }
             return scene._loadingOverlayContainer;
         }
 
         const { width, height } = scene.scale;
-        const container = scene.add.container(0, 0).setDepth(999999).setScrollFactor(0);
+        const container = scene.add.container(0, 0).setDepth(overlayDepth).setScrollFactor(0);
         scene._loadingOverlayContainer = container;
 
         // 半透明黒背景（タップ遮断）
@@ -35,7 +50,7 @@ export class LoadingOverlay {
         container.add(bg);
 
         // タイトル / メッセージテキスト
-        const titleText = scene.add.text(width / 2, height / 2 - 35, text, {
+        const titleText = scene.add.text(width / 2, height / 2 - 35, messageText, {
             fontFamily: FONT_MAIN,
             fontSize: '18px',
             color: '#ffea77',

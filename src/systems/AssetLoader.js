@@ -246,4 +246,35 @@ export class AssetLoader {
         ];
         this.ensureAssets(scene, assets, onComplete, 'Loading Kraken Battle...');
     }
+
+    /**
+     * ワイルドハント（12/21夜）イベントアセット（背景・BGM）の直前遅延ロード
+     * @param {Phaser.Scene} scene 
+     * @param {Function} [onComplete] 
+     */
+    static ensureWildhuntAssets(scene, onComplete) {
+        const assets = [
+            { type: 'image', key: 'bg_wildhunt', url: 'files/event/wildhunt.webp' },
+            { type: 'audio', key: 'bgm_wildhunt', url: 'files/BGM/wildhunt.mp3' },
+        ];
+        this.ensureAssets(scene, assets, onComplete, 'Now Loading Wildhunt...');
+    }
+
+    /**
+     * バッドエンド・リスポーン（event_resp / event_tow_res）アセットの直前遅延ロード
+     * @param {Phaser.Scene} scene 
+     * @param {boolean} [isTower=false]
+     * @param {Function} [onComplete] 
+     */
+    static ensureRespawnAssets(scene, isTower = false, onComplete) {
+        const assets = [
+            { type: 'image', key: 'bg_resp', url: 'files/event/resp.webp' },
+            { type: 'audio', key: 'bgm_resp', url: 'files/BGM/resporn.mp3' },
+        ];
+        if (isTower) {
+            assets.push({ type: 'image', key: 'bg_tow_spo01', url: 'files/event/tou_spo01.webp' });
+            assets.push({ type: 'audio', key: 'unknoun_terror', url: 'files/BGM/unknoun_terror.mp3' });
+        }
+        this.ensureAssets(scene, assets, onComplete, 'Now Loading...');
+    }
 }

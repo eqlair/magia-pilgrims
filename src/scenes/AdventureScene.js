@@ -17,7 +17,7 @@ import { PvpEnemyGenerator } from '../systems/PvpEnemyGenerator';
 import { DailyQuestManager } from '../systems/DailyQuestManager';
 import { AchievementManager, ACHIEVEMENTS } from '../systems/AchievementManager';
 import { FairyTradeManager } from '../systems/FairyTradeManager';
-import { AssetLoader } from '../systems/AssetLoader';
+import { AssetLoader, TOWER_AREA_MANIFEST } from '../systems/AssetLoader';
 import BootScene from './BootScene';
 
 
@@ -114,6 +114,14 @@ export default class AdventureScene extends Phaser.Scene {
         this.load.image('bg_food',   'files/MAP/food.webp');  // 食料枠画像
         this.load.image('bg_soul',   'files/MAP/soul.webp');  // SP枠画像
 
+        // 🧚‍♀️ 妖精リフィエル関連画像
+        if (!this.textures.exists('chr_fairy_s')) {
+            this.load.image('chr_fairy_s', 'files/CHR/fairyS.webp');
+        }
+        if (!this.textures.exists('chr_fairy')) {
+            this.load.image('chr_fairy', 'files/CHR/fairy.webp');
+        }
+
 
 
         
@@ -130,6 +138,28 @@ export default class AdventureScene extends Phaser.Scene {
         this.load.spritesheet('mini_010', 'files/CHR/010002.webp', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('mini_011', 'files/CHR/011002.webp', { frameWidth: 150, frameHeight: 150 });
         this.load.spritesheet('sion', 'files/CHR/001002.webp', { frameWidth: 150, frameHeight: 150 });
+
+        // 🗼 タワーモード用アセット（ヘクス画像・背景・戦闘背景・遠景）のプリロード
+        // セーブデータ復帰時やタワー進行時に、マップチップ未ロード（bg_tower01フォールバック）になるのを完全に防ぐ
+        if (this.isTowerMode) {
+            for (const [key, manifest] of Object.entries(TOWER_AREA_MANIFEST)) {
+                if (!this.textures.exists(`hex_map_${key}`) && manifest.hex) {
+                    this.load.image(`hex_map_${key}`, manifest.hex);
+                }
+                if (!this.textures.exists(`tower_bg_${key}`) && manifest.bg) {
+                    this.load.image(`tower_bg_${key}`, manifest.bg);
+                }
+                if (!this.textures.exists(`battle_bg_${key}`) && manifest.battleBg) {
+                    this.load.image(`battle_bg_${key}`, manifest.battleBg);
+                }
+            }
+            for (let i = 1; i <= 4; i++) {
+                if (!this.textures.exists(`bg_tow${i}`)) {
+                    this.load.image(`bg_tow${i}`, `files/MAP/tow${i}.webp`);
+                    this.load.image(`tow${i}`, `files/MAP/tow${i}.webp`);
+                }
+            }
+        }
 
 
 
@@ -674,6 +704,7 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.isTowerMode) {
             BootScene.loadTowerAssets(this, () => {
                 this._setupTowerWideBackground();
+                this._refreshTowerHexTextures();
                 this.updateVisibility();
                 this._playMapBgm(true);
             });
@@ -714,6 +745,9 @@ export default class AdventureScene extends Phaser.Scene {
         } else {
             this.checkTutorialEvents();
             this.checkScheduledEvents('after_time_signal');
+            if (!this.isTowerMode) {
+                this.check1221Event();
+            }
             this.processEventQueue();
         }
 
@@ -1517,7 +1551,6 @@ export default class AdventureScene extends Phaser.Scene {
                 // 12/21魔女襲来イベント完了時 -> 視聴完了フラグ確定＆周回イベント(event_resp)の連続起動
                 if (data && data.from1221Event) {
                     GlobalState.getInstance().event1221Played = true;
-                    SaveManager.saveGame(this);
                     const respData = this.cache.json.get('event_resp');
                     if (respData) {
                         this.time.delayedCall(100, () => {
@@ -1796,6 +1829,7 @@ export default class AdventureScene extends Phaser.Scene {
             this.exploreBtn.setScale(tansScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (!this.isTowerMode) {
+                if (this.check1221Event()) return;
                 if (this.checkIkebukuro02Event('exploration')) return;
                 if (this.check1221NightForcedBreakthrough()) return;
             }
@@ -1813,7 +1847,11 @@ export default class AdventureScene extends Phaser.Scene {
             this.restBtn.setScale(kyuuScale * 0.92);
             if (this.isWideMap || this.isTransitioningMode) return;
             if (this.isMovementOnlyTutorial || this.isExploreOnlyTutorial) return; // チュートリアル午前・午後は不可！
-            if (!this.isTowerMode && this.checkIkebukuro02Event('rest')) return;
+            if (!this.isTowerMode) {
+                if (this.check1221Event()) return;
+                if (this.checkIkebukuro02Event('rest')) return;
+                if (this.check1221NightForcedBreakthrough()) return;
+            }
             if (!this.isJumping) {
                 this.inRestMode = true;
                 SaveManager.saveGame(this);
@@ -1843,6 +1881,14 @@ export default class AdventureScene extends Phaser.Scene {
             const gs = GlobalState.getInstance();
             if (gs.isTutorialMode) return; // チュートリアル初日はステータス画面不可！
             this.scene.pause();
+
+            // CampSceneから復帰した際に確実にマップBGMを再開
+            const onCampResume = () => {
+                this.events.off('resume', onCampResume);
+                this._playMapBgm(true);
+            };
+            this.events.on('resume', onCampResume);
+
             const currentHex = this.grid[this.playerRow]?.[this.playerCol];
             const bgKey = currentHex ? this.findBgImageFile(currentHex.col, currentHex.row, currentHex.cellData) : 'bg_img_woods.jpg';
             this.scene.launch('CampScene', { party: this.party, bgKey: bgKey, isNight: this.timeOfDay === '夜' });
@@ -2072,11 +2118,18 @@ export default class AdventureScene extends Phaser.Scene {
         this.debugButtons = [];
 
         if (GlobalState.ALLOW_DEBUG_TOGGLE || GlobalState.IS_DEBUG_MODE) {
+            const debugBtnStyle = {
+                fontFamily: 'sans-serif',
+                fontSize: '15px',
+                color: '#000000',
+                fontStyle: 'bold',
+                backgroundColor: '#ffea00',
+                padding: { x: 12, y: 8 }
+            };
+
             // 突破テストボタン
-            this.breakTestBtn = this.add.text(width - 20, 100, '⚔️ 突破テスト', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#00ffff', fontStyle: 'bold',
-                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            this.breakTestBtn = this.add.text(width - 20, 100, '🐝 突破テスト', debugBtnStyle)
+                .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.breakTestBtn.on('pointerdown', () => {
                 TransitionManager.transitionTo(this, 'BattleScene', {
@@ -2092,10 +2145,8 @@ export default class AdventureScene extends Phaser.Scene {
             });
 
             // DPS計測ボタン
-            this.dpsTestBtn = this.add.text(width - 20, 145, '🎯 DPS計測', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc00', fontStyle: 'bold',
-                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            this.dpsTestBtn = this.add.text(width - 20, 145, '🐝 DPS計測', debugBtnStyle)
+                .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.dpsTestBtn.on('pointerdown', () => {
                 TransitionManager.transitionTo(this, 'BattleScene', {
@@ -2107,12 +2158,9 @@ export default class AdventureScene extends Phaser.Scene {
             });
 
             // タワー切替ボタン（タワー時は「通常マップへ戻る」、通常マップ時は「タワーテスト」）
-            const towerBtnLabel = this.isTowerMode ? '🗺️ 通常マップへ戻る' : '🗼 タワーテスト';
-            const towerBtnColor = this.isTowerMode ? '#aaffaa' : '#ff66ff';
-            this.towerTestBtn = this.add.text(width - 20, 190, towerBtnLabel, {
-                fontFamily: 'sans-serif', fontSize: '15px', color: towerBtnColor, fontStyle: 'bold',
-                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            const towerBtnLabel = this.isTowerMode ? '🐝 通常マップへ戻る' : '🐝 タワーテスト';
+            this.towerTestBtn = this.add.text(width - 20, 190, towerBtnLabel, debugBtnStyle)
+                .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.towerTestBtn.on('pointerdown', () => {
                 const gs = GlobalState.getInstance();
@@ -2139,10 +2187,8 @@ export default class AdventureScene extends Phaser.Scene {
 
             // タワー内部専用: フロア移動デバッグボタン
             if (this.isTowerMode) {
-                this.floorJumpBtn = this.add.text(width - 20, 235, '🔼 フロア移動', {
-                    fontFamily: 'sans-serif', fontSize: '15px', color: '#ffea00', fontStyle: 'bold',
-                    backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-                }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+                this.floorJumpBtn = this.add.text(width - 20, 235, '🐝 フロア移動', debugBtnStyle)
+                    .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
                 this.floorJumpBtn.on('pointerdown', () => {
                     this._showFloorJumpModal();
@@ -2153,10 +2199,8 @@ export default class AdventureScene extends Phaser.Scene {
 
             // 対人戦（PvP魔法少女）テストボタン（画面右側・タワーテストの下）
             const pvpBtnY = this.isTowerMode ? 280 : 235;
-            this.pvpTestBtn = this.add.text(width - 20, pvpBtnY, '⚔️ 対人戦テスト', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#ff8888', fontStyle: 'bold',
-                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            this.pvpTestBtn = this.add.text(width - 20, pvpBtnY, '🐝 対人戦テスト', debugBtnStyle)
+                .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.pvpTestBtn.on('pointerdown', () => {
                 this._showPvpTestModal();
@@ -2164,10 +2208,8 @@ export default class AdventureScene extends Phaser.Scene {
 
             // ⏰ 時間経過デバッグボタン（画面右側・対人戦テストの下）
             const timeAdvanceBtnY = pvpBtnY + 45;
-            this.timeAdvanceBtn = this.add.text(width - 20, timeAdvanceBtnY, '⏰ 時間経過', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#aaffff', fontStyle: 'bold',
-                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            this.timeAdvanceBtn = this.add.text(width - 20, timeAdvanceBtnY, '🐝 時間経過', debugBtnStyle)
+                .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.timeAdvanceBtn.on('pointerdown', () => {
                 this._advanceTimeDebug();
@@ -2175,10 +2217,8 @@ export default class AdventureScene extends Phaser.Scene {
 
             // ⏩ 翌朝スキップデバッグボタン（時間経過の下）
             const skipMorningBtnY = timeAdvanceBtnY + 45;
-            this.skipMorningBtn = this.add.text(width - 20, skipMorningBtnY, '⏩ 翌朝スキップ', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffcc88', fontStyle: 'bold',
-                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            this.skipMorningBtn = this.add.text(width - 20, skipMorningBtnY, '🐝 翌朝スキップ', debugBtnStyle)
+                .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.skipMorningBtn.on('pointerdown', () => {
                 this._skipToNextMorningDebug();
@@ -2186,10 +2226,8 @@ export default class AdventureScene extends Phaser.Scene {
 
             // 🗼 タワー敵復活デバッグボタン（翌朝スキップの下）
             const towerRespawnBtnY = skipMorningBtnY + 45;
-            this.towerRespawnBtn = this.add.text(width - 20, towerRespawnBtnY, '🗼 タワー敵復活', {
-                fontFamily: 'sans-serif', fontSize: '15px', color: '#ff88aa', fontStyle: 'bold',
-                backgroundColor: '#000000cc', padding: { x: 12, y: 8 }
-            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
+            this.towerRespawnBtn = this.add.text(width - 20, towerRespawnBtnY, '🐝 タワー敵復活', debugBtnStyle)
+                .setOrigin(1, 0).setScrollFactor(0).setDepth(2000).setInteractive({ useHandCursor: true });
 
             this.towerRespawnBtn.on('pointerdown', () => {
                 this._showTowerRespawnConfirmDialog();
@@ -2230,12 +2268,40 @@ export default class AdventureScene extends Phaser.Scene {
 
 
 
+    /**
+     * タワーヘクスのテクスチャ一括リフレッシュ
+     * 未ロードによるbg_tower01フォールバックから本来のエリア固有ヘクス画像へ即時反映
+     */
+    _refreshTowerHexTextures() {
+        if (!this.hexes || !this.isTowerMode) return;
+        for (const h of this.hexes) {
+            const properKey = this.findImageFile(h.col, h.row, h.cellData);
+            if (properKey && properKey !== 'bg_tower01' && this.textures.exists(properKey)) {
+                if (h.bgSprite && h.currentImgKey !== properKey) {
+                    h.bgSprite.setTexture(properKey);
+                    h.currentImgKey = properKey;
+                }
+            }
+        }
+    }
+
     findImageFile(col, row, cellData) {
         if (this.isTowerMode) {
             const rawName = cellData ? (cellData.name || '').trim() : '';
             const key = `hex_map_${rawName}`;
             if (this.textures && this.textures.exists(key)) {
                 return key;
+            }
+            // 未ロードの場合、オンデマンドで即座に非同期ロード開始
+            const manifest = TOWER_AREA_MANIFEST[rawName];
+            if (manifest && manifest.hex && !this.textures.exists(key)) {
+                this.load.image(key, manifest.hex);
+                this.load.once('complete', () => {
+                    this._refreshTowerHexTextures();
+                });
+                if (!this.load.isLoading()) {
+                    this.load.start();
+                }
             }
             return 'bg_tower01';
         }
@@ -2582,9 +2648,10 @@ export default class AdventureScene extends Phaser.Scene {
         if (this.pvpTestBtn) this.pvpTestBtn.setVisible(debugVisible);
         if (this.timeAdvanceBtn) this.timeAdvanceBtn.setVisible(debugVisible);
         if (this.skipMorningBtn) this.skipMorningBtn.setVisible(debugVisible);
+        if (this.towerRespawnBtn) this.towerRespawnBtn.setVisible(debugVisible);
         if (this.dailyRewardBtn) this.dailyRewardBtn.setVisible(isVisible);
-        if (this.dojoBtn) this.dojoBtn.setVisible(isVisible && (gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE));
-        if (this.jikukanBtn) this.jikukanBtn.setVisible(isVisible && (gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE));
+        if (this.dojoBtn) this.dojoBtn.setVisible(isVisible && gs.isDojoUnlocked);
+        if (this.jikukanBtn) this.jikukanBtn.setVisible(isVisible && gs.isJikukanUnlocked);
         if (this.towerElevatorBtn) this.towerElevatorBtn.setVisible(isVisible && this.isTowerMode && (gs.isTowerElevatorUnlocked || GlobalState.IS_DEBUG_MODE));
 
         // 通常表示の固定背景の制御 (広域表示時は非表示にしてマップ全体・タワー背景を見せる)
@@ -2616,13 +2683,8 @@ export default class AdventureScene extends Phaser.Scene {
 
     moveToHex(hex, animate = true) {
         if (animate && !this.isTowerMode) {
-            if (this.currentDay >= 22) {
-                this.check1221Event();
-                return;
-            }
-            if (this.check1221NightForcedBreakthrough()) {
-                return;
-            }
+            if (this.check1221Event()) return;
+            if (this.check1221NightForcedBreakthrough()) return;
         }
         const isUnexplored = (hex.cellData.visited !== 1 && hex.cellData.name !== '水域' && hex.cellData.name !== '密林');
         
@@ -3748,7 +3810,7 @@ export default class AdventureScene extends Phaser.Scene {
 
         // 仲間加入対象のカードかチェック (1:007, 4:004, 5:008, 9:003, 10:011, 12:002, 15:005, 16:010)
         const charMap = { 1: '007', 4: '004', 5: '008', 9: '003', 10: '011', 12: '002', 15: '005' };
-        if (cardId === 16 && (gs.tower21BossDefeated || GlobalState.IS_DEBUG_MODE)) {
+        if (cardId === 16 && gs.tower21BossDefeated) {
             charMap[16] = '010';
         }
         const rawJoinId = charMap[cardId];
@@ -4872,9 +4934,20 @@ export default class AdventureScene extends Phaser.Scene {
 
     check1221Event() {
         if (this.isTowerMode) return false;
-        const gs = GlobalState.getInstance();
-        // 12/22以降に生存している場合は未再生時に最優先で即座に強制発火！
-        if (this.currentDay >= 22 && !gs.event1221Played) {
+        // 地上で12月22日以降に生存している場合は、いかなる場合も最優先で魔女狩り・周回リセットへ強制移行！
+        if (this.currentDay >= 22 || (this.currentMonth === 12 && this.currentDay >= 22)) {
+            // 他のイベントシーンや戦闘が既に動いているなら待機
+            if (this.scene.isActive('EventScene') || this.scene.isActive('BattleScene')) {
+                return true;
+            }
+
+            // すでにイベントキューに同一イベントが入っていれば重複エンキューしない
+            const alreadyQueued = this.eventQueue && this.eventQueue.some(e => e.data && (e.data.from1221Event || e.data.fromRespEvent));
+            if (alreadyQueued) {
+                this.processEventQueue();
+                return true;
+            }
+
             const eventData = this.cache.json.get('event_1221');
             if (eventData) {
                 this.enqueueEvent({
@@ -4882,10 +4955,28 @@ export default class AdventureScene extends Phaser.Scene {
                     data: {
                         events: eventData,
                         returnScene: 'AdventureScene',
-                        from1221Event: true
+                        from1221Event: true,
+                        eventId: 'event_1221'
                     }
                 });
+                this.processEventQueue();
                 return true;
+            } else {
+                // 万が一 event_1221 がキャッシュにない場合は event_resp を直接起動して周回リセットへ
+                const respData = this.cache.json.get('event_resp');
+                if (respData) {
+                    this.enqueueEvent({
+                        type: 'event',
+                        data: {
+                            events: respData,
+                            returnScene: 'AdventureScene',
+                            fromRespEvent: true,
+                            eventId: 'event_resp'
+                        }
+                    });
+                    this.processEventQueue();
+                    return true;
+                }
             }
         }
         return false;
@@ -5431,17 +5522,30 @@ export default class AdventureScene extends Phaser.Scene {
             gs.jikuEventSeen = true;
             gs.isJikukanUnlocked = true;
             SaveManager.saveGame(this);
-            const evData = this.cache.json.get('event_jiku');
-            if (evData) {
-                this.scene.pause();
-                this.scene.launch('EventScene', {
-                    events: evData,
-                    returnScene: 'AdventureScene',
-                    fromJikuEvent: true,
-                    eventId: 'event_jiku'
-                });
-                return true;
+
+            const launchJiku = () => {
+                const evData = this.cache.json.get('event_jiku');
+                if (evData) {
+                    this.scene.pause();
+                    this.scene.launch('EventScene', {
+                        events: evData,
+                        returnScene: 'AdventureScene',
+                        fromJikuEvent: true,
+                        eventId: 'event_jiku'
+                    });
+                }
+            };
+
+            // 時空館（メイド館）解放イベントの直前オンデマンド遅延ロード
+            if (!this.cache.json.exists('event_jiku') || !this.textures.exists('jiku_cg')) {
+                AssetLoader.ensureAssets(this, [
+                    { type: 'json', key: 'event_jiku', url: 'files/DATA/event_jiku.json' },
+                    { type: 'image', key: 'jiku_cg', url: 'files/MAP/jiku-.webp' }
+                ], launchJiku, 'Loading...');
+            } else {
+                launchJiku();
             }
+            return true;
         }
         return false;
     }
@@ -6867,7 +6971,7 @@ export default class AdventureScene extends Phaser.Scene {
      */
     _createDojoButton(x, y) {
         const gs = GlobalState.getInstance();
-        const isVisible = gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE;
+        const isVisible = gs.isDojoUnlocked;
 
         const container = this.add.container(x, y);
         container.setVisible(isVisible);
@@ -6890,17 +6994,31 @@ export default class AdventureScene extends Phaser.Scene {
             if (!gs.dojoEventSeen) {
                 gs.dojoEventSeen = true;
                 SaveManager.saveGame(this);
-                const dojoEvData = this.cache.json.get('event_dojo');
-                if (dojoEvData) {
-                    this.scene.pause();
-                    this.scene.launch('EventScene', {
-                        events: dojoEvData,
-                        returnScene: 'AdventureScene',
-                        fromDojoEvent: true,
-                        eventId: 'event_dojo'
-                    });
-                    return;
+
+                const launchDojoEvent = () => {
+                    const dojoEvData = this.cache.json.get('event_dojo');
+                    if (dojoEvData) {
+                        this.scene.pause();
+                        this.scene.launch('EventScene', {
+                            events: dojoEvData,
+                            returnScene: 'AdventureScene',
+                            fromDojoEvent: true,
+                            eventId: 'event_dojo'
+                        });
+                    } else {
+                        TransitionManager.transitionTo(this, 'DojoScene', { isTower: this.isTowerMode });
+                    }
+                };
+
+                // 初回道場訪問イベントの直前オンデマンド遅延ロード
+                if (!this.cache.json.exists('event_dojo')) {
+                    AssetLoader.ensureAssets(this, [
+                        { type: 'json', key: 'event_dojo', url: 'files/DATA/event_dojo.json' }
+                    ], launchDojoEvent, 'Loading Dojo...');
+                } else {
+                    launchDojoEvent();
                 }
+                return;
             }
             TransitionManager.transitionTo(this, 'DojoScene', { isTower: this.isTowerMode });
         });
@@ -6910,7 +7028,7 @@ export default class AdventureScene extends Phaser.Scene {
         container.add([btnImg, hitArea]);
 
         container.updateStatus = () => {
-            const visible = gs.isDojoUnlocked || GlobalState.IS_DEBUG_MODE;
+            const visible = gs.isDojoUnlocked;
             container.setVisible(visible);
         };
 
@@ -6922,7 +7040,7 @@ export default class AdventureScene extends Phaser.Scene {
      */
     _createJikukanButton(x, y) {
         const gs = GlobalState.getInstance();
-        const isVisible = gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE;
+        const isVisible = gs.isJikukanUnlocked;
 
         const container = this.add.container(x, y);
         container.setVisible(isVisible);
@@ -6950,7 +7068,7 @@ export default class AdventureScene extends Phaser.Scene {
         container.add([btnImg, hitArea]);
 
         container.updateStatus = () => {
-            const visible = gs.isJikukanUnlocked || GlobalState.IS_DEBUG_MODE;
+            const visible = gs.isJikukanUnlocked;
             container.setVisible(visible);
         };
 
@@ -6968,10 +7086,26 @@ export default class AdventureScene extends Phaser.Scene {
         container.setVisible(isVisible);
 
         // アイコン画像（幅約54px）
-        const btnImg = this.add.image(0, 0, 'chr_fairy_s').setOrigin(0, 0);
         const targetW = 54;
-        const scale = targetW / btnImg.width;
-        btnImg.setScale(scale);
+        let btnImg;
+        if (this.textures.exists('chr_fairy_s')) {
+            btnImg = this.add.image(0, 0, 'chr_fairy_s').setOrigin(0, 0);
+            const scale = targetW / btnImg.width;
+            btnImg.setScale(scale);
+        } else {
+            // 未ロード時の安全フォールバック（緑枠を出さず即座にオンデマンド読み込み）
+            btnImg = this.add.image(0, 0, 'chr_fairy_s').setOrigin(0, 0).setVisible(false);
+            this.load.image('chr_fairy_s', 'files/CHR/fairyS.webp');
+            this.load.once('filecomplete-image-chr_fairy_s', () => {
+                if (btnImg && btnImg.scene) {
+                    btnImg.setTexture('chr_fairy_s');
+                    const scale = targetW / btnImg.width;
+                    btnImg.setScale(scale);
+                    btnImg.setVisible(true);
+                }
+            });
+            this.load.start();
+        }
 
         // ふわふわ浮遊アニメーション
         this.tweens.add({

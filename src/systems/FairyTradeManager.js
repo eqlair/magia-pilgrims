@@ -12,23 +12,57 @@ export const FAIRY_TRADE_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12時間
 
 export class FairyTradeManager {
     /**
-     * 残りクールタイム（ミリ秒）を取得
+     * 日本時間 (JST, UTC+9) の現在日付文字列 (YYYY-MM-DD) を取得
      */
-    static getTradeRemainingMs(key) {
-        const gs = GlobalState.getInstance();
-        if (!gs.fairyTradeTimes) gs.fairyTradeTimes = {};
-        const lastTime = gs.fairyTradeTimes[key] || 0;
-        const elapsed = Date.now() - lastTime;
-        return Math.max(0, FAIRY_TRADE_COOLDOWN_MS - elapsed);
+    static getTodayKeyJST() {
+        const now = new Date();
+        const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+        const y = jst.getUTCFullYear();
+        const m = String(jst.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(jst.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     /**
-     * 取引利用時刻を記録
+     * 日本時間 (JST) の次の午前0時までの残りミリ秒を取得
+     */
+    static getMsUntilNextMidnightJST() {
+        const now = new Date();
+        const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+        const nextMidnight = new Date(Date.UTC(
+            jst.getUTCFullYear(),
+            jst.getUTCMonth(),
+            jst.getUTCDate() + 1,
+            0, 0, 0
+        ));
+        return Math.max(0, nextMidnight.getTime() - jst.getTime());
+    }
+
+    /**
+     * 本日 (JST 0:00基準) すでに利用済みかどうか判定
+     */
+    static isTradeUsedToday(key) {
+        const gs = GlobalState.getInstance();
+        if (!gs.fairyTradeUsage) gs.fairyTradeUsage = {};
+        const today = this.getTodayKeyJST();
+        return gs.fairyTradeUsage[key] === today;
+    }
+
+    /**
+     * 残りクールタイム（ミリ秒）を取得（利用済みなら次の0時までの時間）
+     */
+    static getTradeRemainingMs(key) {
+        if (!this.isTradeUsedToday(key)) return 0;
+        return this.getMsUntilNextMidnightJST();
+    }
+
+    /**
+     * 取引利用を記録 (本日利用済みにする)
      */
     static recordTrade(key) {
         const gs = GlobalState.getInstance();
-        if (!gs.fairyTradeTimes) gs.fairyTradeTimes = {};
-        gs.fairyTradeTimes[key] = Date.now();
+        if (!gs.fairyTradeUsage) gs.fairyTradeUsage = {};
+        gs.fairyTradeUsage[key] = this.getTodayKeyJST();
         try {
             SaveManager.saveGame();
         } catch (e) {}
@@ -57,9 +91,9 @@ export class FairyTradeManager {
             .setInteractive();
         container.add(overlay);
 
-        // モーダル枠 (縦幅を広げて全5項目を収める)
+        // モーダル枠 (縦幅を広げて全5項目+VIP案内を収める)
         const modalW = 460;
-        const modalH = 680;
+        const modalH = 720;
         const bg = scene.add.graphics();
         bg.fillStyle(0x121526, 0.98);
         bg.fillRoundedRect(width / 2 - modalW / 2, height / 2 - modalH / 2, modalW, modalH, 18);
@@ -80,20 +114,23 @@ export class FairyTradeManager {
         }).setOrigin(0.5);
         container.add(title);
 
-        const subTitle = scene.add.text(width / 2, height / 2 - 188, '「ほんの少し、世界の法則をお借りしますね（各12hに1回）」', {
+        const subTitle = scene.add.text(width / 2, height / 2 - 188, '「ほんの少し、世界の法則をお借りしますね（0時更新・各1日1回）」', {
             fontFamily: 'sans-serif', fontSize: '12px', color: '#aaccff'
         }).setOrigin(0.5);
         container.add(subTitle);
 
+        const gs = GlobalState.getInstance();
+        const hasVIP = !!(gs && gs.hasNoAdsPass);
+
         // 取引ボタン作成ヘルパー
         const createTradeBtn = (y, tradeKey, label, desc, onClick) => {
-            const remainingMs = this.getTradeRemainingMs(tradeKey);
-            const isCooldown = remainingMs > 0;
+            const isCooldown = this.isTradeUsedToday(tradeKey);
+            const remainingMs = isCooldown ? this.getMsUntilNextMidnightJST() : 0;
 
             const btnContainer = scene.add.container(width / 2, y);
 
             const btnBg = scene.add.rectangle(0, 0, modalW - 50, 60, isCooldown ? 0x1c1e2e : 0x243258, 0.95)
-                .setStrokeStyle(1.5, isCooldown ? 0x3d4458 : 0x6699ff)
+                .setStrokeStyle(1.5, isCooldown ? 0x3d4458 : (hasVIP ? 0xffcc44 : 0x6699ff))
                 .setInteractive({ useHandCursor: !isCooldown });
 
             const btnLabel = scene.add.text(-modalW / 2 + 40, -11, label, {
@@ -106,11 +143,24 @@ export class FairyTradeManager {
                 color: isCooldown ? '#555566' : '#bbccdd'
             }).setOrigin(0, 0.5);
 
-            const badgeText = isCooldown ? this.formatRemainingTime(remainingMs) : '🎬 広告';
+            let badgeText = '🎬 広告';
+            let badgeColor = '#ffea00';
+            let badgeBg = '#443300aa';
+
+            if (isCooldown) {
+                badgeText = this.formatRemainingTime(remainingMs);
+                badgeColor = '#888899';
+                badgeBg = '#1a1a24';
+            } else if (hasVIP) {
+                badgeText = '✨ VIP即時';
+                badgeColor = '#ffffff';
+                badgeBg = '#886600cc';
+            }
+
             const adBadge = scene.add.text(modalW / 2 - 50, 0, badgeText, {
                 fontFamily: 'sans-serif', fontSize: isCooldown ? '12px' : '13px', fontStyle: 'bold',
-                color: isCooldown ? '#888899' : '#ffea00',
-                backgroundColor: isCooldown ? '#1a1a24' : '#443300aa',
+                color: badgeColor,
+                backgroundColor: badgeBg,
                 padding: { x: 7, y: 3 }
             }).setOrigin(0.5);
 
@@ -173,10 +223,52 @@ export class FairyTradeManager {
             () => this._tradeRefillFood(scene)
         );
 
+        // ✨ 妖精の祝福（広告スキップ永年パス）エリア
+        const vipY = startBtnY + btnSpacing * 5 - 4;
+        const vipBg = scene.add.rectangle(width / 2, vipY, modalW - 50, 52, hasVIP ? 0x221c38 : 0x1a2638, 0.95)
+            .setStrokeStyle(1.5, hasVIP ? 0xffdd66 : 0x4488ff)
+            .setInteractive({ useHandCursor: true });
+
+        const vipTitle = scene.add.text(width / 2 - modalW / 2 + 40, vipY - 10,
+            hasVIP ? '✨ 妖精の祝福：発動中（広告全スキップ）' : '✨ 妖精の祝福：広告スキップ永年パス', {
+            fontFamily: 'sans-serif', fontSize: '14px', fontStyle: 'bold',
+            color: hasVIP ? '#ffe588' : '#88ddff'
+        }).setOrigin(0, 0.5);
+
+        const vipDesc = scene.add.text(width / 2 - modalW / 2 + 40, vipY + 11,
+            hasVIP ? 'タロット・合成引き直し含む全特典を広告なしで即時受取（各1日1回）' : '￥500（買い切り）で全取引の広告視聴を永久スキップ', {
+            fontFamily: 'sans-serif', fontSize: '10px',
+            color: hasVIP ? '#bbcc99' : '#99bbdd'
+        }).setOrigin(0, 0.5);
+
+        const vipActionText = hasVIP ? '解除(TEST)' : '有効化(TEST)';
+        const vipActionBadge = scene.add.text(width / 2 + modalW / 2 - 50, vipY, vipActionText, {
+            fontFamily: 'sans-serif', fontSize: '11px', fontStyle: 'bold',
+            color: hasVIP ? '#888899' : '#ffee44',
+            backgroundColor: hasVIP ? '#111122' : '#223355',
+            padding: { x: 6, y: 3 }
+        }).setOrigin(0.5);
+
+        vipBg.on('pointerdown', () => {
+            gs.hasNoAdsPass = !gs.hasNoAdsPass;
+            try { SaveManager.saveGame(); } catch (e) {}
+            container.destroy();
+            this.showTradeModal(scene);
+        });
+
+        container.add([vipBg, vipTitle, vipDesc, vipActionBadge]);
+
+        // 補足説明
+        const noteText = scene.add.text(width / 2, height / 2 + modalH / 2 - 62,
+            '※タロット選び直し・レリクス合成引き直しも1日1回ご利益を受けられます', {
+            fontFamily: 'sans-serif', fontSize: '11px', color: '#778899'
+        }).setOrigin(0.5);
+        container.add(noteText);
+
         // 閉じるボタン
-        const closeBtn = scene.add.text(width / 2, height / 2 + modalH / 2 - 32, '閉じる', {
+        const closeBtn = scene.add.text(width / 2, height / 2 + modalH / 2 - 28, '閉じる', {
             fontFamily: 'sans-serif', fontSize: '15px', color: '#aaaaaa',
-            backgroundColor: '#222233', padding: { x: 28, y: 7 }
+            backgroundColor: '#222233', padding: { x: 28, y: 6 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         closeBtn.on('pointerdown', () => container.destroy());

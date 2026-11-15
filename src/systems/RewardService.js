@@ -1,3 +1,5 @@
+import { GlobalState } from './GlobalState.js';
+
 /**
  * RewardService.js
  * 特典リワードの視聴・コールバック管理
@@ -14,6 +16,17 @@ export class RewardService {
      *   onClose: 中断・閉じた時のコールバック
      */
     static showRewardAd(scene, { title = 'リワード特典', rewardDescription = '特典獲得', onReward, onClose } = {}) {
+        const gs = GlobalState.getInstance();
+
+        // ✨ 妖精の祝福（広告スキップVIPパス所持者）: CM動画を完全スキップして即座に恩恵付与！
+        if (gs && gs.hasNoAdsPass) {
+            if (scene && scene.showToast) {
+                scene.showToast(`✨【妖精の祝福】広告をスキップしました！\n（${rewardDescription}）`);
+            }
+            if (onReward) onReward();
+            return;
+        }
+
         // 将来ネイティブ（Cordova / Capacitor）環境なら AdMob プラグイン等を呼ぶ
         if (window.Capacitor && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('AdMob')) {
             console.log('[RewardService] Native reward requested');
