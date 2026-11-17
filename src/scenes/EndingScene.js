@@ -121,7 +121,7 @@ export default class EndingScene extends Phaser.Scene {
             // 動画要素の作成
             const video = document.createElement('video');
             video.id = 'ending-video-player';
-            video.src = '/files/OP/ED.mp4';
+            video.src = 'files/OP/ED.mp4';
             video.playsInline = true;
             video.autoplay = true;
             video.volume = 1.0;

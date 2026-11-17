@@ -71,10 +71,11 @@ export default class JikukanScene extends Phaser.Scene {
         // 1. 全面暗色背景
         this.add.rectangle(0, 0, width, height, 0x0a0714).setOrigin(0, 0);
 
-        // 2. BGM再生 (002_menu.mp3)
+        // 2. BGM再生 (002_menu.mp3 -> bgm_menu)
         this.sound.stopAll();
-        if (this.cache.audio.exists('002_menu')) {
-            this.bgm = this.sound.add('002_menu', { loop: true, volume: 0.5 });
+        const menuBgmKey = this.cache.audio.exists('bgm_menu') ? 'bgm_menu' : (this.cache.audio.exists('002_menu') ? '002_menu' : null);
+        if (menuBgmKey) {
+            this.bgm = this.sound.add(menuBgmKey, { loop: true, volume: 0.5 });
             this.bgm.play();
         }
 

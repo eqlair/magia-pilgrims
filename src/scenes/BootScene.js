@@ -361,7 +361,6 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('op_title', 'files/OP/title.webp');
         this.load.audio('op_start', 'files/OP/start.mp3');
         this.load.audio('bgm_op', 'files/BGM/001_OP001.mp3');
-        this.load.audio('002_menu', 'files/BGM/002_menu.mp3');
         this.load.audio('bgm_menu', 'files/BGM/002_menu.mp3');
         this.load.audio('bgm_hexen', 'files/BGM/004_hexen.mp3');
 

@@ -19,8 +19,11 @@
   "devDependencies": {
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
+    "canvas": "^3.2.3",
     "playwright": "^1.62.1",
-    "vite": "^8.1.1"
+    "puppeteer": "^25.3.0",
+    "vite": "^8.1.1",
+    "xlsx": "^0.18.5"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.3.0",
@@ -30,9 +33,6 @@
     "@capacitor/ios": "^8.5.0",
     "@capacitor/status-bar": "^8.0.4",
     "@revenuecat/purchases-capacitor": "^14.1.0",
-    "canvas": "^3.2.3",
-    "phaser": "^4.2.0",
-    "puppeteer": "^25.3.0",
-    "xlsx": "^0.18.5"
+    "phaser": "^4.2.0"
   }
 }
