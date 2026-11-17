@@ -18,6 +18,7 @@ node_modules/
 dist/
 .browser_profile/
 android/app/src/main/assets/public/
+/files/
 
 # OS metadata
 desktop.ini
