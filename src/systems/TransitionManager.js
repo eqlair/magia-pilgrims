@@ -1,4 +1,5 @@
 import { LoadingOverlay } from './LoadingOverlay';
+import { AssetLoader } from './AssetLoader';
 
 /**
  * 画面遷移の汎用システム「明転」
@@ -104,6 +105,13 @@ export class TransitionManager {
 
         // 前シーンのローディングオーバーレイがあれば消去
         LoadingOverlay.hide(scene, 150);
+
+        // 🧹 前シーンで使われていた未使用BGMのオーディオキャッシュ（PCM生データ）を自動解放（RAM圧迫防止）
+        try {
+            AssetLoader.cleanupUnusedBgms(scene);
+        } catch (e) {
+            console.warn('[TransitionManager] Failed to cleanup unused BGMs:', e);
+        }
 
         const { width, height } = scene.scale;
 

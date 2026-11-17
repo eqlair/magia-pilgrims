@@ -277,4 +277,61 @@ export class AssetLoader {
         }
         this.ensureAssets(scene, assets, onComplete, 'Now Loading...');
     }
+
+    /**
+     * 未使用BGMのオーディオキャッシュ（PCM生データ）を解放し、モバイル端末のRAM圧迫を防止する
+     * @param {Phaser.Scene} scene 対象シーン
+     * @param {Array<string>|string} [preserveKeys=[]] 解放から除外するBGMキー（再生中など）
+     */
+    static cleanupUnusedBgms(scene, preserveKeys = []) {
+        if (!scene || !scene.cache || !scene.cache.audio) return;
+
+        const keepList = Array.isArray(preserveKeys) ? [...preserveKeys] : [preserveKeys];
+        // 常に常駐させておきたい基幹サウンド（タイトル、地上基本、メニュー、基本SE等）
+        const CORE_KEYS = new Set([
+            'bgm_menu', 'bgm_hexen', 'bgm_battle1', 'op_start',
+            'se_get', 'se_bomb', 'se_click', 'se_powerup', 'se_card'
+        ]);
+
+        // 現在シーンで実際に鳴っているサウンドのキーを収集
+        if (scene.sound && scene.sound.sounds) {
+            scene.sound.sounds.forEach(snd => {
+                if (snd && snd.isPlaying && snd.key) {
+                    keepList.push(snd.key);
+                }
+            });
+        }
+
+        const keepSet = new Set(keepList.filter(Boolean));
+
+        // BGM_MANIFEST に登録されている全BGMを走査
+        let releasedCount = 0;
+        for (const [bgmKey] of Object.entries(BGM_MANIFEST)) {
+            if (CORE_KEYS.has(bgmKey) || keepSet.has(bgmKey)) {
+                continue;
+            }
+
+            // キャッシュに存在し、現在再生中でないなら解放
+            if (scene.cache.audio.exists(bgmKey)) {
+                try {
+                    // もしインスタンスがあれば停止＆破棄
+                    if (scene.sound) {
+                        const existing = scene.sound.get(bgmKey);
+                        if (existing) {
+                            if (existing.isPlaying) continue;
+                            existing.destroy();
+                        }
+                    }
+                    scene.cache.audio.remove(bgmKey);
+                    releasedCount++;
+                } catch (e) {
+                    // ignore
+                }
+            }
+        }
+
+        if (releasedCount > 0) {
+            console.log(`[AssetLoader] 🧹 Released ${releasedCount} unused BGM PCM buffers from RAM.`);
+        }
+    }
 }

@@ -66,61 +66,64 @@ if (Phaser && Phaser.Textures && Phaser.Textures.Frame) {
     };
 }
 
-// ── ?load_test_save=1 クエリ検知時の即時セーブデータ注入 ──
-try {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('load_test_save') === '1' || params.get('test_save') === '1') {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'test_save_snapshot.json', false); // 同期取得
-        xhr.send(null);
-        if (xhr.status === 200) {
-            localStorage.setItem('antigravity_game_save', xhr.responseText);
-            console.log('[main.js] 🧪 Test snapshot save injected into localStorage via query param!');
+// ── ?load_test_save=1 クエリ検知時の即時セーブデータ注入（開発モード限定） ──
+if (import.meta.env.DEV) {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('load_test_save') === '1' || params.get('test_save') === '1') {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'test_save_snapshot.json', false); // 同期取得
+            xhr.send(null);
+            if (xhr.status === 200) {
+                localStorage.setItem('antigravity_game_save', xhr.responseText);
+                console.log('[main.js] 🧪 Test snapshot save injected into localStorage via query param!');
+            }
         }
+    } catch (e) {
+        console.error('[main.js] Failed to inject test save:', e);
     }
-} catch (e) {
-    console.error('[main.js] Failed to inject test save:', e);
 }
 
-// --- 画面上エラーオーバーレイシステム ---
-
-window.__DEBUG_ERRORS__ = [];
-window.showOnScreenError = function(msg, stack) {
-    try {
-        console.warn("[ON-SCREEN-ERROR]", msg, stack);
-        window.__DEBUG_ERRORS__.push({ msg: String(msg), stack: String(stack || ''), time: new Date().toLocaleTimeString() });
-        
-        let el = document.getElementById('debug-error-overlay');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'debug-error-overlay';
-            el.style.cssText = 'position:fixed;top:0;left:0;width:100%;max-height:60vh;overflow-y:auto;background:rgba(180,0,0,0.95);color:#fff;font-family:monospace;font-size:11px;padding:10px;z-index:9999999;box-sizing:border-box;border-bottom:4px solid #ff8888;word-break:break-all;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
-            document.body.appendChild(el);
+// --- 画面上エラーオーバーレイシステム（開発モード限定） ---
+if (import.meta.env.DEV) {
+    window.__DEBUG_ERRORS__ = [];
+    window.showOnScreenError = function(msg, stack) {
+        try {
+            console.warn("[ON-SCREEN-ERROR]", msg, stack);
+            window.__DEBUG_ERRORS__.push({ msg: String(msg), stack: String(stack || ''), time: new Date().toLocaleTimeString() });
+            
+            let el = document.getElementById('debug-error-overlay');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'debug-error-overlay';
+                el.style.cssText = 'position:fixed;top:0;left:0;width:100%;max-height:60vh;overflow-y:auto;background:rgba(180,0,0,0.95);color:#fff;font-family:monospace;font-size:11px;padding:10px;z-index:9999999;box-sizing:border-box;border-bottom:4px solid #ff8888;word-break:break-all;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+                document.body.appendChild(el);
+            }
+            
+            let html = '<div style="font-weight:bold;font-size:13px;">🚨 [実機画面エラーログ表示] <button onclick="document.getElementById(\'debug-error-overlay\').remove()" style="float:right;background:#fff;color:#d00;font-weight:bold;border:none;padding:2px 8px;border-radius:4px;">閉じる</button></div><hr style="border-color:#ffaaaa;margin:4px 0;">';
+            window.__DEBUG_ERRORS__.slice(-5).reverse().forEach(err => {
+                html += `<div style="margin-bottom:8px;border-bottom:1px dashed #ffaaaa;padding-bottom:4px;">
+                    <span style="color:#ffff88;font-weight:bold;">[${err.time}]</span> <b style="color:#ffffff;">${err.msg}</b><br>
+                    <pre style="margin:2px 0;font-size:10px;color:#ffdddd;white-space:pre-wrap;background:rgba(0,0,0,0.4);padding:4px;border-radius:3px;">${err.stack || ''}</pre>
+                </div>`;
+            });
+            el.innerHTML = html;
+        } catch (e) {
+            // fallback
         }
-        
-        let html = '<div style="font-weight:bold;font-size:13px;">🚨 [実機画面エラーログ表示] <button onclick="document.getElementById(\'debug-error-overlay\').remove()" style="float:right;background:#fff;color:#d00;font-weight:bold;border:none;padding:2px 8px;border-radius:4px;">閉じる</button></div><hr style="border-color:#ffaaaa;margin:4px 0;">';
-        window.__DEBUG_ERRORS__.slice(-5).reverse().forEach(err => {
-            html += `<div style="margin-bottom:8px;border-bottom:1px dashed #ffaaaa;padding-bottom:4px;">
-                <span style="color:#ffff88;font-weight:bold;">[${err.time}]</span> <b style="color:#ffffff;">${err.msg}</b><br>
-                <pre style="margin:2px 0;font-size:10px;color:#ffdddd;white-space:pre-wrap;background:rgba(0,0,0,0.4);padding:4px;border-radius:3px;">${err.stack || ''}</pre>
-            </div>`;
-        });
-        el.innerHTML = html;
-    } catch (e) {
-        // fallback
-    }
-};
+    };
 
-window.onerror = function(message, source, lineno, colno, error) {
-    const stack = error && error.stack ? error.stack : `${source}:${lineno}:${colno}`;
-    window.showOnScreenError(message, stack);
-};
+    window.onerror = function(message, source, lineno, colno, error) {
+        const stack = error && error.stack ? error.stack : `${source}:${lineno}:${colno}`;
+        window.showOnScreenError(message, stack);
+    };
 
-window.addEventListener('unhandledrejection', function(e) {
-    const msg = e.reason ? (e.reason.message || e.reason) : 'Unhandled Rejection';
-    const stack = e.reason && e.reason.stack ? e.reason.stack : '';
-    window.showOnScreenError(msg, stack);
-});
+    window.addEventListener('unhandledrejection', function(e) {
+        const msg = e.reason ? (e.reason.message || e.reason) : 'Unhandled Rejection';
+        const stack = e.reason && e.reason.stack ? e.reason.stack : '';
+        window.showOnScreenError(msg, stack);
+    });
+}
 
 const config = {
 
@@ -140,7 +143,17 @@ const config = {
     pixelArt: false,
     // canvasは透明にして背面の動画が見えるようにする
     transparent: true,
-    scene: [BootScene, TitleScene, DemoScene, TransitionTestScene, OpScene, OpEndScene, MapTestScene, AdventureScene, BattleScene, EventScene, TarotScene, ResultScene, CampScene, EquipmentScene, RestScene, FormationScene, DojoScene, JikukanScene, DebugMenuScene, MapEventAdjustScene, EventTestScene, EndingScene, KrakenTestScene, MiniGameScene]
+    scene: [
+        BootScene, TitleScene, OpScene, OpEndScene,
+        AdventureScene, BattleScene, EventScene, TarotScene, ResultScene,
+        CampScene, EquipmentScene, RestScene, FormationScene,
+        DojoScene, JikukanScene, EndingScene, MiniGameScene,
+        // 開発環境（npm run dev）のみテストシーンを登録
+        ...(import.meta.env.DEV ? [
+            DemoScene, TransitionTestScene, MapTestScene,
+            DebugMenuScene, MapEventAdjustScene, EventTestScene, KrakenTestScene
+        ] : [])
+    ]
 };
 
 
@@ -212,10 +225,6 @@ document.addEventListener('visibilitychange', () => {
         handleAppResume();
     }
 });
-
-// 3. ウィンドウフォーカス喪失時も保険で一時停止
-window.addEventListener('blur', handleAppPause);
-window.addEventListener('focus', handleAppResume);
 
 // 4. Android ハードウェア戻るボタン対応（Capacitor）
 App.addListener('backButton', ({ canGoBack }) => {
