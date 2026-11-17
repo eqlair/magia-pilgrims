@@ -8,12 +8,16 @@ import { AchievementManager } from './AchievementManager';
  */
 export class CharacterLossManager {
     static LOSS_IMAGE_MAP = {
-        '002': 'evx_002', // 蒼樹
-        '003': 'evx_003', // 紅華
-        '004': 'evx_004', // 黄蘭
-        '005': 'evx_005', // 李乃果
-        '009': 'evx_009', // リフィエル
-        '010': 'evx_010'  // 白蓮
+        '002': 'evx002', // 蒼樹
+        '003': 'evx003', // 紅華
+        '004': 'evp004', // 黄蘭
+        '005': 'evx005', // 李乃果
+        '006': 'evx006', // さくら
+        '007': 'evp007', // ななよ
+        '008': 'evx008', // ノア
+        '009': 'evx009', // リフィエル
+        '010': 'evx010', // プロセル
+        '011': 'evx011'  // 白蓮
     };
 
     /**
@@ -77,10 +81,10 @@ export class CharacterLossManager {
         const gs = GlobalState.getInstance();
         const charData = gs.characters[charId];
         const charName = charData ? charData.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '仲間';
-        const imgKey = CharacterLossManager.LOSS_IMAGE_MAP[charId] || 'evx_002';
-
-        console.log(`🥀 [CharacterLossManager] 喪失イベント開始: ${charName} (${charId})`);
         const normId = gs.normalizeCharId ? gs.normalizeCharId(charId) : charId;
+        const imgKey = CharacterLossManager.LOSS_IMAGE_MAP[normId] || CharacterLossManager.LOSS_IMAGE_MAP[charId] || `evx${normId}`;
+
+        console.log(`🥀 [CharacterLossManager] 喪失イベント開始: ${charName} (${charId}, key: ${imgKey})`);
         AchievementManager.unlock(`lost_char_${normId}`, scene);
 
         // イベントデータ構築

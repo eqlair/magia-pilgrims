@@ -6,8 +6,8 @@
 
 import { GlobalState } from '../systems/GlobalState';
 
-// メインフォント（Noto Serif JP: 明朝体・格調ある和風）
-export const FONT_MAIN   = '"Noto Serif JP", serif';
+// メインフォント（Noto Serif JP: 明朝体・格調ある和風。オフライン時も安心なシステムフォールバック付き）
+export const FONT_MAIN   = '"Noto Serif JP", "Noto Serif", "Hiragino Mincho ProN", "Yu Mincho", "Noto Sans JP", sans-serif, serif';
 
 const getTextWidth = () => {
     const gs = GlobalState.instance;

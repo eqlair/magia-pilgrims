@@ -7,7 +7,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "build:android": "vite build && cap sync android",
-    "build:apk": "npm run build:android && cd android && set \"JAVA_HOME=C:\\Program Files\\Android\\Android Studio\\jbr\" && set \"PATH=C:\\Program Files\\Android\\Android Studio\\jbr\\bin;%PATH%\" && gradlew.bat assembleDebug",
+    "build:apk": "npm run build:android && cd android && set \"JAVA_HOME=C:\\Users\\user\\.antigravity\\jdk21\\jdk-21.0.6+7\" && set \"PATH=C:\\Users\\user\\.antigravity\\jdk21\\jdk-21.0.6+7\\bin;%PATH%\" && gradlew.bat assembleDebug",
+    "install:apk": "adb install -r android/app/build/outputs/apk/debug/magia_pilgrims-debug.apk",
     "open:android": "cap open android",
     "deploy": "vite build && gh-pages -d dist",
     "sync": "cap sync android",
@@ -22,9 +23,13 @@
     "vite": "^8.1.1"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.3.0",
+    "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
+    "@capacitor/status-bar": "^8.0.4",
+    "@revenuecat/purchases-capacitor": "^14.1.0",
     "canvas": "^3.2.3",
     "phaser": "^4.2.0",
     "puppeteer": "^25.3.0",

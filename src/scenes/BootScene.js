@@ -13,6 +13,13 @@ export default class BootScene extends Phaser.Scene {
     preload() {
         const { width, height } = this.scale;
 
+        // 🎬 タイトルOP動画を最速で事前バッファリング開始（再生ボタンチラつき防止・余裕を持たせる）
+        const titleVideoEl = document.getElementById('title-video');
+        if (titleVideoEl) {
+            titleVideoEl.preload = 'auto';
+            try { titleVideoEl.load(); } catch(e){}
+        }
+
         // ── 🎨 初期ローディング画面（システムフォント＆軽量図形で即時描画） ──
         this.add.rectangle(width / 2, height / 2, width, height, 0x0a0a16);
 
@@ -285,12 +292,22 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('ev_camp', 'files/event/ev_camp.webp');
         this.load.image('ev_multiply', 'files/event/multiply.webp');
         this.load.json('love_events', 'files/DATA/love_events.json');
+        this.load.json('pair_events', 'files/DATA/pair_events.json');
+        this.load.image('logo_ndk', 'files/OP/NDKw.png');
 
         // イベント一枚絵 (実在するevp002 ~ 008, 011をロード)
         const validEvpNums = [2, 3, 4, 5, 6, 7, 8, 11];
         for (const i of validEvpNums) {
             const numStr = i.toString().padStart(3, '0');
             this.load.image(`evp${numStr}`, `files/event/evp${numStr}.webp`);
+        }
+
+        // 仲間喪失一枚絵 (実在するevx002, 003, 005, 006, 008, 009, 010, 011をロード)
+        const validEvxNums = [2, 3, 5, 6, 8, 9, 10, 11];
+        for (const i of validEvxNums) {
+            const numStr = i.toString().padStart(3, '0');
+            this.load.image(`evx${numStr}`, `files/event/evx${numStr}.webp`);
+            this.load.image(`evx_${numStr}`, `files/event/evx${numStr}.webp`); // アンダースコア互換キー
         }
         
         // 12/7, 12/14, 12/21, 周回イベント画像とBGM
@@ -309,11 +326,18 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bg_1221b', 'files/event/1221b.webp');
         this.load.image('bg_1221c', 'files/event/1221c.webp');
         this.load.json('event_resp', 'files/DATA/event_resp.json');
+        this.load.image('bg_resp', 'files/event/resp.webp');
         this.load.json('event_2r1201', 'files/DATA/event_2r1201.json');
         this.load.json('event_2rdevil', 'files/DATA/event_2rdevil.json');
         this.load.image('bg_img_m(k,11)r.jpg', 'files/MAP/m(k,11)r.webp');
+        this.load.image('bg_img_m(k,11)r.webp', 'files/MAP/m(k,11)r.webp');
+        this.load.image('jiku_cg', 'files/MAP/jiku-.webp');
         this.load.image('bg_tokyo_d7', 'files/MAP/m(d,7).webp');
         this.load.image('bg_tow_spo01', 'files/event/tou_spo01.webp');
+        this.load.image('event_tow_21', 'files/event/tow_21.webp');
+        this.load.image('event_tow_21b', 'files/event/tow_21b.webp');
+        this.load.image('event_ten_in_shou', 'files/event/T_ten-in-shou.webp');
+        this.load.image('event_shichiyo_cane', 'files/event/T_sichiseiken.webp');
         this.load.json('event_tow_res', 'files/DATA/event_tow_res.json');
         this.load.json('event_tower_explosion', 'files/DATA/event_tower_explosion.json');
         this.load.json('event_fairy_join', 'files/DATA/event_fairy_join.json');
@@ -382,7 +406,7 @@ export default class BootScene extends Phaser.Scene {
             }
         };
 
-        // ── フォント読み込み完了を待ってからタイトルへ遷移 ──
+        // ── 製作者ロゴ（長沢電子工務店）をしっかり見せる余韻 ＆ OP動画バッファ待機の余裕を持ってからタイトルへ遷移 ──
         let transitioned = false;
         const goToTitle = () => {
             if (transitioned) return;
@@ -391,12 +415,13 @@ export default class BootScene extends Phaser.Scene {
             TransitionManager.transitionTo(this, 'TitleScene');
         };
 
+        // フォントとアセット読み込み完了後、1.5秒ほど余裕を持たせて動画読み込みを確実に完了させる
         document.fonts.ready.then(() => {
-            this.time.delayedCall(200, goToTitle);
+            this.time.delayedCall(1500, goToTitle);
         });
 
-        // フォールバック（フォントイベントが来ない場合でも最大2秒で遷移）
-        this.time.delayedCall(2000, goToTitle);
+        // フォールバック（フォントイベントが来ない場合でも最大3.5秒で遷移）
+        this.time.delayedCall(3500, goToTitle);
     }
 
     /**

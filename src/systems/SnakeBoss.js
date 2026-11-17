@@ -1,4 +1,4 @@
-﻿import { BattleEntity, Bullet, EffectEntity } from './BattleEntities';
+import { BattleEntity, Bullet, EffectEntity } from './BattleEntities';
 
 /**
  * 蛇型ボス（海竜・ウツボ型魔女）

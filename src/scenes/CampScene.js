@@ -254,14 +254,31 @@ export default class CampScene extends Phaser.Scene {
 
 
 
-            // 名前 & Lv
-            const nameText = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
+            // 名前 & Lv（装備等による一時レベル上昇時は赤字表記＆(+Y)）
+            const charLvlBonus = stats.charLevelBonus || 0;
+            const effectiveLvl = charData.level + charLvlBonus;
+            const nameObj = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} `, {
                 stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
             }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
-            this.mainViewContainer.add(nameText);
-            nameText.on('pointerdown', () => {
+            this.mainViewContainer.add(nameObj);
+
+            let levelObj;
+            if (charLvlBonus > 0) {
+                levelObj = this.add.text(nameObj.x + nameObj.width, cy - rowHeight * 0.25, `Lv.${effectiveLvl}(+${charLvlBonus})`, {
+                    stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#ff5555', fontStyle: 'bold'
+                }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+            } else {
+                levelObj = this.add.text(nameObj.x + nameObj.width, cy - rowHeight * 0.25, `Lv.${charData.level}`, {
+                    stroke: '#000000', strokeThickness: 3, fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
+                }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+            }
+            this.mainViewContainer.add(levelObj);
+
+            const onNameOrLvlTap = () => {
                 this.showDetailView(charId, width, height);
-            });
+            };
+            nameObj.on('pointerdown', onNameOrLvlTap);
+            levelObj.on('pointerdown', onNameOrLvlTap);
 
 
             // HPバーとテキスト

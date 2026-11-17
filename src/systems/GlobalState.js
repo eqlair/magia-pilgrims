@@ -194,6 +194,7 @@ export class GlobalState {
         // ── 🧚‍♀️ 妖精リフィエル・周回・デイリー・実績 ──
         this.loopCount = 1;              // 周回数（初期1）
         this.hasMetFairy = false;        // 妖精リフィエル遭遇フラグ
+        this.hasClickedFairyTrade = false; // 🧚‍♀️ 妖精取引初回タップ済みフラグ（案内表示用）
         this.hasNoAdsPass = false;       // 🧚‍♀️ 妖精の祝福（広告スキップVIPパス所持フラグ）
         this.fairyTradeUsage = {};       // 妖精取引の日次利用記録 (tradeKey -> "YYYY-MM-DD")
         this.achievements = {};          // 実績解除データ
@@ -202,6 +203,8 @@ export class GlobalState {
 
         // ── 好感度イベント既読フラグ (charId -> { stage1: bool, stage2: bool }) ──
         this.seenLoveEvents = {};
+        // ── 百合ペアイベント既読フラグ (pairId -> { stage1: bool, stage2: bool }) ──
+        this.seenPairEvents = {};
 
         this.characters = {
             '001': this.createInitialCharData('001', '紫苑', 1),
@@ -1412,6 +1415,7 @@ export class GlobalState {
 
             loopCount: this.loopCount || 1,
             hasMetFairy: this.hasMetFairy || false,
+            hasClickedFairyTrade: this.hasClickedFairyTrade || false,
             achievements: JSON.parse(JSON.stringify(this.achievements || {})),
             dailyQuests: this.dailyQuests ? JSON.parse(JSON.stringify(this.dailyQuests)) : null,
             extraDailyGachaCount: this.extraDailyGachaCount || 0,
@@ -1760,6 +1764,7 @@ export class GlobalState {
 
         // 🧚‍♀️ 妖精・道場・時空館・タワー進行の完全初期化
         this.hasMetFairy = false;
+        this.hasClickedFairyTrade = false;
         this.fairyDailyTrade = null;
         this.fairyTradeTimes = {};
         this.isDojoUnlocked = false;
@@ -1792,6 +1797,7 @@ export class GlobalState {
         this.lastDailyRewardDate = '';
         this.extraDailyGachaCount = 0;
         this.seenLoveEvents = {};
+        this.seenPairEvents = {};
         this.seenEventHistory = [];
 
         // 👥 全キャラクターを完全初期データに再生成（ステータス・装備枠・同行フラグをまっさらに）

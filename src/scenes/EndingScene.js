@@ -1,4 +1,4 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { GlobalState } from '../systems/GlobalState';
 import { RelicGenerator } from '../systems/RelicGenerator';
 import { SaveManager } from '../systems/SaveManager';

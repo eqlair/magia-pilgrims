@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AudioOptimizer.js
  * スマホ(iPhone/Android)内蔵スピーカー向けサウンド最適化システム
  * 

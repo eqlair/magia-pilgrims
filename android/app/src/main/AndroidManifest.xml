@@ -10,6 +10,11 @@
         android:hardwareAccelerated="true"
         android:theme="@style/AppTheme">
 
+        <!-- Google AdMob Application ID (Official Google Test App ID for Development) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -17,6 +22,7 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:screenOrientation="portrait"
+            android:hardwareAccelerated="true"
             android:exported="true">
 
             <intent-filter>

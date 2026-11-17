@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
 import { App } from '@capacitor/app';
+import { KeepAwake } from '@capacitor-community/keep-awake';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { AdMobManager } from './systems/AdMobManager';
+import { PurchaseManager } from './systems/PurchaseManager';
 
 import BootScene from './scenes/BootScene';
 import TitleScene from './scenes/TitleScene';
@@ -147,19 +151,53 @@ window.GlobalState = GlobalState;
 // ── スマホ向けサウンド最適化（85Hzローカット＆ソフトリミッター）初期化 ──
 AudioOptimizer.init(game);
 
-// ── バックグラウンド自動消音・一時停止（App LifeCycle & Web Visibility API）──
-const handleAppPause = () => {
-    console.log('[App] Background paused - stopping audio');
-    if (game && game.sound) {
-        game.sound.pauseAll();
+// ── 📱 Android ネイティブ最適化（スリープ防止 & ステータスバー設定）──
+const enableKeepAwake = async () => {
+    try {
+        await KeepAwake.keepAwake();
+        console.log('[App] KeepAwake enabled');
+    } catch (e) {
+        // Webブラウザ環境など未サポート環境は無視
     }
 };
 
+const disableKeepAwake = async () => {
+    try {
+        await KeepAwake.allowSleep();
+        console.log('[App] KeepAwake allowed sleep');
+    } catch (e) {}
+};
+
+const configureStatusBar = async () => {
+    try {
+        await StatusBar.setStyle({ style: Style.Dark });
+        await StatusBar.setBackgroundColor({ color: '#000000' });
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        console.log('[App] StatusBar configured');
+    } catch (e) {}
+};
+
+// 起動時にネイティブ機能を適用
+enableKeepAwake();
+configureStatusBar();
+AdMobManager.initialize();
+PurchaseManager.initialize();
+
+// ── バックグラウンド自動消音・一時停止（App LifeCycle & Web Visibility API）──
+const handleAppPause = () => {
+    console.log('[App] Background paused - stopping audio & allowing sleep');
+    if (game && game.sound) {
+        game.sound.pauseAll();
+    }
+    disableKeepAwake();
+};
+
 const handleAppResume = () => {
-    console.log('[App] Foreground resumed - resuming audio');
+    console.log('[App] Foreground resumed - resuming audio & enabling keepAwake');
     if (game && game.sound) {
         game.sound.resumeAll();
     }
+    enableKeepAwake();
 };
 
 // 1. Capacitor アプリライフサイクルイベント

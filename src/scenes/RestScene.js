@@ -520,18 +520,35 @@ export default class RestScene extends Phaser.Scene {
                 this.showDetailView(charId, width, height);
             });
 
-            // 名前 & Lv
-            const nameText = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} Lv.${charData.level}`, {
+            // 名前 & Lv（装備等による一時レベル上昇時は赤字表記＆(+Y)）
+            const charLvlBonus = stats.charLevelBonus || 0;
+            const effectiveLvl = charData.level + charLvlBonus;
+            const nameObj = this.add.text(textX, cy - rowHeight * 0.25, `${charData.name} `, {
                 fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
             }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
-            this.mainViewContainer.add(nameText);
-            nameText.on('pointerdown', () => {
+            this.mainViewContainer.add(nameObj);
+
+            let levelObj;
+            if (charLvlBonus > 0) {
+                levelObj = this.add.text(nameObj.x + nameObj.width, cy - rowHeight * 0.25, `Lv.${effectiveLvl}(+${charLvlBonus})`, {
+                    fontFamily: 'sans-serif', fontSize: '24px', color: '#ff5555', fontStyle: 'bold'
+                }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+            } else {
+                levelObj = this.add.text(nameObj.x + nameObj.width, cy - rowHeight * 0.25, `Lv.${charData.level}`, {
+                    fontFamily: 'sans-serif', fontSize: '24px', color: '#ffffff', fontStyle: 'bold'
+                }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+            }
+            this.mainViewContainer.add(levelObj);
+
+            const onNameOrLvlTap = () => {
                 if (charId === '001' && !this.globalState.guideTappedSionFace) {
                     this.globalState.guideTappedSionFace = true;
                     SaveManager.saveGame(this);
                 }
                 this.showDetailView(charId, width, height);
-            });
+            };
+            nameObj.on('pointerdown', onNameOrLvlTap);
+            levelObj.on('pointerdown', onNameOrLvlTap);
 
             // HPバーとテキスト
             const hpY = cy - rowHeight * 0.05;

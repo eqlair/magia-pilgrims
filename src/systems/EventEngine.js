@@ -106,7 +106,7 @@ export class EventEngine {
             case 'chara':     this._showChara(cmd.key, cmd.pos, () => this._processNext(), cmd.alpha !== undefined ? cmd.alpha : 1, cmd); break;
             case 'text':      this._showText(cmd.name, cmd.body || cmd.text);             break; // タップ待ち
             case 'clearText': this._clearText(() => this._processNext());                 break;
-            case 'fadeWhite': this._fadeWhite(cmd.duration || 1000, () => this._processNext()); break;
+            case 'fadeWhite': this._fadeWhite(cmd.duration || 1000, () => this._processNext(), cmd); break;
             case 'bgm':       this._changeBgm(cmd.key, () => this._processNext());        break;
             case 'bgmStop':   this._stopBgm(() => this._processNext());                   break; // フェード完了を待つ
             case 'se':        this._playSe(cmd.key); this._processNext();                 break; // ノンブロッキング
@@ -120,20 +120,50 @@ export class EventEngine {
     }
 
     /** 画面を白くフェードインさせる演出（マップ背景を真っ白に塗りつぶし、その上にイベントCGを描画させる） */
-    _fadeWhite(duration, cb) {
+    _fadeWhite(duration, cb, cmd = {}) {
         const { width, height } = this.scene.scale;
         if (this.whiteRect) {
             this.whiteRect.destroy();
             this.whiteRect = null;
         }
+        const depth = cmd.depth !== undefined ? cmd.depth : 5001;
         // 背景(5000)の上、イベントCG(5005)の下のレイヤー(5001)にホワイトアウト背景を作成
         this.whiteRect = this.scene.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0xffffff)
             .setAlpha(this.isFastForward ? 1 : 0)
-            .setDepth(5001);
+            .setDepth(depth);
+
+        // 同時にフェードアウトさせる立ち絵の判定（'left', 'right', 'both', 'all'）
+        const fadeCharas = [];
+        if (cmd.fadeChara === 'left' || cmd.fadeChara === 'both' || cmd.fadeChara === 'all') {
+            if (this.charaLeft) fadeCharas.push(this.charaLeft);
+        }
+        if (cmd.fadeChara === 'right' || cmd.fadeChara === 'both' || cmd.fadeChara === 'all') {
+            if (this.charaRight) fadeCharas.push(this.charaRight);
+        }
 
         if (this.isFastForward) {
+            fadeCharas.forEach(c => {
+                if (c === this.charaLeft) this.charaLeft = null;
+                if (c === this.charaRight) this.charaRight = null;
+                try { c.destroy(); } catch(e){}
+            });
             if (cb) cb();
             return;
+        }
+
+        if (fadeCharas.length > 0) {
+            this.scene.tweens.add({
+                targets: fadeCharas,
+                alpha: 0,
+                duration: duration,
+                onComplete: () => {
+                    fadeCharas.forEach(c => {
+                        if (c === this.charaLeft) this.charaLeft = null;
+                        if (c === this.charaRight) this.charaRight = null;
+                        try { c.destroy(); } catch(e){}
+                    });
+                }
+            });
         }
 
         this.scene.tweens.add({
@@ -368,29 +398,39 @@ export class EventEngine {
             return;
         }
 
-        const isHexMapBg = key && (
-            key.startsWith('bg_img_') ||
-            key.startsWith('tower_bg_') ||
-            key.startsWith('map_img_') ||
-            key.startsWith('ikebukuro') ||
-            key.startsWith('bg_resp')
+        let actualKey = key;
+        if (key && !this.scene.textures.exists(key)) {
+            const alt1 = key.endsWith('.webp') ? key.replace(/\.webp$/, '.jpg') : key.replace(/\.jpg$/, '.webp');
+            const alt2 = key.replace(/_/g, '');
+            if (this.scene.textures.exists(alt1)) actualKey = alt1;
+            else if (this.scene.textures.exists(alt2)) actualKey = alt2;
+            else if (this.scene.textures.exists('bg_map_base')) actualKey = 'bg_map_base';
+            else actualKey = null; // 黒背景にフォールバック（緑枠Missing Texture防止）
+        }
+
+        const isHexMapBg = actualKey && (
+            actualKey.startsWith('bg_img_') ||
+            actualKey.startsWith('tower_bg_') ||
+            actualKey.startsWith('map_img_') ||
+            actualKey.startsWith('ikebukuro') ||
+            actualKey.startsWith('bg_resp')
         );
 
         let newBg;
-        if (!key) {
-            // keyがnullまたは未指定の場合は真っ黒な矩形（黒背景）を生成
+        if (!actualKey) {
+            // keyがnullまたは未指定（あるいは存在しない）の場合は真っ黒な矩形（黒背景）を生成
             newBg = this.scene.add.rectangle(screenW / 2, screenH / 2, screenW, screenH, 0x000000)
                 .setDepth(this.DEPTH)
                 .setAlpha(0);
         } else if (isHexMapBg) {
             // ヘックス画像を背景としたマップ上の対話画面: 画面上部中央を支点に 0.8倍
-            newBg = this.scene.add.image(screenW / 2, 0, key)
+            newBg = this.scene.add.image(screenW / 2, 0, actualKey)
                 .setOrigin(0.5, 0)
                 .setDepth(this.DEPTH)
                 .setAlpha(0)
                 .setScale(0.8);
         } else {
-            newBg = this.scene.add.image(screenW / 2, screenH / 2, key)
+            newBg = this.scene.add.image(screenW / 2, screenH / 2, actualKey)
                 .setDepth(this.DEPTH)
                 .setAlpha(0);
 
@@ -463,48 +503,98 @@ export class EventEngine {
     }
 
     _doShowIllust(key, cb) {
-        if (!key) { cb(); return; }
-        const img = this.scene.add.image(this.W / 2, this.H / 2, key)
-            .setOrigin(0.5, 1)
-            .setDepth(this.DEPTH + 1)
-            .setAlpha(this.isFastForward ? 1 : 0);
-        img.y = this.H / 2;
-        img.setScale(this.W / (img.width || 1));
+        if (!key) { if (cb) cb(); return; }
 
-        // テクスチャ未キャッシュ時のフォールバック＆オンデマンド救済（Missing Texture緑枠防止）
-        if (!this.scene.textures.exists(key)) {
-            console.warn(`[EventEngine] Illust texture "${key}" not in cache. Attempting on-demand load.`);
-            const cleanKey = key.replace(/^bg_/, '');
-            const candidatePaths = [
-                `files/event/${cleanKey}.webp`,
-                `files/event/${key}.webp`,
-                `files/MAP/${cleanKey}.webp`
-            ];
-            const loadPath = candidatePaths[0];
-            try {
-                this.scene.load.image(key, loadPath);
-                this.scene.load.once('complete', () => {
-                    if (img && img.scene && this.scene.textures.exists(key)) {
-                        img.setTexture(key);
-                        img.setScale(this.W / (img.width || 1));
-                    }
-                });
-                if (!this.scene.load.isLoading()) {
-                    this.scene.load.start();
-                }
-            } catch(e) {}
-        }
+        const createAndShowImage = (texKey) => {
+            if (this._destroyed) return;
+            const img = this.scene.add.image(this.W / 2, this.H / 2, texKey)
+                .setOrigin(0.5, 1)
+                .setDepth(this.DEPTH + 1)
+                .setAlpha(this.isFastForward ? 1 : 0);
+            img.y = this.H / 2;
+            img.setScale(this.W / (img.width || 1));
 
-        if (this.isFastForward) {
-            this.illustImage = img;
-            if (cb) cb();
+            if (this.isFastForward) {
+                this.illustImage = img;
+                if (cb) cb();
+                return;
+            }
+
+            this.scene.tweens.add({
+                targets: img, alpha: 1, duration: 500,
+                onComplete: () => { this.illustImage = img; if (cb) cb(); }
+            });
+        };
+
+        // 1. キャッシュに既に存在する場合
+        if (this.scene.textures.exists(key)) {
+            createAndShowImage(key);
             return;
         }
 
-        this.scene.tweens.add({
-            targets: img, alpha: 1, duration: 500,
-            onComplete: () => { this.illustImage = img; cb(); }
-        });
+        // キーのバリエーションチェック（アンダースコア有無など）
+        const noUnderKey = key.replace(/_/g, '');
+        if (this.scene.textures.exists(noUnderKey)) {
+            createAndShowImage(noUnderKey);
+            return;
+        }
+
+        // 2. キャッシュにない場合：ロード完了を「しっかり待つ」（緑枠Missing Texture防止）
+        console.warn(`[EventEngine] Illust texture "${key}" not in cache. Loading on-demand...`);
+        const cleanKey = key.replace(/^bg_/, '');
+        const candidatePaths = [
+            `files/event/${noUnderKey}.webp`,
+            `files/event/${key}.webp`,
+            `files/event/${cleanKey}.webp`,
+            `files/event2/${key}.jpg`,
+            `files/event2/${cleanKey}.jpg`,
+            `files/MAP/${cleanKey}.webp`
+        ];
+
+        // 候補パスを順番に試行してロードする再帰ヘルパー
+        let candidateIndex = 0;
+        const tryNextLoad = () => {
+            if (this._destroyed) return;
+            if (candidateIndex >= candidatePaths.length) {
+                console.error(`[EventEngine] Failed to load illust "${key}" from all candidates.`);
+                // 見つからなかった場合は緑枠を出さずに空のままコールバック
+                if (cb) cb();
+                return;
+            }
+
+            const currentPath = candidatePaths[candidateIndex++];
+            const tempKey = key;
+
+            // ロード完了リスナー
+            const onLoadComplete = () => {
+                this.scene.load.off(`filecomplete-image-${tempKey}`, onLoadComplete);
+                this.scene.load.off('loaderror', onLoadError);
+                createAndShowImage(tempKey);
+            };
+
+            // ロード失敗リスナー
+            const onLoadError = (fileObj) => {
+                if (fileObj && fileObj.key === tempKey) {
+                    this.scene.load.off(`filecomplete-image-${tempKey}`, onLoadComplete);
+                    this.scene.load.off('loaderror', onLoadError);
+                    tryNextLoad();
+                }
+            };
+
+            this.scene.load.once(`filecomplete-image-${tempKey}`, onLoadComplete);
+            this.scene.load.once('loaderror', onLoadError);
+
+            try {
+                this.scene.load.image(tempKey, currentPath);
+                if (!this.scene.load.isLoading()) {
+                    this.scene.load.start();
+                }
+            } catch (e) {
+                tryNextLoad();
+            }
+        };
+
+        tryNextLoad();
     }
 
     // ─────────────────────────────────────────────────────
@@ -537,6 +627,13 @@ export class EventEngine {
         const scaleMult = (cmd && cmd.scaleMultiplier !== undefined) ? cmd.scaleMultiplier : (isFairy ? 0.38 : 1.0);
         const yOffset = (cmd && cmd.yOffset !== undefined) ? cmd.yOffset : (isFairy ? -60 : 0);
         const targetY = (this.H / 2) + yOffset;
+
+        // テクスチャがキャッシュにない場合のMissing Texture（緑枠）防止
+        if (!this.scene.textures.exists(textureKey)) {
+            console.warn(`[EventEngine] Character texture "${textureKey}" not in cache. Skipping visual to prevent green frame.`);
+            if (cb) cb();
+            return;
+        }
 
         const chara = this.scene.add.image(startX, targetY, textureKey)
             .setDepth(this.DEPTH + 2).setAlpha(0);

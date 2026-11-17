@@ -141,8 +141,8 @@ export default class FormationScene extends Phaser.Scene {
         });
 
         // 画面上部に説明文
-        this.add.text(width / 2, height * 0.15, '上下スワイプ：前衛・後衛\n左右スワイプ：レーン移動', {
-            fontFamily: 'sans-serif', fontSize: '20px', color: '#aaaaaa', align: 'center'
+        this.add.text(width / 2, height * 0.15, '上下スワイプ：前衛・後衛\n左右スワイプ：レーン移動\nAUTOオンのレーンのキャラクターは\n自己判断で動き、スキルも発動する。', {
+            fontFamily: 'sans-serif', fontSize: '18px', color: '#aaaaaa', align: 'center', lineSpacing: 4
         }).setOrigin(0.5, 0);
 
         // ── 前衛と後衛の中間（Z = 8.0）に各レーンの「AUTO」ボタンを配置 ──

@@ -199,7 +199,12 @@ export class BattleRenderer {
 
             if (textureKey) {
                 this._updateSprite(b, textureKey);
-                if (b.type === 'special_barrier_011' || b.type === 'ultimate_011' || b.type === 'ultimate_burst_field_011' || b.type === 'special_barrier_010' || b.type === 'ultimate_010' || (b.type && b.type.includes('barrier') && !b.type.includes('ice'))) {
+                if (b.type === 'weapon_004_ribbon') {
+                    const sprite = this.spriteMap.get(b);
+                    if (sprite) {
+                        sprite.setBlendMode(Phaser.BlendModes.ADD);
+                    }
+                } else if (b.type === 'special_barrier_011' || b.type === 'ultimate_011' || b.type === 'ultimate_burst_field_011' || b.type === 'special_barrier_010' || b.type === 'ultimate_010' || (b.type && b.type.includes('barrier') && !b.type.includes('ice'))) {
                     const sprite = this.spriteMap.get(b);
                     if (sprite) {
                         sprite.setTint(0x00ffff);
@@ -1190,6 +1195,9 @@ export class BattleRenderer {
                         const dt = (this.scene.game.loop.delta / 1000);
                         entity.spinAngle = (entity.spinAngle || 0) + entity.spinSpeed * dt;
                         sprite.setAngle(entity.spinAngle * 180 / Math.PI);
+                        if (entity.type === 'weapon_004_ribbon') {
+                            sprite.setBlendMode(Phaser.BlendModes.ADD);
+                        }
                     } else {
                         // 通常の飛ぶ武器
                         if (textureKey === 'weapon_009' || entity.type === 'weapon_009') {
@@ -1538,6 +1546,7 @@ export class BattleRenderer {
             } else if (eff.type === 'slash_hit') {
                 obj = this.scene.add.sprite(0, 0, 'slash');
                 obj.setOrigin(0.5, 1.0); // 横長だけどグラフィック上側が先端。下側が手前
+                obj.setBlendMode(Phaser.BlendModes.ADD); // 加算合成（鮮やかな発光軌跡）
                 obj.setDepth(2500);
             } else if (eff.type === 'buff_circle' || eff.type === 'barrier_hit' || eff.type === 'ultimate_burst_010' || eff.type === 'ultimate_burst_009') {
                 obj = this.scene.add.sprite(0, 0, 'nrg');
@@ -1586,6 +1595,7 @@ export class BattleRenderer {
                 if (custom.color !== undefined) {
                     obj.setTint(custom.color);
                 }
+                obj.setBlendMode(Phaser.BlendModes.ADD);
 
                 // 2.5Dプロジェクション画面ピクセル上での確実な視覚角度を計算
                 let angleDeg = 0;
@@ -1809,11 +1819,13 @@ export class BattleRenderer {
             
             const graphics = obj;
             graphics.clear();
+            graphics.setBlendMode(Phaser.BlendModes.NORMAL);
             
             // 半径をmからピクセルに変換
             const radiusPx = eff.radius * p.scale;
             
             if (eff.type === 'weapon_004_ribbon') {
+                graphics.setBlendMode(Phaser.BlendModes.ADD); // ★黄蘭必殺技の黄色い棒を加算合成
                 // 黄色いリボンが急速に伸びて、根本から消えていく
                 const logicalLength = 25.0; // 論理的な長さ(25m)
                 const maxPxLength = logicalLength * p.scale;

@@ -225,12 +225,14 @@ export class CharacterDetailHelper {
 
         pageContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
         
-        const displayLevel = isJikukan ? (stats ? stats.level : (globalState.jikukanState?.sharedLevel || 1)) : charData.level;
+        const rawLevel = isJikukan ? (stats ? stats.level : (globalState.jikukanState?.sharedLevel || 1)) : charData.level;
         const lvlBonus = isJikukan ? 0 : (stats.charLevelBonus || 0);
-        const levelTxt = scene.add.text(rx + 150, ry + 6, `Lv.${displayLevel}`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#aaffaa' });
+        const displayLevel = rawLevel + lvlBonus;
+        const levelColor = lvlBonus > 0 ? '#ff5555' : '#aaffaa';
+        const levelTxt = scene.add.text(rx + 150, ry + 6, `Lv.${displayLevel}`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: levelColor });
         pageContainer.add(levelTxt);
         if (lvlBonus > 0) {
-            const bonusTxt = scene.add.text(levelTxt.x + levelTxt.width + 4, ry + 6, `(+${lvlBonus})`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#ff9900' });
+            const bonusTxt = scene.add.text(levelTxt.x + levelTxt.width + 4, ry + 6, `(+${lvlBonus})`, { stroke: '#000000', strokeThickness: 3, fontSize: '24px', color: '#ff5555' });
             pageContainer.add(bonusTxt);
         }
         if (isJikukan) {

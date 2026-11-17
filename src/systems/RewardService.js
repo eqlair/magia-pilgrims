@@ -1,4 +1,6 @@
 import { GlobalState } from './GlobalState.js';
+import { AdMobManager } from './AdMobManager.js';
+import { Capacitor } from '@capacitor/core';
 
 /**
  * RewardService.js
@@ -27,9 +29,32 @@ export class RewardService {
             return;
         }
 
-        // 将来ネイティブ（Cordova / Capacitor）環境なら AdMob プラグイン等を呼ぶ
-        if (window.Capacitor && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('AdMob')) {
-            console.log('[RewardService] Native reward requested');
+        // ネイティブ（Android / Capacitor）環境なら AdMob リワード広告を表示
+        if (Capacitor.isNativePlatform()) {
+            console.log('[RewardService] Native AdMob reward requested');
+            AdMobManager.showRewardVideo({
+                onReward: () => {
+                    console.log('[RewardService] Native AdMob onReward triggered');
+                    if (scene && scene.showToast) {
+                        scene.showToast(`✨ 特典を獲得しました！\n（${rewardDescription}）`);
+                    }
+                    if (typeof onReward === 'function') {
+                        onReward();
+                    }
+                },
+                onClose: (rewarded) => {
+                    console.log('[RewardService] Native AdMob closed, rewarded:', rewarded);
+                    if (!rewarded && typeof onClose === 'function') {
+                        onClose();
+                    }
+                },
+                onFail: (err) => {
+                    console.warn('[RewardService] Native AdMob failed, fallback to simulation:', err);
+                    // 広告ロード失敗時はユーザー体験を損なわないよう演出シミュレーションにフォールバック
+                    this._showWebRewardModal(scene, { title, rewardDescription, onReward, onClose });
+                }
+            });
+            return;
         }
 
         // Web環境・テスト環境：妖精リフィエルの異次元アクセス動画シミュレーション

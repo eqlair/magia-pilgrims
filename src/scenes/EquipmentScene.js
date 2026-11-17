@@ -42,9 +42,9 @@ export default class EquipmentScene extends Phaser.Scene {
         }).setInteractive();
         backBtn.on('pointerdown', () => this.closeScene());
 
-        // Layout Containers
-        this.topContainer = this.add.container(0, 70); // 1/5 (Equipped)
-        this.midContainer = this.add.container(0, 260); // 1/5 (Selected)
+        // Layout Containers (上部・中部はスクロール侵入を防ぐため depth: 10)
+        this.topContainer = this.add.container(0, 70).setDepth(10); // 1/5 (Equipped)
+        this.midContainer = this.add.container(0, 260).setDepth(10); // 1/5 (Selected)
         this.bottomContainer = this.add.container(0, 420); // 3/5 (Inventory)
 
         // States
@@ -205,13 +205,27 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     drawItemDetail(container, title, item, isEquipped, index, isTopSection) {
-        container.add(this.add.text(20, 0, title, { fontSize: '20px', color: '#aaaaaa', padding: { top: 4, bottom: 4 } }));
+        const panelW = this.width - 40;
+        const panelH = isTopSection ? 175 : 145;
+        const panelX = 20;
+        const panelY = -5;
+
+        // 🎨 色の枠パネル（装備品：クールブルー枠 / 選択中：ティールグリーン枠）
+        const bgColor = isTopSection ? 0x121e33 : 0x14242e;
+        const strokeColor = isTopSection ? 0x3d70b2 : 0x33887a;
+        const titleColor = isTopSection ? '#88bbee' : '#77ccee';
+
+        const panelBg = this.add.rectangle(panelX + panelW / 2, panelY + panelH / 2, panelW, panelH, bgColor, 0.75)
+            .setStrokeStyle(2, strokeColor, 0.95);
+        container.add(panelBg);
+
+        container.add(this.add.text(28, 2, title, { fontSize: '18px', color: titleColor, fontStyle: 'bold', padding: { top: 2, bottom: 2 } }));
         
         if (!item && isTopSection) {
-             container.add(this.add.text(30, 40, '--- 空き ---', { fontSize: '18px', color: '#555555', padding: { top: 4, bottom: 4 } }));
+             container.add(this.add.text(35, 45, '--- 空き ---', { fontSize: '18px', color: '#555555', padding: { top: 4, bottom: 4 } }));
              return;
         } else if (!item && !isTopSection) {
-             container.add(this.add.text(30, 40, 'アイテムが選択されていません', { fontSize: '18px', color: '#777777', padding: { top: 4, bottom: 4 } }));
+             container.add(this.add.text(35, 45, 'アイテムが選択されていません', { fontSize: '18px', color: '#777777', padding: { top: 4, bottom: 4 } }));
              return;
         }
 
@@ -486,7 +500,13 @@ export default class EquipmentScene extends Phaser.Scene {
     drawBottomSection() {
         // インベントリ一覧 (3/5)
         const headerY = 0;
-        this.bottomContainer.add(this.add.text(20, headerY, '【インベントリ】', { fontSize: '20px', color: '#aaaaaa', padding: { top: 4, bottom: 4 } }));
+        const listTopOffset = 38; // ボタン類の下からスクロール開始
+
+        // 固定ヘッダー（【インベントリ】、レイアウト、合成、並べ替え）を前面（depth: 20）に配置
+        const headerContainer = this.add.container(0, 0).setDepth(20);
+        this.bottomContainer.add(headerContainer);
+
+        headerContainer.add(this.add.text(20, headerY, '【インベントリ】', { fontSize: '20px', color: '#aaaaaa', padding: { top: 4, bottom: 4 } }));
 
         // レイアウト変更ボタン
         const layoutBtn = this.add.text(175, headerY, 'レイアウト', { fontSize: '16px', backgroundColor: '#333333', padding: { x: 6, y: 4 } }).setInteractive();
@@ -494,36 +514,37 @@ export default class EquipmentScene extends Phaser.Scene {
             this.expandedLayout = !this.expandedLayout;
             this.drawUI();
         });
-        this.bottomContainer.add(layoutBtn);
+        headerContainer.add(layoutBtn);
 
         // 合成ボタン（レリクス・宝石共通）
         const synthBtn = this.add.text(275, headerY, '合成', { fontSize: '16px', backgroundColor: '#552288', padding: { x: 8, y: 4 } }).setInteractive();
         synthBtn.on('pointerdown', () => this.executeSynthesis());
-        this.bottomContainer.add(synthBtn);
+        headerContainer.add(synthBtn);
 
         // 並べ替えボタン
         const sortBtn = this.add.text(340, headerY, '🔄 並べ替え', { fontSize: '16px', backgroundColor: '#225544', padding: { x: 8, y: 4 } }).setInteractive();
         sortBtn.on('pointerdown', () => this.openSortDialog());
-        this.bottomContainer.add(sortBtn);
+        headerContainer.add(sortBtn);
 
         // インベントリの並べ替えを適用
         this.applySortToInventory();
 
         const items = this.getInventoryItems();
         if (items.length === 0) {
-            this.bottomContainer.add(this.add.text(30, 40, '所持アイテムがありません', { fontSize: '18px', color: '#777777', padding: { top: 4, bottom: 4 } }));
+            headerContainer.add(this.add.text(30, 40, '所持アイテムがありません', { fontSize: '18px', color: '#777777', padding: { top: 4, bottom: 4 } }));
             return;
         }
 
-        // Scrollable list simulation (WebGL対応マスク ＋ 上下2ページ仮想スクロール)
-        const listHeight = this.height - 420 - 20;
-        const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
+        // Scrollable list simulation (WebGL対応マスク ＋ 正確なカリング)
+        const listHeight = this.height - (420 + listTopOffset) - 15;
+        const maskShape = this.add.graphics();
         maskShape.fillStyle(0xffffff, 1);
-        maskShape.fillRect(20, 420 + 30, this.width - 40, listHeight);
+        maskShape.fillRect(20, 420 + listTopOffset, this.width - 40, listHeight);
+        maskShape.setVisible(false);
         
         const mask = maskShape.createGeometryMask();
         
-        const scrollContainer = this.add.container(0, 40);
+        const scrollContainer = this.add.container(0, listTopOffset);
         this.bottomContainer.add(scrollContainer);
         scrollContainer.setMask(mask);
 
@@ -542,6 +563,7 @@ export default class EquipmentScene extends Phaser.Scene {
         scrollContainer.add(touchHitArea);
 
         const itemsContainer = this.add.container(0, this.inventoryScrollY);
+        itemsContainer.setMask(mask);
         scrollContainer.add(itemsContainer);
 
         // スワイプ判定用変数
@@ -552,12 +574,12 @@ export default class EquipmentScene extends Phaser.Scene {
         let lastStartIdx = -1;
         let lastEndIdx = -1;
 
-        // 仮想スクロール描画関数 (上下1.5〜2ページ分のバッファ範囲のみGameObjectsを生成)
+        // 仮想スクロール描画関数 (上方向バッファ0で上部への突き抜けを完全防止)
         const renderVisibleItems = (force = false) => {
             const currentScrollY = -itemsContainer.y;
-            const buffer = listHeight * 1.5; // 上下1.5〜2ページ分のバッファ
-            const startIdx = Math.max(0, Math.floor((currentScrollY - buffer) / bgHeight));
-            const endIdx = Math.min(items.length, Math.ceil((currentScrollY + listHeight + buffer) / bgHeight));
+            // 上方向のバッファを0にすることで、表示領域より上のアイテムは一切生成せずヘッダーや枠への重なりを完全遮断！
+            const startIdx = Math.max(0, Math.floor(currentScrollY / bgHeight));
+            const endIdx = Math.min(items.length, Math.ceil((currentScrollY + listHeight) / bgHeight) + 1);
 
             if (!force && startIdx === lastStartIdx && endIdx === lastEndIdx) return;
             lastStartIdx = startIdx;
@@ -671,15 +693,15 @@ export default class EquipmentScene extends Phaser.Scene {
         // 初回描画
         renderVisibleItems(true);
 
-        // ── スマホ用右端 ページ送り (▲ / ▼) ボタンの追加 ──
+        // ── スマホ用右端 ページ送り (▲ / ▼) ボタンの追加 (前面 depth: 20 に配置) ──
         const scrollBtnX = this.width - 35;
-        const btnUp = this.add.text(scrollBtnX, 45, '▲\n上', {
+        const btnUp = this.add.text(scrollBtnX, listTopOffset + 5, '▲\n上', {
             fontSize: '18px', color: '#ffffff', backgroundColor: '#225533', align: 'center', fontStyle: 'bold', padding: { x: 10, y: 10 }
-        }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+        }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true }).setDepth(20);
 
-        const btnDown = this.add.text(scrollBtnX, listHeight - 10, '▼\n下', {
+        const btnDown = this.add.text(scrollBtnX, listTopOffset + listHeight - 5, '▼\n下', {
             fontSize: '18px', color: '#ffffff', backgroundColor: '#225533', align: 'center', fontStyle: 'bold', padding: { x: 10, y: 10 }
-        }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+        }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true }).setDepth(20);
 
         this.bottomContainer.add(btnUp);
         this.bottomContainer.add(btnDown);
@@ -872,6 +894,7 @@ export default class EquipmentScene extends Phaser.Scene {
 
         this.enhanceMode = false;
         this.enhanceMaterials = [];
+        const upgradedItem = this.enhanceBaseItem;
         this.enhanceBaseItem = null;
         this.selectedItem = null; // deselect to refresh
 
@@ -883,20 +906,51 @@ export default class EquipmentScene extends Phaser.Scene {
             this.sound.play('se_powerup');
         }
 
+        if (upgradedItem) {
+            this.selectItemInInventory(upgradedItem);
+            this.showToast(`『${upgradedItem.name}』を手に入れた`);
+        }
+
         this.drawUI();
+    }
+
+    selectItemInInventory(item) {
+        if (!item) return;
+        this.applySortToInventory();
+        const items = this.getInventoryItems();
+        const index = items.indexOf(item);
+        this.selectedItem = { item, isEquipped: false, index: index !== -1 ? index : 0 };
+        
+        // リスト内の表示位置に合わせてスクロール位置を調整
+        if (index !== -1) {
+            const itemSpacing = 35;
+            const bgHeight = this.expandedLayout ? itemSpacing + 25 : itemSpacing;
+            const listTopOffset = 38;
+            const listHeight = this.height - (420 + listTopOffset) - 15;
+            const totalHeight = items.length * bgHeight;
+            const minY = Math.min(0, listHeight - totalHeight);
+            const targetY = - (index * bgHeight) + (listHeight / 2) - (bgHeight / 2);
+            this.inventoryScrollY = Math.max(minY, Math.min(0, targetY));
+        }
     }
 
     showToast(message) {
         const toast = this.add.text(this.width / 2, this.height - 100, message, {
-            fontSize: '20px', backgroundColor: '#000000', color: '#ffffff', padding: { x: 20, y: 10 }
-        }).setOrigin(0.5).setAlpha(0).setDepth(100);
+            fontSize: '20px',
+            backgroundColor: '#111827ee',
+            color: '#ffea00',
+            stroke: '#000000',
+            strokeThickness: 3,
+            fontStyle: 'bold',
+            padding: { x: 24, y: 12 }
+        }).setOrigin(0.5).setAlpha(0).setDepth(30000);
 
         this.tweens.add({
             targets: toast,
             alpha: 1,
             duration: 300,
             yoyo: true,
-            hold: 2000,
+            hold: 2200,
             onComplete: () => toast.destroy()
         });
     }
@@ -995,8 +1049,13 @@ export default class EquipmentScene extends Phaser.Scene {
         this.synthConsumed = null;
         this.synthTargetRank = -1;
         this.synthConfirmMode = false;
-        this.selectedItem = null;
         this.enhanceMode = false;
+
+        if (createdItem) {
+            this.selectItemInInventory(createdItem);
+            this.showToast(`『${createdItem.name}』を手に入れた`);
+        }
+
         this.drawUI();
 
         // 合成結果モーダルを表示（妖精取引による引き直し付き）
@@ -1026,8 +1085,8 @@ export default class EquipmentScene extends Phaser.Scene {
         cardBg.strokeRoundedRect(cardX - cardW / 2, cardY - cardH / 2, cardW, cardH, 16);
         modalContainer.add(cardBg);
 
-        const titleTxt = this.add.text(cardX, cardY - cardH / 2 + 25, '✨ 合成完了！', {
-            fontSize: '22px', fontStyle: 'bold', color: '#ffea00'
+        const titleTxt = this.add.text(cardX, cardY - cardH / 2 + 25, `✨ 『${currentItem.name}』を手に入れた！`, {
+            fontSize: '18px', fontStyle: 'bold', color: '#ffea00'
         }).setOrigin(0.5);
         modalContainer.add(titleTxt);
 
@@ -1149,6 +1208,8 @@ export default class EquipmentScene extends Phaser.Scene {
 
                         renderItemDetail(currentItem);
                         renderRerollBtn();
+                        titleTxt.setText(`✨ 『${currentItem.name}』を手に入れた！`);
+                        this.selectItemInInventory(currentItem);
                         this.drawUI();
                     }
                 });
@@ -1166,6 +1227,8 @@ export default class EquipmentScene extends Phaser.Scene {
 
         okBtn.on('pointerdown', () => {
             modalContainer.destroy();
+            this.selectItemInInventory(currentItem);
+            this.showToast(`『${currentItem.name}』を手に入れた`);
             this.drawUI();
         });
         modalContainer.add(okBtn);

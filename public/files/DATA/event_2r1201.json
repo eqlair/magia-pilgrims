@@ -1,4 +1,4 @@
-﻿[
+[
   { "cmd": "bg", "key": "bg_tokyo_d7" },
   { "cmd": "chara", "key": "portrait_001", "pos": "right" },
   { "cmd": "text", "name": "紫苑", "body": "「……」" },

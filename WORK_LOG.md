@@ -4,6 +4,224 @@
 
 ---
 
+## 2026-11-16: 装備管理画面（レリクス・宝石）の「装備中」「選択中」色枠パネル化 & スクロール時の突き抜け・被さり防止改修
+
+### 1. ユーザー指示内容
+1. 装備メニュー（レリクス・宝石共通）に文字が多く見づらいため、色の枠（パネル背景＋枠線）を付けて「ここは装備品」「ここは選択した装備」と一目で分かるようにする。
+2. スクロール時に画面全体を埋め尽くしてボタン（レイアウト・合成・並べ替え）や上部の詳細枠を隠してしまう不具合を解消し、枠やボタン類の下をくぐるように綺麗にスクロールさせる。
+3. 宝石類（ジェム管理画面）に関しても全く同様に対応する。
+
+### 2. 調査・発見した原因（Why & What）
+1. **画面のメリハリ不足**:
+   - `topContainer`（装備中）および `midContainer`（選択中）に背景枠がなく、黒背景の上にテキストが並んでいるだけで視覚的な区切りがなかった。
+2. **スクロール突き抜けの根本原因**:
+   - `renderVisibleItems` の仮想スクロール計算にて、`startIdx` が上方向に `listHeight * 1.5`（約600px以上）もの過大なバッファを持っていた。
+   - その結果、上方向にスクロールした際に、表示領域よりはるか上にあるアイテムまでゲームオブジェクトとして生成されてしまい、Phaserのジオメトリマスクの処理不全と相まって、画面上端までアイテムが丸見えになってボタンや詳細枠を埋め尽くしていた。
+
+### 3. 実施した対策・変更内容（How）
+1. **「装備中」「選択中」の色枠パネル化**:
+   - `src/scenes/EquipmentScene.js` の `drawItemDetail` にて：
+     - **【装備中アイテム詳細】**: 幅 `width - 40`、高さ 175px、ダークブルー背景（`0x121e33`, alpha 0.75）＋クールブルー枠線（`0x3d70b2`, 2px）＋スカイブルータイトル（`#88bbee`）。
+     - **【選択中アイテム詳細】**: 幅 `width - 40`、高さ 145px、ダークティール背景（`0x14242e`, alpha 0.75）＋エメラルド枠線（`0x33887a`, 2px）＋アクアグリーンタイトル（`#77ccee`）。
+     - 未選択時・装備なし時も枠内に綺麗に収まり、三段構造が直感的に識別可能に。
+2. **スクロール領域の厳格カリング & 前面保護**:
+   - `renderVisibleItems` の `startIdx` を `Math.max(0, Math.floor(currentScrollY / bgHeight))` に修正。上端より上のアイテムは一切生成（DOM化）させず、物理的に突き抜けない構造に改修。
+   - 【インベントリ】タイトル、レイアウト・合成・並べ替えボタン、ページ送りボタン（▲/▼）を前面（`depth: 20`）に配置。
+   - `topContainer`、`midContainer` にも `depth: 10` を設定。
+   - マスク範囲をボタンのすぐ下（`420 + 38`）から開始するよう厳密に調整し、アイテムがボタンの下へスッと吸い込まれるようにクリッピング。
+3. **レリクス・宝石共通適用**:
+   - `EquipmentScene.js` 全体の改修により、レリクス管理画面・宝石管理画面の双方で完全に同一の洗練されたUIとスクロールが機能。
+
+---
+
+## 2026-11-16: 妖精リフィエル遭遇後の取引ボタン案内テキスト（「←ここから妖精との取引ができます」明滅アピール）実装
+
+### 1. ユーザー指示内容
+1. 2周目で妖精リフィエル遭遇イベントを見た後、マップ画面に戻った際に、妖精さんアイコンの右側に「←ここから妖精との取引ができます」と表示する。
+2. 初めてクリックするまでの間、明滅（パルス/点滅アニメーション）して目立たせておく。
+3. 初めてクリックした時点で案内テキストを消去し、以降は表示しない。
+
+### 2. 調査・設計内容（Why & What）
+1. **初回取引フラグの設計**:
+   - `GlobalState.js` および `SaveManager.js` に `hasClickedFairyTrade`（初期値 `false`）を新設し、セーブ・ロードに対応。
+2. **UIとアニメーションの設計**:
+   - `AdventureScene.js` の `_createFairyButton` 内で、妖精アイコン（幅54px）の右側（`targetW + 8`）に視認性の高いフキダシ風テキスト（`fontFamily: FONT_MAIN`, `#ffff55`, 黒縁取り, 暗紫背景）を配置。
+   - `tweens.add` により `alpha: 0.25`、`duration: 750ms`、`yoyo: true`、`repeat: -1` の滑らかなサイン波明滅を設定。
+3. **クリック時および復帰時制御**:
+   - ボタンがタップされた瞬間に `gs.hasClickedFairyTrade = true` に設定し、Tweenを停止・テキストを破棄して即時セーブ。
+   - `container.updateStatus` でも状態を連動させ、イベントから復帰した際に未クリックなら確実に表示・明滅を開始。
+
+### 3. 実施した対策・変更内容（How）
+1. `src/systems/GlobalState.js`:
+   - `hasClickedFairyTrade` フラグの初期化、エクスポートデータ、リセット処理を追加。
+2. `src/systems/SaveManager.js`:
+   - `hasClickedFairyTrade` の保存および読み込み復元処理を追加。
+3. `src/scenes/AdventureScene.js`:
+   - `_createFairyButton` 内に `showGuide` / `hideGuide` メソッドを実装し、明滅Tweenとタップ時の永続消去処理を追加。
+
+---
+
+## 2026-11-16: 近接斬撃軌跡エフェクトおよび黄蘭必殺技（伸びる黄色い棒・舞うリボン）の加算合成（BlendModes.ADD）化
+
+### 1. ユーザー指示内容
+1. 蒼樹（002）、紅華（003）、黄蘭（004）の近接攻撃のときの斬撃エフェクト（赤や青、黄色の弧状の軌跡エフェクト）を加算合成（BlendModes.ADD）にして発光させる。
+   - ※剣や槍、リボンステッキそのものの武器スプライトは現状の通常描画のまま維持。
+2. 黄蘭（004）の必殺技で垂直からV字に伸びる「黄色い棒」と、その後に周囲へ舞い散る「リボン」を加算合成にする。
+
+### 2. 調査・発見した内容（Why & What）
+1. **近接斬撃エフェクト（赤・青・黄の軌跡）**:
+   - `src/systems/BattleEngine.js` L4235 にて、近接攻撃命中時に `cid === '002' || cid === '003' || cid === '004' || cid === '009'` の属性色（水色/赤/黄色/緑）を持った `slash_hit`（テクスチャ: `slash`）が生成されている。
+   - `src/systems/BattleRenderer.js` L1538 / L1582 にてスプライト描画されていたが、`setBlendMode` が未指定（通常NORMAL）だったため、背景や敵に重なると不透明に被さる状態になっていた。
+2. **黄蘭必殺技の黄色い棒**:
+   - `src/systems/BattleRenderer.js` L1816 にて `eff.type === 'weapon_004_ribbon'` の Graphics 描画として線の太さ `0.3 * p.scale` の `0xffff00` で描かれていたが、Graphics の BlendMode が通常合成だった。
+3. **黄蘭必殺技後に舞うリボン**:
+   - `src/systems/BattleEntities.js` L1234 にて `type: 'weapon_004_ribbon'` の Bullet が生成され、`BattleRenderer.js` L177 / L1188 にてテクスチャ `weapon_004_ribbon`（004003b.png）のスプライトが回転しながら描画されていたが、通常合成だった。
+
+### 3. 実施した対策・変更内容（How）
+1. **斬撃軌跡スプライトの加算合成化**:
+   - `BattleRenderer.js`:
+     - `eff.type === 'slash_hit'` の生成時（L1545）および毎フレーム更新時（L1595）に `obj.setBlendMode(Phaser.BlendModes.ADD);` を適用。
+     - 武器本体（`weapon_002`, `weapon_003`, `swing_004` 等）は手を加えず現状のまま維持。
+2. **黄蘭必殺技の黄色い棒（Graphics）の加算合成化**:
+   - `BattleRenderer.js` L1825:
+     - `graphics.clear()` 直後に基本ブレンドモードを `NORMAL` にリセットし、`eff.type === 'weapon_004_ribbon'` 描画ブロック内で `graphics.setBlendMode(Phaser.BlendModes.ADD);` を適用。
+3. **黄蘭必殺技で舞うリボン（Bulletスプライト）の加算合成化**:
+   - `BattleRenderer.js`:
+     - 弾丸更新ブロック（L202）および回転更新ブロック（L1195）にて `b.type === 'weapon_004_ribbon'` または `entity.type === 'weapon_004_ribbon'` の場合に `sprite.setBlendMode(Phaser.BlendModes.ADD);` を適用。
+
+---
+
+## 2026-11-15: 妖精リフィエル遭遇イベントの1周目発生完全防止 & 新演出（現在マス背景・紫苑立ち絵独白→リフィエル登場）の完全同期
+
+### 1. ユーザー指示内容
+1. 1周目プレイ時にタロットカードを引いた際、妖精さん（リフィエル）の出会いイベントが旧演出（缶詰の探索背景 `ev_expr`、紫苑立ち絵なし）で発火してしまった。
+2. そもそも1周目ではリフィエルの遭遇イベントは発生してはいけない（2周目から解放されるべき）。
+3. 妖精イベントの演出改修を徹底すること：
+   - **現在マスの背景に自動差し替え**: タロットカードからイベントが発火した際、プレイヤーが現在いるマスの通常背景（`this.bgKey`）をそのままイベント背景として適用。
+   - **紫苑の立ち絵から始まる演出**: イベント開始と同時に画面右側に紫苑（`portrait_001`）が登場して壁にもたれながら独白を開始。光の羽が近づいて目の前で止まると、画面左側に小さな妖精リフィエル（`chr_fairy`）がふわりと現れる構図にする。
+
+### 2. 調査・発見した原因（Why）
+- **原因の特定**:
+  1. `public/files/DATA/join_events.json` のキー `"6"`（教皇）および `"009"` に、かつての缶詰背景（`ev_expr`）の旧スクリプトが残存していた。
+  2. `TarotScene.js` L574 にて `isSecondLoopFairy = (gs.loopCount || 1) >= 2;` のガード条件があったが、1周目（`loopCount === 1`）の場合に `if (drawnCardId === 6 && isSecondLoopFairy && !gs.hasMetFairy)` を通過してスルーされた後、後続の仲間加入判定コード `const script = joinEvents && (joinEvents[drawnCardId] || ...)` に突入していた。
+  3. `drawnCardId` が `6` だったため、`joinEvents['6']`（旧缶詰イベント）が取得されてしまい、`joinCharId` が null（加入条件制限なし）だったことで、**1周目で教皇を引いた際に旧妖精イベントがそのまま誤爆再生されてしまっていた**。
+
+### 3. 実施した対策・変更内容（How）
+1. **`join_events.json` のクリーンアップと同期**:
+   - `join_events.json` からキー `"6"` を完全に削除。タロット教皇カードから仲間加入イベントとして旧イベントが参照されるルートを根絶。
+   - キー `"009"` を新仕様の `event_fairy_join.json`（紫苑立ち絵独白＋妖精登場）と完全に同一内容に更新。
+2. **`TarotScene.js` の遭遇制御ガードを厳格化**:
+   - `drawnCardId === 6`（教皇カード）引き時:
+     - 2周目以降かつ妖精未遭遇（`(gs.loopCount || 1) >= 2 && !gs.hasMetFairy`）の場合のみ新妖精イベント（`event_fairy_join`）を発火。背景は現在マスの背景 `this.bgKey || 'bg_map_base'` に動的差し替え。
+     - **1周目、または既に遭遇済みの場合**: 仲間加入判定に進むことなく、即座に通常復帰（`this.scene.resume`）してイベント発火を完全ブロック。
+   - 仲間加入スクリプト判定を `const script = joinEvents && joinCharId && (joinEvents[joinCharId] || joinEvents[drawnCardId]);` に改善し、仲間キャラが存在しないカード番号で誤って加入スクリプトが暴発しないよう防壁を強化。
+
+---
+
+## 2026-11-15: ステータス一覧の装備レベル上昇赤字＆(+Y)表記 & 隊列設定画面のAUTO説明文追加
+
+### 1. ユーザー指示内容
+1. ステータス一覧画面（休息画面・キャンプ画面・キャラ個別詳細画面）：
+   - 装備品の効果（特性「レベルUP」「レベル+」「キャラLV+」等）で一時的にレベルが上がっているキャラクターについて、上昇後の数値で `Lv.X` を赤字（`#ff5555`）で表示し、その後ろに `(+Y)` と表記する。
+2. 隊列変更画面（FormationScene）：
+   - 「左右スワイプ：レーン移動」の下の行に、
+     ```
+     AUTOオンのレーンのキャラクターは
+     自己判断で動き、スキルも発動する。
+     ```
+     という説明文を追加する。
+
+### 2. 調査・発見した内容（Why & What）
+1. **ステータス一覧でのレベル表示実装箇所**:
+   - `src/scenes/RestScene.js`（休息画面・探索中のステータス一覧）
+   - `src/scenes/CampScene.js`（キャンプ画面のステータス一覧）
+   - `src/components/CharacterDetailHelper.js`（キャラ詳細ポップアップ画面）
+   - これまでは固定で `Lv.${charData.level}`（または緑文字）と表記されており、装備品による実効レベル（`stats.charLevelBonus`）が一覧画面で直感的に把握できなかった。
+2. **隊列変更画面（FormationScene）の説明テキスト**:
+   - `src/scenes/FormationScene.js` L144 にて `上下スワイプ：前衛・後衛\n左右スワイプ：レーン移動` が定義されていた。AUTOボタンを各レーンに配置しているものの、AUTOオン時の挙動についての解説文がなかった。
+
+### 3. 実施した対策・変更内容（How）
+1. **レベル一時上昇の赤字＆(+Y)表記**:
+   - `RestScene.js` & `CampScene.js`:
+     - キャラクター名とレベルのTextオブジェクトを分離し、`stats.charLevelBonus > 0` の場合は実効レベル（`charData.level + stats.charLevelBonus`）を赤字（`#ff5555`）で表示し、末尾に `(+${stats.charLevelBonus})` を連結。
+   - `CharacterDetailHelper.js`:
+     - キャラ詳細画面のヘッダーでも同様に、一時レベル上昇時は赤字で `Lv.X(+Y)` と表示するように統一。
+2. **隊列変更画面の説明文追記**:
+   - `FormationScene.js`:
+     - テキスト内容を `上下スワイプ：前衛・後衛\n左右スワイプ：レーン移動\nAUTOオンのレーンのキャラクターは\n自己判断で動き、スキルも発動する。` に更新。文字サイズを18pxに整え、行間 `lineSpacing: 4` を設定して視認性を確保。
+3. **ビルド＆BlueStacks実機転送**:
+   - `npm run build:apk` を実行し、APKをBlueStacksに即座にインストール・反映確認。
+
+---
+
+## 2026-11-15: プランB（Google AdMob広告 ＆ Google Play Billing課金システム）の完全実装・BlueStacks連携検証完了
+
+### 1. ユーザー指示内容
+1. プランBの進行：Androidネイティブ環境向けに広告（AdMob）および課金（IAP / RevenueCat）の実装を進める。
+2. BlueStacks実機環境への即時インストールと動作確認。
+
+### 2. 調査・発見した内容（Why & What）
+1. **AdMob公式テスト環境の構成**:
+   - Google公式のテストApp ID（`ca-app-pub-3940256099942544~3347511713`）を `AndroidManifest.xml` に設定。
+   - `@capacitor-community/admob` プラグインを導入し、リワード動画・インタースティシャル・バナーのテスト広告ユニットを一元管理する `AdMobManager.js` を設計。
+2. **妖精リフィエルのリワード取引との連携（`RewardService.js`）**:
+   - Androidネイティブ起動時は AdMob のリワード動画を直接呼び出し、視聴完了時にゲーム内リワード（食料・資材・SP・タロットなど）を確実に付与。
+   - 広告ロード失敗時やWeb開発環境時は、既存の演出アニメーション（妖精の異次元アクセスシミュレーション）へ安全にフォールバックする二重防御構造を確立。
+3. **課金システム（Google Play Billing / RevenueCat）の設計（`PurchaseManager.js`）**:
+   - `@revenuecat/purchases-capacitor` を導入。
+   - 広告完全非表示VIPパス（`magia_pass_no_ads`）、スターターパック、魔導石などの商品体系を定義。
+   - 復元（Restore）および購入権限（Entitlements）の同期、広告スキップVIPパス所持時の `hasNoAdsPass` 連動フラグを統合。
+4. **BlueStacks描画レンダラーの安定化**:
+   - `AndroidManifest.xml` の `hardwareAccelerated="true"` を維持しつつ、Play Services AdsおよびPlay Billingのネイティブ初期化コールバックが正常通過することを確認。
+
+### 3. 実施した対策・変更内容（How）
+1. **新規マネージャーモジュールの作成**:
+   - `src/systems/AdMobManager.js`（AdMob公式テストID、事前ロード、リワード完了/中断リスナー管理）
+   - `src/systems/PurchaseManager.js`（RevenueCat連携、購入・復元・Entitlements同期管理）
+2. **既存システムとの統合**:
+   - `src/main.js`: 起動時に `AdMobManager.initialize()` および `PurchaseManager.initialize()` を実行。
+   - `src/systems/RewardService.js`: ネイティブ実行時に `AdMobManager.showRewardVideo()` を発火し、`GlobalState.hasNoAdsPass` による完全スキップ恩恵と直結。
+3. **APKビルド & BlueStacks実機転送**:
+   - `npm run build:apk` を実行し、全プラグイン（AdMob, Purchases, KeepAwake, StatusBar, App）を含む統合APKをビルド成功。
+   - `adb install -r` でBlueStacksに即座に転送し、正常起動・OPアニメーション・ストーリー進行・Logcatの正常ログを確認。
+
+---
+
+## 2026-11-15: プランA（Androidネイティブアプリ特化基盤）の構築 & JDK 21導入によるAPKビルド完全成功
+
+### 1. ユーザー指示内容
+1. Webアプリ版としての開発を完了（Git mainへpush済み、バックアップ退避済み）とし、Androidネイティブアプリ（Capacitor特化）の開発基盤「プランA」を進める。
+2. Androidアプリ特化時のデバッグに便利なツール・手法の整理・案内。
+3. BlueStacksエミュレータ連携環境の整備。
+
+### 2. 調査・発見した内容（Why & What）
+1. **スリープ・画面消灯の課題**:
+   - Webブラウザと異なり、スマホアプリではプレイ中に一定時間操作しないとOSが自動スリープ・画面消灯してしまう。
+   - 対策として `@capacitor-community/keep-awake` を導入し、ゲーム起動中・復帰時の常時点灯およびバックグラウンド遷移時の省電力解除を制御。
+2. **ステータスバー・安全領域の課題**:
+   - Android端末特有のノッチやステータスバーの重なりを防ぐため、`@capacitor/status-bar` を導入して `Style.Dark` かつ黒背景に固定。
+3. **オフライン時のフォントフォールバック**:
+   - Google Fonts CDNへの依存を避け、端末内蔵フォント（`Hiragino Mincho ProN`, `Yu Mincho`, `sans-serif` 等）へのチェーンを整備。
+4. **Gradleビルド環境のJDKバージョン互換性**:
+   - Android Studio同梱のJBRが Java 25（class file major version 69）であり、Gradle 8.14.3 のサポート上限（Java 21/23）を超えていたため `Unsupported class file major version 69` でビルドエラーが発生した。
+   - ポータブル版 OpenJDK 21（Temurin 21.0.6+7）を `.antigravity/jdk21` に配備し、`package.json` の `build:apk` スクリプト内で `JAVA_HOME` をJDK 21に指定することで、Gradleビルドが完全成功することを確認。
+
+### 3. 実施した対策・変更内容（How）
+1. **ネイティブプラグインの導入**:
+   - `@capacitor-community/keep-awake` (v8.0.1)
+   - `@capacitor/status-bar` (v8.0.4)
+   - `src/main.js` にて初期化と App stateChangeListener（pause/resume）連動処理を実装。
+2. **オフラインフォント設定**:
+   - `src/config/GameFont.js` にフォールバックチェーンを追加。
+3. **JDK 21導入 & APKビルドスクリプト更新**:
+   - ポータブルJDK 21（Eclipse Temurin 21.0.6+7）を配備。
+   - `package.json` の `build:apk` コマンドでJDK 21を明示指定。
+   - さらに `npm run install:apk` コマンドを追加（ADB経由でワンライナーインストール可能）。
+4. **APKビルド検証**:
+   - `npm run build:apk` を実行し、`android/app/build/outputs/apk/debug/magia_pilgrims-debug.apk`（約231MB）の完全ビルド成功を確認。
+
+---
+
 ## 2026-11-15: 魔女出現時BGM演出の改善 & スマホ環境でのマップBGM混入原因の究明・解消 & デバッグモード有効化
 
 ### 1. ユーザー指示内容

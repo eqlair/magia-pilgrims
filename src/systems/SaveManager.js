@@ -54,6 +54,7 @@ export class SaveManager {
                 extraDailyGachaCount: gs.extraDailyGachaCount || 0,
                 loopCount: gs.loopCount || 1,
                 hasMetFairy: gs.hasMetFairy || false,
+                hasClickedFairyTrade: gs.hasClickedFairyTrade || false,
                 hasNoAdsPass: gs.hasNoAdsPass || false,
                 fairyTradeUsage: gs.fairyTradeUsage ? JSON.parse(JSON.stringify(gs.fairyTradeUsage)) : {},
                 achievements: gs.achievements || {},
@@ -80,6 +81,7 @@ export class SaveManager {
                 dec21MorningTalkSeen: gs.dec21MorningTalkSeen || false,
                 dec21AfternoonTalkSeen: gs.dec21AfternoonTalkSeen || false,
                 seenLoveEvents: gs.seenLoveEvents ? JSON.parse(JSON.stringify(gs.seenLoveEvents)) : {},
+                seenPairEvents: gs.seenPairEvents ? JSON.parse(JSON.stringify(gs.seenPairEvents)) : {},
                 isTowerMode: gs.isTowerMode || false,
                 hasEnteredTower: gs.hasEnteredTower || false,
                 towerElapsedSeconds: gs.towerElapsedSeconds || 0,
@@ -291,6 +293,7 @@ export class SaveManager {
         if (d.extraDailyGachaCount !== undefined) gs.extraDailyGachaCount = d.extraDailyGachaCount;
         if (d.loopCount !== undefined) gs.loopCount = d.loopCount;
         if (d.hasMetFairy !== undefined) gs.hasMetFairy = d.hasMetFairy;
+        if (d.hasClickedFairyTrade !== undefined) gs.hasClickedFairyTrade = d.hasClickedFairyTrade;
         if (d.hasNoAdsPass !== undefined) gs.hasNoAdsPass = d.hasNoAdsPass;
         if (d.fairyTradeUsage) gs.fairyTradeUsage = d.fairyTradeUsage;
         if (d.achievements) gs.achievements = d.achievements;
@@ -376,6 +379,7 @@ export class SaveManager {
         if (d.dec21MorningTalkSeen !== undefined) gs.dec21MorningTalkSeen = d.dec21MorningTalkSeen;
         if (d.dec21AfternoonTalkSeen !== undefined) gs.dec21AfternoonTalkSeen = d.dec21AfternoonTalkSeen;
         if (d.seenLoveEvents !== undefined) gs.seenLoveEvents = d.seenLoveEvents || {};
+        if (d.seenPairEvents !== undefined) gs.seenPairEvents = d.seenPairEvents || {};
         if (d.isTowerMode !== undefined) gs.isTowerMode = d.isTowerMode;
         if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
         if (d.towerElapsedSeconds !== undefined) gs.towerElapsedSeconds = d.towerElapsedSeconds;

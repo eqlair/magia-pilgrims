@@ -448,8 +448,35 @@ export class FairyTradeManager {
             .setInteractive();
         container.add(overlay);
 
+        // 現在パーティに編成されている（同行中の）キャラクターのみを抽出（未遭遇・未加入キャラは除外）
+        let partyIds = [];
+        if (scene && Array.isArray(scene.party) && scene.party.length > 0) {
+            partyIds = scene.party;
+        } else if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
+            partyIds = Object.keys(gs.savedFormation);
+        } else if (Array.isArray(gs.normalParty) && gs.normalParty.length > 0) {
+            partyIds = gs.normalParty;
+        } else {
+            partyIds = ['001'];
+        }
+
+        const charIds = partyIds
+            .map(id => gs.normalizeCharId ? gs.normalizeCharId(id) : id)
+            .filter((id, index, self) => self.indexOf(id) === index) // 重複除外
+            .filter(id => {
+                const char = gs.characters[id];
+                return char && !char.isLost && (char.hasAccompanied || char.isJoined || id === '001');
+            });
+
+        // 万が一パーティが空だった場合のフォールバック（紫苑）
+        if (charIds.length === 0 && gs.characters['001']) {
+            charIds.push('001');
+        }
+
+        const itemH = 55;
         const modalW = 440;
-        const modalH = 500;
+        const modalH = Math.max(220, Math.min(500, 130 + charIds.length * itemH));
+
         const bg = scene.add.graphics();
         bg.fillStyle(0x16182a, 0.98);
         bg.fillRoundedRect(width / 2 - modalW / 2, height / 2 - modalH / 2, modalW, modalH, 16);
@@ -457,20 +484,14 @@ export class FairyTradeManager {
         bg.strokeRoundedRect(width / 2 - modalW / 2, height / 2 - modalH / 2, modalW, modalH, 16);
         container.add(bg);
 
-        const title = scene.add.text(width / 2, height / 2 - modalH / 2 + 35, titleText, {
+        const title = scene.add.text(width / 2, height / 2 - modalH / 2 + 32, titleText, {
             fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#ffea00'
         }).setOrigin(0.5);
         container.add(title);
 
-        const charIds = Object.keys(gs.characters || {}).filter(id => {
-            const char = gs.characters[id];
-            return char && !char.isLost;
-        });
+        const startY = height / 2 - modalH / 2 + 75;
 
-        const startY = height / 2 - modalH / 2 + 80;
-        const itemH = 55;
-
-        charIds.slice(0, 6).forEach((id, idx) => {
+        charIds.forEach((id, idx) => {
             const char = gs.characters[id];
             const y = startY + idx * itemH;
 

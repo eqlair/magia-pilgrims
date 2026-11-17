@@ -78,25 +78,6 @@ export default class TitleScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // ── 画面表示確認 ＆ PWA/ホーム画面追加推奨案内 ──
-        const noticeTextContent = [
-            '画面右下にバージョン表記が見えれば表示は正常です。',
-            '表示されない場合ブラウザの「ホーム画面に追加」をお試しください。',
-            'ブラウザ版では戻るボタンで終了する事故があるので',
-            '「ホーム画面に追加」を行ってからのプレイを推奨いたします。'
-        ].join('\n');
-
-        this.add.text(width / 2, height * 0.845, noticeTextContent, {
-            fontFamily: FONT_MAIN,
-            fontSize: '13px',
-            color: '#fffaee',
-            align: 'center',
-            lineSpacing: 6,
-            stroke: '#111111',
-            strokeThickness: 3.5,
-            wordWrap: { width: width * 0.94, useAdvancedWrap: true }
-        }).setOrigin(0.5, 0.5);
-
         // ── バージョン ─────────────────────────
         const buildVer = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : (() => {
             const d = new Date();
@@ -430,19 +411,41 @@ export default class TitleScene extends Phaser.Scene {
     }
 
 
-    /** 動画をcanvasにぴったり重ねるサイズ・位置に調整 */
+    /** 動画をcanvasにぴったり重ねるサイズ・位置に調整（再生開始まで非表示にして再生ボタンチラつきを防止） */
     _showVideo() {
         if (!this._video) return;
-        this._video.style.display = 'block';
-        this._video.style.opacity = '1';
         this._fitVideo();
+        this._video.style.display = 'block';
+        this._video.style.opacity = '0'; // 最初は透明にしておく
+
+        const revealVideo = () => {
+            if (this._video) {
+                this._video.style.opacity = '1';
+            }
+        };
+
+        // 映像フレームが実際に動き始めたらフェードイン
+        if (this._video.currentTime > 0 && !this._video.paused && !this._video.ended) {
+            revealVideo();
+        } else {
+            this._video.addEventListener('playing', revealVideo, { once: true });
+            this._video.addEventListener('timeupdate', () => {
+                if (this._video && this._video.currentTime > 0) revealVideo();
+            }, { once: true });
+        }
 
         // play()はPromiseを返す。ブラウザのautoplay policyでブロックされた場合の対策
         const playPromise = this._video.play();
         if (playPromise !== undefined) {
-            playPromise.catch(() => {
+            playPromise.then(() => {
+                setTimeout(revealVideo, 100);
+            }).catch(() => {
                 // ユーザー操作が必要な場合は最初のタップで再生
-                document.addEventListener('click', () => this._video.play(), { once: true });
+                document.addEventListener('click', () => {
+                    if (this._video) {
+                        this._video.play().then(() => setTimeout(revealVideo, 100)).catch(() => {});
+                    }
+                }, { once: true });
             });
         }
     }

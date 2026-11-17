@@ -570,30 +570,36 @@ export default class TarotScene extends Phaser.Scene {
                     }
                 }
 
-                // ★ 教皇カード（ID: 6）引き時: 2周目以降かつ妖精未遭遇の場合、リフィエル遭遇イベントを発火！（※仲間には加えない隠しキャラ）
-                const isSecondLoopFairy = (gs.loopCount || 1) >= 2;
-                if (drawnCardId === 6 && isSecondLoopFairy && !gs.hasMetFairy) {
-                    const fairyEventRaw = this.cache.json.get('event_fairy_join');
-                    if (fairyEventRaw) {
-                        const fairyEvent = JSON.parse(JSON.stringify(fairyEventRaw));
-                        if (fairyEvent[0] && fairyEvent[0].cmd === 'bg') {
-                            fairyEvent[0].key = this.bgKey || 'bg_map_base';
-                        } else {
-                            fairyEvent.unshift({ cmd: 'bg', key: this.bgKey || 'bg_map_base' });
-                        }
-                        gs.hasMetFairy = true;
-                        SaveManager.saveGame();
+                // ★ 教皇カード（ID: 6）引き時: 2周目以降かつ妖精未遭遇の場合のみ、リフィエル遭遇イベントを発火！（※仲間には加えない隠しキャラ）
+                if (drawnCardId === 6) {
+                    const isSecondLoopFairy = (gs.loopCount || 1) >= 2;
+                    if (isSecondLoopFairy && !gs.hasMetFairy) {
+                        const fairyEventRaw = this.cache.json.get('event_fairy_join');
+                        if (fairyEventRaw) {
+                            const fairyEvent = JSON.parse(JSON.stringify(fairyEventRaw));
+                            if (fairyEvent[0] && fairyEvent[0].cmd === 'bg') {
+                                fairyEvent[0].key = this.bgKey || 'bg_map_base';
+                            } else {
+                                fairyEvent.unshift({ cmd: 'bg', key: this.bgKey || 'bg_map_base' });
+                            }
+                            gs.hasMetFairy = true;
+                            SaveManager.saveGame();
 
-                        this.scene.stop();
-                        this.scene.start('EventScene', {
-                            returnScene: this.returnScene,
-                            events: fairyEvent,
-                            joinCharacterId: null, // ★ パーティには編成させない！
-                            fromFairyJoinEvent: true,
-                            fromTarot: true
-                        });
-                        return;
+                            this.scene.stop();
+                            this.scene.start('EventScene', {
+                                returnScene: this.returnScene,
+                                events: fairyEvent,
+                                joinCharacterId: null, // ★ パーティには編成させない！
+                                fromFairyJoinEvent: true,
+                                fromTarot: true
+                            });
+                            return;
+                        }
                     }
+                    // 1周目、または既に遭遇済みの場合は仲間加入判定に進まずそのまま終了
+                    this.scene.stop();
+                    this.scene.resume(this.returnScene, { fromTarot: true });
+                    return;
                 }
                 
                 // ★ 悪魔カード（ID: 16）引き時: 2周目以降かつ道場未解放の場合、2RDEVILイベントを発火！
@@ -602,8 +608,9 @@ export default class TarotScene extends Phaser.Scene {
                     const devilEventRaw = this.cache.json.get('event_2rdevil');
                     if (devilEventRaw) {
                         const devilEvent = JSON.parse(JSON.stringify(devilEventRaw));
-                        if (devilEvent[0] && devilEvent[0].cmd === 'bg') {
-                            devilEvent[0].key = this.bgKey || 'bg_map_base';
+                        const bgCmd = devilEvent.find(c => c.cmd === 'bg');
+                        if (bgCmd) {
+                            bgCmd.key = this.bgKey || 'bg_map_base';
                         } else {
                             devilEvent.unshift({ cmd: 'bg', key: this.bgKey || 'bg_map_base' });
                         }
@@ -618,7 +625,7 @@ export default class TarotScene extends Phaser.Scene {
                     }
                 }
                 
-                const script = joinEvents && (joinEvents[drawnCardId] || (joinCharId && joinEvents[joinCharId]));
+                const script = joinEvents && joinCharId && (joinEvents[joinCharId] || joinEvents[drawnCardId]);
 
                 if (script && !alreadyInParty && !isPartyFull && isUnlockedForTarot) {
                     this.scene.stop();

@@ -1765,6 +1765,11 @@ export default class AdventureScene extends Phaser.Scene {
 
             // 復帰時のキャラ実績一括チェック
             AchievementManager.checkCharacterAchievements(this);
+
+            // 🌸 ペアイベント＆💖 好感度イベントチェック（マップ復帰時）
+            if (this.checkPairEvent() || this.checkLoveEvent()) {
+                this.processEventQueue();
+            }
         };
 
         this.events.on('resume', this._resumeHandler, this);
@@ -4069,7 +4074,10 @@ export default class AdventureScene extends Phaser.Scene {
             // チュートリアルイベントチェック
             this.checkTutorialEvents();
 
-            // 💖 好感度イベントチェック（日中限定・他にイベントがない場合）
+            // 🌸 ペアイベントチェック（相互好感度イベント：相互3 / 相互10）
+            this.checkPairEvent();
+
+            // 💖 好感度イベントチェック（個別イベント・メモリア：片側7 / 片側14）
             this.checkLoveEvent();
 
             // 🌧️ 精神力50%以下の仲間による弱音つぶやきチェック
@@ -5320,17 +5328,104 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     /**
+     * 🌸 相互好感度・百合ペアイベントチェック
+     * 現在パーティに編成されている2人（AとB）の相互友好度を判定。
+     * - 段階1: A->B >= 3 かつ B->A >= 3 ＆ 段階1未読 ＆ 画像・シナリオ完備
+     * - 段階2: A->B >= 10 かつ B->A >= 10 ＆ 段階1既読 ＆ 段階2未読 ＆ 画像・シナリオ完備
+     * 達成後、マップに出たタイミングで1回につき1ペアのみ再生。
+     * 友好度が後から下がっても再発生しないよう seenPairEvents で恒久記録。
+     */
+    checkPairEvent() {
+        if (!this.party || this.party.length < 2) return false;
+
+        // 他のイベントやシーンが動いている場合は発火しない
+        if (this.eventQueue && this.eventQueue.length > 0) return false;
+        if (this.scene.isActive('EventScene') || this.scene.isActive('BattleScene') ||
+            this.scene.isActive('TarotScene') || this.scene.isActive('RestScene')) {
+            return false;
+        }
+        if (this._pvpModalContainer || this._modalContainer) return false;
+
+        const gs = GlobalState.getInstance();
+        if (!gs.seenPairEvents) gs.seenPairEvents = {};
+
+        const pairEventsData = this.cache.json.get('pair_events');
+        if (!pairEventsData) return false;
+
+        // パーティ内の全ペアを走査
+        for (let i = 0; i < this.party.length; i++) {
+            for (let j = i + 1; j < this.party.length; j++) {
+                const charAId = gs.normalizeCharId(this.party[i]);
+                const charBId = gs.normalizeCharId(this.party[j]);
+                const charA = gs.characters[charAId];
+                const charB = gs.characters[charBId];
+                if (!charA || !charB) continue;
+
+                // 相互友好度を取得
+                const fAtoB = (charA.friendships && charA.friendships[charBId] !== undefined) ? charA.friendships[charBId] : 0;
+                const fBtoA = (charB.friendships && charB.friendships[charAId] !== undefined) ? charB.friendships[charAId] : 0;
+
+                // pair_events から該当するペアを探す
+                const pairEntry = Object.entries(pairEventsData).find(([num, conf]) => {
+                    const cA = conf.charA;
+                    const cB = conf.charB;
+                    return (cA === charAId && cB === charBId) || (cA === charBId && cB === charAId);
+                });
+
+                if (!pairEntry) continue;
+                const [pairId, pairConf] = pairEntry;
+
+                if (!gs.seenPairEvents[pairId]) {
+                    gs.seenPairEvents[pairId] = { stage1: false, stage2: false };
+                }
+
+                let triggeredStage = null;
+                // 段階1: 相互3以上 ＆ 未読 ＆ 画像あり
+                if (fAtoB >= 3 && fBtoA >= 3 && !gs.seenPairEvents[pairId].stage1) {
+                    if (pairConf.stage1 && pairConf.stage1.image && pairConf.stage1.events && pairConf.stage1.events.length > 0) {
+                        triggeredStage = 'stage1';
+                    }
+                }
+                // 段階2: 相互10以上 ＆ 段階1既読 ＆ 段階2未読 ＆ 画像あり
+                else if (fAtoB >= 10 && fBtoA >= 10 && gs.seenPairEvents[pairId].stage1 && !gs.seenPairEvents[pairId].stage2) {
+                    if (pairConf.stage2 && pairConf.stage2.image && pairConf.stage2.events && pairConf.stage2.events.length > 0) {
+                        triggeredStage = 'stage2';
+                    }
+                }
+
+                if (triggeredStage) {
+                    gs.seenPairEvents[pairId][triggeredStage] = true;
+
+                    const stageData = pairConf[triggeredStage];
+                    const runEvents = JSON.parse(JSON.stringify(stageData.events));
+
+                    this.enqueueEvent({
+                        type: 'event',
+                        data: {
+                            events: runEvents,
+                            returnScene: 'AdventureScene',
+                            isPairEvent: true
+                        }
+                    });
+
+                    gs.addLog(`🌸 [checkPairEvent] ${pairConf.name} (${triggeredStage}: ${stageData.title})`);
+                    SaveManager.saveGame(this);
+
+                    return true; // 1回のチェックにつき1組のみ発火
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 💖 好感度イベントチェック
-     * 日中（午前・午後）限定。
      * いずれかの他キャラクターから対象キャラへの友好度が 7以上（段階1）または 14以上（段階2）に達している場合、
      * 対象キャラの過去回想イベント（一枚絵付き）を1回につき1人分のみ再生する。
      * 解放時にSSR（段階1）またはUR（段階2）のキャラクター専用メモリアを授与。
      */
     checkLoveEvent() {
-        if (this.isTowerMode) return false;
-        // 日中限定（午前: 0, 午後: 1）。夜(2)は発生しない
-        if (this.timePeriodIndex >= 2) return false;
-
         // イベントスタック（キュー）に何か残っていたり、他シーンが動いていたら発火しない
         if (this.eventQueue && this.eventQueue.length > 0) return false;
         if (this.scene.isActive('EventScene') || this.scene.isActive('BattleScene') ||
@@ -5345,8 +5440,10 @@ export default class AdventureScene extends Phaser.Scene {
         const loveEventsData = this.cache.json.get('love_events');
         if (!loveEventsData) return false;
 
-        // 全キャラクターIDリスト（001〜011）
-        const charIds = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'];
+        // パーティ編成中キャラクター（いなければ全キャラクター）
+        const charIds = (this.party && this.party.length > 0)
+            ? this.party.map(id => gs.normalizeCharId(id))
+            : ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011'];
 
         for (const targetId of charIds) {
             const targetChar = gs.characters[targetId];
@@ -7132,18 +7229,72 @@ export default class AdventureScene extends Phaser.Scene {
             .setOrigin(0, 0)
             .setInteractive({ useHandCursor: true });
 
+        container.add([btnImg, badge, hitArea]);
+
+        // 🧚‍♀️ 初回取引アピール用ガイドテキスト（「←ここから妖精との取引ができます」＆明滅アニメーション）
+        let guideText = null;
+        let guideTween = null;
+
+        const showGuide = () => {
+            if (guideText || gs.hasClickedFairyTrade || !gs.hasMetFairy) return;
+            guideText = this.add.text(targetW + 8, 24, '←ここから妖精との取引ができます', {
+                fontFamily: FONT_MAIN,
+                fontSize: '13px',
+                fontStyle: 'bold',
+                color: '#ffff55',
+                stroke: '#000000',
+                strokeThickness: 3,
+                backgroundColor: '#221133ee',
+                padding: { x: 8, y: 5 }
+            }).setOrigin(0, 0.5);
+
+            container.add(guideText);
+
+            guideTween = this.tweens.add({
+                targets: guideText,
+                alpha: 0.25,
+                duration: 750,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        };
+
+        const hideGuide = () => {
+            if (guideTween) {
+                guideTween.stop();
+                guideTween = null;
+            }
+            if (guideText) {
+                guideText.destroy();
+                guideText = null;
+            }
+        };
+
+        if (isVisible && !gs.hasClickedFairyTrade) {
+            showGuide();
+        }
+
         hitArea.on('pointerdown', () => {
             container.setScale(0.92);
+            if (!gs.hasClickedFairyTrade) {
+                gs.hasClickedFairyTrade = true;
+                hideGuide();
+                SaveManager.saveGame();
+            }
             FairyTradeManager.showTradeModal(this);
         });
         hitArea.on('pointerup', () => container.setScale(1.0));
         hitArea.on('pointerout', () => container.setScale(1.0));
 
-        container.add([btnImg, badge, hitArea]);
-
         container.updateStatus = () => {
             const visible = !!gs.hasMetFairy;
             container.setVisible(visible);
+            if (visible && !gs.hasClickedFairyTrade) {
+                showGuide();
+            } else {
+                hideGuide();
+            }
         };
 
         return container;
