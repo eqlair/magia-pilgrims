@@ -82,7 +82,7 @@ c:\Users\user\.antigravity\game\
 │   ├── DATA/                    # イベントJSON、会話JSON、敵マスタ
 │   ├── CHR/                     # キャラクター立ち絵・Excel台詞ソース (`talk_*.xlsx`)
 │   ├── event/                   # イベントスチル・一枚絵 (`evp*`, `evx*`, `evl*`)
-│   ├── BGM/                     # 音楽ファイル (`.m4a`, `.ogg`)
+│   ├── BGM/                     # 音楽ファイル (`.mp3`)
 │   └── SE/                      # 効果音ファイル
 ├── public/                      # Vite公開静的アセット
 ├── android/                     # Android Studio プロジェクト (Gradle)
