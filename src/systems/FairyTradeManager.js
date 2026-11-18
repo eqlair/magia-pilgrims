@@ -465,7 +465,11 @@ export class FairyTradeManager {
             .filter((id, index, self) => self.indexOf(id) === index) // 重複除外
             .filter(id => {
                 const char = gs.characters[id];
-                return char && !char.isLost && (char.hasAccompanied || char.isJoined || id === '001');
+                if (!char || char.isLost) return false;
+                // パーティに編成中なので同行・加入フラグを保証
+                char.hasAccompanied = true;
+                char.isJoined = true;
+                return true;
             });
 
         // 万が一パーティが空だった場合のフォールバック（紫苑）
@@ -505,8 +509,13 @@ export class FairyTradeManager {
                 container.add(face);
             }
 
-            const name = scene.add.text(width / 2 - modalW / 2 + 90, y, `${char.name} (Lv.${char.level})`, {
-                fontFamily: 'sans-serif', fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+            const stats = gs.calcStats ? gs.calcStats(id, partyIds) : null;
+            const charLvlBonus = stats ? (stats.charLevelBonus || 0) : 0;
+            const effectiveLvl = (char.level || 1) + charLvlBonus;
+            const lvlText = charLvlBonus > 0 ? `Lv.${effectiveLvl}(+${charLvlBonus})` : `Lv.${char.level || 1}`;
+
+            const name = scene.add.text(width / 2 - modalW / 2 + 90, y, `${char.name} (${lvlText})`, {
+                fontFamily: 'sans-serif', fontSize: '15px', color: '#ffffff', fontStyle: 'bold'
             }).setOrigin(0, 0.5);
 
             const info = scene.add.text(width / 2 + modalW / 2 - 50, y, `WLV: ${char.meleeLevel || 1}/${char.rangedLevel || 1}`, {

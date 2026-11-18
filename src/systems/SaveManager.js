@@ -368,6 +368,19 @@ export class SaveManager {
         if (d.normalFormation) gs.normalFormation = d.normalFormation;
         if (d.towerParty) gs.towerParty = d.towerParty;
         if (d.towerFormation) gs.towerFormation = d.towerFormation;
+
+        // 現在の編成・パーティにいるキャラクターの加入・同行フラグを自動補完
+        const activePartyIds = [
+            ...(Array.isArray(gs.normalParty) ? gs.normalParty : []),
+            ...(gs.savedFormation ? Object.keys(gs.savedFormation) : [])
+        ];
+        for (const pid of activePartyIds) {
+            const char = gs.characters ? gs.characters[pid] : null;
+            if (char) {
+                char.isJoined = true;
+                char.hasAccompanied = true;
+            }
+        }
         if (d.autoLanes) gs.autoLanes = d.autoLanes;
         if (d.isBattleAutoEnabled !== undefined) gs.isBattleAutoEnabled = d.isBattleAutoEnabled;
         if (d.pvpDamageDenominator !== undefined) {

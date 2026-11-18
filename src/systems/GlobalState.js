@@ -1868,6 +1868,13 @@ export class GlobalState {
         if (!this.savedFormation) {
             this.savedFormation = {};
         }
+
+        const char = this.characters ? this.characters[charId] : null;
+        if (char) {
+            char.isJoined = true;
+            char.hasAccompanied = true;
+        }
+
         if (this.savedFormation[charId]) {
             return this.savedFormation[charId]; // 既に割り当て済み
         }

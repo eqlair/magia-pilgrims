@@ -1054,6 +1054,8 @@ export default class AdventureScene extends Phaser.Scene {
                     // 加入キャラのHP・SPをその時点のmaxHp/maxSpで100%全回復・満タン状態で加入させる
                     const joinedChar = gs.characters[normJoinId];
                     if (joinedChar) {
+                        joinedChar.isJoined = true;
+                        joinedChar.hasAccompanied = true;
                         const stats = gs.calcStats(normJoinId, this.party);
                         if (stats) {
                             joinedChar.currentHp = stats.maxHp;
