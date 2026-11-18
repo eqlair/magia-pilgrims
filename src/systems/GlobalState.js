@@ -14,6 +14,26 @@ export class GlobalState {
     static PHYSICAL_CHAR_IDS = ['001', '002', '003', '007', '009']; // 紫苑, 蒼樹, 紅華, ななよ, リフィエル
     static MAGIC_CHAR_IDS = ['004', '005', '006', '008', '010', '011']; // 黄蘭, 李乃果, さくら, ノア, プロセル, 白蓮
 
+    // 🔤 キャラクター英字表記（公式スペル）
+    static CHARACTER_EN_NAMES = {
+        '001': 'Shion',
+        '002': 'Aoki',
+        '003': 'Hong-hwa',
+        '004': 'Ouran',
+        '005': 'Rinoka',
+        '006': 'Sakura',
+        '007': 'Nanayo',
+        '008': 'Noah',
+        '009': 'Liphiel',
+        '010': 'Procel',
+        '011': 'Hakuren'
+    };
+
+    static getCharacterEnName(charId) {
+        const norm = (charId || '').toString().padStart(3, '0');
+        return GlobalState.CHARACTER_EN_NAMES[norm] || '';
+    }
+
     static isMagicCharacter(charId) {
         const norm = (charId || '').toString().padStart(3, '0');
         return GlobalState.MAGIC_CHAR_IDS.includes(norm);

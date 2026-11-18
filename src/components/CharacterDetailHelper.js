@@ -223,6 +223,13 @@ export class CharacterDetailHelper {
             '011': { strong: 'red', weak: 'yellow' }
         };
 
+        const enName = GlobalState.getCharacterEnName ? GlobalState.getCharacterEnName(charId) : '';
+        if (enName) {
+            pageContainer.add(scene.add.text(rx, ry - 17, enName, {
+                stroke: '#000000', strokeThickness: 3, fontSize: '15px', color: '#ccddee', fontStyle: 'bold'
+            }));
+        }
+
         pageContainer.add(scene.add.text(rx, ry, `${charData.name}`, { stroke: '#000000', strokeThickness: 3, fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }));
         
         const rawLevel = isJikukan ? (stats ? stats.level : (globalState.jikukanState?.sharedLevel || 1)) : charData.level;
