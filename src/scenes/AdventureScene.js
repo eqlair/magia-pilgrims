@@ -430,6 +430,15 @@ export default class AdventureScene extends Phaser.Scene {
             }
         }
 
+        // 踏破済みヘクスを累計データに同期
+        if (this.hexes) {
+            for (const h of this.hexes) {
+                if (h.cellData && h.cellData.visited === 1) {
+                    this.markHexAsExplored(h.col, h.row);
+                }
+            }
+        }
+
 
 
 
@@ -903,13 +912,14 @@ export default class AdventureScene extends Phaser.Scene {
 
             // ── タワー爆破イベント終了時のハンドリング（地上と同じ周回リスポーンへ直行） ──
             if (this.isTowerMode && data && data.fromTowerExplosion) {
-                const respData = this.cache.json.get('event_resp') || this.cache.json.get('event_tow_res');
-                if (respData) {
-                    GlobalState.getInstance().addLog('💥 [TowerExplosion] Tower destroyed by dawn plasma attack. Launching event_resp loop reset!');
+                const respInfo = this._getRespawnEventData();
+                if (respInfo && respInfo.events) {
+                    GlobalState.getInstance().addLog('💥 [TowerExplosion] Tower destroyed by dawn plasma attack. Launching respawn loop reset!');
                     if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
                     this.scene.pause();
                     this.scene.launch('EventScene', {
-                        events: respData,
+                        events: respInfo.events,
+                        eventId: respInfo.eventId,
                         returnScene: 'AdventureScene',
                         fromRespEvent: true
                     });
@@ -936,13 +946,14 @@ export default class AdventureScene extends Phaser.Scene {
             // ── 地上での周回リセット(event_resp)分岐（紫苑SP1/10以下 または 12/21魔女襲来全滅） ──
             const isDec21Defeat = data && data.isGameOver && !data.fromIkebukuro02Event && (data.is1221NightBattle || this.currentDay >= 21 || (this.currentMonth === 12 && this.currentDay >= 21));
             if (!this.isTowerMode && data && data.fromBattle && (isSionMentalBreak || isDec21Defeat) && !data.fromRespEvent) {
-                const respData = this.cache.json.get('event_resp');
-                if (respData) {
-                    GlobalState.getInstance().addLog(`💀 [RespEvent] isSionMentalBreak=${isSionMentalBreak}, isDec21Defeat=${isDec21Defeat} -> Launching event_resp loop reset!`);
+                const respInfo = this._getRespawnEventData();
+                if (respInfo && respInfo.events) {
+                    GlobalState.getInstance().addLog(`💀 [RespEvent] isSionMentalBreak=${isSionMentalBreak}, isDec21Defeat=${isDec21Defeat} -> Launching respawn loop reset!`);
                     if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
                     this.scene.pause();
                     this.scene.launch('EventScene', {
-                        events: respData,
+                        events: respInfo.events,
+                        eventId: respInfo.eventId,
                         returnScene: 'AdventureScene',
                         fromRespEvent: true
                     });
@@ -1300,12 +1311,12 @@ export default class AdventureScene extends Phaser.Scene {
                     const hasNoahOrNanayo = currentNormParty.includes('007') || currentNormParty.includes('008');
                     console.log(`[DEBUG TowerEncounter] hasNoahOrNanayo=${hasNoahOrNanayo}`);
                     if (!hasNoahOrNanayo) {
-                        // ノア(008)またはななよ(007)のどちらかと遭遇（50%ランダム）
-                        const candidates = ['007', '008'];
-                        const chosenCharId = candidates[Math.floor(Math.random() * candidates.length)];
+                        // ノア(008)またはななよ(007)のどちらかと遭遇（50%ランダム、今周回でロストしたキャラは除外）
+                        const candidates = ['007', '008'].filter(id => !gs.lostCharacterIdsInCurrentLoop?.includes(id));
+                        const chosenCharId = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : null;
                         
                         const joinEventsJson = this.cache.json.get('join_events');
-                        const storyEvents = joinEventsJson ? (joinEventsJson[chosenCharId] || joinEventsJson[parseInt(chosenCharId, 10)]) : null;
+                        const storyEvents = (chosenCharId && joinEventsJson) ? (joinEventsJson[chosenCharId] || joinEventsJson[parseInt(chosenCharId, 10)]) : null;
                         console.log(`[DEBUG TowerEncounter] chosenCharId=${chosenCharId}, storyEventsCount=${storyEvents?.length}`);
                         if (storyEvents && storyEvents.length > 0) {
                             console.log(`[AdventureScene] Tower post-battle encounter triggered: ${chosenCharId}`);
@@ -1548,25 +1559,25 @@ export default class AdventureScene extends Phaser.Scene {
                     return;
                 }
 
-                // 12/21魔女襲来イベント完了時 -> 視聴完了フラグ確定＆周回イベント(event_resp)の連続起動
+                // 12/21魔女襲来イベント完了時 -> 視聴完了フラグ確定＆周回イベントの連続起動
                 if (data && data.from1221Event) {
                     GlobalState.getInstance().event1221Played = true;
-                    const respData = this.cache.json.get('event_resp');
-                    if (respData) {
+                    const respInfo = this._getRespawnEventData();
+                    if (respInfo && respInfo.events) {
                         this.time.delayedCall(100, () => {
                             this.scene.pause();
                             this.scene.launch('EventScene', {
-                                events: respData,
+                                events: respInfo.events,
                                 returnScene: 'AdventureScene',
                                 fromRespEvent: true,
-                                eventId: 'event_resp'
+                                eventId: respInfo.eventId
                             });
                         });
                         return;
                     }
                 }
 
-                // 周回イベント(event_resp)完了時 -> 周回リセット実行と12月1日東京駅リスタート
+                // 周回イベント(event_resp または さくらイベント)完了時 -> 周回リセット実行と12月1日東京駅リスタート
                 if (data && data.fromRespEvent) {
                     const gs = GlobalState.getInstance();
                     gs.resetForNewLoop();
@@ -1610,8 +1621,27 @@ export default class AdventureScene extends Phaser.Scene {
                 // ★ タワー周回イベント(event_tow_res)完了時
                 if (data && data.fromTowerRespEvent) {
                     if (data.choice === 'yes') {
-                        // 【はい】を選んだ場合: リスポーン時と同じように12/1の東京に戻る（周回リセット）
+                        // 【はい】を選んだ場合: 3回目以上ならさくらイベントを挟んでから12/1東京へ
                         const gs = GlobalState.getInstance();
+                        const currentLoop = gs.loopCount || 1;
+                        if (currentLoop >= 3) {
+                            const respInfo = this._getRespawnEventData();
+                            if (respInfo && respInfo.events) {
+                                gs.isTowerMode = false;
+                                this.isTowerMode = false;
+                                if (this.scene.isActive('EventScene')) this.scene.stop('EventScene');
+                                this.scene.pause();
+                                this.scene.launch('EventScene', {
+                                    events: respInfo.events,
+                                    eventId: respInfo.eventId,
+                                    returnScene: 'AdventureScene',
+                                    fromRespEvent: true
+                                });
+                                return;
+                            }
+                        }
+
+                        // 1〜2回目はそのまま12/1東京へリスタート（周回リセット）
                         gs.isTowerMode = false;
                         this.isTowerMode = false;
                         gs.resetForNewLoop();
@@ -2392,6 +2422,13 @@ export default class AdventureScene extends Phaser.Scene {
         return (Math.abs(q1 - q2) + Math.abs(q1 + r1 - q2 - r2) + Math.abs(r1 - r2)) / 2;
     }
 
+    markHexAsExplored(col, row) {
+        const gs = GlobalState.getInstance();
+        if (typeof gs.recordHexExplored === 'function') {
+            gs.recordHexExplored(col, row, this.isTowerMode);
+        }
+    }
+
     updateVisibility() {
         const gs = GlobalState.getInstance();
         // 全セルの隣接状態をリセット
@@ -2440,11 +2477,20 @@ export default class AdventureScene extends Phaser.Scene {
                 continue;
             }
             
+            const modeKey = this.isTowerMode ? 'tower' : 'normal';
+            const hexKey = `${h.col}_${h.row}`;
+            const isHistoric = !!(gs.historicExploredHexes?.[modeKey]?.[hexKey]);
+            const isWideAndHistoric = this.isWideMap && isHistoric;
+
             const isVisibleToPlayer = (cell.visited === 1 || cell.revealed === 1 || cell.isAdjacent);
             let imgKey = 'map_img_m(unexplored).jpg';
             let showText = false;
 
             if (cell.visited === 1) {
+                imgKey = this.findImageFile(h.col, h.row, cell);
+                showText = !(cell.name === '水域' || cell.name === '密林' || cell.name.startsWith('x'));
+            } else if (isWideAndHistoric) {
+                // 広域表示かつ過去周回で踏破済みのマス：地形画像と地名を表示（魔女や敵情報は非表示）
                 imgKey = this.findImageFile(h.col, h.row, cell);
                 showText = !(cell.name === '水域' || cell.name === '密林' || cell.name.startsWith('x'));
             } else if (cell.revealed === 1) {
@@ -2457,8 +2503,13 @@ export default class AdventureScene extends Phaser.Scene {
                 imgKey = 'map_img_m(unexplored).jpg';
             }
 
-            // 未踏破は25%の不透明度、それ以外は100%
-            const targetAlpha = !isVisibleToPlayer ? 0.25 : 1;
+            // 未踏破は25%の不透明度、今周視界内は100%、広域時の過去踏破は70%の半透明
+            let targetAlpha = 0.25;
+            if (isVisibleToPlayer) {
+                targetAlpha = 1;
+            } else if (isWideAndHistoric) {
+                targetAlpha = 0.7;
+            }
             if (h.container.alpha !== targetAlpha) {
                 h.container.setAlpha(targetAlpha);
             }
@@ -2694,6 +2745,7 @@ export default class AdventureScene extends Phaser.Scene {
         const isUnexplored = (hex.cellData.visited !== 1 && hex.cellData.name !== '水域' && hex.cellData.name !== '密林');
         
         hex.cellData.visited = 1;
+        this.markHexAsExplored(hex.col, hex.row);
 
         
         // 背景のクロスフェード
@@ -3853,7 +3905,8 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
-            if (!alreadyInParty && !isPartyFull && isUnlockedForTarot) {
+            const isLostInLoop = gs.lostCharacterIdsInCurrentLoop && gs.lostCharacterIdsInCurrentLoop.includes(normJoinId);
+            if (!alreadyInParty && !isPartyFull && isUnlockedForTarot && !isLostInLoop) {
                 this.party.push(normJoinId);
                 gs.assignFormationForNewMember(normJoinId);
 
@@ -4119,6 +4172,88 @@ export default class AdventureScene extends Phaser.Scene {
         } catch (e) {
             console.warn('[AdventureScene] _updateDateTimeDisplay error:', e);
         }
+    }
+
+    /**
+     * 周回数（リスポーン回数）に応じたリスポーンイベントデータを取得
+     * 1〜2回目: 通常の深い水の底（event_resp）
+     * 3回目: 紫苑×さくら(表) A（小指）
+     * 4回目: 紫苑×さくら(裏) A（指を数える）
+     * 5回目: 紫苑×さくら(表) B（持っていけないもの）
+     * 6回目: 紫苑×さくら(裏) B（侵食）
+     * 7回目以降: 奇数回＝表B、偶数回＝裏B（ループ）
+     * BGM: さくらイベント時はオープニング(bgm_op)
+     */
+    _getRespawnEventData() {
+        const gs = GlobalState.getInstance();
+        const currentLoop = gs.loopCount || 1;
+        const pairEventsData = this.cache.json.get('pair_events');
+
+        if (currentLoop >= 3 && pairEventsData) {
+            let targetEvents = null;
+            let pairId = '';
+            let stage = '';
+            let eventId = '';
+
+            if (currentLoop === 3) {
+                pairId = '06';
+                stage = 'stage1';
+                eventId = 'respawn_sakura_06_stage1';
+            } else if (currentLoop === 4) {
+                pairId = '07';
+                stage = 'stage1';
+                eventId = 'respawn_sakura_07_stage1';
+            } else if (currentLoop === 5) {
+                pairId = '06';
+                stage = 'stage2';
+                eventId = 'respawn_sakura_06_stage2';
+            } else if (currentLoop === 6) {
+                pairId = '07';
+                stage = 'stage2';
+                eventId = 'respawn_sakura_07_stage2';
+            } else {
+                if (currentLoop % 2 === 1) {
+                    pairId = '06';
+                    stage = 'stage2';
+                    eventId = 'respawn_sakura_06_stage2';
+                } else {
+                    pairId = '07';
+                    stage = 'stage2';
+                    eventId = 'respawn_sakura_07_stage2';
+                }
+            }
+
+            const pairConf = pairEventsData[pairId];
+            if (pairConf && pairConf[stage] && pairConf[stage].events) {
+                targetEvents = pairConf[stage].events;
+            }
+
+            if (targetEvents && targetEvents.length > 0) {
+                if (!gs.seenPairEvents) gs.seenPairEvents = {};
+                if (!gs.seenPairEvents[pairId]) gs.seenPairEvents[pairId] = { stage1: false, stage2: false };
+                gs.seenPairEvents[pairId][stage] = true;
+
+                gs.addLog(`🌸 [RespawnSakura] loopCount=${currentLoop} -> Playing ${pairConf.name} (${stage}: ${pairConf[stage].title})`);
+
+                const runEvents = JSON.parse(JSON.stringify(targetEvents));
+                const filtered = runEvents.filter(cmd => cmd.cmd !== 'bgm');
+                const bgmCmd = { cmd: 'bgm', key: 'bgm_op' };
+                if (filtered.length > 0 && filtered[0].cmd === 'image') {
+                    filtered.splice(1, 0, bgmCmd);
+                } else {
+                    filtered.unshift(bgmCmd);
+                }
+                return {
+                    events: filtered,
+                    eventId: eventId
+                };
+            }
+        }
+
+        return {
+            events: this.cache.json.get('event_resp'),
+            eventId: 'event_resp'
+        };
     }
 
     /**
@@ -4627,7 +4762,8 @@ export default class AdventureScene extends Phaser.Scene {
             // 1人: 100%, 2人: 1/2(50%), 3人: 1/3(33.3%), 4人: 1/4(25%), 5人以上: 0%(発生しない)
             const targetCharId = locInfo.charId ? gs.normalizeCharId(locInfo.charId) : null;
             const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
-            if (targetCharId && !currentNormParty.includes(targetCharId)) {
+            const isLostInLoop = targetCharId && gs.lostCharacterIdsInCurrentLoop && gs.lostCharacterIdsInCurrentLoop.includes(targetCharId);
+            if (targetCharId && !currentNormParty.includes(targetCharId) && !isLostInLoop) {
                 const partySize = this.party ? this.party.length : 1;
                 if (partySize < 5) {
                     const encounterChance = 1.0 / partySize;
@@ -4970,16 +5106,16 @@ export default class AdventureScene extends Phaser.Scene {
                 this.processEventQueue();
                 return true;
             } else {
-                // 万が一 event_1221 がキャッシュにない場合は event_resp を直接起動して周回リセットへ
-                const respData = this.cache.json.get('event_resp');
-                if (respData) {
+                // 万が一 event_1221 がキャッシュにない場合は周回リセットイベントを直接起動
+                const respInfo = this._getRespawnEventData();
+                if (respInfo && respInfo.events) {
                     this.enqueueEvent({
                         type: 'event',
                         data: {
-                            events: respData,
+                            events: respInfo.events,
                             returnScene: 'AdventureScene',
                             fromRespEvent: true,
-                            eventId: 'event_resp'
+                            eventId: respInfo.eventId
                         }
                     });
                     this.processEventQueue();
@@ -5399,6 +5535,20 @@ export default class AdventureScene extends Phaser.Scene {
                     const stageData = pairConf[triggeredStage];
                     const runEvents = JSON.parse(JSON.stringify(stageData.events));
 
+                    // 百合イベント（ペアイベント）のBGMを bgm_camp に設定（さくらリスポーンペア06, 07以外）
+                    const isSakuraRespawnPair = (pairId === '06' || pairId === '07');
+                    if (!isSakuraRespawnPair) {
+                        const bgmCmd = { cmd: 'bgm', key: 'bgm_camp' };
+                        const filtered = runEvents.filter(cmd => cmd.cmd !== 'bgm');
+                        if (filtered.length > 0 && filtered[0].cmd === 'image') {
+                            filtered.splice(1, 0, bgmCmd);
+                        } else {
+                            filtered.unshift(bgmCmd);
+                        }
+                        runEvents.length = 0;
+                        runEvents.push(...filtered);
+                    }
+
                     this.enqueueEvent({
                         type: 'event',
                         data: {
@@ -5516,6 +5666,19 @@ export default class AdventureScene extends Phaser.Scene {
                     name: 'システム',
                     text: `【絆のメモリア獲得】\n[${rankLabel}] 『${relic.name}』 を手に入れた！`
                 });
+
+                // さくら('006')以外の好感度百合イベントのBGMを bgm_camp に設定
+                if (targetId !== '006') {
+                    const bgmCmd = { cmd: 'bgm', key: 'bgm_camp' };
+                    const filtered = runEvents.filter(cmd => cmd.cmd !== 'bgm');
+                    if (filtered.length > 0 && filtered[0].cmd === 'image') {
+                        filtered.splice(1, 0, bgmCmd);
+                    } else {
+                        filtered.unshift(bgmCmd);
+                    }
+                    runEvents.length = 0;
+                    runEvents.push(...filtered);
+                }
 
                 this.enqueueEvent({
                     type: 'event',
@@ -6145,6 +6308,15 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
+            // 踏破済みヘクスを累計データに同期
+            if (this.hexes) {
+                for (const h of this.hexes) {
+                    if (h.cellData && h.cellData.visited === 1) {
+                        this.markHexAsExplored(h.col, h.row);
+                    }
+                }
+            }
+
             // プレイヤー位置とカメラの更新
             const targetHex = this.hexes ? this.hexes.find(h => h.col === this.playerCol && h.row === this.playerRow) : null;
             if (targetHex && this.player) {
@@ -6197,6 +6369,15 @@ export default class AdventureScene extends Phaser.Scene {
                     if (state.witchLevel !== undefined) hex.cellData.witchLevel = state.witchLevel;
                     if (state.enemyAttr !== undefined) hex.cellData.enemyAttr = state.enemyAttr;
                     if (state.cleared !== undefined) hex.cellData.cleared = state.cleared;
+                }
+            }
+        }
+
+        // 踏破済みヘクスを累計データに同期
+        if (this.hexes) {
+            for (const h of this.hexes) {
+                if (h.cellData && h.cellData.visited === 1) {
+                    this.markHexAsExplored(h.col, h.row);
                 }
             }
         }

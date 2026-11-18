@@ -110,6 +110,7 @@ export class GlobalState {
         // 発動中のタロットカードリスト [{id: Number, isUpright: Boolean}]
         this.activeTarots = [];
         this.drawnTarotCards = []; // すでに引いて獲得したタロットカードIDのリスト（二度と出ない）
+        this.lostCharacterIdsInCurrentLoop = []; // 今周回で離脱・ロストしたキャラクターIDのリスト（二度と再加入しない）
 
         // 🗼 タワー内時間経過（12/21 18:00開始、43200秒=12時間経過で12/22 06:00焦土爆破）
         this.towerElapsedSeconds = 0;
@@ -201,6 +202,9 @@ export class GlobalState {
         this.dailyQuests = null;         // 当日デイリークエストデータ
         this.fairyDailyTrade = null;     // 妖精日次取引データ
 
+        // ── 🗺️ 累計マップ踏破データ（周回引き継ぎ用: normal / tower） ──
+        this.historicExploredHexes = { normal: {}, tower: {} };
+
         // ── 好感度イベント既読フラグ (charId -> { stage1: bool, stage2: bool }) ──
         this.seenLoveEvents = {};
         // ── 百合ペアイベント既読フラグ (pairId -> { stage1: bool, stage2: bool }) ──
@@ -233,6 +237,20 @@ export class GlobalState {
         if (typeof this.onLogCallback === 'function') {
             try { this.onLogCallback(this.debugLogs); } catch(e){}
         }
+    }
+
+    /**
+     * 🗺️ マス踏破を累計マップデータに記録（周回引き継ぎ用）
+     */
+    recordHexExplored(col, row, isTower = false) {
+        if (!this.historicExploredHexes) {
+            this.historicExploredHexes = { normal: {}, tower: {} };
+        }
+        const modeKey = isTower ? 'tower' : 'normal';
+        if (!this.historicExploredHexes[modeKey]) {
+            this.historicExploredHexes[modeKey] = {};
+        }
+        this.historicExploredHexes[modeKey][`${col}_${row}`] = true;
     }
 
     getJikukanState() {
@@ -1671,6 +1689,7 @@ export class GlobalState {
         // タロット関係のリセット
         this.activeTarots = [];
         this.drawnTarotCards = [];
+        this.lostCharacterIdsInCurrentLoop = []; // 周回リセット時に離脱フラグも初期化（次ループでまた出会える）
         this.tarot13_targetHp = null;
         this.tarot13_targetAtk = null;
 

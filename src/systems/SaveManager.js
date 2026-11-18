@@ -60,6 +60,7 @@ export class SaveManager {
                 achievements: gs.achievements || {},
                 dailyQuests: gs.dailyQuests || null,
                 fairyDailyTrade: gs.fairyDailyTrade || null,
+                historicExploredHexes: gs.historicExploredHexes ? JSON.parse(JSON.stringify(gs.historicExploredHexes)) : { normal: {}, tower: {} },
                 jikukanState: gs.jikukanState ? JSON.parse(JSON.stringify(gs.jikukanState)) : null,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
                 normalParty: gs.normalParty ? [...gs.normalParty] : ['001'],
@@ -71,6 +72,7 @@ export class SaveManager {
                 pvpDamageDenominator: gs.pvpDamageDenominator !== undefined ? gs.pvpDamageDenominator : 30,
                 activeTarots: gs.activeTarots,
                 drawnTarotCards: gs.drawnTarotCards || [],
+                lostCharacterIdsInCurrentLoop: gs.lostCharacterIdsInCurrentLoop || [],
                 event1207Played: gs.event1207Played,
                 event1214Played: gs.event1214Played,
                 event1217Played: gs.event1217Played,
@@ -299,6 +301,12 @@ export class SaveManager {
         if (d.achievements) gs.achievements = d.achievements;
         if (d.dailyQuests) gs.dailyQuests = d.dailyQuests;
         if (d.fairyDailyTrade) gs.fairyDailyTrade = d.fairyDailyTrade;
+        if (d.historicExploredHexes) {
+            gs.historicExploredHexes = {
+                normal: { ...(d.historicExploredHexes.normal || {}) },
+                tower: { ...(d.historicExploredHexes.tower || {}) }
+            };
+        }
 
         if (d.characters) {
             gs.characters = d.characters;
@@ -369,6 +377,7 @@ export class SaveManager {
         }
         if (d.activeTarots) gs.activeTarots = d.activeTarots;
         if (d.drawnTarotCards) gs.drawnTarotCards = d.drawnTarotCards;
+        if (d.lostCharacterIdsInCurrentLoop) gs.lostCharacterIdsInCurrentLoop = d.lostCharacterIdsInCurrentLoop;
         if (d.event1207Played !== undefined) gs.event1207Played = d.event1207Played;
         if (d.event1214Played !== undefined) gs.event1214Played = d.event1214Played;
         if (d.event1217Played !== undefined) gs.event1217Played = d.event1217Played;
