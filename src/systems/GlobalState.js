@@ -218,6 +218,7 @@ export class GlobalState {
         this.hasClickedFairyTrade = false; // 🧚‍♀️ 妖精取引初回タップ済みフラグ（案内表示用）
         this.hasNoAdsPass = false;       // 🧚‍♀️ 妖精の祝福（広告スキップVIPパス所持フラグ）
         this.fairyTradeUsage = {};       // 妖精取引の日次利用記録 (tradeKey -> "YYYY-MM-DD")
+        this.lastFairyTradeTimestamp = 0; // 妖精取引の直前実行タイムスタンプ (全取引共通30分インターバル用)
         this.achievements = {};          // 実績解除データ
         this.dailyQuests = null;         // 当日デイリークエストデータ
         this.fairyDailyTrade = null;     // 妖精日次取引データ

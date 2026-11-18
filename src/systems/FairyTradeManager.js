@@ -9,6 +9,7 @@ import { RewardService } from './RewardService.js';
 import { AchievementManager } from './AchievementManager.js';
 
 export const FAIRY_TRADE_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12時間
+export const FAIRY_GLOBAL_COOLDOWN_MS = 30 * 60 * 1000; // 全取引共通インターバル：30分
 
 export class FairyTradeManager {
     /**
@@ -39,6 +40,34 @@ export class FairyTradeManager {
     }
 
     /**
+     * 全取引共通の30分クールダウンの残りミリ秒を取得
+     */
+    static getGlobalCooldownRemainingMs() {
+        const gs = GlobalState.getInstance();
+        const lastTime = gs && gs.lastFairyTradeTimestamp ? gs.lastFairyTradeTimestamp : 0;
+        if (!lastTime) return 0;
+        const elapsed = Date.now() - lastTime;
+        return Math.max(0, FAIRY_GLOBAL_COOLDOWN_MS - elapsed);
+    }
+
+    /**
+     * 妖精が30分インターバル中（お昼寝中）かどうか
+     */
+    static isFairyOnCooldown() {
+        return this.getGlobalCooldownRemainingMs() > 0;
+    }
+
+    /**
+     * 30分クールダウンタイマーのフォーマット (例: "あと 28分42秒")
+     */
+    static formatCooldownTimer(ms) {
+        const totalSec = Math.ceil(ms / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        return `あと ${mins}分${String(secs).padStart(2, '0')}秒`;
+    }
+
+    /**
      * 本日 (JST 0:00基準) すでに利用済みかどうか判定
      */
     static isTradeUsedToday(key) {
@@ -57,12 +86,13 @@ export class FairyTradeManager {
     }
 
     /**
-     * 取引利用を記録 (本日利用済みにする)
+     * 取引利用を記録 (本日利用済みにし、共通30分クールダウンを記録)
      */
     static recordTrade(key) {
         const gs = GlobalState.getInstance();
         if (!gs.fairyTradeUsage) gs.fairyTradeUsage = {};
         gs.fairyTradeUsage[key] = this.getTodayKeyJST();
+        gs.lastFairyTradeTimestamp = Date.now();
         try {
             SaveManager.saveGame();
         } catch (e) {}
@@ -114,20 +144,29 @@ export class FairyTradeManager {
         }).setOrigin(0.5);
         container.add(title);
 
-        const subTitle = scene.add.text(width / 2, height / 2 - 188, '「ほんの少し、世界の法則をお借りしますね（0時更新・各1日1回）」', {
-            fontFamily: 'sans-serif', fontSize: '12px', color: '#aaccff'
+        const isResting = this.isFairyOnCooldown();
+        const initialSubText = isResting
+            ? `「すぅ…すぅ…zzz（お昼寝中：${this.formatCooldownTimer(this.getGlobalCooldownRemainingMs())}）」`
+            : '「ほんの少し、世界の法則をお借りしますね（0時更新・各1日1回 / 取引後30分休憩）」';
+
+        const subTitle = scene.add.text(width / 2, height / 2 - 188, initialSubText, {
+            fontFamily: 'sans-serif', fontSize: '12px', color: isResting ? '#ffbb88' : '#aaccff', fontStyle: isResting ? 'bold' : 'normal'
         }).setOrigin(0.5);
         container.add(subTitle);
 
         const gs = GlobalState.getInstance();
         const hasVIP = !!(gs && gs.hasNoAdsPass);
 
+        // 動的更新バッジ・要素の追跡用配列
+        const dynamicUpdaters = [];
+
         // 取引ボタン作成ヘルパー
         const createTradeBtn = (y, tradeKey, label, desc, onClick) => {
-            const isCooldown = this.isTradeUsedToday(tradeKey);
-            const remainingMs = isCooldown ? this.getMsUntilNextMidnightJST() : 0;
-
             const btnContainer = scene.add.container(width / 2, y);
+
+            const isDayUsed = this.isTradeUsedToday(tradeKey);
+            const isGlobalCool = this.isFairyOnCooldown();
+            const isCooldown = isDayUsed || isGlobalCool;
 
             const btnBg = scene.add.rectangle(0, 0, modalW - 50, 60, isCooldown ? 0x1c1e2e : 0x243258, 0.95)
                 .setStrokeStyle(1.5, isCooldown ? 0x3d4458 : (hasVIP ? 0xffcc44 : 0x6699ff))
@@ -143,33 +182,59 @@ export class FairyTradeManager {
                 color: isCooldown ? '#555566' : '#bbccdd'
             }).setOrigin(0, 0.5);
 
-            let badgeText = '🎬 広告';
-            let badgeColor = '#ffea00';
-            let badgeBg = '#443300aa';
-
-            if (isCooldown) {
-                badgeText = this.formatRemainingTime(remainingMs);
-                badgeColor = '#888899';
-                badgeBg = '#1a1a24';
-            } else if (hasVIP) {
-                badgeText = '✨ VIP即時';
-                badgeColor = '#ffffff';
-                badgeBg = '#886600cc';
-            }
-
-            const adBadge = scene.add.text(modalW / 2 - 50, 0, badgeText, {
-                fontFamily: 'sans-serif', fontSize: isCooldown ? '12px' : '13px', fontStyle: 'bold',
-                color: badgeColor,
-                backgroundColor: badgeBg,
+            const adBadge = scene.add.text(modalW / 2 - 50, 0, '', {
+                fontFamily: 'sans-serif', fontSize: '12px', fontStyle: 'bold',
                 padding: { x: 7, y: 3 }
             }).setOrigin(0.5);
 
-            if (!isCooldown) {
-                btnBg.on('pointerdown', () => {
-                    container.destroy();
-                    onClick();
-                });
-            }
+            const updateBadgeState = () => {
+                const dayUsed = this.isTradeUsedToday(tradeKey);
+                const gCool = this.isFairyOnCooldown();
+                const cool = dayUsed || gCool;
+
+                btnBg.setFillStyle(cool ? 0x1c1e2e : 0x243258, 0.95);
+                btnBg.setStrokeStyle(1.5, cool ? 0x3d4458 : (hasVIP ? 0xffcc44 : 0x6699ff));
+                btnLabel.setColor(cool ? '#777788' : '#ffeeaa');
+                btnDesc.setColor(cool ? '#555566' : '#bbccdd');
+
+                if (dayUsed) {
+                    const remMs = this.getMsUntilNextMidnightJST();
+                    adBadge.setText(this.formatRemainingTime(remMs));
+                    adBadge.setColor('#888899');
+                    adBadge.setBackgroundColor('#1a1a24');
+                } else if (gCool) {
+                    const remMs = this.getGlobalCooldownRemainingMs();
+                    adBadge.setText(`💤 ${this.formatCooldownTimer(remMs)}`);
+                    adBadge.setColor('#ffaa88');
+                    adBadge.setBackgroundColor('#331a1a');
+                } else if (hasVIP) {
+                    adBadge.setText('✨ VIP即時');
+                    adBadge.setColor('#ffffff');
+                    adBadge.setBackgroundColor('#886600cc');
+                } else {
+                    adBadge.setText('🎬 広告');
+                    adBadge.setColor('#ffea00');
+                    adBadge.setBackgroundColor('#443300aa');
+                }
+            };
+
+            updateBadgeState();
+            dynamicUpdaters.push(updateBadgeState);
+
+            btnBg.on('pointerdown', () => {
+                if (this.isTradeUsedToday(tradeKey)) {
+                    if (scene.showToast) scene.showToast('本日はすでに利用済みです（0時更新）');
+                    return;
+                }
+                if (this.isFairyOnCooldown()) {
+                    const rem = this.formatCooldownTimer(this.getGlobalCooldownRemainingMs());
+                    if (scene.showToast) scene.showToast(`妖精リフィエルはお昼寝中です…zzz（${rem}）`);
+                    return;
+                }
+                if (timerEvent) timerEvent.remove(false);
+                container.destroy();
+                onClick();
+            });
 
             btnContainer.add([btnBg, btnLabel, btnDesc, adBadge]);
             container.add(btnContainer);
@@ -258,10 +323,34 @@ export class FairyTradeManager {
 
         container.add([vipBg, vipTitle, vipDesc, vipActionBadge]);
 
+        // 定期タイマー（毎秒残り時間を更新）
+        const timerEvent = scene.time.addEvent({
+            delay: 1000,
+            loop: true,
+            callback: () => {
+                const cool = this.isFairyOnCooldown();
+                if (cool) {
+                    const remStr = this.formatCooldownTimer(this.getGlobalCooldownRemainingMs());
+                    subTitle.setText(`「すぅ…すぅ…zzz（お昼寝中：${remStr}）」`);
+                    subTitle.setColor('#ffbb88');
+                    subTitle.setFontStyle('bold');
+                } else {
+                    subTitle.setText('「ほんの少し、世界の法則をお借りしますね（0時更新・各1日1回 / 取引後30分休憩）」');
+                    subTitle.setColor('#aaccff');
+                    subTitle.setFontStyle('normal');
+                }
+                dynamicUpdaters.forEach(fn => fn());
+            }
+        });
+
+        container.on('destroy', () => {
+            if (timerEvent) timerEvent.remove(false);
+        });
+
         // 補足説明
         const noteText = scene.add.text(width / 2, height / 2 + modalH / 2 - 62,
-            '※タロット選び直し・レリクス合成引き直しも1日1回ご利益を受けられます', {
-            fontFamily: 'sans-serif', fontSize: '11px', color: '#778899'
+            '※取引後は30分間お昼寝に入ります（タロット・合成引き直し含む）', {
+            fontFamily: 'sans-serif', fontSize: '11px', color: '#ffbb88'
         }).setOrigin(0.5);
         container.add(noteText);
 

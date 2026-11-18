@@ -1146,11 +1146,18 @@ export default class EquipmentScene extends Phaser.Scene {
 
         const renderRerollBtn = () => {
             rerollBtnContainer.removeAll(true);
-            const canTrade = gs.hasMetFairy && !FairyTradeManager.isTradeUsedToday('synth_reroll');
+            const isResting = FairyTradeManager.isFairyOnCooldown();
+            const isDayUsed = FairyTradeManager.isTradeUsedToday('synth_reroll');
+            const canTrade = gs.hasMetFairy && !isDayUsed && !isResting;
             if (!canTrade) {
                 if (gs.hasMetFairy) {
-                    const usedTxt = this.add.text(0, 0, '🧚‍♀️ 本日の引き直し取引は終了しました (0時更新)', {
-                        fontSize: '13px', color: '#777788'
+                    let msg = '🧚‍♀️ 本日の引き直し取引は終了しました (0時更新)';
+                    if (isResting) {
+                        const remStr = FairyTradeManager.formatCooldownTimer(FairyTradeManager.getGlobalCooldownRemainingMs());
+                        msg = `🧚‍♀️ 妖精さんはお昼寝中です…zzz (${remStr})`;
+                    }
+                    const usedTxt = this.add.text(0, 0, msg, {
+                        fontSize: '13px', color: isResting ? '#ffbb88' : '#777788'
                     }).setOrigin(0.5);
                     rerollBtnContainer.add(usedTxt);
                 }

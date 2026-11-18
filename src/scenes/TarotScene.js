@@ -570,10 +570,14 @@ export default class TarotScene extends Phaser.Scene {
         }).setOrigin(1).setAlpha(0);
 
         let rerollBtn = null;
+        let restingNoticeText = null;
         let isConfirmed = false;
 
-        // 🧚‍♀️ リフィエル解放済みの場合、残りの2枚を表にして選び直す取引ボタンを表示！(0時更新・1日1回)
-        const canTarotTrade = gs.hasMetFairy && !this._hasRerolledTarot && !FairyTradeManager.isTradeUsedToday('tarot_reroll') && this._otherCardIds && this._otherCardIds.length === 2;
+        // 🧚‍♀️ リフィエル解放済みの場合、残りの2枚を表にして選び直す取引ボタンを表示！(0時更新・1日1回・取引後30分休憩)
+        const isFairyResting = FairyTradeManager.isFairyOnCooldown();
+        const isTradeUsedToday = FairyTradeManager.isTradeUsedToday('tarot_reroll');
+        const canTarotTrade = gs.hasMetFairy && !this._hasRerolledTarot && !isTradeUsedToday && !isFairyResting && this._otherCardIds && this._otherCardIds.length === 2;
+
         if (canTarotTrade) {
             const isVip = !!gs.hasNoAdsPass;
             const btnLabel = isVip
@@ -618,10 +622,41 @@ export default class TarotScene extends Phaser.Scene {
                     }
                 });
             });
+        } else if (gs.hasMetFairy && !this._hasRerolledTarot && isFairyResting && this._otherCardIds && this._otherCardIds.length === 2) {
+            // お昼寝中のため取引不可（取引ボタンは出さず、助けを呼べない絶望テキストを表示）
+            const remStr = FairyTradeManager.formatCooldownTimer(FairyTradeManager.getGlobalCooldownRemainingMs());
+            restingNoticeText = this.add.text(this.width / 2, this.height - 75, `🧚‍♀️ 妖精リフィエルはお昼寝中です…zzz (${remStr} / 助けを呼べない！)`, {
+                fontFamily: FONT_MAIN,
+                fontSize: '12px',
+                color: '#ff9977',
+                backgroundColor: '#2a1111cc',
+                padding: { x: 10, y: 5 }
+            }).setOrigin(0.5).setAlpha(0).setDepth(500);
+        }
+
+        // ⚡ 塔（正位置）のリセット逃げ防止処理
+        // 妖精に助けを呼べない状態（お昼寝中、または本日使用済み、または未遭遇）で塔（正位置）が出た場合、
+        // 出現した瞬間に即座に仲間離脱効果を確定させてオートセーブを実行する（タスクキル逃げを完全封殺）
+        if (cardData.id === 17 && isUpright && !canTarotTrade) {
+            if (!this._towerEffectAlreadyApplied) {
+                this._towerEffectAlreadyApplied = true;
+                this.registry.set('tarotDeck', this.tarotDeck);
+                if (!gs.activeTarots.some(t => t.id === 17 && t.isUpright)) {
+                    gs.activeTarots.push({ id: 17, isUpright: true });
+                }
+                gs.applyImmediateTarotEffect(17, true, this);
+                try {
+                    SaveManager.saveGame(this);
+                    console.log('[TarotScene] 塔（正位置）確定：即時離脱＆オートセーブ完了（リセット逃げ封じ）');
+                } catch (e) {
+                    console.error('[TarotScene] 塔オートセーブ失敗:', e);
+                }
+            }
         }
 
         const uiElements = [infoBox, titleText, descText];
         if (rerollBtn) uiElements.push(rerollBtn);
+        if (restingNoticeText) uiElements.push(restingNoticeText);
 
         this.tweens.add({
             targets: uiElements,
@@ -776,9 +811,13 @@ export default class TarotScene extends Phaser.Scene {
                 // Save updated deck
                 this.registry.set('tarotDeck', this.tarotDeck);
 
-                // 発動中のタロット効果として登録
-                GlobalState.getInstance().activeTarots.push({ id: drawnCardId, isUpright: isUpright });
-                GlobalState.getInstance().applyImmediateTarotEffect(drawnCardId, isUpright, this);
+                // 発動中のタロット効果として登録（リセット逃げ防止で即時適用済みの場合は二重適用をスキップ）
+                const gs = GlobalState.getInstance();
+                const alreadyApplied = (drawnCardId === 17 && isUpright && this._towerEffectAlreadyApplied);
+                if (!alreadyApplied) {
+                    gs.activeTarots.push({ id: drawnCardId, isUpright: isUpright });
+                    gs.applyImmediateTarotEffect(drawnCardId, isUpright, this);
+                }
                 
                 if (this.bgm) {
                     this.bgm.stop();
@@ -787,7 +826,6 @@ export default class TarotScene extends Phaser.Scene {
                 this.sound.stopAll();
 
                 // 塔（正位置）で仲間が離脱した場合の喪失イベント
-                const gs = GlobalState.getInstance();
                 const removedCharId = gs.lastTowerRemovedCharId;
                 if (removedCharId) {
                     if (whiteScreen) whiteScreen.destroy();

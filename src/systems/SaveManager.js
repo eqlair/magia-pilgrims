@@ -57,6 +57,7 @@ export class SaveManager {
                 hasClickedFairyTrade: gs.hasClickedFairyTrade || false,
                 hasNoAdsPass: gs.hasNoAdsPass || false,
                 fairyTradeUsage: gs.fairyTradeUsage ? JSON.parse(JSON.stringify(gs.fairyTradeUsage)) : {},
+                lastFairyTradeTimestamp: gs.lastFairyTradeTimestamp || 0,
                 achievements: gs.achievements || {},
                 dailyQuests: gs.dailyQuests || null,
                 fairyDailyTrade: gs.fairyDailyTrade || null,
@@ -298,6 +299,7 @@ export class SaveManager {
         if (d.hasClickedFairyTrade !== undefined) gs.hasClickedFairyTrade = d.hasClickedFairyTrade;
         if (d.hasNoAdsPass !== undefined) gs.hasNoAdsPass = d.hasNoAdsPass;
         if (d.fairyTradeUsage) gs.fairyTradeUsage = d.fairyTradeUsage;
+        if (d.lastFairyTradeTimestamp !== undefined) gs.lastFairyTradeTimestamp = d.lastFairyTradeTimestamp;
         if (d.achievements) gs.achievements = d.achievements;
         if (d.dailyQuests) gs.dailyQuests = d.dailyQuests;
         if (d.fairyDailyTrade) gs.fairyDailyTrade = d.fairyDailyTrade;
