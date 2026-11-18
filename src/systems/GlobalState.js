@@ -1040,6 +1040,146 @@ export class GlobalState {
     }
 
     /**
+     * プレイヤーが現在所持しているすべての宝石（インベントリ + 通常マップ全キャラの装備中宝石）を取得
+     * @param {boolean} excludeJikukanBanned - 時空館持込禁止（天隕晶など）を除外するか
+     */
+    getAllOwnedGems(excludeJikukanBanned = false) {
+        const list = [];
+        const seen = new Set();
+
+        if (this.inventory && Array.isArray(this.inventory.gems)) {
+            for (const g of this.inventory.gems) {
+                if (g && !seen.has(g)) {
+                    seen.add(g);
+                    list.push(g);
+                }
+            }
+        }
+
+        if (this.characters) {
+            for (const cid in this.characters) {
+                const c = this.characters[cid];
+                if (c && c.equipGem && !seen.has(c.equipGem)) {
+                    seen.add(c.equipGem);
+                    list.push(c.equipGem);
+                }
+            }
+        }
+
+        if (excludeJikukanBanned) {
+            const banned = ['天隕晶', '七曜杖'];
+            return list.filter(g => !banned.includes(g.name));
+        }
+        return list;
+    }
+
+    /**
+     * プレイヤーが現在所持しているすべてのレリクス（インベントリ + 通常マップ全キャラの装備中レリクス）を取得
+     * @param {boolean} excludeJikukanBanned - 時空館持込禁止（天隕晶など）を除外するか
+     */
+    getAllOwnedRelics(excludeJikukanBanned = false) {
+        const list = [];
+        const seen = new Set();
+
+        if (this.inventory && Array.isArray(this.inventory.relics)) {
+            for (const r of this.inventory.relics) {
+                if (r && !seen.has(r)) {
+                    seen.add(r);
+                    list.push(r);
+                }
+            }
+        }
+
+        if (this.characters) {
+            for (const cid in this.characters) {
+                const c = this.characters[cid];
+                if (c && Array.isArray(c.equipRelics)) {
+                    for (const r of c.equipRelics) {
+                        if (r && !seen.has(r)) {
+                            seen.add(r);
+                            list.push(r);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (excludeJikukanBanned) {
+            const banned = ['天隕晶', '七曜杖'];
+            return list.filter(r => !banned.includes(r.name));
+        }
+        return list;
+    }
+
+    /**
+     * 指定アイテムが通常マップの誰かに装備されているか判定
+     */
+    isEquippedInNormal(item) {
+        if (!item || !this.characters) return null;
+        for (const cid in this.characters) {
+            const c = this.characters[cid];
+            if (!c) continue;
+            if (c.equipGem === item || (c.equipGem && c.equipGem.id && item.id && c.equipGem.id === item.id)) {
+                return { charId: cid, charName: c.name || cid, isGem: true };
+            }
+            if (Array.isArray(c.equipRelics)) {
+                for (let s = 0; s < c.equipRelics.length; s++) {
+                    const r = c.equipRelics[s];
+                    if (r === item || (r && r.id && item.id && r.id === item.id)) {
+                        return { charId: cid, charName: c.name || cid, slotIndex: s, isGem: false };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 指定アイテムが時空館の誰かに装備されているか判定
+     */
+    isEquippedInJikukan(item) {
+        if (!item || !this.characters) return null;
+        for (const cid in this.characters) {
+            const c = this.characters[cid];
+            if (!c) continue;
+            if (c.jikukanEquipGem === item || (c.jikukanEquipGem && c.jikukanEquipGem.id && item.id && c.jikukanEquipGem.id === item.id)) {
+                return { charId: cid, charName: c.name || cid, isGem: true };
+            }
+            if (Array.isArray(c.jikukanEquipRelics)) {
+                for (let s = 0; s < c.jikukanEquipRelics.length; s++) {
+                    const r = c.jikukanEquipRelics[s];
+                    if (r === item || (r && r.id && item.id && r.id === item.id)) {
+                        return { charId: cid, charName: c.name || cid, slotIndex: s, isGem: false };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 指定アイテムが通常マップまたは時空館のいずれかで装備中か（素材消費ロック用）
+     */
+    isEquippedAnywhere(item) {
+        return this.isEquippedInNormal(item) || this.isEquippedInJikukan(item);
+    }
+
+    /**
+     * インベントリ（鞄）からアイテムを削除
+     */
+    removeInventoryItem(item) {
+        if (!item || !this.inventory) return;
+        if (this.inventory.relics) {
+            const idx = this.inventory.relics.findIndex(r => r === item || (r && r.id && item.id && r.id === item.id));
+            if (idx !== -1) this.inventory.relics.splice(idx, 1);
+        }
+        if (this.inventory.gems) {
+            const idx = this.inventory.gems.findIndex(g => g === item || (g && g.id && item.id && g.id === item.id));
+            if (idx !== -1) this.inventory.gems.splice(idx, 1);
+        }
+    }
+
+    /**
      * レベル上昇装備の着脱等によるレベル変動時、必要レベルに満たなくなったスロットのレリクスを自動解除(パージ)する
      * @param {string} charId 
      * @param {Array} party 
@@ -1056,15 +1196,14 @@ export class GlobalState {
         if (isJikukan) {
             if (!char.jikukanEquipRelics) char.jikukanEquipRelics = [null, null, null, null, null];
             
-            // 1. 地上で喪失・消費されたアイテム（インベントリに実体がないもの）の除去チェック
-            const invRelics = (this.inventory && this.inventory.relics) ? this.inventory.relics : [];
-            const invGems = (this.inventory && this.inventory.gems) ? this.inventory.gems : [];
+            // 1. 地上で喪失・消費されたアイテム（プレイヤーの手元に実体がないもの）の除去チェック
+            const allRelics = this.getAllOwnedRelics(true);
+            const allGems = this.getAllOwnedGems(true);
 
             if (char.jikukanEquipGem) {
-                // 参照一致 または ID一致でインベントリ内の実体を検索
-                const realGem = invGems.find(g => g === char.jikukanEquipGem || (g && g.id && char.jikukanEquipGem.id && g.id === char.jikukanEquipGem.id));
+                // 参照一致 または ID一致で所持アイテム内の実体を検索
+                const realGem = allGems.find(g => g === char.jikukanEquipGem || (g && g.id && char.jikukanEquipGem.id && g.id === char.jikukanEquipGem.id));
                 if (realGem) {
-                    // インベントリの実体と参照を再リンク（同期）
                     char.jikukanEquipGem = realGem;
                 } else {
                     purgedNames.push(char.jikukanEquipGem.name || '宝石');
@@ -1075,10 +1214,9 @@ export class GlobalState {
             for (let i = 0; i < 5; i++) {
                 const r = char.jikukanEquipRelics[i];
                 if (r) {
-                    // 参照一致 または ID一致でインベントリ内の実体を検索
-                    const realRelic = invRelics.find(item => item === r || (item && item.id && r.id && item.id === r.id));
+                    // 参照一致 または ID一致で所持アイテム内の実体を検索
+                    const realRelic = allRelics.find(item => item === r || (item && item.id && r.id && item.id === r.id));
                     if (realRelic) {
-                        // インベントリの実体と参照を再リンク（同期）
                         char.jikukanEquipRelics[i] = realRelic;
                     } else {
                         purgedNames.push(r.name || 'レリクス');

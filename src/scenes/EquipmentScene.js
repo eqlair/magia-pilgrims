@@ -112,7 +112,20 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     getInventoryItems() {
+        if (this.isJikukan) {
+            if (!this._cachedJikukanItems) {
+                this.refreshJikukanInventoryCache();
+            }
+            return this._cachedJikukanItems;
+        }
         return this.itemType === 'relic' ? this.globalState.inventory.relics : this.globalState.inventory.gems;
+    }
+
+    refreshJikukanInventoryCache() {
+        if (!this.globalState) return;
+        this._cachedJikukanItems = this.itemType === 'relic'
+            ? this.globalState.getAllOwnedRelics(true)
+            : this.globalState.getAllOwnedGems(true);
     }
 
     getEquippedItems() {
@@ -407,6 +420,9 @@ export default class EquipmentScene extends Phaser.Scene {
 
     drawUI() {
         try {
+            if (this.isJikukan) {
+                this.refreshJikukanInventoryCache();
+            }
             this.topContainer.removeAll(true);
             this.midContainer.removeAll(true);
             this.bottomContainer.removeAll(true);
@@ -483,6 +499,7 @@ export default class EquipmentScene extends Phaser.Scene {
             if (!item) return false;
             if (item === this.enhanceBaseItem) return false;
             if (item.isLocked) return false; // ロックされたアイテムは除外
+            if (this.globalState.isEquippedAnywhere(item)) return false; // 通常・時空館いずれかで装備中のアイテムも除外
             if (item.rank !== this.enhanceBaseItem.rank) return false; // 同ランクのみ
             return true;
         });
@@ -611,26 +628,46 @@ export default class EquipmentScene extends Phaser.Scene {
                     itemsContainer.add(lockTxt);
                 }
 
-                // 時空館での装備中バッジ表示
-                if (this.isJikukan) {
-                    const owner = this.getJikukanEquippedOwner(item);
-                    if (owner) {
-                        const isSelfSlot = (owner.charId === this.charId && owner.slotIndex === this.slotIndex);
-                        const badgeColor = isSelfSlot ? '#88bbff' : '#ffaaaa';
-                        const badgeBg = isSelfSlot ? '#112244' : '#441a1a';
-                        const badgeLabel = isSelfSlot ? 'この枠に装備中' : `${owner.charName}が装備中`;
-                        const badgeY = itemY + Math.floor(bgHeight / 2);
-                        const badgeX = item.isLocked ? this.width - 90 : this.width - 70;
+                // 装備中バッジ表示（通常マップ・時空館の双方の装備状態をスマートに明示）
+                let badgeLabel = null;
+                let badgeColor = '#ffffff';
+                let badgeBg = '#222222';
 
-                        const badgeTxt = this.add.text(badgeX, badgeY, badgeLabel, {
-                            fontSize: '11px',
-                            color: badgeColor,
-                            backgroundColor: badgeBg,
-                            padding: { x: 5, y: 2 },
-                            fontStyle: 'bold'
-                        }).setOrigin(1, 0.5);
-                        itemsContainer.add(badgeTxt);
+                if (this.isJikukan) {
+                    const jOwner = this.getJikukanEquippedOwner(item);
+                    if (jOwner) {
+                        const isSelfSlot = (jOwner.charId === this.charId && jOwner.slotIndex === this.slotIndex);
+                        badgeColor = isSelfSlot ? '#88bbff' : '#ffaaaa';
+                        badgeBg = isSelfSlot ? '#112244' : '#441a1a';
+                        badgeLabel = isSelfSlot ? 'この枠に装備中' : `${jOwner.charName}が装備中`;
+                    } else {
+                        const nOwner = this.globalState.isEquippedInNormal(item);
+                        if (nOwner) {
+                            badgeColor = '#aaffaa';
+                            badgeBg = '#113322';
+                            badgeLabel = `${nOwner.charName}(通常)`;
+                        }
                     }
+                } else {
+                    const jOwner = this.globalState.isEquippedInJikukan(item);
+                    if (jOwner) {
+                        badgeColor = '#ddaaff';
+                        badgeBg = '#2a1a3a';
+                        badgeLabel = `${jOwner.charName}(時空)`;
+                    }
+                }
+
+                if (badgeLabel) {
+                    const badgeY = itemY + Math.floor(bgHeight / 2);
+                    const badgeX = item.isLocked ? this.width - 90 : this.width - 70;
+                    const badgeTxt = this.add.text(badgeX, badgeY, badgeLabel, {
+                        fontSize: '11px',
+                        color: badgeColor,
+                        backgroundColor: badgeBg,
+                        padding: { x: 5, y: 2 },
+                        fontStyle: 'bold'
+                    }).setOrigin(1, 0.5);
+                    itemsContainer.add(badgeTxt);
                 }
 
                 bg.on('pointerdown', (pointer) => {
@@ -652,7 +689,14 @@ export default class EquipmentScene extends Phaser.Scene {
                     if (isSwiping) return;
                     if (this.enhanceMode) {
                         if (item === this.enhanceBaseItem) return;
-                        if (item.isLocked) return;
+                        if (item.isLocked) {
+                            this.showToast('ロック中のアイテムは素材にできません');
+                            return;
+                        }
+                        if (this.globalState.isEquippedAnywhere(item)) {
+                            this.showToast('装備中のアイテムは素材にできません');
+                            return;
+                        }
                         if (item.rank !== this.enhanceBaseItem.rank) return;
                         
                         if (isMat) {
@@ -752,6 +796,7 @@ export default class EquipmentScene extends Phaser.Scene {
             } else {
                 char.jikukanEquipGem = item;
             }
+            this.refreshJikukanInventoryCache();
         } else {
             if (this.itemType === 'relic') {
                 // 選択されたスロット（this.slotIndex）に装備する
@@ -793,6 +838,7 @@ export default class EquipmentScene extends Phaser.Scene {
             } else {
                 char.jikukanEquipGem = null;
             }
+            this.refreshJikukanInventoryCache();
         } else {
             if (this.itemType === 'relic') {
                 const oldItem = char.equipRelics[equipIndex];
@@ -840,11 +886,13 @@ export default class EquipmentScene extends Phaser.Scene {
         this.globalState.stockSp -= spCost;
 
         // Remove materials from inventory
-        const items = this.getInventoryItems();
         this.enhanceMaterials.forEach(mat => {
-            const idx = items.indexOf(mat);
-            if (idx > -1) items.splice(idx, 1);
+            this.globalState.removeInventoryItem(mat);
         });
+        if (this.isJikukan) {
+            this.refreshJikukanInventoryCache();
+        }
+        this.globalState.cleanupJikukanEquipsOnInventoryChange();
 
         // Upgrade base item
         this.enhanceBaseItem.rank += 1;
@@ -956,8 +1004,8 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     executeSynthesis() {
-        // 装備中、ロック中のアイテムを除外
-        const items = this.getInventoryItems().filter(i => !i.isLocked && !i.isEquipped);
+        // 装備中、ロック中、通常または時空館のいずれかで装備中のアイテムを完全除外
+        const items = this.getInventoryItems().filter(i => !i.isLocked && !i.isEquipped && !this.globalState.isEquippedAnywhere(i));
 
         // ランク別にグループ化
         const byRank = {};
@@ -1037,6 +1085,9 @@ export default class EquipmentScene extends Phaser.Scene {
         }
 
         // 地上で消費されたアイテムを時空館の装備枠からも自動解除＆連鎖解除
+        if (this.isJikukan) {
+            this.refreshJikukanInventoryCache();
+        }
         this.globalState.cleanupJikukanEquipsOnInventoryChange();
 
         SaveManager.saveGame();
