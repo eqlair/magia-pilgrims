@@ -17,6 +17,8 @@ export default class TarotScene extends Phaser.Scene {
         this.party = data.party || [];
         this.bgKey = data.bgKey || 'bg_map_base';
         this._hasRerolledTarot = false;
+        // 1/100 (1%) の確率でカードがめくれてしまう大事故ハプニング！
+        this.isAccidentFlow = (data && data.forceAccident) ? true : (Math.random() < 0.01);
     }
 
     preload() {
@@ -81,6 +83,16 @@ export default class TarotScene extends Phaser.Scene {
                 if (!this.canSelect) return;
                 this.scene.restart();
             });
+            // Uキーで1/100の事故演出を強制発動テスト
+            this.input.keyboard.on('keydown-U', () => {
+                console.log('[DEBUG] Force Tarot Accident Triggered!');
+                this.scene.restart({
+                    forceAccident: true,
+                    party: this.party,
+                    returnScene: this.returnScene,
+                    bgKey: this.bgKey
+                });
+            });
         }
 
 
@@ -94,6 +106,30 @@ export default class TarotScene extends Phaser.Scene {
         
         let completedCards = 0;
 
+        if (this.isAccidentFlow) {
+            console.log('💥 [TarotScene] 1/100 Accident Mode Activated! Cards will flip over!');
+            this.time.delayedCall(500, () => {
+                const accidentBanner = this.add.text(this.width / 2, this.height * 0.22, '⚠️ ハプニング！カードがめくれてしまった…！', {
+                    fontFamily: FONT_MAIN,
+                    fontSize: '18px',
+                    fontStyle: 'bold',
+                    color: '#ffea00',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }).setOrigin(0.5).setAlpha(0);
+                this.tweens.add({
+                    targets: accidentBanner,
+                    alpha: 1,
+                    scaleX: 1.1,
+                    scaleY: 1.1,
+                    duration: 300,
+                    yoyo: true,
+                    hold: 1200,
+                    onComplete: () => accidentBanner.destroy()
+                });
+            });
+        }
+
         for (let i = 0; i < flowCount; i++) {
             const cardObj = this.add.image(this.width + 100 + i * spacing, this.height / 2, 'tarot_0')
                 .setOrigin(0.5);
@@ -105,6 +141,30 @@ export default class TarotScene extends Phaser.Scene {
             // Add some random Y offset and rotation for organic feel
             cardObj.y += (Math.random() - 0.5) * 100;
             cardObj.rotation = (Math.random() - 0.5) * 0.5;
+
+            // 事故モードの場合、画面中央あたりを通過するときにパタッと表向きにめくれる！
+            if (this.isAccidentFlow) {
+                const flipDelay = (i * 100) + 400;
+                this.time.delayedCall(flipDelay, () => {
+                    if (!cardObj || !cardObj.scene) return;
+                    this.tweens.add({
+                        targets: cardObj,
+                        scaleX: 0,
+                        duration: 120,
+                        onComplete: () => {
+                            if (!cardObj || !cardObj.scene) return;
+                            const sampleId = this.tarotDeck[i % this.tarotDeck.length] || 1;
+                            cardObj.setTexture(`tarot_${sampleId}`);
+                            if (i % 2 === 1) cardObj.setRotation(cardObj.rotation + Math.PI);
+                            this.tweens.add({
+                                targets: cardObj,
+                                scaleX: cardObj.scaleY,
+                                duration: 120
+                            });
+                        }
+                    });
+                });
+            }
 
             this.tweens.add({
                 targets: cardObj,
@@ -127,6 +187,45 @@ export default class TarotScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 👥 現在の状況で引いた時に新しく仲間になるタロットカードIDのリストを取得
+     */
+    getAvailableJoinTarotIds() {
+        const gs = GlobalState.getInstance();
+        const available = [];
+        const candidates = [
+            { tarotId: 4, charId: '004' },  // 黄蘭 (女帝)
+            { tarotId: 9, charId: '003' },  // 紅華 (力)
+            { tarotId: 12, charId: '002' }, // 蒼樹 (正義)
+            { tarotId: 15, charId: '005' }, // 李乃果 (節制)
+            { tarotId: 1, charId: '007', req: () => gs.hasEnteredTower }, // ななよ (愚者)
+            { tarotId: 5, charId: '008', req: () => gs.hasEnteredTower }, // ノア (皇帝)
+            { tarotId: 10, charId: '011', req: () => (gs.loopCount >= 2) || !!(gs.characters?.['011']?.hasAccompanied) }, // 白蓮 (隠者)
+            { tarotId: 16, charId: '010', req: () => gs.tower21BossDefeated } // プロセル (悪魔)
+        ];
+
+        const currentParty = (this.party || []).map(id => gs.normalizeCharId ? gs.normalizeCharId(id) : id);
+        const lostChars = (gs.lostCharacterIdsInCurrentLoop || []).map(id => gs.normalizeCharId ? gs.normalizeCharId(id) : id);
+
+        for (const c of candidates) {
+            const normCId = gs.normalizeCharId ? gs.normalizeCharId(c.charId) : c.charId;
+            // すでに獲得済みのタロットなら除外
+            if (gs.drawnTarotCards && gs.drawnTarotCards.includes(c.tarotId)) continue;
+            // すでにパーティにいるなら除外
+            if (currentParty.includes(normCId)) continue;
+            // 今周回で離脱/ロスト済みなら除外
+            if (lostChars.includes(normCId)) continue;
+            // 個別のタロット解放条件を満たしていないなら除外
+            if (c.req && !c.req()) continue;
+
+            // 山札（tarotDeck）に入っているか確認
+            if (this.tarotDeck && this.tarotDeck.includes(c.tarotId)) {
+                available.push(c.tarotId);
+            }
+        }
+        return available;
+    }
+
     showThreeCards() {
         this.cards = [];
         this.canSelect = false;
@@ -146,7 +245,7 @@ export default class TarotScene extends Phaser.Scene {
             return;
         }
 
-        // 1周目かつ12/3以降に 蒼樹(002)・紅華(003)・黄蘭(004) が誰もいない場合の救済判定（12/1〜12/2は完全ランダム自引き）
+        // ① 1周目かつ12/3以降に 蒼樹(002)・紅華(003)・黄蘭(004) が誰もいない場合の救済判定（12/1〜12/2は完全ランダム自引き）
         const isFirstLoop = (gs.loopCount || 1) <= 1;
         const isTargetDay = (gs.currentDay || 1) >= 3;
         const hasSpecificMember = (this.party || []).includes('002') || (this.party || []).includes('003') || (this.party || []).includes('004') ||
@@ -159,7 +258,11 @@ export default class TarotScene extends Phaser.Scene {
         this.drawnCardIds = [];
         if (isGuaranteeMode) {
             // 黄蘭: 4 (女帝), 紅華: 9 (力), 蒼樹: 12 (正義)
-            const guaranteePool = [4, 9, 12].filter(id => !gs.drawnTarotCards.includes(id));
+            const guaranteePool = [4, 9, 12].filter(id => {
+                const cId = id === 4 ? '004' : (id === 9 ? '003' : '002');
+                const isLost = gs.lostCharacterIdsInCurrentLoop && gs.lostCharacterIdsInCurrentLoop.includes(cId);
+                return !gs.drawnTarotCards.includes(id) && !isLost;
+            });
             if (guaranteePool.length > 0) {
                 Phaser.Utils.Array.Shuffle(guaranteePool);
                 for (let i = 0; i < drawCount; i++) {
@@ -171,13 +274,45 @@ export default class TarotScene extends Phaser.Scene {
             }
         }
 
-        // 通常ドロー（救済モード外またはフォールバック）
+        // ② 【新規】パーティが1〜2人の時の仲間保証枠（3枚のうち最低1枚は仲間カードにする）
+        if (this.drawnCardIds.length === 0 && (this.party || []).length <= 2) {
+            const joinCandidates = this.getAvailableJoinTarotIds();
+            if (joinCandidates.length > 0) {
+                Phaser.Utils.Array.Shuffle(joinCandidates);
+                const guaranteedJoinCard = joinCandidates[0]; // 仲間カードを1枚ピックアップ
+                // 山札からこのカードを取り除く
+                this.tarotDeck = this.tarotDeck.filter(id => id !== guaranteedJoinCard);
+
+                const pickedCards = [guaranteedJoinCard];
+                // 残り(drawCount - 1)枚を山札から引く
+                const remainingNeeded = drawCount - 1;
+                for (let i = 0; i < remainingNeeded; i++) {
+                    if (this.tarotDeck.length > 0) {
+                        pickedCards.push(this.tarotDeck.shift());
+                    }
+                }
+                // 3枚をシャッフルして並び順をランダムにする
+                Phaser.Utils.Array.Shuffle(pickedCards);
+                this.drawnCardIds = pickedCards;
+                console.log(`[TarotScene] Small Party Join Guarantee (Party: ${(this.party || []).length}人): Guaranteed Card ${guaranteedJoinCard}, Result:`, this.drawnCardIds);
+            }
+        }
+
+        // ③ 通常ドロー（救済モード外またはフォールバック）
         if (this.drawnCardIds.length === 0) {
             for (let i = 0; i < drawCount; i++) {
                 this.drawnCardIds.push(this.tarotDeck.shift());
             }
         }
 
+        // 事故モードの場合、3枚それぞれの正位置/逆位置をあらかじめ決定
+        if (this.isAccidentFlow) {
+            this.accidentCardStates = this.drawnCardIds.map(id => ({
+                id: id,
+                isUpright: Math.random() >= 0.5
+            }));
+            this.accidentDescElements = [];
+        }
 
         let completedTweens = 0;
 
@@ -197,33 +332,89 @@ export default class TarotScene extends Phaser.Scene {
         }
 
         for (let i = 0; i < drawCount; i++) {
-            // Cards flow from left this time
-            const textureKey = gs.tarotAllFaceUp ? `tarot_${this.drawnCardIds[i]}` : 'tarot_0';
-            const card = this.add.image(-200, this.height / 2, textureKey)
+            const cId = this.drawnCardIds[i];
+            const isAccident = !!this.isAccidentFlow;
+            const accidentState = isAccident ? this.accidentCardStates[i] : null;
+
+            // テクスチャ: 事故モードまたはデバッグ全表モードなら表向き
+            const isFaceUp = (isAccident || gs.tarotAllFaceUp);
+            const textureKey = isFaceUp ? `tarot_${cId}` : 'tarot_0';
+            const targetRotation = (isAccident && accidentState && !accidentState.isUpright) ? Math.PI : 0;
+
+            const card = this.add.image(-200, this.height / 2 - (isAccident ? 40 : 0), textureKey)
                 .setOrigin(0.5)
                 .setInteractive();
                 
             card.displayWidth = targetWidth;
             card.scaleY = card.scaleX;
+            if (targetRotation !== 0) {
+                card.setRotation(targetRotation);
+            }
 
             this.cards.push(card);
+
+            // 事故モードの場合、各カードの下に効果説明UIを作成
+            if (isAccident && accidentState) {
+                const cardData = this.tarotData[cId] || {
+                    id: cId,
+                    name: `タロット No.${cId}`,
+                    upright: '効果なし',
+                    reversed: '効果なし'
+                };
+                const isU = accidentState.isUpright;
+                const posName = isU ? '【正位置】' : '【逆位置】';
+                const effText = isU ? cardData.upright : cardData.reversed;
+                const textColor = isU ? '#44ffaa' : '#ff7788';
+
+                const descBox = this.add.container(positionsX[i], this.height / 2 + 85).setAlpha(0);
+                
+                const boxW = Math.min(this.width * 0.31, 230);
+                const bgRect = this.add.rectangle(0, 0, boxW, 85, 0x051510, 0.9)
+                    .setStrokeStyle(1.5, isU ? 0x44ffaa : 0xff5566, 0.9)
+                    .setOrigin(0.5, 0);
+
+                const titleTxt = this.add.text(0, 6, `${cardData.name} ${posName}`, {
+                    fontFamily: FONT_MAIN, fontSize: '11px', fontStyle: 'bold',
+                    color: textColor, align: 'center', stroke: '#000000', strokeThickness: 2
+                }).setOrigin(0.5, 0);
+
+                const bodyTxt = this.add.text(0, 26, effText, {
+                    fontFamily: FONT_MAIN, fontSize: '10px', color: '#ffffff',
+                    align: 'center', stroke: '#000000', strokeThickness: 2,
+                    wordWrap: { width: boxW - 10, useAdvancedWrap: true }
+                }).setOrigin(0.5, 0);
+
+                descBox.add([bgRect, titleTxt, bodyTxt]);
+                this.accidentDescElements.push(descBox);
+            }
 
             this.tweens.add({
                 targets: card,
                 x: positionsX[i],
-                rotation: 0,
+                rotation: targetRotation,
                 duration: 800,
                 delay: i * 200,
                 ease: 'Power2',
                 onComplete: () => {
                     completedTweens++;
                     if (completedTweens === drawCount) {
-                        this.promptText.setText('どれか一枚を選んでください');
+                        const promptMsg = isAccident
+                            ? '⚠️ ハプニング！表向きのカードから一枚選んでください'
+                            : 'どれか一枚を選んでください';
+                        this.promptText.setText(promptMsg);
+                        if (isAccident) {
+                            this.promptText.setColor('#ffff66');
+                        }
                         this.tweens.add({ targets: this.promptText, alpha: 1, duration: 500 });
+
+                        // 説明UIもフェードイン
+                        if (this.accidentDescElements && this.accidentDescElements.length > 0) {
+                            this.tweens.add({ targets: this.accidentDescElements, alpha: 1, duration: 500 });
+                        }
+
                         this.canSelect = true;
                         this.checkTarotTutorial();
                     }
-
                 }
             });
 
@@ -241,6 +432,21 @@ export default class TarotScene extends Phaser.Scene {
         }
 
         this.promptText.setAlpha(0);
+
+        // 事故モードの説明UIをフェードアウト＆破棄
+        if (this.accidentDescElements && this.accidentDescElements.length > 0) {
+            this.tweens.add({
+                targets: this.accidentDescElements,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => {
+                    if (this.accidentDescElements) {
+                        this.accidentDescElements.forEach(el => el.destroy());
+                        this.accidentDescElements = [];
+                    }
+                }
+            });
+        }
 
         const selectedCard = this.cards[index];
         const cardId = this.drawnCardIds[index];
@@ -273,8 +479,10 @@ export default class TarotScene extends Phaser.Scene {
         });
         Phaser.Utils.Array.Shuffle(this.tarotDeck);
 
-        // 50% chance of Upright vs Reversed
-        const isUpright = Math.random() >= 0.5;
+        // 正位置/逆位置の判定: 事故モードの場合はすでに決まっている向きをそのまま使用！
+        const isUpright = (this.isAccidentFlow && this.accidentCardStates && this.accidentCardStates[index])
+            ? this.accidentCardStates[index].isUpright
+            : (Math.random() >= 0.5);
 
         // Animate out the non-selected cards
         this.cards.forEach((c, i) => {
@@ -289,11 +497,28 @@ export default class TarotScene extends Phaser.Scene {
             }
         });
 
-
         const startScale = selectedCard.scaleX;
-        const targetScale = startScale * 1.5; // Enlarge 1.5x from selection size
+        const targetScale = Math.abs(startScale) * 1.5; // Enlarge 1.5x from selection size
 
-        // Move selected card to center and enlarge, flipping over
+        // 事故モードの場合はすでに表向きなので、フリップ反転せずそのまま中央へスムーズに拡大移動！
+        if (this.isAccidentFlow) {
+            this.tweens.add({
+                targets: selectedCard,
+                x: this.width / 2,
+                y: this.height / 2 - 50,
+                scaleX: targetScale,
+                scaleY: targetScale,
+                rotation: isUpright ? 0 : Math.PI,
+                duration: 450,
+                ease: 'Back.easeOut',
+                onComplete: () => {
+                    this.showCardEffect(cardData, isUpright);
+                }
+            });
+            return;
+        }
+
+        // 通常モード: 中央へ移動してカードを3Dフリップ反転オープン！
         this.tweens.add({
             targets: selectedCard,
             x: this.width / 2,
@@ -429,32 +654,72 @@ export default class TarotScene extends Phaser.Scene {
 
     /**
      * 🧚‍♀️ 引き直し時：残り2枚のカードを表向き（オープン）で提示して選択させる
+     * ★ 正位置・逆位置があらかじめ決定された向きで並び、選んだあとも勝手にひっくり返らない！
      */
     showRerollTwoCards(otherCardIds) {
-        this.promptText.setText('残りのカードから一枚を選んでください').setAlpha(1);
+        this.promptText.setText('残りのカードから一枚を選んでください').setAlpha(1).setColor('#ffffff');
         const cardPositionsX = [this.width * 0.32, this.width * 0.68];
         const targetW = this.width * 0.28;
         const newCards = [];
 
-        otherCardIds.forEach((cId, i) => {
-            const cardObj = this.add.image(cardPositionsX[i], this.height / 2 - 40, `tarot_${cId}`)
+        if (!this.tarotData) {
+            this.tarotData = this.cache.json.get('tarot_data') || {};
+        }
+
+        // あらかじめ2枚のカードの正位置/逆位置を決定！
+        const cardStates = otherCardIds.map(cId => ({
+            id: cId,
+            isUpright: Math.random() >= 0.5
+        }));
+
+        this._rerollDescElements = [];
+
+        cardStates.forEach((state, i) => {
+            const cId = state.id;
+            const isUpright = state.isUpright;
+            const cardData = this.tarotData[cId] || {
+                id: cId,
+                name: `タロット No.${cId}`,
+                upright: '効果なし',
+                reversed: '効果なし'
+            };
+
+            const cardObj = this.add.image(cardPositionsX[i], this.height / 2 - 50, `tarot_${cId}`)
                 .setOrigin(0.5)
                 .setInteractive({ useHandCursor: true });
             cardObj.displayWidth = targetW;
             cardObj.scaleY = cardObj.scaleX;
             cardObj.setAlpha(0);
+            cardObj.setRotation(isUpright ? 0 : Math.PI); // 最初から向きを設定！
 
             this.tweens.add({
                 targets: cardObj,
                 alpha: 1,
-                y: this.height / 2 - 50,
+                y: this.height / 2 - 60,
                 duration: 500,
                 ease: 'Back.easeOut'
             });
 
+            // カードの下に正位置/逆位置ラベルと簡単な効果説明を表示
+            const posLabel = this.add.text(cardPositionsX[i], this.height / 2 + targetW * 0.8 - 15, isUpright ? '【正位置】' : '【逆位置】', {
+                fontFamily: FONT_MAIN,
+                fontSize: '14px',
+                fontStyle: 'bold',
+                color: isUpright ? '#44ff88' : '#ff5566',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setAlpha(0);
+
+            this.tweens.add({ targets: posLabel, alpha: 1, duration: 500 });
+            this._rerollDescElements.push(posLabel);
+
             cardObj.on('pointerdown', () => {
                 newCards.forEach(c => c.disableInteractive());
                 this.promptText.setAlpha(0);
+                if (this._rerollDescElements) {
+                    this._rerollDescElements.forEach(el => el.destroy());
+                    this._rerollDescElements = [];
+                }
 
                 const gs = GlobalState.getInstance();
                 if (!gs.drawnTarotCards) gs.drawnTarotCards = [];
@@ -477,18 +742,8 @@ export default class TarotScene extends Phaser.Scene {
                 });
 
                 this._selectedCardObj = cardObj;
-                const isUpright = Math.random() >= 0.5;
-                if (!this.tarotData) {
-                    this.tarotData = this.cache.json.get('tarot_data') || {};
-                }
-                const newCardData = this.tarotData[cId] || {
-                    id: cId,
-                    name: `タロット No.${cId}`,
-                    character: '',
-                    upright: '効果なし',
-                    reversed: '効果なし'
-                };
 
+                // 向きはすでに確定しているので、そのままの向き(isUpright ? 0 : Math.PI)で中央へ移動＆拡大！
                 this.tweens.add({
                     targets: cardObj,
                     x: this.width / 2,
@@ -499,7 +754,7 @@ export default class TarotScene extends Phaser.Scene {
                     duration: 400,
                     ease: 'Back.easeOut',
                     onComplete: () => {
-                        this.showCardEffect(newCardData, isUpright);
+                        this.showCardEffect(cardData, isUpright);
                     }
                 });
             });
@@ -626,8 +881,9 @@ export default class TarotScene extends Phaser.Scene {
                 }
                 
                 const script = joinEvents && joinCharId && (joinEvents[joinCharId] || joinEvents[drawnCardId]);
+                const isLostInLoop = gs.lostCharacterIdsInCurrentLoop && gs.lostCharacterIdsInCurrentLoop.includes(joinCharId);
 
-                if (script && !alreadyInParty && !isPartyFull && isUnlockedForTarot) {
+                if (script && !alreadyInParty && !isPartyFull && isUnlockedForTarot && !isLostInLoop) {
                     this.scene.stop();
                     this.scene.start('EventScene', { 
                         returnScene: this.returnScene,
