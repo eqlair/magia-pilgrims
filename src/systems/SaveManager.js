@@ -85,6 +85,7 @@ export class SaveManager {
                 dec21AfternoonTalkSeen: gs.dec21AfternoonTalkSeen || false,
                 seenLoveEvents: gs.seenLoveEvents ? JSON.parse(JSON.stringify(gs.seenLoveEvents)) : {},
                 seenPairEvents: gs.seenPairEvents ? JSON.parse(JSON.stringify(gs.seenPairEvents)) : {},
+                seenJoinEvents: gs.seenJoinEvents ? [...gs.seenJoinEvents] : [],
                 isTowerMode: gs.isTowerMode || false,
                 hasEnteredTower: gs.hasEnteredTower || false,
                 towerElapsedSeconds: gs.towerElapsedSeconds || 0,
@@ -402,8 +403,39 @@ export class SaveManager {
         if (d.ikebukuro02Played !== undefined) gs.ikebukuro02Played = d.ikebukuro02Played;
         if (d.dec21MorningTalkSeen !== undefined) gs.dec21MorningTalkSeen = d.dec21MorningTalkSeen;
         if (d.dec21AfternoonTalkSeen !== undefined) gs.dec21AfternoonTalkSeen = d.dec21AfternoonTalkSeen;
-        if (d.seenLoveEvents !== undefined) gs.seenLoveEvents = d.seenLoveEvents || {};
-        if (d.seenPairEvents !== undefined) gs.seenPairEvents = d.seenPairEvents || {};
+        if (d.seenLoveEvents !== undefined) {
+            gs.seenLoveEvents = d.seenLoveEvents || {};
+            // キーの3桁正規化（例: '1' -> '001'）
+            const normalizedLove = {};
+            for (const [k, v] of Object.entries(gs.seenLoveEvents)) {
+                const normK = gs.normalizeCharId ? gs.normalizeCharId(k) : k.padStart(3, '0');
+                normalizedLove[normK] = {
+                    stage1: !!(normalizedLove[normK]?.stage1 || v?.stage1),
+                    stage2: !!(normalizedLove[normK]?.stage2 || v?.stage2)
+                };
+            }
+            gs.seenLoveEvents = normalizedLove;
+        }
+        if (d.seenPairEvents !== undefined) {
+            gs.seenPairEvents = d.seenPairEvents || {};
+        }
+        if (d.seenJoinEvents !== undefined) {
+            gs.seenJoinEvents = Array.isArray(d.seenJoinEvents) ? d.seenJoinEvents.map(id => gs.normalizeCharId ? gs.normalizeCharId(id) : id) : [];
+        } else if (!gs.seenJoinEvents) {
+            gs.seenJoinEvents = [];
+        }
+        // 過去に同行経験のあるキャラは自動で初対面既読リストに追加補完
+        if (gs.characters) {
+            for (const cid in gs.characters) {
+                const char = gs.characters[cid];
+                if (char && char.hasAccompanied) {
+                    const normId = gs.normalizeCharId ? gs.normalizeCharId(cid) : cid;
+                    if (!gs.seenJoinEvents.includes(normId)) {
+                        gs.seenJoinEvents.push(normId);
+                    }
+                }
+            }
+        }
         if (d.isTowerMode !== undefined) gs.isTowerMode = d.isTowerMode;
         if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
         if (d.towerElapsedSeconds !== undefined) gs.towerElapsedSeconds = d.towerElapsedSeconds;

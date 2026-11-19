@@ -230,6 +230,8 @@ export class GlobalState {
         this.seenLoveEvents = {};
         // ── 百合ペアイベント既読フラグ (pairId -> { stage1: bool, stage2: bool }) ──
         this.seenPairEvents = {};
+        // ── 初対面出会いイベント既読フラグ (charId[]) ──
+        this.seenJoinEvents = [];
 
         this.characters = {
             '001': this.createInitialCharData('001', '紫苑', 1),
@@ -1730,6 +1732,85 @@ export class GlobalState {
         return this.seenEventHistory.includes(eventId);
     }
 
+    /** 初対面出会いイベント既読フラグを記録（周回永続・アルバム用） */
+    markJoinEventSeen(charId) {
+        if (!charId) return;
+        const normId = this.normalizeCharId(charId);
+        if (!this.seenJoinEvents) this.seenJoinEvents = [];
+        if (!this.seenJoinEvents.includes(normId)) {
+            this.seenJoinEvents.push(normId);
+        }
+        this.markEventSeen(`join_${normId}`);
+        console.log(`[GlobalState] 🤝 Join event marked as seen: ${normId} (Total: ${this.seenJoinEvents.length})`);
+        this.save();
+    }
+
+    /** 初対面出会いイベントが既読か判定（過去に見たことがあれば周回してもtrue） */
+    isJoinEventSeen(charId) {
+        if (!charId) return false;
+        const normId = this.normalizeCharId(charId);
+        if (this.seenJoinEvents && this.seenJoinEvents.includes(normId)) return true;
+        if (this.isEventSeen(`join_${normId}`)) return true;
+        const char = this.characters ? this.characters[normId] : null;
+        if (char && char.hasAccompanied) return true;
+        return false;
+    }
+
+    /** 百合ペアイベント既読フラグを記録（周回永続・アルバム用） */
+    markPairEventSeen(pairId, stage) {
+        if (!pairId || !stage) return;
+        const pid = String(pairId).trim();
+        if (!this.seenPairEvents) this.seenPairEvents = {};
+        if (!this.seenPairEvents[pid]) {
+            this.seenPairEvents[pid] = { stage1: false, stage2: false };
+        }
+        this.seenPairEvents[pid][stage] = true;
+        this.markEventSeen(`pair_${pid}_${stage}`);
+        console.log(`[GlobalState] 🌸 Pair event marked as seen: ${pid} (${stage})`);
+        this.save();
+    }
+
+    /** 百合ペアイベントが既読か判定（前の周回でも見たことがあればtrue） */
+    isPairEventSeen(pairId, stage) {
+        if (!pairId || !stage) return false;
+        const pid = String(pairId).trim();
+        if (this.seenPairEvents && this.seenPairEvents[pid] && this.seenPairEvents[pid][stage]) {
+            return true;
+        }
+        if (this.isEventSeen(`pair_${pid}_${stage}`)) return true;
+        return false;
+    }
+
+    /** 好感度・絆イベント既読フラグを記録（周回永続・アルバム用） */
+    markLoveEventSeen(charId, stage) {
+        if (!charId || !stage) return;
+        const normId = this.normalizeCharId(charId);
+        if (!this.seenLoveEvents) this.seenLoveEvents = {};
+        if (!this.seenLoveEvents[normId]) {
+            this.seenLoveEvents[normId] = { stage1: false, stage2: false };
+        }
+        this.seenLoveEvents[normId][stage] = true;
+        this.markEventSeen(`love_${normId}_${stage}`);
+        console.log(`[GlobalState] 💖 Love event marked as seen: ${normId} (${stage})`);
+        this.save();
+    }
+
+    /** 好感度・絆イベントが既読か判定（前の周回でも見たことがあればtrue） */
+    isLoveEventSeen(charId, stage) {
+        if (!charId || !stage) return false;
+        const normId = this.normalizeCharId(charId);
+        if (this.seenLoveEvents && this.seenLoveEvents[normId] && this.seenLoveEvents[normId][stage]) {
+            return true;
+        }
+        // 古い非ゼロ埋めキー（例: '1'）の互換チェック
+        const rawId = String(charId).trim();
+        if (this.seenLoveEvents && this.seenLoveEvents[rawId] && this.seenLoveEvents[rawId][stage]) {
+            return true;
+        }
+        if (this.isEventSeen(`love_${normId}_${stage}`)) return true;
+        return false;
+    }
+
     /** タワー内の現在時刻文字列（18:00〜06:00）を取得 */
     getTowerTimeString() {
         const totalSec = (18 * 3600) + Math.min(43200, (this.towerElapsedSeconds || 0));
@@ -1976,6 +2057,7 @@ export class GlobalState {
         this.extraDailyGachaCount = 0;
         this.seenLoveEvents = {};
         this.seenPairEvents = {};
+        this.seenJoinEvents = [];
         this.seenEventHistory = [];
 
         // 👥 全キャラクターを完全初期データに再生成（ステータス・装備枠・同行フラグをまっさらに）

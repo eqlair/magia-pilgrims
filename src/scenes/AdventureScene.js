@@ -1047,7 +1047,7 @@ export default class AdventureScene extends Phaser.Scene {
 
             if (data && data.joinCharacterId) {
                 const normJoinId = gs.normalizeCharId(data.joinCharacterId);
-                gs.markEventSeen('join_' + normJoinId);
+                gs.markJoinEventSeen(normJoinId);
                 if (!this.party.includes(normJoinId) && this.party.length < 5) {
                     this.party.push(normJoinId);
                     gs.assignFormationForNewMember(normJoinId);
@@ -1322,7 +1322,7 @@ export default class AdventureScene extends Phaser.Scene {
                         const normId = gs.normalizeCharId(chosenCharId);
                         const targetChar = gs.getCharacter(normId);
                         const charName = targetChar?.name || '仲間';
-                        const isReunion = !!(targetChar && (targetChar.hasAccompanied || gs.isEventSeen('join_' + normId)));
+                        const isReunion = gs.isJoinEventSeen(normId);
 
                         let storyEvents = null;
                         if (isReunion) {
@@ -1348,7 +1348,7 @@ export default class AdventureScene extends Phaser.Scene {
                                 joinDone = true;
                                 this.events.off('resume', onTowerJoinEnd);
 
-                                gs.markEventSeen('join_' + normId);
+                                gs.markJoinEventSeen(normId);
 
                                 const normId = gs.normalizeCharId(chosenCharId);
                                 const currentNorm = (this.party || []).map(id => gs.normalizeCharId(id));
@@ -4855,7 +4855,7 @@ export default class AdventureScene extends Phaser.Scene {
                 const charName = targetChar?.name || '仲間';
 
                 // 過去に同行経験があるか、または既に初対面イベントを見たことがあるか判定（周回対応）
-                const isReunion = !!(targetChar && (targetChar.hasAccompanied || gs.isEventSeen('join_' + normJoinId)));
+                const isReunion = gs.isJoinEventSeen(normJoinId);
 
                 let storyEvents = [];
                 if (isReunion) {
@@ -4888,8 +4888,8 @@ export default class AdventureScene extends Phaser.Scene {
                     joinDone = true;
                     this.events.off('resume', onJoinStoryEnd);
 
-                    // 初対面既読フラグを確実に記録
-                    gs.markEventSeen('join_' + normJoinId);
+                    // 初対面既読フラグを確実に記録（周回永続・アルバム用）
+                    gs.markJoinEventSeen(normJoinId);
 
                     // 正式加入・全回復・隊列設定・即時保存
                     const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
@@ -5552,21 +5552,21 @@ export default class AdventureScene extends Phaser.Scene {
                 }
 
                 let triggeredStage = null;
-                // 段階1: 相互3以上 ＆ 未読 ＆ 画像あり
-                if (fAtoB >= 3 && fBtoA >= 3 && !gs.seenPairEvents[pairId].stage1) {
+                // 段階1: 相互3以上 ＆ 未読 ＆ 画像あり（周回永続チェック）
+                if (fAtoB >= 3 && fBtoA >= 3 && !gs.isPairEventSeen(pairId, 'stage1')) {
                     if (pairConf.stage1 && pairConf.stage1.image && pairConf.stage1.events && pairConf.stage1.events.length > 0) {
                         triggeredStage = 'stage1';
                     }
                 }
                 // 段階2: 相互10以上 ＆ 段階1既読 ＆ 段階2未読 ＆ 画像あり
-                else if (fAtoB >= 10 && fBtoA >= 10 && gs.seenPairEvents[pairId].stage1 && !gs.seenPairEvents[pairId].stage2) {
+                else if (fAtoB >= 10 && fBtoA >= 10 && gs.isPairEventSeen(pairId, 'stage1') && !gs.isPairEventSeen(pairId, 'stage2')) {
                     if (pairConf.stage2 && pairConf.stage2.image && pairConf.stage2.events && pairConf.stage2.events.length > 0) {
                         triggeredStage = 'stage2';
                     }
                 }
 
                 if (triggeredStage) {
-                    gs.seenPairEvents[pairId][triggeredStage] = true;
+                    gs.markPairEventSeen(pairId, triggeredStage);
 
                     const stageData = pairConf[triggeredStage];
                     const runEvents = JSON.parse(JSON.stringify(stageData.events));
@@ -5605,43 +5605,6 @@ export default class AdventureScene extends Phaser.Scene {
         return false;
     }
 
-    /**
-     * すでに指定されたキャラクターの特定ランク専用メモリア（レリクス）を所持しているか判定
-     * （インベントリ、全キャラの通常装備、時空館装備を網羅的に走査）
-     */
-    _hasCharacterMemoria(cleanName, rank) {
-        const gs = GlobalState.getInstance();
-        if (!cleanName) return false;
-
-        const targetPattern = `${cleanName}の`;
-
-        // 1. インベントリ
-        if (gs.inventory && Array.isArray(gs.inventory.relics)) {
-            const found = gs.inventory.relics.some(r => r && r.name && r.name.includes(targetPattern) && r.rank === rank);
-            if (found) return true;
-        }
-
-        // 2. 全キャラクターの通常装備・時空館装備
-        if (gs.characters) {
-            for (const cid in gs.characters) {
-                const char = gs.characters[cid];
-                if (!char) continue;
-
-                // 通常装備
-                if (Array.isArray(char.equipRelics)) {
-                    const found = char.equipRelics.some(r => r && r.name && r.name.includes(targetPattern) && r.rank === rank);
-                    if (found) return true;
-                }
-                // 時空館装備
-                if (Array.isArray(char.jikukanEquipRelics)) {
-                    const found = char.jikukanEquipRelics.some(r => r && r.name && r.name.includes(targetPattern) && r.rank === rank);
-                    if (found) return true;
-                }
-            }
-        }
-
-        return false;
-    }
 
     /**
      * 💖 好感度イベントチェック
@@ -5692,13 +5655,13 @@ export default class AdventureScene extends Phaser.Scene {
             let triggeredStage = null;
             let rank = null;
 
-            // 段階1チェック: 友好度7以上 & 段階1未読
-            if (maxFriendshipToTarget >= 7 && !gs.seenLoveEvents[targetId].stage1) {
+            // 段階1チェック: 友好度7以上 & 段階1未読（前の周回でも見たことがあれば発生しない）
+            if (maxFriendshipToTarget >= 7 && !gs.isLoveEventSeen(targetId, 'stage1')) {
                 triggeredStage = 'stage1';
                 rank = 4; // SSR
             }
             // 段階2チェック: 友好度14以上 & 段階1既読 & 段階2未読
-            else if (maxFriendshipToTarget >= 14 && gs.seenLoveEvents[targetId].stage1 && !gs.seenLoveEvents[targetId].stage2) {
+            else if (maxFriendshipToTarget >= 14 && gs.isLoveEventSeen(targetId, 'stage1') && !gs.isLoveEventSeen(targetId, 'stage2')) {
                 triggeredStage = 'stage2';
                 rank = 5; // UR
             }
@@ -5719,38 +5682,27 @@ export default class AdventureScene extends Phaser.Scene {
 
                 if (!eventList || eventList.length === 0) continue;
 
-                // 既読フラグを記録
-                gs.seenLoveEvents[targetId][triggeredStage] = true;
+                // 既読フラグを確実に記録（周回永続・アルバム用）
+                gs.markLoveEventSeen(targetId, triggeredStage);
 
-                // キャラクター専用メモリア生成（SSR/UR）- 重複所持チェック
+                // キャラクター専用メモリア生成（SSR/UR）- 初回発生時のみ付与
                 const rawName = targetChar.name || charConf.name;
                 const cleanName = rawName.replace(/^[0-9]+/, '').replace(/data$/, '');
                 const rankLabel = rank === 4 ? 'SSR' : 'UR';
                 const runEvents = JSON.parse(JSON.stringify(eventList));
 
-                const alreadyHas = this._hasCharacterMemoria(cleanName, rank);
-                if (!alreadyHas) {
-                    const relic = RelicGenerator.generateCharacterRelic(rank, cleanName);
-                    if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
-                    if (!gs.inventory.relics) gs.inventory.relics = [];
-                    gs.inventory.relics.push(relic);
+                const relic = RelicGenerator.generateCharacterRelic(rank, cleanName);
+                if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                if (!gs.inventory.relics) gs.inventory.relics = [];
+                gs.inventory.relics.push(relic);
 
-                    // イベント末尾にメモリア獲得演出を追加
-                    runEvents.push({
-                        cmd: 'text',
-                        name: 'システム',
-                        text: `【絆のメモリア獲得】\n[${rankLabel}] 『${relic.name}』 を手に入れた！`
-                    });
-                    gs.addLog(`💖 [checkLoveEvent] ${cleanName} (${triggeredStage}, Rank:${rankLabel}, Relic:${relic.name})`);
-                } else {
-                    // 既に所持している場合は再付与せず、絆メッセージのみ演出
-                    runEvents.push({
-                        cmd: 'text',
-                        name: 'システム',
-                        text: `【深まる絆】\n${cleanName}との想い出を胸に刻んだ。（専用メモリア[${rankLabel}]は獲得済みです）`
-                    });
-                    gs.addLog(`💖 [checkLoveEvent] ${cleanName} (${triggeredStage}, Rank:${rankLabel}, Already Owned)`);
-                }
+                // イベント末尾にメモリア獲得演出を追加
+                runEvents.push({
+                    cmd: 'text',
+                    name: 'システム',
+                    text: `【絆のメモリア獲得】\n[${rankLabel}] 『${relic.name}』 を手に入れた！`
+                });
+                gs.addLog(`💖 [checkLoveEvent] ${cleanName} (${triggeredStage}, Rank:${rankLabel}, Relic:${relic.name})`);
 
                 // さくら('006')以外の好感度百合イベントのBGMを bgm_camp に設定
                 if (targetId !== '006') {

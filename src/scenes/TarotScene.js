@@ -920,7 +920,7 @@ export default class TarotScene extends Phaser.Scene {
                 
                 const targetChar = gs.characters ? gs.characters[joinCharId] : null;
                 const charName = targetChar?.name || '仲間';
-                const isReunion = !!(targetChar && (targetChar.hasAccompanied || gs.isEventSeen('join_' + joinCharId)));
+                const isReunion = gs.isJoinEventSeen(joinCharId);
 
                 let script = null;
                 if (isReunion) {
@@ -935,6 +935,7 @@ export default class TarotScene extends Phaser.Scene {
                 const isLostInLoop = gs.lostCharacterIdsInCurrentLoop && gs.lostCharacterIdsInCurrentLoop.includes(joinCharId);
 
                 if (script && !alreadyInParty && !isPartyFull && isUnlockedForTarot && !isLostInLoop) {
+                    gs.markJoinEventSeen(joinCharId);
                     this.scene.stop();
                     this.scene.start('EventScene', { 
                         returnScene: this.returnScene,
