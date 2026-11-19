@@ -1047,6 +1047,7 @@ export default class AdventureScene extends Phaser.Scene {
 
             if (data && data.joinCharacterId) {
                 const normJoinId = gs.normalizeCharId(data.joinCharacterId);
+                gs.markEventSeen('join_' + normJoinId);
                 if (!this.party.includes(normJoinId) && this.party.length < 5) {
                     this.party.push(normJoinId);
                     gs.assignFormationForNewMember(normJoinId);
@@ -1318,8 +1319,23 @@ export default class AdventureScene extends Phaser.Scene {
                         const chosenCharId = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : null;
                         
                         const joinEventsJson = this.cache.json.get('join_events');
-                        const storyEvents = (chosenCharId && joinEventsJson) ? (joinEventsJson[chosenCharId] || joinEventsJson[parseInt(chosenCharId, 10)]) : null;
-                        console.log(`[DEBUG TowerEncounter] chosenCharId=${chosenCharId}, storyEventsCount=${storyEvents?.length}`);
+                        const normId = gs.normalizeCharId(chosenCharId);
+                        const targetChar = gs.getCharacter(normId);
+                        const charName = targetChar?.name || '仲間';
+                        const isReunion = !!(targetChar && (targetChar.hasAccompanied || gs.isEventSeen('join_' + normId)));
+
+                        let storyEvents = null;
+                        if (isReunion) {
+                            storyEvents = [
+                                { cmd: 'bg', key: 'bg_tower_base' },
+                                { cmd: 'bgm', key: 'JOIN_US' },
+                                { cmd: 'text', name: '再会', text: `「……あ、紫苑！ 無事だったんだ！」\n塔の中で${charName}と再び巡り会い、心強い仲間として合流した！` }
+                            ];
+                        } else if (chosenCharId && joinEventsJson) {
+                            storyEvents = joinEventsJson[chosenCharId] || joinEventsJson[parseInt(chosenCharId, 10)];
+                        }
+
+                        console.log(`[DEBUG TowerEncounter] chosenCharId=${chosenCharId}, isReunion=${isReunion}, storyEventsCount=${storyEvents?.length}`);
                         if (storyEvents && storyEvents.length > 0) {
                             console.log(`[AdventureScene] Tower post-battle encounter triggered: ${chosenCharId}`);
 
@@ -1331,6 +1347,8 @@ export default class AdventureScene extends Phaser.Scene {
                                 if (joinDone) return;
                                 joinDone = true;
                                 this.events.off('resume', onTowerJoinEnd);
+
+                                gs.markEventSeen('join_' + normId);
 
                                 const normId = gs.normalizeCharId(chosenCharId);
                                 const currentNorm = (this.party || []).map(id => gs.normalizeCharId(id));
@@ -4833,14 +4851,27 @@ export default class AdventureScene extends Phaser.Scene {
             steps.push((onNextStep) => {
                 const normJoinId = gs.normalizeCharId(triggeredJoinCharId);
                 const joinEventsJson = this.cache.json.get('join_events');
-                let storyEvents = [];
+                const targetChar = gs.getCharacter(normJoinId);
+                const charName = targetChar?.name || '仲間';
 
-                if (joinEventsJson) {
+                // 過去に同行経験があるか、または既に初対面イベントを見たことがあるか判定（周回対応）
+                const isReunion = !!(targetChar && (targetChar.hasAccompanied || gs.isEventSeen('join_' + normJoinId)));
+
+                let storyEvents = [];
+                if (isReunion) {
+                    // ★ 周回再会ショートイベント（「はじめまして」の初対面を回避し自然に再合流）
+                    const curHex = this.grid[this.playerRow]?.[this.playerCol];
+                    const bgKey = curHex ? this.findBgImageFile(curHex.col, curHex.row, curHex.cellData) : 'bg_map_base';
+                    storyEvents = [
+                        { cmd: 'bg', key: bgKey },
+                        { cmd: 'bgm', key: 'JOIN_US' },
+                        { cmd: 'text', name: '再会', text: `「……あっ！ 紫苑！」\n見覚えのある姿に駆け寄る。\n${charName}と再び巡り会い、共に歩む仲間として列に加わった！` }
+                    ];
+                } else if (joinEventsJson) {
                     storyEvents = joinEventsJson[normJoinId] || joinEventsJson[parseInt(normJoinId, 10)] || [];
                 }
 
                 if (!storyEvents || storyEvents.length === 0) {
-                    const charName = gs.getCharacter(normJoinId)?.name || '新しい仲間';
                     storyEvents = [
                         { cmd: 'bg', key: 'ev_expr' },
                         { cmd: 'text', name: '遭遇', body: `${hexName}にて${charName}と出会った！` }
@@ -4856,6 +4887,9 @@ export default class AdventureScene extends Phaser.Scene {
                     if (joinDone) return;
                     joinDone = true;
                     this.events.off('resume', onJoinStoryEnd);
+
+                    // 初対面既読フラグを確実に記録
+                    gs.markEventSeen('join_' + normJoinId);
 
                     // 正式加入・全回復・隊列設定・即時保存
                     const currentNormParty = (this.party || []).map(id => gs.normalizeCharId(id));
@@ -5572,6 +5606,44 @@ export default class AdventureScene extends Phaser.Scene {
     }
 
     /**
+     * すでに指定されたキャラクターの特定ランク専用メモリア（レリクス）を所持しているか判定
+     * （インベントリ、全キャラの通常装備、時空館装備を網羅的に走査）
+     */
+    _hasCharacterMemoria(cleanName, rank) {
+        const gs = GlobalState.getInstance();
+        if (!cleanName) return false;
+
+        const targetPattern = `${cleanName}の`;
+
+        // 1. インベントリ
+        if (gs.inventory && Array.isArray(gs.inventory.relics)) {
+            const found = gs.inventory.relics.some(r => r && r.name && r.name.includes(targetPattern) && r.rank === rank);
+            if (found) return true;
+        }
+
+        // 2. 全キャラクターの通常装備・時空館装備
+        if (gs.characters) {
+            for (const cid in gs.characters) {
+                const char = gs.characters[cid];
+                if (!char) continue;
+
+                // 通常装備
+                if (Array.isArray(char.equipRelics)) {
+                    const found = char.equipRelics.some(r => r && r.name && r.name.includes(targetPattern) && r.rank === rank);
+                    if (found) return true;
+                }
+                // 時空館装備
+                if (Array.isArray(char.jikukanEquipRelics)) {
+                    const found = char.jikukanEquipRelics.some(r => r && r.name && r.name.includes(targetPattern) && r.rank === rank);
+                    if (found) return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 💖 好感度イベントチェック
      * いずれかの他キャラクターから対象キャラへの友好度が 7以上（段階1）または 14以上（段階2）に達している場合、
      * 対象キャラの過去回想イベント（一枚絵付き）を1回につき1人分のみ再生する。
@@ -5650,24 +5722,35 @@ export default class AdventureScene extends Phaser.Scene {
                 // 既読フラグを記録
                 gs.seenLoveEvents[targetId][triggeredStage] = true;
 
-                // キャラクター専用メモリア生成（SSR/UR）
+                // キャラクター専用メモリア生成（SSR/UR）- 重複所持チェック
                 const rawName = targetChar.name || charConf.name;
                 const cleanName = rawName.replace(/^[0-9]+/, '').replace(/data$/, '');
-                const relic = RelicGenerator.generateCharacterRelic(rank, cleanName);
-
-                if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
-                if (!gs.inventory.relics) gs.inventory.relics = [];
-                gs.inventory.relics.push(relic);
-
                 const rankLabel = rank === 4 ? 'SSR' : 'UR';
-
-                // イベント末尾にメモリア獲得演出を追加
                 const runEvents = JSON.parse(JSON.stringify(eventList));
-                runEvents.push({
-                    cmd: 'text',
-                    name: 'システム',
-                    text: `【絆のメモリア獲得】\n[${rankLabel}] 『${relic.name}』 を手に入れた！`
-                });
+
+                const alreadyHas = this._hasCharacterMemoria(cleanName, rank);
+                if (!alreadyHas) {
+                    const relic = RelicGenerator.generateCharacterRelic(rank, cleanName);
+                    if (!gs.inventory) gs.inventory = { relics: [], gems: [] };
+                    if (!gs.inventory.relics) gs.inventory.relics = [];
+                    gs.inventory.relics.push(relic);
+
+                    // イベント末尾にメモリア獲得演出を追加
+                    runEvents.push({
+                        cmd: 'text',
+                        name: 'システム',
+                        text: `【絆のメモリア獲得】\n[${rankLabel}] 『${relic.name}』 を手に入れた！`
+                    });
+                    gs.addLog(`💖 [checkLoveEvent] ${cleanName} (${triggeredStage}, Rank:${rankLabel}, Relic:${relic.name})`);
+                } else {
+                    // 既に所持している場合は再付与せず、絆メッセージのみ演出
+                    runEvents.push({
+                        cmd: 'text',
+                        name: 'システム',
+                        text: `【深まる絆】\n${cleanName}との想い出を胸に刻んだ。（専用メモリア[${rankLabel}]は獲得済みです）`
+                    });
+                    gs.addLog(`💖 [checkLoveEvent] ${cleanName} (${triggeredStage}, Rank:${rankLabel}, Already Owned)`);
+                }
 
                 // さくら('006')以外の好感度百合イベントのBGMを bgm_camp に設定
                 if (targetId !== '006') {

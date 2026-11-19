@@ -537,19 +537,17 @@ export class FairyTradeManager {
             .setInteractive();
         container.add(overlay);
 
-        // 現在パーティに編成されている（同行中の）キャラクターのみを抽出（未遭遇・未加入キャラは除外）
-        let partyIds = [];
-        if (scene && Array.isArray(scene.party) && scene.party.length > 0) {
-            partyIds = scene.party;
-        } else if (gs.savedFormation && Object.keys(gs.savedFormation).length > 0) {
-            partyIds = Object.keys(gs.savedFormation);
-        } else if (Array.isArray(gs.normalParty) && gs.normalParty.length > 0) {
-            partyIds = gs.normalParty;
-        } else {
-            partyIds = ['001'];
+        // 現在パーティに編成されている（同行中の）キャラクターのみを網羅的に抽出（未遭遇・未加入キャラは除外）
+        const candidateIds = [
+            ...(scene && Array.isArray(scene.party) ? scene.party : []),
+            ...(gs.savedFormation ? Object.keys(gs.savedFormation) : []),
+            ...(Array.isArray(gs.normalParty) ? gs.normalParty : [])
+        ];
+        if (candidateIds.length === 0) {
+            candidateIds.push('001');
         }
 
-        const charIds = partyIds
+        const charIds = candidateIds
             .map(id => gs.normalizeCharId ? gs.normalizeCharId(id) : id)
             .filter((id, index, self) => self.indexOf(id) === index) // 重複除外
             .filter(id => {

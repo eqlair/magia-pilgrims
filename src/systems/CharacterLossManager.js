@@ -10,10 +10,10 @@ export class CharacterLossManager {
     static LOSS_IMAGE_MAP = {
         '002': 'evx002', // 蒼樹
         '003': 'evx003', // 紅華
-        '004': 'evp004', // 黄蘭
+        '004': 'evp005', // 黄蘭 (※evp004は紅華のご挨拶スチルのため、黄蘭加入スチルのevp005を指定)
         '005': 'evx005', // 李乃果
         '006': 'evx006', // さくら
-        '007': 'evp007', // ななよ
+        '007': 'evx007', // ななよ
         '008': 'evx008', // ノア
         '009': 'evx009', // リフィエル
         '010': 'evx010', // プロセル
@@ -129,6 +129,12 @@ export class CharacterLossManager {
 
             // 4. パーティ・隊列（同行メンバー）から完全除外（※キャラデータ・友好度は保持）
             gs.removeCharacterCompletely(charId, scene);
+
+            // 🕊️ 今周回での離脱キャラリストに記録（同一ループ中の再加入を防止）
+            if (!gs.lostCharacterIdsInCurrentLoop) gs.lostCharacterIdsInCurrentLoop = [];
+            if (!gs.lostCharacterIdsInCurrentLoop.includes(normId)) {
+                gs.lostCharacterIdsInCurrentLoop.push(normId);
+            }
 
             // 🕊️ 喪失を目撃した生存パーティメンバー全員に、最後にロストしたキャラ名を記憶
             const remainingParty = (scene.party || gs.party || []).filter(id => id !== charId);

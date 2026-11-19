@@ -112,9 +112,21 @@ export default class RestScene extends Phaser.Scene {
         if (!mourningData) return false;
 
         // パーティ内で「最後にロストした仲間」を覚えているキャラを抽出
+        // ★ 安全網：もし覚えている死者名が、今現在パーティにいる仲間の名前と一致していたら記憶を消去して除外！
+        const currentPartyNames = this.party.map(id => {
+            const cd = this.globalState.characters[id];
+            return cd ? cd.name.replace(/^[0-9]+/, '').replace(/data$/, '') : '';
+        });
+
         const mournerIds = this.party.filter(id => {
             const cd = this.globalState.characters[id];
-            return cd && cd.lastSeenLostCharacterName;
+            if (!cd || !cd.lastSeenLostCharacterName) return false;
+            if (currentPartyNames.includes(cd.lastSeenLostCharacterName)) {
+                // 目の前に本人がいるので記憶をクリア！
+                delete cd.lastSeenLostCharacterName;
+                return false;
+            }
+            return true;
         });
 
         if (mournerIds.length === 0) return false;

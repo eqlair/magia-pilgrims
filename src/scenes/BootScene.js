@@ -302,8 +302,8 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`evp${numStr}`, `files/event/evp${numStr}.webp`);
         }
 
-        // 仲間喪失一枚絵 (実在するevx002, 003, 005, 006, 008, 009, 010, 011をロード)
-        const validEvxNums = [2, 3, 5, 6, 8, 9, 10, 11];
+        // 仲間喪失一枚絵 (実在するevx002, 003, 005, 006, 007, 008, 009, 010, 011をロード)
+        const validEvxNums = [2, 3, 5, 6, 7, 8, 9, 10, 11];
         for (const i of validEvxNums) {
             const numStr = i.toString().padStart(3, '0');
             this.load.image(`evx${numStr}`, `files/event/evx${numStr}.webp`);
@@ -363,6 +363,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.audio('bgm_op', 'files/BGM/001_OP001.mp3');
         this.load.audio('bgm_menu', 'files/BGM/002_menu.mp3');
         this.load.audio('bgm_hexen', 'files/BGM/004_hexen.mp3');
+        this.load.audio('bgm_camp', 'files/BGM/camp_BGM.mp3');
+        this.load.audio('bgm_resp', 'files/BGM/resporn.mp3');
+        this.load.audio('bgm_result', 'files/BGM/008_fan-37.mp3');
 
         // 軽量SE（効果音）
         this.load.audio('se_awaken_boss', 'files/SOUND/awaken_boss.mp3');

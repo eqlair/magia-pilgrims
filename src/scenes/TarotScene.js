@@ -918,7 +918,20 @@ export default class TarotScene extends Phaser.Scene {
                     }
                 }
                 
-                const script = joinEvents && joinCharId && (joinEvents[joinCharId] || joinEvents[drawnCardId]);
+                const targetChar = gs.characters ? gs.characters[joinCharId] : null;
+                const charName = targetChar?.name || '仲間';
+                const isReunion = !!(targetChar && (targetChar.hasAccompanied || gs.isEventSeen('join_' + joinCharId)));
+
+                let script = null;
+                if (isReunion) {
+                    script = [
+                        { cmd: 'bg', key: this.bgKey || 'bg_map_base' },
+                        { cmd: 'bgm', key: 'JOIN_US' },
+                        { cmd: 'text', name: '導きの再会', text: `タロットの導きにより、${charName}と再び巡り会った！\n運命の糸に手繰り寄せられ、再び共に歩むことになった。` }
+                    ];
+                } else {
+                    script = joinEvents && joinCharId && (joinEvents[joinCharId] || joinEvents[drawnCardId]);
+                }
                 const isLostInLoop = gs.lostCharacterIdsInCurrentLoop && gs.lostCharacterIdsInCurrentLoop.includes(joinCharId);
 
                 if (script && !alreadyInParty && !isPartyFull && isUnlockedForTarot && !isLostInLoop) {
@@ -927,6 +940,7 @@ export default class TarotScene extends Phaser.Scene {
                         returnScene: this.returnScene,
                         events: script,
                         joinCharacterId: joinCharId,
+                        eventId: `join_${joinCharId}`,
                         fromTarot: true
                     });
                 } else {

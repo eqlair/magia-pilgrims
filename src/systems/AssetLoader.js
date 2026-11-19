@@ -1,4 +1,5 @@
 import { LoadingOverlay } from './LoadingOverlay';
+import { GlobalState } from './GlobalState';
 
 /**
  * AssetLoader.js
@@ -267,13 +268,28 @@ export class AssetLoader {
      * @param {Function} [onComplete] 
      */
     static ensureRespawnAssets(scene, isTower = false, onComplete) {
-        const assets = [
-            { type: 'image', key: 'bg_resp', url: 'files/event/resp.webp' },
-            { type: 'audio', key: 'bgm_resp', url: 'files/BGM/resporn.mp3' },
-        ];
+        const assets = [];
         if (isTower) {
             assets.push({ type: 'image', key: 'bg_tow_spo01', url: 'files/event/tou_spo01.webp' });
             assets.push({ type: 'audio', key: 'unknoun_terror', url: 'files/BGM/unknoun_terror.mp3' });
+        } else {
+            const gs = GlobalState.getInstance();
+            const currentLoop = gs.loopCount || 1;
+            if (currentLoop >= 3) {
+                assets.push({ type: 'audio', key: 'bgm_op', url: 'files/BGM/001_OP001.mp3' });
+                let imgKey = '';
+                if (currentLoop === 3) imgKey = '06紫苑×さくら(表)Ar';
+                else if (currentLoop === 4) imgKey = '07紫苑×さくら(裏)Ar';
+                else if (currentLoop === 5) imgKey = '06紫苑×さくら(表)Br';
+                else if (currentLoop === 6) imgKey = '07紫苑×さくら(裏)Br';
+                else if (currentLoop % 2 === 1) imgKey = '06紫苑×さくら(表)Br';
+                else imgKey = '07紫苑×さくら(裏)Br';
+
+                assets.push({ type: 'image', key: imgKey, url: `files/event2/${imgKey}.jpg` });
+            } else {
+                assets.push({ type: 'image', key: 'bg_resp', url: 'files/event/resp.webp' });
+                assets.push({ type: 'audio', key: 'bgm_resp', url: 'files/BGM/resporn.mp3' });
+            }
         }
         this.ensureAssets(scene, assets, onComplete, 'Now Loading...');
     }
@@ -287,10 +303,12 @@ export class AssetLoader {
         if (!scene || !scene.cache || !scene.cache.audio) return;
 
         const keepList = Array.isArray(preserveKeys) ? [...preserveKeys] : [preserveKeys];
-        // 常に常駐させておきたい基幹サウンド（タイトル、地上基本、メニュー、基本SE等）
+        // 常に常駐させておきたい基幹サウンド（タイトル、地上基本、メニュー、基本SE、戦闘・ボス・リザルト等）
         const CORE_KEYS = new Set([
-            'bgm_menu', 'bgm_hexen', 'bgm_battle1', 'op_start',
-            'se_get', 'se_bomb', 'se_click', 'se_powerup', 'se_card'
+            'bgm_op', 'bgm_menu', 'bgm_hexen', 'bgm_camp', 'bgm_resp', 'bgm_battle1', 'bgm_battle2', 'bgm_battle3', 'bgm_battle4',
+            'bgm_boss1', 'bgm_boss2', 'bgm_boss3', 'bgm_boss_kraken', 'bgm_toppa', 'bgm_wildhunt',
+            'bgm_result', 'bgm_tarot', 'JOIN_US', 'op_start',
+            'se_get', 'se_bomb', 'se_click', 'se_powerup', 'se_card', 'se_awaken_boss'
         ]);
 
         // 現在シーンで実際に鳴っているサウンドのキーを収集
