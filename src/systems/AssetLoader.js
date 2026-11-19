@@ -181,11 +181,28 @@ export class AssetLoader {
         } else {
             // オーバーレイなし（バックグラウンドロード）
             try {
-                scene.load.audio(bgmKey, path);
-                scene.load.once('complete', () => {
+                let called = false;
+                const done = () => {
+                    if (called) return;
+                    called = true;
+                    scene.load.off(`filecomplete-audio-${bgmKey}`, done);
+                    scene.load.off('complete', done);
+                    scene.load.off('loaderror', onError);
                     if (onReady) onReady();
-                });
-                scene.load.start();
+                };
+                const onError = (fileObj) => {
+                    if (fileObj && fileObj.key === bgmKey) {
+                        console.warn(`[AssetLoader] Load error for BGM: ${bgmKey}`);
+                        done();
+                    }
+                };
+                scene.load.audio(bgmKey, path);
+                scene.load.once(`filecomplete-audio-${bgmKey}`, done);
+                scene.load.once('complete', done);
+                scene.load.on('loaderror', onError);
+                if (!scene.load.isLoading()) {
+                    scene.load.start();
+                }
             } catch (e) {
                 console.warn('[AssetLoader] Failed to load BGM:', bgmKey, e);
                 if (onReady) onReady();

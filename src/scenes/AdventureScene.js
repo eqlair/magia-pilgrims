@@ -2821,6 +2821,14 @@ export default class AdventureScene extends Phaser.Scene {
 
         if (this.isTowerMode) {
             const floor = 59 - hex.row; // 0: 1F 〜 59: 60F
+
+            // ❄️ プロセル氷像BGMのスマート先読み:
+            // 氷像未撃破かつ、氷エリア（16F〜21F: floor 15〜20）に突入した時にバックグラウンドで先読み
+            if (!gs.tower21BossDefeated && (hex.cellData?.name === '氷' || (floor >= 15 && floor <= 20))) {
+                if (this.cache && this.cache.audio && !this.cache.audio.exists('tow_frozen_silence_b')) {
+                    AssetLoader.ensureBgm(this, 'tow_frozen_silence_b');
+                }
+            }
             if (floor <= 52) {
                 // 53F以下（黒の部屋など）に到達または戻った場合はリセット
                 gs.towerColorStepCount = 0;
@@ -3153,6 +3161,7 @@ export default class AdventureScene extends Phaser.Scene {
                             enemyLevel: 20,
                             enemyAttribute: 'blue',
                             towerAreaName: hex.cellData?.name || '氷',
+                            bgmKey: 'tow_frozen_silence_b',
                             bossBgmKey: 'tow_frozen_silence_b',
                             party: this.party && this.party.length > 0 ? this.party : ['001'],
                             returnScene: 'AdventureScene'
@@ -8560,6 +8569,13 @@ export default class AdventureScene extends Phaser.Scene {
         const rawName = targetHex?.cellData?.name || '';
         const engName = TOWER_AREA_ENGLISH_NAMES[rawName] || '';
         TimeReporter.showFloor(this, targetFloor, engName);
+
+        // ❄️ プロセル氷像BGMのスマート先読み（EVワープ時）
+        if (!gs.tower21BossDefeated && (rawName === '氷' || (targetFloor >= 16 && targetFloor <= 21))) {
+            if (this.cache && this.cache.audio && !this.cache.audio.exists('tow_frozen_silence_b')) {
+                AssetLoader.ensureBgm(this, 'tow_frozen_silence_b');
+            }
+        }
 
         // 自動保存
         SaveManager.saveGame(this);

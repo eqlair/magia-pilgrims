@@ -384,59 +384,46 @@ export default class BattleScene extends Phaser.Scene {
             if (this.cache.audio.exists('bgm_boss_kraken')) {
                 this.sound.play('bgm_boss_kraken', { loop: true, volume: 0.65 });
             }
-        } else if (isImmediateBoss) {
-            // 直接魔女戦（タワー魔女マス、タワーボス等）の場合：
-            // 既にボス専用BGM（bossBgmKey や bgmKey）が再生中ならそのまま継続し、それ以外の不要なBGMのみフェードアウト停止
-            const activeBossKey = this.battleConfig.bossBgmKey || this.battleConfig.bgmKey;
-            if (this.sound && this.sound.sounds) {
-                this.sound.sounds.forEach(s => {
-                    if (s && s.isPlaying) {
-                        if (activeBossKey && s.key === activeBossKey) {
-                            this.tweens.killTweensOf(s);
-                            try { s.setVolume(0.5); } catch (e) {}
-                        } else {
-                            this.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
-                        }
-                    }
-                });
-            }
         } else {
-            // 通常突破戦または通常戦闘BGM
-            let defaultBKey = (this.battleConfig.rule === 2) ? 'bgm_toppa' : `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
-            if (this.cache && this.cache.audio && !this.cache.audio.exists(defaultBKey)) {
-                const available = [1, 2, 3, 4].map(i => `bgm_battle${i}`).filter(k => this.cache.audio.exists(k));
-                defaultBKey = available.length > 0 ? available[0] : (this.cache.audio.exists('bgm_toppa') ? 'bgm_toppa' : (this.cache.audio.exists('bgm_battle1') ? 'bgm_battle1' : null));
-            }
-            let bKey = this.battleConfig.bgmKey || defaultBKey;
-            if (bKey && this.cache && this.cache.audio && !this.cache.audio.exists(bKey)) {
-                bKey = defaultBKey;
-            }
+            // 専用BGMキーの特定（bgmKey または bossBgmKey）
+            const reqBgmKey = this.battleConfig.bgmKey || (isImmediateBoss ? this.battleConfig.bossBgmKey : null);
             
-            const playingBgm = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying && s.key === bKey) : null;
+            // 🎵 専用BGMが指定されているが未ロードの場合：Now Loading... を表示して完了を待つ！
+            if (reqBgmKey && !this.cache.audio.exists(reqBgmKey)) {
+                this.isPaused = true; // ロード完了まで戦闘進行を一時停止
+                
+                const { width, height } = this.scale;
+                const loadingContainer = this.add.container(0, 0).setDepth(99999);
+                const loadBg = this.add.rectangle(width / 2, height / 2, width * 2, height * 2, 0x000000, 1.0);
+                const loadText = this.add.text(width / 2, height / 2, 'Now Loading...', {
+                    fontFamily: 'sans-serif',
+                    fontSize: '20px',
+                    color: '#ffffff',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
 
-            if (playingBgm) {
-                // 前シーンから引き継ぎ中のBGMがある場合：
-                // 前シーンのTweenをキルし、確実に音量を0.5へ即座にセット（音量が0や微小のまま固定されるのを防ぐ）
-                this.tweens.killTweensOf(playingBgm);
-                try { playingBgm.setVolume(0.5); } catch (e) {}
-                if (this.sound && this.sound.sounds) {
-                    this.sound.sounds.forEach(s => {
-                        if (s && s.isPlaying && s !== playingBgm) {
-                            try { s.stop(); } catch (e) {}
-                        }
+                this.tweens.add({
+                    targets: loadText,
+                    alpha: 0.3,
+                    duration: 600,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                loadingContainer.add([loadBg, loadText]);
+
+                AssetLoader.ensureBgm(this, reqBgmKey, () => {
+                    this.isPaused = false;
+                    this.tweens.add({
+                        targets: loadingContainer,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => loadingContainer.destroy()
                     });
-                }
+                    this._startBattleBgm(reqBgmKey, isImmediateBoss);
+                });
             } else {
-                if (this.sound && this.sound.sounds) {
-                    this.sound.sounds.forEach(s => {
-                        if (s && s.isPlaying && s.key !== bKey) {
-                            try { s.stop(); } catch (e) {}
-                        }
-                    });
-                }
-                if (this.cache.audio.exists(bKey)) {
-                    this.sound.play(bKey, { loop: true, volume: 0.5 });
-                }
+                this._startBattleBgm(reqBgmKey, isImmediateBoss);
             }
         }
 
@@ -667,7 +654,67 @@ export default class BattleScene extends Phaser.Scene {
 
     }
 
+    _startBattleBgm(reqBgmKey, isImmediateBoss) {
+        if (isImmediateBoss) {
+            // 直接魔女戦（プロセル戦など）：
+            const activeBossKey = reqBgmKey;
+            let isPlayingTarget = false;
+            if (this.sound && this.sound.sounds) {
+                this.sound.sounds.forEach(s => {
+                    if (s && s.isPlaying) {
+                        if (activeBossKey && s.key === activeBossKey) {
+                            isPlayingTarget = true;
+                            this.tweens.killTweensOf(s);
+                            try { s.setVolume(0.5); } catch (e) {}
+                        } else {
+                            this.tweens.add({ targets: s, volume: 0, duration: 600, onComplete: () => { try { s.stop(); } catch(e){} } });
+                        }
+                    }
+                });
+            }
+            // ★ activeBossKey がまだ再生されていない場合、即座に再生開始！
+            if (!isPlayingTarget && activeBossKey && this.cache.audio.exists(activeBossKey)) {
+                this.sound.play(activeBossKey, { loop: true, volume: 0.5 });
+            }
+        } else {
+            // 通常突破戦または指定戦闘BGM（ラスボス 59F bgm_inferno_shredder_x など）
+            let bKey = reqBgmKey;
+            if (!bKey) {
+                // 指定BGMがない汎用戦闘のみ、ランダム戦闘曲
+                let defaultBKey = (this.battleConfig.rule === 2) ? 'bgm_toppa' : `bgm_battle${Math.floor(Math.random() * 4) + 1}`;
+                if (this.cache && this.cache.audio && !this.cache.audio.exists(defaultBKey)) {
+                    const available = [1, 2, 3, 4].map(i => `bgm_battle${i}`).filter(k => this.cache.audio.exists(k));
+                    defaultBKey = available.length > 0 ? available[0] : (this.cache.audio.exists('bgm_toppa') ? 'bgm_toppa' : (this.cache.audio.exists('bgm_battle1') ? 'bgm_battle1' : null));
+                }
+                bKey = defaultBKey;
+            }
 
+            const playingBgm = this.sound && this.sound.sounds ? this.sound.sounds.find(s => s && s.isPlaying && s.key === bKey) : null;
+
+            if (playingBgm) {
+                this.tweens.killTweensOf(playingBgm);
+                try { playingBgm.setVolume(0.5); } catch (e) {}
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying && s !== playingBgm) {
+                            try { s.stop(); } catch (e) {}
+                        }
+                    });
+                }
+            } else {
+                if (this.sound && this.sound.sounds) {
+                    this.sound.sounds.forEach(s => {
+                        if (s && s.isPlaying && s.key !== bKey) {
+                            try { s.stop(); } catch (e) {}
+                        }
+                    });
+                }
+                if (bKey && this.cache.audio.exists(bKey)) {
+                    this.sound.play(bKey, { loop: true, volume: 0.5 });
+                }
+            }
+        }
+    }
 
     onPointerDown(pointer) {
         const now = this.time.now;
