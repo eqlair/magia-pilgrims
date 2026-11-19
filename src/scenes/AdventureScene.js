@@ -2141,7 +2141,7 @@ export default class AdventureScene extends Phaser.Scene {
         this.fairyBtn = this._createFairyButton(20, 190);
 
         // ── 🛗 UI: タワーエレベーターボタン（妖精の下、5F到達解禁またはデバッグ時に表示） ──
-        this.towerElevatorBtn = this._createTowerElevatorButton(20, 235);
+        this.towerElevatorBtn = this._createTowerElevatorButton(20, 295);
 
         const uiElements = [
             wideBtn,
