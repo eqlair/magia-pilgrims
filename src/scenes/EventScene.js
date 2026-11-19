@@ -424,102 +424,126 @@ export default class EventScene extends Phaser.Scene {
         const blackScreen = this.add.rectangle(width / 2, height / 2, width * 3, height * 3, 0x000000)
             .setAlpha(0).setDepth(99999).setScrollFactor(0);
 
+        // tow1〜tow4 のテクスチャが確実に存在することを保証
+        const ensureTowerAssets = (onReady) => {
+            const missing = [];
+            for (let i = 1; i <= 4; i++) {
+                if (!this.textures.exists(`tow${i}`) && !this.textures.exists(`bg_tow${i}`)) {
+                    missing.push(i);
+                }
+            }
+            if (missing.length === 0) {
+                onReady();
+                return;
+            }
+            for (const i of missing) {
+                this.load.image(`tow${i}`, `files/MAP/tow${i}.webp`);
+                this.load.image(`bg_tow${i}`, `files/MAP/tow${i}.webp`);
+            }
+            this.load.once('complete', () => {
+                onReady();
+            });
+            this.load.start();
+        };
+
         this.tweens.add({
             targets: blackScreen,
             alpha: 1,
             duration: 800,
             onComplete: () => {
-                // テキストUI・立ち絵等のクリーンアップ
-                if (this.engine) {
-                    this.engine.cleanup();
-                }
+                ensureTowerAssets(() => {
+                    // テキストUI・立ち絵等のクリーンアップ
+                    if (this.engine) {
+                        this.engine.cleanup();
+                    }
 
-                // 4枚の画像（tow1〜tow4）を縦に隙間なく連結するコンテナを作成
-                const towerContainer = this.add.container(0, 0).setDepth(100);
+                    // 4枚の画像（tow1〜tow4）を縦に隙間なく連結するコンテナを作成
+                    const towerContainer = this.add.container(0, 0).setDepth(100);
 
-                // 画像の実寸は 400x400px → 画面幅に合わせてスケール
-                const IMG_SRC_SIZE = 400;
-                const imgScale = width / IMG_SRC_SIZE;
-                const sliceHeight = IMG_SRC_SIZE * imgScale; // = width px
-                const totalHeight = sliceHeight * 4;
+                    // 画像の実寸は 400x400px → 画面幅に合わせてスケール
+                    const IMG_SRC_SIZE = 400;
+                    const imgScale = width / IMG_SRC_SIZE;
+                    const sliceHeight = IMG_SRC_SIZE * imgScale; // = width px
+                    const totalHeight = sliceHeight * 4;
 
-                // 下から順に配置: tow1(1F-15F)が最下部, tow4(46F-60F)が最上部
-                const tow4Key = this.textures.exists('tow4') ? 'tow4' : 'bg_tow4';
-                const tow3Key = this.textures.exists('tow3') ? 'tow3' : 'bg_tow3';
-                const tow2Key = this.textures.exists('tow2') ? 'tow2' : 'bg_tow2';
-                const tow1Key = this.textures.exists('tow1') ? 'tow1' : 'bg_tow1';
+                    // 下から順に配置: tow1(1F-15F)が最下部, tow4(46F-60F)が最上部
+                    const tow4Key = this.textures.exists('tow4') ? 'tow4' : 'bg_tow4';
+                    const tow3Key = this.textures.exists('tow3') ? 'tow3' : 'bg_tow3';
+                    const tow2Key = this.textures.exists('tow2') ? 'tow2' : 'bg_tow2';
+                    const tow1Key = this.textures.exists('tow1') ? 'tow1' : 'bg_tow1';
 
-                const tow4 = this.add.image(width / 2, sliceHeight * 0.5, tow4Key)
-                    .setScale(imgScale).setOrigin(0.5, 0.5);
-                const tow3 = this.add.image(width / 2, sliceHeight * 1.5, tow3Key)
-                    .setScale(imgScale).setOrigin(0.5, 0.5);
-                const tow2 = this.add.image(width / 2, sliceHeight * 2.5, tow2Key)
-                    .setScale(imgScale).setOrigin(0.5, 0.5);
-                const tow1 = this.add.image(width / 2, sliceHeight * 3.5, tow1Key)
-                    .setScale(imgScale).setOrigin(0.5, 0.5);
+                    const tow4 = this.add.image(width / 2, sliceHeight * 0.5, tow4Key)
+                        .setScale(imgScale).setOrigin(0.5, 0.5);
+                    const tow3 = this.add.image(width / 2, sliceHeight * 1.5, tow3Key)
+                        .setScale(imgScale).setOrigin(0.5, 0.5);
+                    const tow2 = this.add.image(width / 2, sliceHeight * 2.5, tow2Key)
+                        .setScale(imgScale).setOrigin(0.5, 0.5);
+                    const tow1 = this.add.image(width / 2, sliceHeight * 3.5, tow1Key)
+                        .setScale(imgScale).setOrigin(0.5, 0.5);
 
-                towerContainer.add([tow4, tow3, tow2, tow1]);
+                    towerContainer.add([tow4, tow3, tow2, tow1]);
 
-                // 初期位置: 最下部 (tow1) の底が画面下端に一致する位置
-                const startY = height - totalHeight;
-                // 終了位置: 最上部 (tow4) の天辺が画面上端に一致する位置
-                const endY = 0;
+                    // 初期位置: 最下部 (tow1) の底が画面下端に一致する位置
+                    const startY = height - totalHeight;
+                    // 終了位置: 最上部 (tow4) の天辺が画面上端に一致する位置
+                    const endY = 0;
 
-                towerContainer.setPosition(0, startY);
+                    towerContainer.setPosition(0, startY);
 
-                let cutsceneFinished = false;
-                const finishCutscene = () => {
-                    if (cutsceneFinished) return;
-                    cutsceneFinished = true;
+                    let cutsceneFinished = false;
+                    const finishCutscene = () => {
+                        if (cutsceneFinished) return;
+                        cutsceneFinished = true;
 
-                    // 暗転してタワー内マップ（AdventureScene / isTower: true）へ進軍！
+                        // 暗転してタワー内マップ（AdventureScene / isTower: true）へ進軍！
+                        this.tweens.add({
+                            targets: blackScreen,
+                            alpha: 1,
+                            duration: 800,
+                            onComplete: () => {
+                                const gs = GlobalState.getInstance();
+                                gs.isTowerMode = true;
+                                gs.hasEnteredTower = true;
+
+                                this.scene.stop('EventScene');
+                                const advScene = this.scene.get('AdventureScene');
+                                let party = ['001'];
+                                if (advScene && advScene.party && advScene.party.length > 0) {
+                                    party = advScene.party;
+                                }
+                                TransitionManager.transitionTo(this, 'AdventureScene', {
+                                    isTower: true,
+                                    party: party
+                                });
+                            }
+                        });
+                    };
+
+                    // タップでスキップ可能にするインタラクション
+                    const skipZone = this.add.zone(0, 0, width, height)
+                        .setOrigin(0, 0).setDepth(99998).setInteractive();
+                    skipZone.once('pointerdown', () => {
+                        finishCutscene();
+                    });
+
+                    // 暗転をフェードイン（タワー最下層が映し出される）
                     this.tweens.add({
                         targets: blackScreen,
-                        alpha: 1,
-                        duration: 800,
+                        alpha: 0,
+                        duration: 1000,
                         onComplete: () => {
-                            const gs = GlobalState.getInstance();
-                            gs.isTowerMode = true;
-                            gs.hasEnteredTower = true;
-
-                            this.scene.stop('EventScene');
-                            const advScene = this.scene.get('AdventureScene');
-                            let party = ['001'];
-                            if (advScene && advScene.party && advScene.party.length > 0) {
-                                party = advScene.party;
-                            }
-                            TransitionManager.transitionTo(this, 'AdventureScene', {
-                                isTower: true,
-                                party: party
+                            // 下(tow1)から上(tow4)へ15秒かけてゆっくりスクロール！
+                            this.tweens.add({
+                                targets: towerContainer,
+                                y: endY,
+                                duration: 15000,
+                                ease: 'Linear',
+                                onComplete: () => {
+                                    finishCutscene();
+                                }
                             });
                         }
                     });
-                };
-
-                // タップでスキップ可能にするインタラクション
-                const skipZone = this.add.zone(0, 0, width, height)
-                    .setOrigin(0, 0).setDepth(99998).setInteractive();
-                skipZone.once('pointerdown', () => {
-                    finishCutscene();
-                });
-
-                // 暗転をフェードイン（タワー最下層が映し出される）
-                this.tweens.add({
-                    targets: blackScreen,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: () => {
-                        // 下(tow1)から上(tow4)へ15秒かけてゆっくりスクロール！
-                        this.tweens.add({
-                            targets: towerContainer,
-                            y: endY,
-                            duration: 15000,
-                            ease: 'Linear',
-                            onComplete: () => {
-                                finishCutscene();
-                            }
-                        });
-                    }
                 });
             }
         });

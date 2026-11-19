@@ -507,11 +507,11 @@ export class EventEngine {
 
         const createAndShowImage = (texKey) => {
             if (this._destroyed) return;
-            const img = this.scene.add.image(this.W / 2, this.H / 2, texKey)
-                .setOrigin(0.5, 1)
+            const visualH = this.H * 0.62;
+            const img = this.scene.add.image(this.W / 2, visualH / 2, texKey)
+                .setOrigin(0.5, 0.5)
                 .setDepth(this.DEPTH + 1)
                 .setAlpha(this.isFastForward ? 1 : 0);
-            img.y = this.H / 2;
             img.setScale(this.W / (img.width || 1));
 
             if (this.isFastForward) {
@@ -546,6 +546,8 @@ export class EventEngine {
             `files/event/${noUnderKey}.webp`,
             `files/event/${key}.webp`,
             `files/event/${cleanKey}.webp`,
+            `files/event/${key}.jpg`,
+            `files/event/${cleanKey}.jpg`,
             `files/event2/${key}.jpg`,
             `files/event2/${cleanKey}.jpg`,
             `files/MAP/${cleanKey}.webp`

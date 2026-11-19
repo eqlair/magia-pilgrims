@@ -356,6 +356,11 @@ export default class BootScene extends Phaser.Scene {
         this.load.json('tower_enemies', 'files/DATA/tower_enemies.json');
         this.load.json('hint_53f', 'files/DATA/53Fhint.json');
         this.load.image('bg_tower01', 'files/MAP/tow1.webp');
+        // タワー外観カットシーン用画像（tow1〜tow4、合計約180KB）
+        for (let i = 1; i <= 4; i++) {
+            this.load.image(`tow${i}`, `files/MAP/tow${i}.webp`);
+            this.load.image(`bg_tow${i}`, `files/MAP/tow${i}.webp`);
+        }
 
         // タイトル・オープニング・初回地上マップ必須サウンドのみ先行ロード
         this.load.image('op_title', 'files/OP/title.webp');
