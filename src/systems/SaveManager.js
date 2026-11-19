@@ -64,6 +64,7 @@ export class SaveManager {
                 historicExploredHexes: gs.historicExploredHexes ? JSON.parse(JSON.stringify(gs.historicExploredHexes)) : { normal: {}, tower: {} },
                 jikukanState: gs.jikukanState ? JSON.parse(JSON.stringify(gs.jikukanState)) : null,
                 savedFormation: gs.savedFormation ? JSON.parse(JSON.stringify(gs.savedFormation)) : {},
+                preferredFormationPositions: gs.preferredFormationPositions ? JSON.parse(JSON.stringify(gs.preferredFormationPositions)) : {},
                 normalParty: gs.normalParty ? [...gs.normalParty] : ['001'],
                 normalFormation: gs.normalFormation ? JSON.parse(JSON.stringify(gs.normalFormation)) : {},
                 towerParty: gs.towerParty ? [...gs.towerParty] : ['001'],
@@ -367,6 +368,16 @@ export class SaveManager {
             }
         }
         if (d.savedFormation) gs.savedFormation = d.savedFormation;
+        if (d.preferredFormationPositions) {
+            gs.preferredFormationPositions = d.preferredFormationPositions;
+            if (gs.characters) {
+                for (const cid in gs.preferredFormationPositions) {
+                    if (gs.characters[cid]) {
+                        gs.characters[cid].preferredFront = gs.preferredFormationPositions[cid];
+                    }
+                }
+            }
+        }
         if (d.normalParty) gs.normalParty = d.normalParty;
         if (d.normalFormation) gs.normalFormation = d.normalFormation;
         if (d.towerParty) gs.towerParty = d.towerParty;

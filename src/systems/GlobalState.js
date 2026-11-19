@@ -44,6 +44,21 @@ export class GlobalState {
         return GlobalState.PHYSICAL_CHAR_IDS.includes(norm);
     }
 
+    // 🛡️ キャラクター基本配置適正（初期値: true=前衛適正, false=後衛適正）
+    static DEFAULT_PREFERRED_POSITIONS = {
+        '001': true,  // 紫苑: 前衛適正
+        '002': true,  // 蒼樹: 前衛適正
+        '003': true,  // 紅華: 前衛適正
+        '004': false, // 黄蘭: 後衛適正
+        '005': false, // 李乃果: 後衛適正
+        '006': true,  // さくら: 前衛適正
+        '007': true,  // ななよ: 前衛適正
+        '008': false, // ノア: 後衛適正
+        '009': false, // リフィエル: 後衛適正
+        '010': false, // プロセル: 後衛適正
+        '011': false  // 白蓮: 後衛適正
+    };
+
     constructor() {
         if (typeof window !== 'undefined' && window.__MAGIA_GLOBAL_STATE_INSTANCE__) {
             GlobalState.instance = window.__MAGIA_GLOBAL_STATE_INSTANCE__;
@@ -122,6 +137,7 @@ export class GlobalState {
         
         // 保存された隊列編成データ（通常マップ用 / 塔用を完全分離して保持）
         this.savedFormation = {};
+        this.preferredFormationPositions = {}; // 各キャラクターの標準配置位置 { [charId]: boolean } (true=前衛, false=後衛)
         this.normalParty = ['001'];
         this.normalFormation = {};
         this.towerParty = ['001'];
@@ -1954,8 +1970,8 @@ export class GlobalState {
             this.stockSp = currentSp;
         }
 
-        // パーティ初期化（紫苑のみ：中央後衛）
-        this.savedFormation = { '001': { lane: 0, isFront: false } };
+        // パーティ初期化（紫苑のみ：標準配置位置）
+        this.savedFormation = { '001': { lane: 0, isFront: this.getPreferredFront('001') } };
 
 
         // 全キャラクターステータスの初期化
@@ -2101,9 +2117,45 @@ export class GlobalState {
 
 
     /**
+     * キャラクターの標準配置位置を取得（プレイヤー保存値があればそれを優先、なければ基本適正）
+     * @param {string} charId 
+     * @returns {boolean} true=前衛, false=後衛
+     */
+    getPreferredFront(charId) {
+        const normId = (charId || '').toString().padStart(3, '0');
+        if (this.preferredFormationPositions && this.preferredFormationPositions[normId] !== undefined) {
+            return !!this.preferredFormationPositions[normId];
+        }
+        if (this.characters && this.characters[normId] && this.characters[normId].preferredFront !== undefined) {
+            return !!this.characters[normId].preferredFront;
+        }
+        if (GlobalState.DEFAULT_PREFERRED_POSITIONS[normId] !== undefined) {
+            return !!GlobalState.DEFAULT_PREFERRED_POSITIONS[normId];
+        }
+        return false; // デフォルトは後衛
+    }
+
+    /**
+     * キャラクターの標準配置位置を更新・保存（プレイヤーが隊列画面等で設定した際に上書き）
+     * @param {string} charId 
+     * @param {boolean} isFront 
+     */
+    setPreferredFront(charId, isFront) {
+        const normId = (charId || '').toString().padStart(3, '0');
+        if (!this.preferredFormationPositions) {
+            this.preferredFormationPositions = {};
+        }
+        this.preferredFormationPositions[normId] = !!isFront;
+        if (this.characters && this.characters[normId]) {
+            this.characters[normId].preferredFront = !!isFront;
+        }
+        console.log(`[GlobalState] setPreferredFront for ${normId}: ${isFront ? 'Front' : 'Back'}`);
+    }
+
+    /**
      * 新規メンバー加入時の自動隊列割り当て
-     * 優先レーン順 (0 ➔ -1 ➔ -2 ➔ 1 ➔ 2) で調べ、
-     * 前列にも後列にも誰も居ない完全な空きレーンの後列 (isFront: false) に最優先で配置する。
+     * キャラクターの標準配置位置（基本適正、またはプレイヤーが過去に設定した保存値）に基づき、
+     * 優先レーン順 (0 ➔ -1 ➔ -2 ➔ 1 ➔ 2) で空きレーンを検索して自動配置する。
      */
     assignFormationForNewMember(charId) {
         if (!this.savedFormation) {
@@ -2120,50 +2172,53 @@ export class GlobalState {
             return this.savedFormation[charId]; // 既に割り当て済み
         }
 
+        const targetIsFront = this.getPreferredFront(charId);
+
         // センター(0), 左1(-1), 左2(-2), 右1(1), 右2(2) の順で優先探査
         const searchLanes = [0, -1, -2, 1, 2];
 
-        // 1. 前列・後列に関わらず「誰も居ない完全空きレーン」の【後列】を最優先で検索
+        // 1. 前列・後列に関わらず「誰も居ない完全空きレーン」の【希望列 (targetIsFront)】を最優先で検索
         for (const lane of searchLanes) {
             const isAnyInLane = Object.values(this.savedFormation).some(
                 f => f && f.lane === lane
             );
             if (!isAnyInLane) {
-                const formation = { lane: lane, isFront: false };
+                const formation = { lane: lane, isFront: targetIsFront };
                 this.savedFormation[charId] = formation;
-                console.log(`[GlobalState] Auto assigned ${charId} to clean lane ${lane} (Back)`);
+                console.log(`[GlobalState] Auto assigned ${charId} to clean lane ${lane} (${targetIsFront ? 'Front' : 'Back'})`);
                 return formation;
             }
         }
 
-        // 2. 全5レーンに最低1人は居る場合、後列が空いているレーンを検索
+        // 2. 全5レーンに最低1人は居る場合、希望列 (targetIsFront) が空いているレーンを検索
         for (const lane of searchLanes) {
-            const isBackOccupied = Object.values(this.savedFormation).some(
-                f => f && f.lane === lane && f.isFront === false
+            const isTargetColOccupied = Object.values(this.savedFormation).some(
+                f => f && f.lane === lane && f.isFront === targetIsFront
             );
-            if (!isBackOccupied) {
-                const formation = { lane: lane, isFront: false };
+            if (!isTargetColOccupied) {
+                const formation = { lane: lane, isFront: targetIsFront };
                 this.savedFormation[charId] = formation;
-                console.log(`[GlobalState] Auto assigned ${charId} to lane ${lane} (Back fallback)`);
+                console.log(`[GlobalState] Auto assigned ${charId} to lane ${lane} (${targetIsFront ? 'Front' : 'Back'} fallback)`);
                 return formation;
             }
         }
 
-        // 3. 後列も埋まっている場合、前列が空いているレーンを検索
+        // 3. 希望列が埋まっている場合、反対側の列が空いているレーンを検索
+        const oppositeFront = !targetIsFront;
         for (const lane of searchLanes) {
-            const isFrontOccupied = Object.values(this.savedFormation).some(
-                f => f && f.lane === lane && f.isFront === true
+            const isOppositeOccupied = Object.values(this.savedFormation).some(
+                f => f && f.lane === lane && f.isFront === oppositeFront
             );
-            if (!isFrontOccupied) {
-                const formation = { lane: lane, isFront: true };
+            if (!isOppositeOccupied) {
+                const formation = { lane: lane, isFront: oppositeFront };
                 this.savedFormation[charId] = formation;
-                console.log(`[GlobalState] Auto assigned ${charId} to lane ${lane} (Front fallback)`);
+                console.log(`[GlobalState] Auto assigned ${charId} to lane ${lane} (${oppositeFront ? 'Front' : 'Back'} secondary fallback)`);
                 return formation;
             }
         }
 
         // 4. 万が一すべて埋まっていた場合
-        const fallback = { lane: 0, isFront: false };
+        const fallback = { lane: 0, isFront: targetIsFront };
         this.savedFormation[charId] = fallback;
         return fallback;
     }

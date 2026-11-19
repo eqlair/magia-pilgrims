@@ -115,6 +115,9 @@ export default class FormationScene extends Phaser.Scene {
                     lane: char.lane,
                     isFront: char.isFront
                 };
+                if (typeof this.globalState.setPreferredFront === 'function') {
+                    this.globalState.setPreferredFront(char.charId, char.isFront);
+                }
             }
             this.globalState.autoLanes = JSON.parse(JSON.stringify(this.autoLanes));
             const hasAnyAutoLane = Object.values(this.autoLanes).some(v => !!v);
@@ -247,29 +250,30 @@ export default class FormationScene extends Phaser.Scene {
                 this.simulateGacha100Seconds();
             });
 
+            const debugBtnStyle = {
+                fontFamily: 'sans-serif',
+                fontSize: '13px',
+                fontStyle: 'bold',
+                color: '#000000',
+                backgroundColor: '#ffea00',
+                padding: { x: 8, y: 5 }
+            };
+
             // 画面右上チートボタン群（タップ操作用）
-            const btnLv7 = this.add.text(width - 16, 16, '⚔️ 全Lv7 (J)', {
-                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffea00',
-                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
-            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            const btnLv7 = this.add.text(width - 16, 16, '🐝 全Lv7 (J)', debugBtnStyle)
+                .setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
             btnLv7.on('pointerdown', () => this.applyAllAttackLevel7());
 
-            const btnExp = this.add.text(width - 16, 52, '💰 EXP,SP5万点 (L)', {
-                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#66ff88',
-                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
-            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            const btnExp = this.add.text(width - 16, 52, '🐝 EXP,SP5万点 (L)', debugBtnStyle)
+                .setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
             btnExp.on('pointerdown', () => this.applyCheatExpSp());
 
-            const btnRelics = this.add.text(width - 16, 88, '💎 レリクス･宝石パック (K)', {
-                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#88ddff',
-                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
-            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            const btnRelics = this.add.text(width - 16, 88, '🐝 レリクス･宝石パック (K)', debugBtnStyle)
+                .setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
             btnRelics.on('pointerdown', () => this.applyCheatRelics());
 
-            const btnGacha = this.add.text(width - 16, 124, '🎲 ガチャ100回 (H)', {
-                fontFamily: 'sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffcc66',
-                backgroundColor: '#000000cc', padding: { x: 8, y: 5 }
-            }).setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
+            const btnGacha = this.add.text(width - 16, 124, '🐝 ガチャ100回 (H)', debugBtnStyle)
+                .setOrigin(1, 0).setDepth(2000).setInteractive({ useHandCursor: true });
             btnGacha.on('pointerdown', () => this.simulateGacha100Seconds());
         }
     }
