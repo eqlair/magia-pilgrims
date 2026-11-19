@@ -262,8 +262,14 @@ export default class BattleScene extends Phaser.Scene {
             const bgCenterX = width / 2;
             const bgCenterY = height / 2;
             const baseScale = 0.62;
-            const texKey = this.textures.exists('KrakenBG') ? 'KrakenBG' : (this.textures.exists('kraken_bg') ? 'kraken_bg' : 'KrakenBG');
-            const bg = this.add.image(bgCenterX, bgCenterY, texKey);
+            let bg;
+            if (this.textures.exists('KrakenBG')) {
+                bg = this.add.image(bgCenterX, bgCenterY, 'KrakenBG');
+            } else if (this.textures.exists('kraken_bg')) {
+                bg = this.add.image(bgCenterX, bgCenterY, 'kraken_bg');
+            } else {
+                bg = this.add.rectangle(bgCenterX, bgCenterY, width * 2, height * 2, 0x051020);
+            }
             bg.setOrigin(0.5, 0.5);
             bg.setScale(baseScale * 1.10, baseScale);
             bg.setDepth(-100);
@@ -387,9 +393,13 @@ export default class BattleScene extends Phaser.Scene {
         } else {
             // 専用BGMキーの特定（bgmKey または bossBgmKey）
             const reqBgmKey = this.battleConfig.bgmKey || (isImmediateBoss ? this.battleConfig.bossBgmKey : null);
-            
-            // 🎵 専用BGMが指定されているが未ロードの場合：Now Loading... を表示して完了を待つ！
-            if (reqBgmKey && !this.cache.audio.exists(reqBgmKey)) {
+            const isKrakenBattle = !!(this.battleConfig.isKrakenBossBattle || this.battleConfig.fromIkebukuro02Event || this.battleConfig.isKrakenBossTest);
+
+            const needsKrakenLoad = isKrakenBattle && (!this.textures.exists('kraken_a') && !this.textures.exists('KrakenA'));
+            const needsBgmLoad = reqBgmKey && !this.cache.audio.exists(reqBgmKey);
+
+            // 🎵 専用BGMまたはクラーケンアセットが指定されているが未ロードの場合：Now Loading... を表示して完了を待つ！
+            if (needsKrakenLoad || needsBgmLoad) {
                 this.isPaused = true; // ロード完了まで戦闘進行を一時停止
                 
                 const { width, height } = this.scale;
@@ -412,7 +422,7 @@ export default class BattleScene extends Phaser.Scene {
                 });
                 loadingContainer.add([loadBg, loadText]);
 
-                AssetLoader.ensureBgm(this, reqBgmKey, () => {
+                const onLoaded = () => {
                     this.isPaused = false;
                     this.tweens.add({
                         targets: loadingContainer,
@@ -421,7 +431,19 @@ export default class BattleScene extends Phaser.Scene {
                         onComplete: () => loadingContainer.destroy()
                     });
                     this._startBattleBgm(reqBgmKey, isImmediateBoss);
-                });
+                };
+
+                if (needsKrakenLoad) {
+                    AssetLoader.ensureKrakenAssets(this, () => {
+                        if (needsBgmLoad && !this.cache.audio.exists(reqBgmKey)) {
+                            AssetLoader.ensureBgm(this, reqBgmKey, onLoaded);
+                        } else {
+                            onLoaded();
+                        }
+                    });
+                } else {
+                    AssetLoader.ensureBgm(this, reqBgmKey, onLoaded);
+                }
             } else {
                 this._startBattleBgm(reqBgmKey, isImmediateBoss);
             }

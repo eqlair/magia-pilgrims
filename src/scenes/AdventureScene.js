@@ -378,28 +378,27 @@ export default class AdventureScene extends Phaser.Scene {
 
             // ★ タワー21階 C40セル (row: 39, col: 2): プロセル巨大氷像の置物スプライト
             if (this.isTowerMode && h.row === 39 && h.col === 2) {
-                if (this.textures.exists('enemy_prc_a')) {
+                const addProcellStatue = () => {
+                    if (h.procellStatue || !h.container || !h.container.scene) return;
                     h.procellStatue = this.add.sprite(0, 0, 'enemy_prc_a');
                     const prcW = h.procellStatue.width || 342;
                     h.procellStatue.setScale(140.0 / prcW);
                     h.procellStatue.setOrigin(0.5, 0.95);
                     h.procellStatue.setVisible(!gs.tower21BossDefeated);
                     h.container.add(h.procellStatue);
+                };
+
+                if (this.textures.exists('enemy_prc_a')) {
+                    addProcellStatue();
                 } else {
-                    // 未ロード時の安全フォールバック（緑枠を出さずロード完了時にテクスチャを適用）
-                    h.procellStatue = this.add.sprite(0, 0, 'enemy_prc_a').setVisible(false);
+                    // 未ロード時は空スプライトを作らず、ロード完了イベントで生成（緑のMissing Textureを完全防止）
                     this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
                     this.load.once('filecomplete-image-enemy_prc_a', () => {
-                        if (h.procellStatue && h.procellStatue.scene) {
-                            h.procellStatue.setTexture('enemy_prc_a');
-                            const prcW = h.procellStatue.width || 342;
-                            h.procellStatue.setScale(140.0 / prcW);
-                            h.procellStatue.setOrigin(0.5, 0.95);
-                            h.procellStatue.setVisible(!gs.tower21BossDefeated);
-                        }
+                        addProcellStatue();
                     });
-                    this.load.start();
-                    h.container.add(h.procellStatue);
+                    if (!this.load.isLoading()) {
+                        this.load.start();
+                    }
                 }
             }
 
@@ -2828,6 +2827,12 @@ export default class AdventureScene extends Phaser.Scene {
                 if (this.cache && this.cache.audio && !this.cache.audio.exists('tow_frozen_silence_b')) {
                     AssetLoader.ensureBgm(this, 'tow_frozen_silence_b');
                 }
+            }
+
+            // 🐙 クラーケンアセットのスマート先読み:
+            // 深海エリア（45F〜47F: floor 44〜46）に突入した時にバックグラウンドで先読み
+            if (floor >= 44 && floor <= 46 && !this.textures.exists('kraken_a')) {
+                AssetLoader.ensureKrakenAssets(this);
             }
             if (floor <= 52) {
                 // 53F以下（黒の部屋など）に到達または戻った場合はリセット
@@ -8575,6 +8580,11 @@ export default class AdventureScene extends Phaser.Scene {
             if (this.cache && this.cache.audio && !this.cache.audio.exists('tow_frozen_silence_b')) {
                 AssetLoader.ensureBgm(this, 'tow_frozen_silence_b');
             }
+        }
+
+        // 🐙 クラーケンアセットのスマート先読み（EVワープ時）
+        if (targetFloor >= 45 && targetFloor <= 47 && !this.textures.exists('kraken_a')) {
+            AssetLoader.ensureKrakenAssets(this);
         }
 
         // 自動保存

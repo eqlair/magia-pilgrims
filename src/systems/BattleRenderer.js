@@ -388,11 +388,13 @@ export class BattleRenderer {
     _updateKrakenBoss(kraken) {
         if (!this.krakenSpriteA) {
             // A（顔・目、下層）
-            this.krakenSpriteA = this.scene.add.image(0, 0, 'kraken_a');
+            const texA = this.scene.textures.exists('kraken_a') ? 'kraken_a' : (this.scene.textures.exists('KrakenA') ? 'KrakenA' : 'kraken_a');
+            this.krakenSpriteA = this.scene.add.image(0, 0, texA);
             this.krakenSpriteA.setOrigin(0.5, 0.5);
 
             // B（頭部マントル、上層）
-            this.krakenSpriteB = this.scene.add.image(0, 0, 'kraken_b');
+            const texB = this.scene.textures.exists('kraken_b') ? 'kraken_b' : (this.scene.textures.exists('KrakenB') ? 'KrakenB' : 'kraken_b');
+            this.krakenSpriteB = this.scene.add.image(0, 0, texB);
             this.krakenSpriteB.setOrigin(0.5, 0.5);
 
             this.krakenBodyBX = 0;
@@ -400,8 +402,9 @@ export class BattleRenderer {
 
             // 8本の触手Ropeを生成
             this.krakenRopes = [];
+            const texC = this.scene.textures.exists('kraken_c') ? 'kraken_c' : (this.scene.textures.exists('KrakenC') ? 'KrakenC' : 'kraken_c');
             kraken.tentacles.forEach(t => {
-                const rope = this.scene.add.rope(0, 0, 'kraken_c', null, kraken.SEGMENTS, false);
+                const rope = this.scene.add.rope(0, 0, texC, null, kraken.SEGMENTS, false);
                 rope.nodeHalfWidths = new Float32Array(kraken.SEGMENTS);
 
                 rope.updateVertices = function() {

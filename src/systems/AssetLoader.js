@@ -259,6 +259,9 @@ export class AssetLoader {
             { type: 'image', key: 'KrakenA', url: 'files/ENEMY/KrakenA.png' },
             { type: 'image', key: 'KrakenB', url: 'files/ENEMY/KrakenB.png' },
             { type: 'image', key: 'KrakenC', url: 'files/ENEMY/KrakenC.png' },
+            { type: 'image', key: 'kraken_a', url: 'files/ENEMY/KrakenA.png' },
+            { type: 'image', key: 'kraken_b', url: 'files/ENEMY/KrakenB.png' },
+            { type: 'image', key: 'kraken_c', url: 'files/ENEMY/KrakenC.png' },
             { type: 'audio', key: 'tow_Kraken', url: 'files/BGM/tow_Kraken.mp3' },
             { type: 'audio', key: 'unknoun_terror', url: 'files/BGM/unknoun_terror.mp3' },
         ];
