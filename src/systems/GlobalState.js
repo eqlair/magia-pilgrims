@@ -7,8 +7,8 @@ import { RelicGenerator } from './RelicGenerator.js';
 
 export class GlobalState {
     static instance = null;
-    static IS_DEBUG_MODE = false; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
-    static ALLOW_DEBUG_TOGGLE = false; // デバッグ切り替え許可フラグ（デバッグモード時のみ有効化）
+    static IS_DEBUG_MODE = true; // デバッグモードフラグ（通常リリース版: false / デバッグ版: true）
+    static ALLOW_DEBUG_TOGGLE = true; // デバッグ切り替え許可フラグ（デバッグモード時のみ有効化）
 
     // ⚔️ 物理・魔法キャラクターの公式分類
     static PHYSICAL_CHAR_IDS = ['001', '002', '003', '007', '009']; // 紫苑, 蒼樹, 紅華, ななよ, リフィエル
