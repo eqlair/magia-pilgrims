@@ -378,12 +378,29 @@ export default class AdventureScene extends Phaser.Scene {
 
             // ★ タワー21階 C40セル (row: 39, col: 2): プロセル巨大氷像の置物スプライト
             if (this.isTowerMode && h.row === 39 && h.col === 2) {
-                h.procellStatue = this.add.sprite(0, 0, 'enemy_prc_a');
-                const prcW = h.procellStatue.width || 342;
-                h.procellStatue.setScale(140.0 / prcW);
-                h.procellStatue.setOrigin(0.5, 0.95);
-                h.procellStatue.setVisible(!gs.tower21BossDefeated);
-                h.container.add(h.procellStatue);
+                if (this.textures.exists('enemy_prc_a')) {
+                    h.procellStatue = this.add.sprite(0, 0, 'enemy_prc_a');
+                    const prcW = h.procellStatue.width || 342;
+                    h.procellStatue.setScale(140.0 / prcW);
+                    h.procellStatue.setOrigin(0.5, 0.95);
+                    h.procellStatue.setVisible(!gs.tower21BossDefeated);
+                    h.container.add(h.procellStatue);
+                } else {
+                    // 未ロード時の安全フォールバック（緑枠を出さずロード完了時にテクスチャを適用）
+                    h.procellStatue = this.add.sprite(0, 0, 'enemy_prc_a').setVisible(false);
+                    this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
+                    this.load.once('filecomplete-image-enemy_prc_a', () => {
+                        if (h.procellStatue && h.procellStatue.scene) {
+                            h.procellStatue.setTexture('enemy_prc_a');
+                            const prcW = h.procellStatue.width || 342;
+                            h.procellStatue.setScale(140.0 / prcW);
+                            h.procellStatue.setOrigin(0.5, 0.95);
+                            h.procellStatue.setVisible(!gs.tower21BossDefeated);
+                        }
+                    });
+                    this.load.start();
+                    h.container.add(h.procellStatue);
+                }
             }
 
             
@@ -1114,9 +1131,9 @@ export default class AdventureScene extends Phaser.Scene {
                 }
 
                 if (this.isTowerMode) {
-                    if (data.battleDuration) {
-                        gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + Math.round(data.battleDuration);
-                    }
+                    // 1戦につき「固定3分（180秒）＋ 実際の戦闘時間（秒）」を加算！
+                    const battleSec = Math.round(data.battleDuration || 0);
+                    gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 180 + battleSec;
                     const hexKey = `${this.playerCol}_${this.playerRow}`;
                     gs.towerClearedHexes[hexKey] = true;
                     // 塔での戦闘勝利時、食料を+40（上限140でカット）
@@ -4951,7 +4968,8 @@ export default class AdventureScene extends Phaser.Scene {
         CharacterLossManager.checkAndTriggerLoss(this, this.party, () => {
             if (this.isTowerMode) {
                 const gs = GlobalState.getInstance();
-                gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 600;
+                // 探索は1回5分（300秒）に短縮！
+                gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 300;
                 this._updateDateTimeDisplay();
                 this._checkTowerTimeUp();
                 return;

@@ -361,6 +361,9 @@ export default class BootScene extends Phaser.Scene {
             this.load.image(`tow${i}`, `files/MAP/tow${i}.webp`);
             this.load.image(`bg_tow${i}`, `files/MAP/tow${i}.webp`);
         }
+        // タワー21階ボス（プロセル氷像）敵スプライト
+        this.load.image('enemy_prc_a', 'files/ENEMY/prc_a.webp');
+        this.load.image('enemy_prc_b', 'files/ENEMY/prc_b.webp');
 
         // タイトル・オープニング・初回地上マップ必須サウンドのみ先行ロード
         this.load.image('op_title', 'files/OP/title.webp');
