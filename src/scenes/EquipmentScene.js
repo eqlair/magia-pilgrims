@@ -140,6 +140,17 @@ export default class EquipmentScene extends Phaser.Scene {
         return [char.equipGem];
     }
 
+    /** 強化時の必要素材数を取得（宝石は2個、レリクスは4個） */
+    getRequiredEnhanceCount() {
+        const isGem = (this.enhanceBaseItem && this.enhanceBaseItem.type === 'gem') || this.itemType === 'gem';
+        return isGem ? 2 : 4;
+    }
+
+    /** 合成時の必要アイテム数を取得（宝石は3個、レリクスは5個） */
+    getRequiredSynthCount() {
+        return this.itemType === 'gem' ? 3 : 5;
+    }
+
     /**
      * 時空館で指定アイテムを装備中のキャラクターとスロット情報を取得
      */
@@ -462,10 +473,11 @@ export default class EquipmentScene extends Phaser.Scene {
 
     drawEnhanceModeUI() {
         const item = this.enhanceBaseItem;
+        const reqCount = this.getRequiredEnhanceCount();
         this.midContainer.add(this.add.text(30, 30, `強化ベース: `, { fontSize: '18px', color: '#ffffff' }));
         this.drawColoredItem(this.midContainer, 130, 30, '', item, '18px');
         
-        this.midContainer.add(this.add.text(30, 60, `選択した素材 (${this.enhanceMaterials.length}/4)`, { fontSize: '18px', color: '#ffaaaa' }));
+        this.midContainer.add(this.add.text(30, 60, `選択した素材 (${this.enhanceMaterials.length}/${reqCount})`, { fontSize: '18px', color: '#ffaaaa' }));
 
         const btnCancel = this.add.text(this.width - 120, 30, 'キャンセル', { fontSize: '18px', backgroundColor: '#553333', padding: { x: 10, y: 5 } }).setInteractive();
         btnCancel.on('pointerdown', () => {
@@ -484,7 +496,7 @@ export default class EquipmentScene extends Phaser.Scene {
         });
         this.midContainer.add(btnAuto);
 
-        if (this.enhanceMaterials.length === 4) {
+        if (this.enhanceMaterials.length === reqCount) {
             const btnExec = this.add.text(this.width - 120, 120, '強化実行', { fontSize: '18px', backgroundColor: '#880000', color: '#ffffff', padding: { x: 10, y: 5 }, fontStyle: 'bold' }).setInteractive();
             btnExec.on('pointerdown', () => this.executeEnhance());
             this.midContainer.add(btnExec);
@@ -494,6 +506,7 @@ export default class EquipmentScene extends Phaser.Scene {
     autoSelectEnhanceMaterials() {
         if (!this.enhanceBaseItem) return;
         
+        const reqCount = this.getRequiredEnhanceCount();
         const inventory = this.getInventoryItems();
         const validMaterials = inventory.filter(item => {
             if (!item) return false;
@@ -504,12 +517,12 @@ export default class EquipmentScene extends Phaser.Scene {
             return true;
         });
 
-        this.enhanceMaterials = validMaterials.slice(0, 4);
+        this.enhanceMaterials = validMaterials.slice(0, reqCount);
         
-        if (this.enhanceMaterials.length < 4) {
+        if (this.enhanceMaterials.length < reqCount) {
             this.showToast(`適正な非ロック素材が${this.enhanceMaterials.length}個選択されました`);
         } else {
-            this.showToast('素材を自動選択しました (4/4)');
+            this.showToast(`素材を自動選択しました (${reqCount}/${reqCount})`);
         }
     }
 
@@ -701,7 +714,7 @@ export default class EquipmentScene extends Phaser.Scene {
                         
                         if (isMat) {
                             this.enhanceMaterials = this.enhanceMaterials.filter(m => m !== item);
-                        } else if (this.enhanceMaterials.length < 4) {
+                        } else if (this.enhanceMaterials.length < this.getRequiredEnhanceCount()) {
                             this.enhanceMaterials.push(item);
                         }
                         this.drawUI();
@@ -872,7 +885,8 @@ export default class EquipmentScene extends Phaser.Scene {
     }
 
     executeEnhance() {
-        if (this.enhanceMaterials.length !== 4) return;
+        const reqCount = this.getRequiredEnhanceCount();
+        if (this.enhanceMaterials.length !== reqCount) return;
         if (!this.enhanceBaseItem) return;
 
         const spCost = this.getSpCost(this.enhanceBaseItem.rank);
@@ -1006,6 +1020,7 @@ export default class EquipmentScene extends Phaser.Scene {
     executeSynthesis() {
         // 装備中、ロック中、通常または時空館のいずれかで装備中のアイテムを完全除外
         const items = this.getInventoryItems().filter(i => !i.isLocked && !i.isEquipped && !this.globalState.isEquippedAnywhere(i));
+        const reqCount = this.getRequiredSynthCount();
 
         // ランク別にグループ化
         const byRank = {};
@@ -1014,11 +1029,11 @@ export default class EquipmentScene extends Phaser.Scene {
             byRank[i.rank].push(i);
         });
 
-        // 5個以上あるランクのうち、最も低いものを探す
+        // reqCount個以上あるランクのうち、最も低いものを探す
         let targetRank = -1;
         const ranks = Object.keys(byRank).map(Number).sort((a, b) => a - b);
         for (const r of ranks) {
-            if (byRank[r].length >= 5) {
+            if (byRank[r].length >= reqCount) {
                 targetRank = r;
                 break;
             }
@@ -1030,13 +1045,13 @@ export default class EquipmentScene extends Phaser.Scene {
             this.synthConsumed = null;
             this.synthTargetRank = -1;
             this.synthConfirmMode = false;
-            this.showToast(`合成できる同ランクのロックされていない${typeLabel}が5個ありません`);
+            this.showToast(`合成できる同ランクのロックされていない${typeLabel}が${reqCount}個ありません`);
             this.drawUI();
             return;
         }
 
-        // 消費対象5個を確定してから確認ダイアログへ
-        const consumed = byRank[targetRank].slice(0, 5);
+        // 消費対象 reqCount 個を確定してから確認ダイアログへ
+        const consumed = byRank[targetRank].slice(0, reqCount);
         this.synthConsumed = consumed;
         this.synthTargetRank = targetRank;
         this.synthConfirmMode = true;
@@ -1392,7 +1407,6 @@ export default class EquipmentScene extends Phaser.Scene {
 
         const rankStr = this.getRankString(baseItem.rank);
         const nextRankStr = this.getRankString(baseItem.rank + 1);
-        const typeLabel = this.itemType === 'relic' ? 'レリクス' : '宝石';
 
         const itemH = 44;
 
@@ -1400,10 +1414,12 @@ export default class EquipmentScene extends Phaser.Scene {
         const currentSp = Math.floor(this.globalState.stockSp || 0);
         const hasEnoughSp = currentSp >= spCost;
         const spColor = hasEnoughSp ? '#ffee66' : '#ff5555';
+        const reqCount = this.getRequiredEnhanceCount();
+        const typeLabel = (baseItem.type === 'gem' || this.itemType === 'gem') ? '宝石' : 'レリクス';
 
         // --- topContainer ---
         this.topContainer.add(
-            this.add.text(20, 0, '【このレリクスを強化】', { fontSize: '18px', color: '#ffcc44', fontStyle: 'bold' })
+            this.add.text(20, 0, `【この${typeLabel}を強化】`, { fontSize: '18px', color: '#ffcc44', fontStyle: 'bold' })
         );
         this.topContainer.add(
             this.add.text(200, 2, `[${rankStr}${typeLabel} ➔ ${nextRankStr}${typeLabel}]`, { fontSize: '14px', color: '#aaffaa' })
@@ -1417,10 +1433,10 @@ export default class EquipmentScene extends Phaser.Scene {
 
         // ② 素材1〜2個目（topContainer）
         this.topContainer.add(
-            this.add.text(20, 72, `【消費素材 (素材数: ${this.enhanceMaterials.length}/4)】`, { fontSize: '14px', color: '#ffaaaa' })
+            this.add.text(20, 72, `【消費素材 (素材数: ${this.enhanceMaterials.length}/${reqCount})】`, { fontSize: '14px', color: '#ffaaaa' })
         );
 
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < Math.min(2, reqCount); i++) {
             const item = this.enhanceMaterials[i];
             const by = 92 + i * itemH;
             if (item) {
@@ -1437,25 +1453,27 @@ export default class EquipmentScene extends Phaser.Scene {
         }
 
         // --- midContainer ---
-        // ③ 素材3〜4個目（midContainer）
-        for (let i = 2; i < 4; i++) {
-            const item = this.enhanceMaterials[i];
-            const by = (i - 2) * itemH;
-            if (item) {
-                this.drawConfirmRelicItem(this.midContainer, 20, by, item, false, (mat) => {
-                    mat.isLocked = true;
-                    SaveManager.saveGame();
-                    this.showToast(`『${mat.name}』をロック保護しました`);
-                    this.autoSelectEnhanceMaterials();
-                    this.drawUI();
-                });
-            } else {
-                this.drawEmptyMaterialSlot(this.midContainer, 20, by, i + 1);
+        // ③ 素材3個目以降（レリクスなど素材数3以上の時のみ midContainer に描画）
+        if (reqCount > 2) {
+            for (let i = 2; i < reqCount; i++) {
+                const item = this.enhanceMaterials[i];
+                const by = (i - 2) * itemH;
+                if (item) {
+                    this.drawConfirmRelicItem(this.midContainer, 20, by, item, false, (mat) => {
+                        mat.isLocked = true;
+                        SaveManager.saveGame();
+                        this.showToast(`『${mat.name}』をロック保護しました`);
+                        this.autoSelectEnhanceMaterials();
+                        this.drawUI();
+                    });
+                } else {
+                    this.drawEmptyMaterialSlot(this.midContainer, 20, by, i + 1);
+                }
             }
         }
 
-        // 下部ボタン
-        const btnY = 2 * itemH + 6;
+        // 下部ボタン（宝石で素材2個の場合は midContainer の上部にスッキリ配置）
+        const btnY = (reqCount > 2) ? (2 * itemH + 6) : 10;
 
         // 自動選択ボタン
         const btnAuto = this.add.text(20, btnY, '🤖 自動選択', {
@@ -1481,8 +1499,8 @@ export default class EquipmentScene extends Phaser.Scene {
         });
         this.midContainer.add(btnCancel);
 
-        // 強化実行ボタン（4/4の時だけ表示）
-        if (this.enhanceMaterials.length === 4) {
+        // 強化実行ボタン（必要数が揃った時だけ表示）
+        if (this.enhanceMaterials.length === reqCount) {
             const btnExec = this.add.text(this.width - 145, btnY, '⚔️ 強化実行', {
                 fontSize: '16px', backgroundColor: '#880000', color: '#ffffff',
                 padding: { x: 16, y: 7 }, fontStyle: 'bold'
@@ -1509,6 +1527,7 @@ export default class EquipmentScene extends Phaser.Scene {
         const rankStr = this.getRankString(targetRank);
         const nextRankStr = this.getRankString(targetRank + 1);
         const typeLabel = this.itemType === 'relic' ? 'レリクス' : '宝石';
+        const reqCount = this.getRequiredSynthCount();
 
         const spCost = this.getSpCost(targetRank);
         const currentSp = Math.floor(this.globalState.stockSp || 0);
@@ -1521,7 +1540,7 @@ export default class EquipmentScene extends Phaser.Scene {
             this.add.text(20, 0, '【合成確認】', { fontSize: '18px', color: '#ffcc44' })
         );
         this.topContainer.add(
-            this.add.text(20, 22, `${rankStr}${typeLabel} × 5 → ${nextRankStr}${typeLabel} × 1`, {
+            this.add.text(20, 22, `${rankStr}${typeLabel} × ${reqCount} → ${nextRankStr}${typeLabel} × 1`, {
                 fontSize: '14px', color: '#aaaaaa'
             })
         );
@@ -1540,15 +1559,17 @@ export default class EquipmentScene extends Phaser.Scene {
         });
 
         // --- midContainer (y=260〜) ---
-        // 4〜5個目を midContainer に縦並びで表示
+        // 4個目以降を midContainer に縦並びで表示（レリクスなどの場合のみ）
         const midStartY = 0;
-        consumed.slice(3, 5).forEach((item, idx) => {
-            const by = midStartY + idx * itemH;
-            this.drawConfirmRelicItem(this.midContainer, 20, by, item);
-        });
+        if (reqCount > 3) {
+            consumed.slice(3, reqCount).forEach((item, idx) => {
+                const by = midStartY + idx * itemH;
+                this.drawConfirmRelicItem(this.midContainer, 20, by, item);
+            });
+        }
 
-        // はい / いいえ ボタン
-        const btnY = midStartY + 2 * itemH + 8;
+        // はい / いいえ ボタン（宝石で3個の場合は midContainer の上部に配置）
+        const btnY = (reqCount > 3) ? (midStartY + 2 * itemH + 8) : (midStartY + 12);
         const btnYes = this.add.text(this.width / 2 - 95, btnY, '  はい  ', {
             fontSize: '20px', backgroundColor: '#226622', color: '#ffffff',
             padding: { x: 16, y: 8 }, fontStyle: 'bold'
