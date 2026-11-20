@@ -2665,8 +2665,112 @@ export default class AdventureScene extends Phaser.Scene {
                 }
             }
 
+            // 🔮 地上マップ視界内（2マス以内）の未踏破・名前付きヘクスに対する「魔力の湧き出しエフェクト（淡い紫の加算合成）」
+            const isNamedHex = cell.name && !(cell.name === '水域' || cell.name === '密林' || cell.name.startsWith('x'));
+            const isUnvisitedLandmark = (!this.isTowerMode && !this.isWideMap && dist <= 2 && cell.visited !== 1 && isNamedHex);
+            if (isUnvisitedLandmark) {
+                this._createOrShowHexMist(h);
+            } else {
+                this._hideHexMist(h);
+            }
+        }
+    }
+
+    /** 名前付きヘクスの気配湧き出しエフェクト用グラデーションテクスチャの生成 */
+    _ensureMistTexture() {
+        if (this.textures.exists('eff_mist_particle')) return;
+        const canvas = this.textures.createCanvas('eff_mist_particle', 64, 64);
+        const ctx = canvas.context;
+        const radGrad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        // 案A: 淡い紫〜青白い光
+        radGrad.addColorStop(0, 'rgba(255, 245, 255, 0.95)'); // 中心: ほぼ白に近い淡紫
+        radGrad.addColorStop(0.25, 'rgba(215, 170, 255, 0.70)'); // 内側: 鮮やかな明るい紫
+        radGrad.addColorStop(0.55, 'rgba(160, 110, 255, 0.35)'); // 中間: 青紫
+        radGrad.addColorStop(0.85, 'rgba(110, 70, 230, 0.12)'); // 外側: 深い紫
+        radGrad.addColorStop(1, 'rgba(80, 40, 210, 0)'); // フチ: 完全透明
+        ctx.fillStyle = radGrad;
+        ctx.fillRect(0, 0, 64, 64);
+        canvas.refresh();
+    }
+
+    /** 未踏破ランドマークの魔力湧き出しエフェクトを生成または表示 */
+    _createOrShowHexMist(h) {
+        this._ensureMistTexture();
+        const posX = (h.container && h.container.x !== undefined) ? h.container.x : h.x;
+        const posY = (h.container && h.container.y !== undefined) ? h.container.y : h.y;
+
+        if (h.mistEffect) {
+            h.mistEffect.setPosition(posX, posY);
+            if (!h.mistEffect.visible) {
+                h.mistEffect.setVisible(true);
+            }
+            return;
         }
 
+        // mapContainer直下に配置（深度: ヘクスより上、プレイヤーより下）
+        const container = this.add.container(posX, posY);
+        container.setDepth(4);
+        this.mapContainer.add(container);
+        h.mistEffect = container;
+
+        // 湧き出るモヤ粒子（4個）を生成し、時間差でゆらゆらと上昇させる
+        const particleCount = 4;
+        container.mistParticles = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            const p = this.add.image(0, 0, 'eff_mist_particle');
+            p.setBlendMode(Phaser.BlendModes.ADD);
+            p.setAlpha(0);
+            p.setScale(0.25);
+            container.add(p);
+            container.mistParticles.push(p);
+
+            const delay = i * 550;
+            const duration = 2200 + Math.random() * 400;
+
+            const startParticleTween = () => {
+                if (!p.scene || !container.scene) return;
+                p.setPosition((Math.random() - 0.5) * 14, 0);
+                p.setScale(0.20 + Math.random() * 0.1);
+                p.setAlpha(0);
+
+                const targetX = p.x + (Math.random() - 0.5) * 22;
+                const targetY = -50 - Math.random() * 25;
+                const targetScale = 0.70 + Math.random() * 0.25;
+
+                this.tweens.add({
+                    targets: p,
+                    x: targetX,
+                    y: targetY,
+                    scaleX: targetScale,
+                    scaleY: targetScale * (this.mapTiltY || 0.65),
+                    alpha: {
+                        start: 0,
+                        to: 0.65,
+                        steps: [
+                            { value: 0.65, duration: duration * 0.35, ease: 'Sine.easeOut' },
+                            { value: 0, duration: duration * 0.65, ease: 'Sine.easeIn' }
+                        ]
+                    },
+                    duration: duration,
+                    ease: 'Quad.easeOut',
+                    onComplete: () => {
+                        if (container.visible && container.scene) {
+                            startParticleTween();
+                        }
+                    }
+                });
+            };
+
+            this.time.delayedCall(delay, startParticleTween);
+        }
+    }
+
+    /** 魔力湧き出しエフェクトを非表示 */
+    _hideHexMist(h) {
+        if (h && h.mistEffect && h.mistEffect.visible) {
+            h.mistEffect.setVisible(false);
+        }
     }
 
     /** 現在の編成メンバーの属性防御力を平均し、最高・最低の有利・不利属性番号を割り出す */
@@ -5852,11 +5956,11 @@ export default class AdventureScene extends Phaser.Scene {
         return true;
     }
 
-    /** 道場解放後にシルバードーム(k,11)到達で時空館解放イベント発生 */
+    /** 道場解放＆タワー突入経験後にシルバードーム(k,11)到達で時空館解放イベント発生 */
     checkJikuEvent(hex = null) {
         if (this.isTowerMode) return false;
         const gs = GlobalState.getInstance();
-        if (!gs.isDojoUnlocked || gs.jikuEventSeen) return false;
+        if (!gs.isDojoUnlocked || !gs.hasEnteredTower || gs.jikuEventSeen) return false;
 
         const targetHex = hex || this.grid[this.playerRow]?.[this.playerCol];
         const rawName = (targetHex && targetHex.cellData && targetHex.cellData.name) ? targetHex.cellData.name.replace(/\n/g, '').trim() : '';
