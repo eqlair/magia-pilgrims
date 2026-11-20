@@ -261,16 +261,21 @@ export class CharacterDetailHelper {
             ry += lineSpacing * 0.8;
 
             // 4行目: レベルを上げるボタン
-            const canLevelUp = (charData.exp + globalState.stockExp) >= reqExp;
+            const needsStock = charData.exp < reqExp;
+            const hasEnoughExp = (charData.exp + globalState.stockExp) >= reqExp;
+            const canStock = globalState.canStockLevelUp(charId, scene);
+            const canLevelUp = needsStock ? (hasEnoughExp && canStock) : hasEnoughExp;
+            const isStockLimit = needsStock && hasEnoughExp && !canStock;
+
             const btnBg = canLevelUp ? '#aa0000' : '#444444';
-            const btnColor = canLevelUp ? '#ffffff' : '#aaaaaa';
+            const btnColor = canLevelUp ? '#ffffff' : '#888888';
             const levelUpBtn = scene.add.text(rx, ry, 'レベルを上げる', {
                 fontSize: '22px', backgroundColor: btnBg, color: btnColor
             }).setPadding(10).setInteractive();
             
             levelUpBtn.on('pointerdown', () => {
                 if (canLevelUp) {
-                    const res = globalState.levelUp(charId, party);
+                    const res = globalState.levelUp(charId, party, scene);
                     if (res && res.success) {
                         SaveManager.saveGame();
                         if (res.isBonus && scene.showToast) {
@@ -281,11 +286,28 @@ export class CharacterDetailHelper {
                             scene.showToast(`Lv.UP！ レベルが${globalState.characters[charId].level}になりました`);
                         }
                         CharacterDetailHelper.showDetailView(scene, charId, parentSceneName, targetContainer, onBack);
+                    } else if (res && res.reason === 'limit' && scene.showToast) {
+                        const isTower = globalState.isTowerMode || scene.isTowerMode;
+                        scene.showToast(isTower ? 'ストックEXPでのLvUPは次の戦闘/探索/休憩後に可能です' : 'ストックEXPでのLvUPは次の時間帯に可能です');
                     }
+                } else if (isStockLimit && scene.showToast) {
+                    const isTower = globalState.isTowerMode || scene.isTowerMode;
+                    scene.showToast(isTower ? 'ストックEXPでのLvUPは次の戦闘/探索/休憩後に可能です' : 'ストックEXPでのLvUPは次の時間帯に可能です');
                 }
             });
             pageContainer.add(levelUpBtn);
             ry += lineSpacing * 0.9;
+
+            // ストックEXPレベル上げ制限時の注記テキスト
+            if (isStockLimit) {
+                const isTower = globalState.isTowerMode || scene.isTowerMode;
+                const limitNote = isTower ? '※ストックEXPでのLvUPは戦闘/探索/休憩後に可能' : '※ストックEXPでのLvUPは次の時間帯に可能';
+                const limitText = scene.add.text(rx, ry, limitNote, {
+                    fontSize: '14px', color: '#ffaaaa', stroke: '#000000', strokeThickness: 2
+                });
+                pageContainer.add(limitText);
+                ry += lineSpacing * 0.6;
+            }
         } else {
             // 時空館仕様：共有レベル適用の表示
             pageContainer.add(scene.add.text(rx, ry, `全員共通Lvが適用されています`, {

@@ -89,6 +89,8 @@ export class SaveManager {
                 seenJoinEvents: gs.seenJoinEvents ? [...gs.seenJoinEvents] : [],
                 isTowerMode: gs.isTowerMode || false,
                 hasEnteredTower: gs.hasEnteredTower || false,
+                towerActionCount: gs.towerActionCount || 0,
+                lastStockLevelUpCycle: gs.lastStockLevelUpCycle ? JSON.parse(JSON.stringify(gs.lastStockLevelUpCycle)) : {},
                 towerElapsedSeconds: gs.towerElapsedSeconds || 0,
                 isTowerTimeUpGameOver: gs.isTowerTimeUpGameOver || false,
                 obtainedTenInShou: !!gs.obtainedTenInShou,
@@ -449,6 +451,8 @@ export class SaveManager {
         }
         if (d.isTowerMode !== undefined) gs.isTowerMode = d.isTowerMode;
         if (d.hasEnteredTower !== undefined) gs.hasEnteredTower = d.hasEnteredTower;
+        if (d.towerActionCount !== undefined) gs.towerActionCount = d.towerActionCount;
+        if (d.lastStockLevelUpCycle !== undefined) gs.lastStockLevelUpCycle = d.lastStockLevelUpCycle || {};
         if (d.towerElapsedSeconds !== undefined) gs.towerElapsedSeconds = d.towerElapsedSeconds;
         if (d.isTowerTimeUpGameOver !== undefined) gs.isTowerTimeUpGameOver = d.isTowerTimeUpGameOver;
         if (d.obtainedTenInShou !== undefined) gs.obtainedTenInShou = d.obtainedTenInShou;

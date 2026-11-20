@@ -924,10 +924,15 @@ export default class TarotScene extends Phaser.Scene {
 
                 let script = null;
                 if (isReunion) {
+                    const leaderCharId = (this.party && this.party.length > 0) ? this.party[0] : '001';
+                    const leaderChar = gs.getCharacter(leaderCharId);
+                    const leaderName = leaderChar?.name || '紫苑';
                     script = [
                         { cmd: 'bg', key: this.bgKey || 'bg_map_base' },
                         { cmd: 'bgm', key: 'JOIN_US' },
-                        { cmd: 'text', name: '導きの再会', text: `タロットの導きにより、${charName}と再び巡り会った！\n運命の糸に手繰り寄せられ、再び共に歩むことになった。` }
+                        { cmd: 'chara', key: `portrait_${leaderCharId}`, pos: 'left' },
+                        { cmd: 'chara', key: `portrait_${joinCharId}`, pos: 'right' },
+                        { cmd: 'text', name: '再会', text: `${leaderName}は${charName}と再会することができた。\nまた一緒に旅を続けることにした。` }
                     ];
                 } else {
                     script = joinEvents && joinCharId && (joinEvents[joinCharId] || joinEvents[drawnCardId]);

@@ -98,6 +98,8 @@ export class GlobalState {
         this.tower21BossDefeated = false; // タワー21階ボス（プロセル氷像）撃破フラグ
         this.isTowerElevatorUnlocked = false; // タワーエレベーター解放フラグ（5F到達で解放）
         this.towerMaxFloorReached = 1; // タワー内到達最大フロア (1〜60)
+        this.towerActionCount = 0; // タワー内アクションカウンター（戦闘勝利・探索・休憩で+1）
+        this.lastStockLevelUpCycle = {}; // キャラ毎の最後にストックEXPレベル上げを行ったサイクル { [charId]: cycleId }
 
         
         // 通常マップのプレイヤー座標保持用
@@ -1509,8 +1511,43 @@ export class GlobalState {
         return { targetCharId, targetName, isBonus };
     }
 
+    // タワー内アクションカウンター増加
+    incrementTowerActionCount() {
+        this.towerActionCount = (this.towerActionCount || 0) + 1;
+        this.save();
+    }
+
+    // 現在のストックEXPレベル上げサイクル識別子を取得
+    getCurrentStockLevelUpCycle(scene = null) {
+        if (this.isTowerMode || (scene && scene.isTowerMode)) {
+            return `tower_${this.towerActionCount || 0}`;
+        }
+        const timeOfDay = (scene && scene.timeOfDay) || (['午前', '午後', '夜'][this.timePeriodIndex || 0]) || '午前';
+        const day = (scene && scene.currentDay) || this.currentDay || 1;
+        const month = (scene && scene.currentMonth) || this.currentMonth || 12;
+        return `ground_${month}_${day}_${timeOfDay}`;
+    }
+
+    // 指定キャラが現在のサイクルでストックEXPによるレベル上げが可能か判定
+    canStockLevelUp(charId, scene = null) {
+        if (!charId) return false;
+        const normId = this.normalizeCharId(charId);
+        const cycle = this.getCurrentStockLevelUpCycle(scene);
+        if (!this.lastStockLevelUpCycle) this.lastStockLevelUpCycle = {};
+        return this.lastStockLevelUpCycle[normId] !== cycle;
+    }
+
+    // 指定キャラのストックEXPレベル上げ実施を記録
+    recordStockLevelUp(charId, scene = null) {
+        if (!charId) return;
+        const normId = this.normalizeCharId(charId);
+        if (!this.lastStockLevelUpCycle) this.lastStockLevelUpCycle = {};
+        this.lastStockLevelUpCycle[normId] = this.getCurrentStockLevelUpCycle(scene);
+        this.save();
+    }
+
     // レベルを上げる処理
-    levelUp(charId, party = null) {
+    levelUp(charId, party = null, scene = null) {
         const char = this.characters[charId];
         if (!char) return null;
 
@@ -1518,6 +1555,12 @@ export class GlobalState {
         const totalAvailable = char.exp + this.stockExp;
 
         if (totalAvailable >= reqExp) {
+            // ストックEXPを消費する必要がある場合の回数制限チェック
+            const needsStock = char.exp < reqExp;
+            if (needsStock && !this.canStockLevelUp(charId, scene)) {
+                return { success: false, reason: 'limit' };
+            }
+
             // 必要な経験値をキャラのEXPとストックから差し引く
             let remainingCost = reqExp - char.exp;
             
@@ -1528,6 +1571,7 @@ export class GlobalState {
                 // ストックEXPも消費する場合
                 char.exp = 0;
                 this.stockExp -= remainingCost;
+                this.recordStockLevelUp(charId, scene);
             }
 
             // レベルアップ前の最大HP
@@ -1604,6 +1648,8 @@ export class GlobalState {
             towerSeenAreas: JSON.parse(JSON.stringify(this.towerSeenAreas || {})),
             towerElapsedSeconds: this.towerElapsedSeconds || 0,
             isTowerTimeUpGameOver: this.isTowerTimeUpGameOver || false,
+            towerActionCount: this.towerActionCount || 0,
+            lastStockLevelUpCycle: JSON.parse(JSON.stringify(this.lastStockLevelUpCycle || {})),
 
             maxPastExp: this.maxPastExp || 0,
             currentRunTotalExp: this.currentRunTotalExp || 0,
@@ -1766,7 +1812,8 @@ export class GlobalState {
         if (!charId) return false;
         const normId = this.normalizeCharId(charId);
         if (this.seenJoinEvents && this.seenJoinEvents.includes(normId)) return true;
-        if (this.isEventSeen(`join_${normId}`)) return true;
+        // 🛠️ デバッグモードによる一括強制既読を避けるため、実際の記録配列を直接チェック
+        if (this.seenEventHistory && this.seenEventHistory.includes(`join_${normId}`)) return true;
         const char = this.characters ? this.characters[normId] : null;
         if (char && char.hasAccompanied) return true;
         return false;
@@ -1892,6 +1939,8 @@ export class GlobalState {
 
         // ② 集計を終えたのでストック経験値は0にリセット！
         this.stockExp = 0;
+        this.towerActionCount = 0;
+        this.lastStockLevelUpCycle = {};
 
         // 編成のリセット（紫苑のみを残してみんな離脱）
         this.savedFormation = {

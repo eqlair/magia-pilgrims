@@ -1115,6 +1115,7 @@ export default class AdventureScene extends Phaser.Scene {
                 this._drainFoodInTower();
                 // 休息1回で60分（3600秒）経過
                 gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 3600;
+                gs.incrementTowerActionCount(); // 塔アクションカウント+1（ストックEXPレベル上げ回数更新）
                 this._updateDateTimeDisplay();
                 if (this._checkTowerTimeUp()) return;
             }
@@ -1140,6 +1141,7 @@ export default class AdventureScene extends Phaser.Scene {
                         gs.food = Math.min(140, (gs.food || 0) + 40);
                         this._updateFoodDisplay();
                     }
+                    gs.incrementTowerActionCount(); // 塔アクションカウント+1（ストックEXPレベル上げ回数更新）
                     this._updateDateTimeDisplay();
                     if (this._checkTowerTimeUp()) return;
                     const currentFloor = 59 - this.playerRow;
@@ -1342,10 +1344,17 @@ export default class AdventureScene extends Phaser.Scene {
 
                         let storyEvents = null;
                         if (isReunion) {
+                            const leaderId = (this.party && this.party.length > 0) ? this.party[0] : '001';
+                            const leaderChar = gs.getCharacter(leaderId);
+                            const leaderName = leaderChar?.name || '紫苑';
+                            const curHex = this.grid[this.playerRow]?.[this.playerCol];
+                            const towerBgKey = curHex ? this.findBgImageFile(curHex.col, curHex.row, curHex.cellData) : 'bg_tower_base';
                             storyEvents = [
-                                { cmd: 'bg', key: 'bg_tower_base' },
+                                { cmd: 'bg', key: towerBgKey },
                                 { cmd: 'bgm', key: 'JOIN_US' },
-                                { cmd: 'text', name: '再会', text: `「……あ、紫苑！ 無事だったんだ！」\n塔の中で${charName}と再び巡り会い、心強い仲間として合流した！` }
+                                { cmd: 'chara', key: `portrait_${leaderId}`, pos: 'left' },
+                                { cmd: 'chara', key: `portrait_${normId}`, pos: 'right' },
+                                { cmd: 'text', name: '再会', text: `${leaderName}は${charName}と再会することができた。\nまた一緒に旅を続けることにした。` }
                             ];
                         } else if (chosenCharId && joinEventsJson) {
                             storyEvents = joinEventsJson[chosenCharId] || joinEventsJson[parseInt(chosenCharId, 10)];
@@ -4893,10 +4902,15 @@ export default class AdventureScene extends Phaser.Scene {
                     // ★ 周回再会ショートイベント（「はじめまして」の初対面を回避し自然に再合流）
                     const curHex = this.grid[this.playerRow]?.[this.playerCol];
                     const bgKey = curHex ? this.findBgImageFile(curHex.col, curHex.row, curHex.cellData) : 'bg_map_base';
+                    const leaderId = (this.party && this.party.length > 0) ? this.party[0] : '001';
+                    const leaderChar = gs.getCharacter(leaderId);
+                    const leaderName = leaderChar?.name || '紫苑';
                     storyEvents = [
                         { cmd: 'bg', key: bgKey },
                         { cmd: 'bgm', key: 'JOIN_US' },
-                        { cmd: 'text', name: '再会', text: `「……あっ！ 紫苑！」\n見覚えのある姿に駆け寄る。\n${charName}と再び巡り会い、共に歩む仲間として列に加わった！` }
+                        { cmd: 'chara', key: `portrait_${leaderId}`, pos: 'left' },
+                        { cmd: 'chara', key: `portrait_${normJoinId}`, pos: 'right' },
+                        { cmd: 'text', name: '再会', text: `${leaderName}は${charName}と再会することができた。\nまた一緒に旅を続けることにした。` }
                     ];
                 } else if (joinEventsJson) {
                     storyEvents = joinEventsJson[normJoinId] || joinEventsJson[parseInt(normJoinId, 10)] || [];
@@ -4984,6 +4998,7 @@ export default class AdventureScene extends Phaser.Scene {
                 const gs = GlobalState.getInstance();
                 // 探索は1回5分（300秒）に短縮！
                 gs.towerElapsedSeconds = (gs.towerElapsedSeconds || 0) + 300;
+                gs.incrementTowerActionCount(); // 塔アクションカウント+1（ストックEXPレベル上げ回数更新）
                 this._updateDateTimeDisplay();
                 this._checkTowerTimeUp();
                 return;
