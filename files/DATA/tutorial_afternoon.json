@@ -1,0 +1,10 @@
+[
+  { "cmd": "bg", "key": "bg_img_12_1" },
+  { "cmd": "chara", "key": "portrait_001", "pos": "right" },
+  { "cmd": "text", "name": "紫苑", "body": "どこも化け物だらけだ、ひどい目に遭った…" },
+  { "cmd": "text", "name": "紫苑", "body": "あまり大きく移動はしないで周辺を調べてみようかな" },
+  { "cmd": "text", "name": "紫苑", "body": "化け物に見つからないように…" },
+  { "cmd": "text", "name": "", "body": "(探索を選んでみてください。)" },
+  { "cmd": "clearText" },
+  { "cmd": "end" }
+]
