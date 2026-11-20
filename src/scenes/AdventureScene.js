@@ -2678,19 +2678,35 @@ export default class AdventureScene extends Phaser.Scene {
 
     /** 名前付きヘクスの気配湧き出しエフェクト用グラデーションテクスチャの生成 */
     _ensureMistTexture() {
-        if (this.textures.exists('eff_mist_particle')) return;
-        const canvas = this.textures.createCanvas('eff_mist_particle', 64, 64);
-        const ctx = canvas.context;
-        const radGrad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        // 案A: 淡い紫〜青白い光
-        radGrad.addColorStop(0, 'rgba(255, 245, 255, 0.95)'); // 中心: ほぼ白に近い淡紫
-        radGrad.addColorStop(0.25, 'rgba(215, 170, 255, 0.70)'); // 内側: 鮮やかな明るい紫
-        radGrad.addColorStop(0.55, 'rgba(160, 110, 255, 0.35)'); // 中間: 青紫
-        radGrad.addColorStop(0.85, 'rgba(110, 70, 230, 0.12)'); // 外側: 深い紫
-        radGrad.addColorStop(1, 'rgba(80, 40, 210, 0)'); // フチ: 完全透明
-        ctx.fillStyle = radGrad;
-        ctx.fillRect(0, 0, 64, 64);
-        canvas.refresh();
+        if (!this.textures.exists('eff_mist_particle')) {
+            const canvas = this.textures.createCanvas('eff_mist_particle', 64, 64);
+            const ctx = canvas.context;
+            const radGrad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            // 案A: 淡い紫〜青白い光
+            radGrad.addColorStop(0, 'rgba(255, 245, 255, 0.95)'); // 中心: ほぼ白に近い淡紫
+            radGrad.addColorStop(0.25, 'rgba(215, 170, 255, 0.70)'); // 内側: 鮮やかな明るい紫
+            radGrad.addColorStop(0.55, 'rgba(160, 110, 255, 0.35)'); // 中間: 青紫
+            radGrad.addColorStop(0.85, 'rgba(110, 70, 230, 0.12)'); // 外側: 深い紫
+            radGrad.addColorStop(1, 'rgba(80, 40, 210, 0)'); // フチ: 完全透明
+            ctx.fillStyle = radGrad;
+            ctx.fillRect(0, 0, 64, 64);
+            canvas.refresh();
+        }
+
+        // 💧 水滴が落ちたような光の輪（波紋/リング）テクスチャ
+        if (!this.textures.exists('eff_mist_ring')) {
+            const rCanvas = this.textures.createCanvas('eff_mist_ring', 96, 96);
+            const rCtx = rCanvas.context;
+            const cx = 48, cy = 48, radius = 38;
+            rCtx.beginPath();
+            rCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            rCtx.lineWidth = 4;
+            rCtx.strokeStyle = 'rgba(225, 185, 255, 0.85)';
+            rCtx.shadowColor = 'rgba(190, 130, 255, 0.95)';
+            rCtx.shadowBlur = 8;
+            rCtx.stroke();
+            rCanvas.refresh();
+        }
     }
 
     /** 未踏破ランドマークの魔力湧き出しエフェクトを生成または表示 */
@@ -2713,42 +2729,86 @@ export default class AdventureScene extends Phaser.Scene {
         this.mapContainer.add(container);
         h.mistEffect = container;
 
-        // 湧き出るモヤ粒子（4個）を生成し、時間差でゆらゆらと上昇させる
-        const particleCount = 4;
-        container.mistParticles = [];
+        const tilt = this.mapTiltY || 0.65;
 
+        // 💧 1. 発生場所の水滴の波紋（光の輪）
+        const ringCount = 2;
+        for (let i = 0; i < ringCount; i++) {
+            const ring = this.add.image(0, 0, 'eff_mist_ring');
+            ring.setBlendMode(Phaser.BlendModes.ADD);
+            ring.setAlpha(0);
+            ring.setScale(0.1);
+            container.add(ring);
+
+            const ringDelay = i * 950;
+            const ringDuration = 1700 + Math.random() * 300;
+
+            const startRingTween = () => {
+                if (!ring.scene || !container.scene) return;
+                // 発生位置をヘクス内で少し広めに散らす（X: ±30px, Y: ±12px）
+                const startX = (Math.random() - 0.5) * 60;
+                const startY = (Math.random() - 0.5) * 22;
+                ring.setPosition(startX, startY);
+                ring.setScale(0.1, 0.1 * tilt);
+                ring.setAlpha(0.75);
+
+                const targetScale = 0.60 + Math.random() * 0.20;
+
+                this.tweens.add({
+                    targets: ring,
+                    scaleX: targetScale,
+                    scaleY: targetScale * tilt,
+                    alpha: 0,
+                    duration: ringDuration,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => {
+                        if (container.visible && container.scene) {
+                            startRingTween();
+                        }
+                    }
+                });
+            };
+
+            this.time.delayedCall(ringDelay, startRingTween);
+        }
+
+        // 🔮 2. 湧き出るモヤ粒子（上昇速度・距離を従来の半分に抑え、発生位置を広げる）
+        const particleCount = 3;
         for (let i = 0; i < particleCount; i++) {
             const p = this.add.image(0, 0, 'eff_mist_particle');
             p.setBlendMode(Phaser.BlendModes.ADD);
             p.setAlpha(0);
             p.setScale(0.25);
             container.add(p);
-            container.mistParticles.push(p);
 
-            const delay = i * 550;
-            const duration = 2200 + Math.random() * 400;
+            const delay = i * 600;
+            const duration = 1600 + Math.random() * 300; // 時間も短くゆっくり
 
             const startParticleTween = () => {
                 if (!p.scene || !container.scene) return;
-                p.setPosition((Math.random() - 0.5) * 14, 0);
-                p.setScale(0.20 + Math.random() * 0.1);
+                // 発生位置をヘクス内で広げる（X: ±30px, Y: ±12px）
+                const startX = (Math.random() - 0.5) * 60;
+                const startY = (Math.random() - 0.5) * 24;
+                p.setPosition(startX, startY);
+                p.setScale(0.22 + Math.random() * 0.08);
                 p.setAlpha(0);
 
-                const targetX = p.x + (Math.random() - 0.5) * 22;
-                const targetY = -50 - Math.random() * 25;
-                const targetScale = 0.70 + Math.random() * 0.25;
+                // 上昇距離を従来の半分（-20〜-32px程度）に抑制
+                const targetX = startX + (Math.random() - 0.5) * 16;
+                const targetY = startY - (18 + Math.random() * 14);
+                const targetScale = 0.55 + Math.random() * 0.18;
 
                 this.tweens.add({
                     targets: p,
                     x: targetX,
                     y: targetY,
                     scaleX: targetScale,
-                    scaleY: targetScale * (this.mapTiltY || 0.65),
+                    scaleY: targetScale * tilt,
                     alpha: {
                         start: 0,
-                        to: 0.65,
+                        to: 0.60,
                         steps: [
-                            { value: 0.65, duration: duration * 0.35, ease: 'Sine.easeOut' },
+                            { value: 0.60, duration: duration * 0.35, ease: 'Sine.easeOut' },
                             { value: 0, duration: duration * 0.65, ease: 'Sine.easeIn' }
                         ]
                     },
